@@ -1,0 +1,117 @@
+@import 'tailwindcss';
+
+@theme inline {
+  /* Fonts */
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius scale */
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+
+  /* Base semantic tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  /* Finax brand */
+  --color-finax: var(--finax);
+  --color-finax-dark: var(--finax-dark);
+  --color-finax-soft: var(--finax-soft);
+  --color-finax-soft-2: var(--finax-soft-2);
+
+  /* Neutrals */
+  --color-grafito: var(--grafito);
+  --color-graylight: var(--graylight);
+
+  /* States */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+
+  /* AXIS identity */
+  --color-axis-violet: var(--axis-violet);
+  --color-axis-blue: var(--axis-blue);
+  --color-axis-indigo: var(--axis-indigo);
+  --color-axis-soft: var(--axis-soft);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: #f4f6f4;
+  --foreground: #1f2937;
+
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+
+  --muted: #f1f3f1;
+  --muted-foreground: #6b7280;
+
+  --border: #eceeec;
+  --ring: #0ea676;
+
+  /* Finax green */
+  --finax: #0ea676;
+  --finax-dark: #0b8560;
+  --finax-soft: #e7f5ef;
+  --finax-soft-2: #d6efe4;
+
+  --grafito: #1f2937;
+  --graylight: #e5e7eb;
+
+  --positive: #0ea676;
+  --negative: #ef4444;
+  --negative-soft: #fdecec;
+
+  /* AXIS */
+  --axis-violet: #6366f1;
+  --axis-blue: #818cf8;
+  --axis-indigo: #4f46e5;
+  --axis-soft: #eef0ff;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Hide scrollbars on the phone frame while keeping scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes axis-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.015); }
+}
+.axis-float {
+  animation: axis-float 6s ease-in-out infinite;
+}
+
+@keyframes axis-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+.axis-pulse {
+  animation: axis-pulse 5s ease-in-out infinite;
+}
