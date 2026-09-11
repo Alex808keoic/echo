@@ -6,6 +6,9 @@ import { AxisSphere } from './axis-sphere'
 
 export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'axis'
 
+/** Pantallas secundarias accesibles desde las pestañas principales. */
+export type ScreenKey = TabKey | 'objetivos' | 'inversiones' | 'ajustes'
+
 interface Tab {
   key: TabKey
   label: string
@@ -19,6 +22,11 @@ const tabs: Tab[] = [
   { key: 'estadisticas', label: 'Estadísticas', icon: (p) => <StatsIcon {...p} /> },
   { key: 'axis', label: 'AXIS', icon: () => <span /> },
 ]
+
+/** Pestañas principales. */
+export function isTab(screen: ScreenKey): screen is TabKey {
+  return tabs.some((t) => t.key === screen)
+}
 
 interface BottomNavigationProps {
   active: TabKey

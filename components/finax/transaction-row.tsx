@@ -1,22 +1,30 @@
-import type { Transaction } from '@/lib/demo-data'
-import { formatCurrency } from '@/lib/format'
-import { transactionIconMap } from './icons'
+import { movementLabel, type Movement } from '@/lib/types'
+import { formatCents } from '@/lib/money'
+import { formatShortDate } from '@/lib/dates'
+import { categoryIconMap } from './icons'
 import { cn } from '@/lib/utils'
 
 interface TransactionRowProps {
-  transaction: Transaction
+  movement: Movement
+  onClick?: () => void
 }
 
 /**
- * Fila de movimiento: chip de icono, nombre + categoría,
- * importe (verde ingreso / rojo gasto) y hora.
+ * Fila de movimiento: chip de icono, etiqueta + categoría,
+ * importe (verde ingreso / rojo gasto) y fecha.
  */
-export function TransactionRow({ transaction }: TransactionRowProps) {
-  const Icon = transactionIconMap[transaction.icon]
-  const isIncome = transaction.type === 'income'
+export function TransactionRow({ movement, onClick }: TransactionRowProps) {
+  const Icon = categoryIconMap[movement.category]
+  const isIncome = movement.type === 'ingreso'
+  const label = movementLabel(movement)
+  const subtitle = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
 
   return (
-    <div className="flex items-center gap-3.5 py-3">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3.5 py-3 text-left"
+    >
       <span
         className={cn(
           'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
@@ -27,25 +35,18 @@ export function TransactionRow({ transaction }: TransactionRowProps) {
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-bold text-grafito">{transaction.name}</p>
-        <p className="truncate text-[12px] font-medium text-muted-foreground">
-          {transaction.category}
-        </p>
+        <p className="truncate text-[14px] font-bold text-grafito">{label}</p>
+        <p className="truncate text-[12px] font-medium text-muted-foreground">{subtitle}</p>
       </div>
 
       <div className="shrink-0 text-right">
-        <p
-          className={cn(
-            'text-[14px] font-bold tabular-nums',
-            isIncome ? 'text-finax' : 'text-negative',
-          )}
-        >
-          {formatCurrency(transaction.amount, true)}
+        <p className={cn('text-[14px] font-bold tabular-nums', isIncome ? 'text-finax' : 'text-negative')}>
+          {formatCents(isIncome ? movement.amountCents : -movement.amountCents, true)}
         </p>
         <p className="mt-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
-          {transaction.time}
+          {formatShortDate(movement.date)}
         </p>
       </div>
-    </div>
+    </button>
   )
 }

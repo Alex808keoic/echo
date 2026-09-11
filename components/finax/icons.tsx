@@ -216,43 +216,6 @@ export function SalaryIcon(props: IconProps) {
   )
 }
 
-export function StreamingIcon(props: IconProps) {
-  return (
-    <Base {...props}>
-      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
-      <path d="m10 9.5 5 2.5-5 2.5z" fill="currentColor" stroke="none" />
-    </Base>
-  )
-}
-
-export function TransferIcon(props: IconProps) {
-  return (
-    <Base {...props}>
-      <rect x="3.5" y="6" width="17" height="12" rx="2" />
-      <path d="M3.5 10h17" />
-      <path d="M7 14.5h3" />
-    </Base>
-  )
-}
-
-export function FuelIcon(props: IconProps) {
-  return (
-    <Base {...props}>
-      <path d="M5 20V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14M4 20h11" />
-      <path d="M14 9h2.5a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 0 1.5 1.5v0A1.5 1.5 0 0 0 22 16V9l-2.5-2.5" />
-      <path d="M7 8h4" />
-    </Base>
-  )
-}
-
-export function EnergyIcon(props: IconProps) {
-  return (
-    <Base {...props}>
-      <path d="M13 2 5 13h6l-1 9 8-11h-6l1-9Z" />
-    </Base>
-  )
-}
-
 export function RestaurantIcon(props: IconProps) {
   return (
     <Base {...props}>
@@ -262,27 +225,88 @@ export function RestaurantIcon(props: IconProps) {
   )
 }
 
-export function HouseCategoryIcon(props: IconProps) {
+export function ShoppingBagIcon(props: IconProps) {
   return (
     <Base {...props}>
-      <path d="M4 11 12 4l8 7M6 10v9h12v-9" />
+      <path d="M6 8h12l-1 12H7L6 8Z" />
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+    </Base>
+  )
+}
+
+export function GiftIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="4" y="9" width="16" height="11" rx="1.5" />
+      <path d="M4 13h16M12 9v11M12 9c-2 0-4.5-.5-4.5-2.5S10 4 12 9c2-5 4.5-4 4.5-2S14 9 12 9Z" />
+    </Base>
+  )
+}
+
+export function TicketIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 8.5V10a2 2 0 0 0 0 4v1.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 15.5V14a2 2 0 0 0 0-4V8.5Z" />
+      <path d="M10 7v10" strokeDasharray="2 2" />
+    </Base>
+  )
+}
+
+export function DotsIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </Base>
+  )
+}
+
+export function ChevronLeft(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="m15 6-6 6 6 6" />
+    </Base>
+  )
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Base>
+  )
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M5 7h14M10 11v6M14 11v6M6.5 7l.8 12a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9l.8-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </Base>
+  )
+}
+
+export function TrendUpIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M4 17l5-5 4 4 7-8" />
+      <path d="M15 8h5v5" />
     </Base>
   )
 }
 
 /* --------------------------- Mapa de categorías --------------------------- */
 
-import type { TransactionIconKey } from '@/lib/demo-data'
+import type { Category } from '@/lib/types'
 
-export const transactionIconMap: Record<
-  TransactionIconKey,
-  (props: IconProps) => React.ReactElement
-> = {
-  groceries: GroceriesIcon,
-  salary: SalaryIcon,
-  streaming: StreamingIcon,
-  transfer: TransferIcon,
-  fuel: FuelIcon,
-  energy: EnergyIcon,
-  restaurant: RestaurantIcon,
+export const categoryIconMap: Record<Category, (props: IconProps) => React.ReactElement> = {
+  Comida: GroceriesIcon,
+  Restaurantes: RestaurantIcon,
+  Salidas: TicketIcon,
+  Caprichos: SparkIcon,
+  Ropa: ShoppingBagIcon,
+  Otros: DotsIcon,
+  Trabajo: SalaryIcon,
+  Regalos: GiftIcon,
 }
+

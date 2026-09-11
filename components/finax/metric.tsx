@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { ArrowUp, ArrowDown } from './icons'
 
@@ -27,32 +26,5 @@ export function ChangeBadge({ pct, direction, tone = 'positive', className }: Ch
       )}
       {pct}
     </span>
-  )
-}
-
-interface MetricProps {
-  label: string
-  value: string
-  icon?: ReactNode
-  change?: ReactNode
-  tone?: 'income' | 'expense' | 'neutral'
-}
-
-/**
- * Métrica compacta (ingresos / gastos) con icono superior,
- * valor y variación. Usada en tarjetas de resumen.
- */
-export function Metric({ label, value, icon, change, tone = 'neutral' }: MetricProps) {
-  const valueColor =
-    tone === 'income' ? 'text-finax' : tone === 'expense' ? 'text-negative' : 'text-grafito'
-  return (
-    <div>
-      <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <div className={cn('mt-1.5 text-[19px] font-bold tracking-tight', valueColor)}>{value}</div>
-      {change && <div className="mt-1">{change}</div>}
-    </div>
   )
 }

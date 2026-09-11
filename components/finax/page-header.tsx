@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ChevronLeft } from './icons'
 
 interface PageHeaderProps {
   title: string
@@ -72,5 +73,32 @@ export function IconButton({ children, label, onClick, variant = 'circle' }: Ico
     >
       {children}
     </button>
+  )
+}
+
+interface SubPageHeaderProps {
+  title: string
+  subtitle?: string
+  onBack: () => void
+  action?: ReactNode
+}
+
+/** Cabecera de pantalla secundaria: botón «atrás» + título. */
+export function SubPageHeader({ title, subtitle, onBack, action }: SubPageHeaderProps) {
+  return (
+    <header className="flex items-center gap-3">
+      <IconButton label="Volver" onClick={onBack}>
+        <ChevronLeft className="h-5 w-5" />
+      </IconButton>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-[22px] font-extrabold leading-tight tracking-tight text-grafito">
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="mt-0.5 text-[12.5px] font-medium text-muted-foreground text-pretty">{subtitle}</p>
+        )}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </header>
   )
 }
