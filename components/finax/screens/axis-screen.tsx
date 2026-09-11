@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import { formatCents } from '@/lib/money'
 import { useAxis } from '@/hooks/use-axis'
-import type { AxisAnalysis, AxisContext } from '@/lib/axis/types'
+import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
+import type { FinancialOverview } from '@/hooks/use-financial-overview'
 import { AxisSphere } from '../axis-sphere'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
@@ -21,7 +22,10 @@ import {
   ChevronRight,
 } from '../icons'
 import type { ScreenKey } from '../bottom-navigation'
+import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
+
+type Navigate = (screen: ScreenKey) => void
 
 function greeting(): string {
   const hour = new Date().getHours()
@@ -40,12 +44,46 @@ function Layer({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function SituationCard({ context, onNavigate }: { context: AxisContext; onNavigate: (s: ScreenKey) => void }) {
-  const active = context.objectives.filter((o) => o.currentCents < o.targetCents).length
+function Bullets({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-1.5">
+      {items.map((f) => (
+        <li key={f} className="flex gap-2 text-[12.5px] font-medium text-muted-foreground">
+          <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+          <span className="text-pretty">{f}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function NextStepButton({ step, onNavigate }: { step: AxisNextStep; onNavigate: Navigate }) {
+  return (
+    <Button
+      variant="axis"
+      fullWidth
+      className="mt-4"
+      icon={<ArrowUpRight className="h-4 w-4" />}
+      onClick={() => step.to && onNavigate(step.to)}
+    >
+      {step.label}
+    </Button>
+  )
+}
+
+const PRIORITY_LABEL: Record<Priority, string> = {
+  critical: 'Prioritario',
+  high: 'Atención',
+  medium: 'A vigilar',
+  low: 'Informativo',
+}
+
+function SituationCard({ overview, onNavigate }: { overview: FinancialOverview; onNavigate: Navigate }) {
+  const active = overview.objectivesTotals.activeCount
   const rows: Array<{ key: string; label: string; value: string; icon: ReactNode; to: ScreenKey }> = [
-    { key: 'patrimonio', label: 'Patrimonio', value: formatCents(context.patrimonioCents), icon: <MoneyIcon className="h-[18px] w-[18px]" />, to: 'dinero' },
-    { key: 'ingresos', label: 'Ingresos (mes)', value: formatCents(context.monthIncomeCents), icon: <ArrowUp className="h-[18px] w-[18px]" />, to: 'movimientos' },
-    { key: 'gastos', label: 'Gastos (mes)', value: formatCents(context.monthExpenseCents), icon: <ArrowDown className="h-[18px] w-[18px]" />, to: 'estadisticas' },
+    { key: 'patrimonio', label: 'Patrimonio', value: formatCents(overview.patrimonioCents), icon: <MoneyIcon className="h-[18px] w-[18px]" />, to: 'dinero' },
+    { key: 'ingresos', label: 'Ingresos (mes)', value: formatCents(overview.month.incomeCents), icon: <ArrowUp className="h-[18px] w-[18px]" />, to: 'movimientos' },
+    { key: 'gastos', label: 'Gastos (mes)', value: formatCents(overview.month.expenseCents), icon: <ArrowDown className="h-[18px] w-[18px]" />, to: 'estadisticas' },
     { key: 'objetivos', label: 'Objetivos', value: `${active} activo${active === 1 ? '' : 's'}`, icon: <TargetIcon className="h-[18px] w-[18px]" />, to: 'objetivos' },
   ]
   return (
@@ -76,17 +114,33 @@ function SituationCard({ context, onNavigate }: { context: AxisContext; onNaviga
   )
 }
 
-function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate: ScreenProps['onNavigate'] }) {
+function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate: Navigate }) {
+  const { data, interpretation, recommendation, alternatives, uncertainty, conclusion } = analysis
   return (
     <>
+      {data.facts.length > 0 && (
+        <Layer label="Datos">
+          <Bullets items={data.facts} />
+        </Layer>
+      )}
+
       <Layer label="Interpretación">
-        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{analysis.interpretation}</p>
-        {analysis.facts.length > 0 && (
-          <ul className="mt-3 space-y-1.5">
-            {analysis.facts.map((f) => (
-              <li key={f} className="flex gap-2 text-[12.5px] font-medium text-muted-foreground">
-                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                <span className="text-pretty">{f}</span>
+        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{interpretation.summary}</p>
+        {interpretation.signals.length > 1 && (
+          <ul className="mt-3 space-y-2">
+            {interpretation.signals.slice(1).map((s) => (
+              <li key={s.id} className="flex items-start gap-2 text-[12.5px] font-medium text-muted-foreground">
+                <span
+                  className={cn(
+                    'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    s.priority === 'critical' || s.priority === 'high'
+                      ? 'bg-negative-soft text-negative'
+                      : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  {PRIORITY_LABEL[s.priority]}
+                </span>
+                <span className="text-pretty">{s.text}</span>
               </li>
             ))}
           </ul>
@@ -96,20 +150,20 @@ function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate
       <div className="rounded-3xl border border-axis-violet/15 bg-axis-soft p-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-axis-indigo/70">Recomendación</p>
         <div className="mt-1.5 flex items-center gap-2 text-axis-indigo">
-          <LightbulbIcon className="h-5 w-5" />
+          <LightbulbIcon className="h-5 w-5 shrink-0" />
           <p className="text-[14px] font-bold text-pretty">
-            {analysis.recommendation ? analysis.recommendation.what : 'No hace falta actuar ahora'}
+            {recommendation ? recommendation.what : 'No hace falta actuar ahora'}
           </p>
         </div>
         <p className="mt-2 text-[13px] font-medium leading-snug text-grafito/80 text-pretty">
-          {analysis.recommendation ? analysis.recommendation.why : analysis.conclusion}
+          {recommendation ? recommendation.why : conclusion.summary}
         </p>
       </div>
 
-      {analysis.alternatives.length > 0 && (
+      {alternatives.length > 0 && (
         <Layer label="Alternativas">
           <ul className="space-y-3">
-            {analysis.alternatives.map((a) => (
+            {alternatives.map((a) => (
               <li key={a.name}>
                 <p className="text-[13.5px] font-bold text-grafito">{a.name}</p>
                 <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{a.summary}</p>
@@ -121,7 +175,7 @@ function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate
 
       <Layer label="Incertidumbre">
         <ul className="space-y-3">
-          {analysis.uncertainties.map((u) => (
+          {uncertainty.items.map((u) => (
             <li key={u.title}>
               <p className="text-[13.5px] font-bold text-grafito">{u.title}</p>
               <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{u.detail}</p>
@@ -129,33 +183,30 @@ function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate
           ))}
         </ul>
         <p className="mt-3 text-[12px] font-semibold text-muted-foreground">
-          Confianza: <span className="text-grafito">{analysis.confidence}</span>
+          Confianza: <span className="text-grafito">{uncertainty.confidence}</span>
         </p>
       </Layer>
 
       <Layer label="Conclusión / siguiente paso">
-        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{analysis.conclusion}</p>
-        {analysis.nextStep && (
-          <Button
-            variant="axis"
-            fullWidth
-            className="mt-4"
-            icon={<ArrowUpRight className="h-4 w-4" />}
-            onClick={() => analysis.nextStep?.to && onNavigate(analysis.nextStep.to)}
-          >
-            {analysis.nextStep.label}
-          </Button>
-        )}
+        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{conclusion.summary}</p>
+        {conclusion.nextStep && <NextStepButton step={conclusion.nextStep} onNavigate={onNavigate} />}
       </Layer>
     </>
   )
+}
+
+function engineNote(engine: AxisEngineInfo | null): string {
+  if (!engine) return 'AXIS analiza y recomienda; nunca ejecuta operaciones.'
+  return engine.isAI
+    ? `Análisis generado por ${engine.label} a partir de tus datos locales.`
+    : `${engine.label}: sin IA conectada. AXIS analiza y recomienda; nunca ejecuta operaciones.`
 }
 
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
   const axis = useAxis(overview)
   if (!overview || axis.status === 'loading') return <ScreenLoading />
 
-  const engine = axis.status === 'ready' ? axis.analysis.engine : null
+  const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.engine
 
   return (
     <div className="pb-8">
@@ -192,30 +243,39 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
       </div>
 
       <div className="space-y-5 px-5">
-        <SituationCard context={axis.context} onNavigate={onNavigate} />
+        {axis.status === 'analysis' && axis.analysis.basedOnDemoData && (
+          <p className="rounded-2xl border border-axis-violet/20 bg-axis-soft px-4 py-2.5 text-[12px] font-semibold text-axis-indigo">
+            Análisis sobre datos de demostración: no describe tu situación real.
+          </p>
+        )}
 
-        {axis.status === 'insufficient-context' ? (
+        <SituationCard overview={overview} onNavigate={onNavigate} />
+
+        {axis.status === 'no-analysis' ? (
           <Layer label="Sin análisis">
-            <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">
-              AXIS todavía no tiene contexto suficiente para razonar. No se ha producido ningún análisis.
-            </p>
-            <ul className="mt-3 space-y-1.5">
-              {axis.missing.map((m) => (
-                <li key={m} className="flex gap-2 text-[12.5px] font-medium text-muted-foreground">
-                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                  <span className="text-pretty">{m}</span>
+            <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{axis.message}</p>
+            {axis.facts.length > 0 && (
+              <div className="mt-3">
+                <Bullets items={axis.facts} />
+              </div>
+            )}
+            <p className="mt-3 text-[12.5px] font-semibold text-grafito">Para empezar a razonar necesito:</p>
+            <ul className="mt-1.5 space-y-1.5">
+              {axis.needs.map((n) => (
+                <li key={n.label}>
+                  <button
+                    type="button"
+                    onClick={() => n.to && onNavigate(n.to)}
+                    className="flex w-full items-center gap-2 text-left text-[12.5px] font-medium text-muted-foreground"
+                  >
+                    <span className="mt-[1px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                    <span className="flex-1 text-pretty">{n.label}</span>
+                    {n.to && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
+                  </button>
                 </li>
               ))}
             </ul>
-            <Button
-              variant="axis"
-              fullWidth
-              className="mt-4"
-              icon={<ArrowUpRight className="h-4 w-4" />}
-              onClick={() => onNavigate('movimientos')}
-            >
-              Registrar un movimiento
-            </Button>
+            <NextStepButton step={axis.nextStep} onNavigate={onNavigate} />
           </Layer>
         ) : (
           <Analysis analysis={axis.analysis} onNavigate={onNavigate} />
@@ -223,11 +283,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
 
         <p className="flex items-center justify-center gap-1.5 px-4 text-center text-[11.5px] font-medium text-muted-foreground text-pretty">
           <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />
-          {engine
-            ? engine.isAI
-              ? `Análisis generado por ${engine.label} a partir de tus datos locales.`
-              : `${engine.label}: sin IA conectada. AXIS analiza y recomienda; nunca ejecuta operaciones.`
-            : 'AXIS analiza y recomienda; nunca ejecuta operaciones.'}
+          {engineNote(engine)}
         </p>
       </div>
     </div>

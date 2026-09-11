@@ -5,7 +5,7 @@ import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { PERIODS, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
-import { useAxis } from '@/hooks/use-axis'
+import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { Wordmark } from '../wordmark'
 import { IconButton, SectionHeader } from '../page-header'
 import { UserIcon, ArrowUp, ArrowDown } from '../icons'
@@ -112,13 +112,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
 
       <AxisCard
         title="AXIS"
-        text={
-          axis.status === 'ready'
-            ? axis.analysis.headline
-            : axis.status === 'insufficient-context'
-              ? 'Registra tus primeros movimientos para que AXIS pueda leer tu situación.'
-              : 'Preparando la lectura de tus datos…'
-        }
+        text={axisHeadline(axis)}
         onClick={() => onNavigate('axis')}
       />
 

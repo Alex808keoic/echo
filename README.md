@@ -11,6 +11,7 @@ Stack: Next.js 16 (App Router, una sola ruta) · React 19 · TypeScript estricto
 pnpm install
 pnpm dev        # http://localhost:3000
 pnpm typecheck  # tsc --noEmit
+pnpm test       # tests unitarios de AXIS (node:test)
 pnpm build      # build de producción
 pnpm start      # servir el build
 ```
@@ -29,7 +30,7 @@ hooks/use-axis               estado de AXIS
 lib/types.ts                 modelo de datos (céntimos enteros, fechas YYYY-MM-DD)
 lib/db/                      Dexie: movimientos, objetivos, posiciones, config, backup, demo
 lib/finance/                 cálculos (patrimonio, evolución, resúmenes, categorías)
-lib/axis/                    contrato de AXIS + motor local de reglas (sin IA)
+lib/axis/                    motor de AXIS: contexto, reglas, composición, validación (ver docs/AXIS.md)
 ```
 
 ## Decisiones clave
@@ -41,8 +42,8 @@ lib/axis/                    contrato de AXIS + motor local de reglas (sin IA)
 - Evolución del patrimonio solo con datos reales (mínimo 3 días con movimientos).
 - Inversiones manuales (activo, importe, fecha, valor actual); sin cotizaciones ni brokers.
 - AXIS: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN.
-  Motor actual: reglas locales, identificado como tal en la interfaz. Para conectar IA,
-  implementar `AxisEngine` y devolverlo en `lib/axis/engine.ts`.
+  Motor local de reglas deterministas con priorización e incertidumbre explícita, sin IA ni
+  datos de mercado. Arquitectura, reglas y cómo conectar una IA: `docs/AXIS.md`.
 - Backup: exportar/importar JSON versionado desde Ajustes.
 - Datos de demostración separados (`lib/db/demo-seed.ts`), solo en instalación vacía y
   marcados como demo.

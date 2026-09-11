@@ -6,7 +6,7 @@ import { currentMonthKey } from '@/lib/dates'
 import { inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { formatPct } from '@/lib/format'
-import { useAxis } from '@/hooks/use-axis'
+import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FilterTabs, Segmented } from '../filter-tabs'
 import { FinancialCard } from '../card'
@@ -152,11 +152,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
       <AxisCard
         tone="lavender"
         title="Insight de AXIS"
-        text={
-          axis.status === 'ready'
-            ? axis.analysis.headline
-            : 'AXIS necesita movimientos registrados para ofrecer una lectura.'
-        }
+        text={axisHeadline(axis)}
         onClick={() => onNavigate('axis')}
       />
 

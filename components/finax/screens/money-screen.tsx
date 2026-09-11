@@ -3,7 +3,7 @@
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { pctChange, roundedShares } from '@/lib/finance/summary'
-import { useAxis } from '@/hooks/use-axis'
+import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
@@ -148,11 +148,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
 
       <AxisCard
         tone="green"
-        text={
-          axis.status === 'ready'
-            ? axis.analysis.headline
-            : 'AXIS necesita movimientos registrados para interpretar tu dinero.'
-        }
+        text={axisHeadline(axis)}
         onClick={() => onNavigate('axis')}
       />
 
