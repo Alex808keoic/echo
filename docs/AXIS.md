@@ -100,9 +100,10 @@ local; no recalcula ni sustituye la lógica financiera.
   usa la clave. 503 sin proveedor, 400 con cuerpo no válido, 502/429 si el
   proveedor falla; sin trazas ni secretos en la respuesta.
 - `ai/provider.ts`: abstracción `AIProvider` (`complete(request) → unknown`).
-  Implementación concreta: `ai/server/anthropic-provider.ts` con el SDK oficial
-  (`@anthropic-ai/sdk`), salida estructurada por JSON Schema (`ai/schema.ts`) y
-  prompt de sistema estable y cacheado (`ai/prompt.ts`).
+  **Todavía no hay ninguna implementación concreta**: `providerFromConfig()`
+  devuelve `null`, `/api/axis` responde «no disponible» y AXIS usa siempre el
+  motor local. El prompt (`ai/prompt.ts`) y el JSON Schema de salida
+  (`ai/schema.ts`) ya están listos para el proveedor que se elija.
 - `ai/server/analyze.ts`: lee la configuración, valida la forma del contexto,
   llama al proveedor y pasa la salida por `parseAxisAnalysis` fijando `engine`,
   `generatedAt` y `basedOnDemoData` desde Finax, nunca desde el modelo. El
@@ -121,14 +122,13 @@ las señales. No se envían nombres personales, cuentas, credenciales ni datos t
 
 | Variable | Efecto |
 |---|---|
-| `ANTHROPIC_API_KEY` | Clave del proveedor. Sin ella, AXIS es 100 % local. |
-| `AXIS_AI_ENABLED` | `false` desactiva la IA aunque haya clave. |
-| `AXIS_AI_MODEL` | Modelo (por defecto `claude-opus-5`). |
+| `AXIS_AI_ENABLED` | `false` desactiva la IA aunque exista un proveedor. |
 
-Nunca: hardcodear la clave, exponerla con `NEXT_PUBLIC_`, guardarla en Dexie o
-localStorage, ni subir `.env` / `.env.local` (ignorados en Git). El usuario no
-introduce claves en la app. Comprobación: el bundle cliente (`.next/static`)
-no contiene `sk-ant`, `ANTHROPIC_API_KEY` ni el SDK.
+Las credenciales del proveedor se añadirán cuando se elija uno. Reglas fijas:
+nunca hardcodearlas, nunca exponerlas con `NEXT_PUBLIC_`, nunca guardarlas en
+Dexie o localStorage, nunca subir `.env` / `.env.local` (ignorados en Git). El
+usuario no introduce claves en la app. Comprobación al cerrar cada fase: el
+bundle cliente (`.next/static`) no contiene credenciales ni SDKs de proveedores.
 
 ### Coste
 
@@ -156,11 +156,20 @@ no contiene `sk-ant`, `ANTHROPIC_API_KEY` ni el SDK.
 3. Añadirla a `RULES` en `rules/index.ts`.
 4. Cubrirla en `lib/axis/__tests__/engine.test.ts`.
 
-## Cómo cambiar de proveedor de IA
+## Cómo añadir un proveedor de IA (pendiente)
 
-Implementar `AIProvider` (`lib/axis/ai/provider.ts`) para el nuevo proveedor y
-devolverla desde `providerFromConfig()` en `lib/axis/ai/server/analyze.ts`.
-Prompt, esquema, validación, fallback y UI no cambian.
+1. Implementar `AIProvider` en `lib/axis/ai/server/<proveedor>-provider.ts`:
+   `complete(request)` envía `request.system` + `request.user`, exige salida
+   JSON conforme a `request.schema` y devuelve el objeto parseado; clasifica
+   los errores con `AIProviderError` (`unavailable`, `rate-limit`, `http`,
+   `timeout`, `malformed`, `refusal`). Con un nivel gratuito y límites
+   estrictos, el `rate-limit` es un fallo normal: el cliente hace fallback al
+   motor local sin mostrar errores.
+2. Leer sus credenciales en `readAIServerConfig()` (solo servidor) y devolver
+   la instancia desde `providerFromConfig()`.
+3. Documentar las variables en `.env.example` sin valores.
+
+Prompt, esquema, validación, fallback, coste y UI no cambian.
 
 ## Cómo probarlo
 

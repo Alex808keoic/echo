@@ -10,7 +10,6 @@
     "test": "node --import tsx --test \"lib/**/*.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.124.0",
     "clsx": "^2.1.1",
     "dexie": "^4.4.5",
     "dexie-react-hooks": "^4.4.0",

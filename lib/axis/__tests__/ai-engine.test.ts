@@ -4,9 +4,7 @@ import { AI_ENGINE_INFO, createAIEngine, type AITransport } from '../ai-engine'
 import { buildFinancialContext } from '../context'
 import { analyzeLocally, localRulesEngine } from '../local-engine'
 import { buildAIRequest } from '../ai/prompt'
-import { extractJSON } from '../ai/server/anthropic-provider'
 import { analyzeWithProvider, isFinancialContext, readAIServerConfig, isAIAvailable, providerFromConfig } from '../ai/server/analyze'
-import { AIProviderError } from '../ai/provider'
 import type { AxisAnalysis, AxisInput, AxisResult } from '../types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
@@ -101,7 +99,7 @@ describe('aiEngine (IA con fallback al motor local)', () => {
     assert.equal(analysis.engine.id, 'local-rules')
   })
 
-  it('6 · API key ausente (no disponible) → local sin llamar al proveedor', async () => {
+  it('6 · proveedor no configurado (no disponible) → local sin llamar al proveedor', async () => {
     const t = transport({ isAvailable: async () => false })
     const engine = createAIEngine({ transport: t, fallback: localRulesEngine })
     const analysis = analysisOf(await engine.analyze(input()))
@@ -179,15 +177,6 @@ describe('prompt y proveedor (servidor)', () => {
     assert.equal((req.schema as { type: string }).type, 'object')
   })
 
-  it('extractJSON parsea el bloque de texto y clasifica refusal/truncado', () => {
-    const msg = (stop: string, text?: string) =>
-      ({ stop_reason: stop, content: text === undefined ? [] : [{ type: 'text', text }] }) as never
-    assert.deepEqual(extractJSON(msg('end_turn', '{"a":1}')), { a: 1 })
-    assert.throws(() => extractJSON(msg('refusal', '{}')), (e: unknown) => e instanceof AIProviderError && e.kind === 'refusal')
-    assert.throws(() => extractJSON(msg('max_tokens', '{')), (e: unknown) => e instanceof AIProviderError && e.kind === 'malformed')
-    assert.throws(() => extractJSON(msg('end_turn', 'no json')), (e: unknown) => e instanceof AIProviderError && e.kind === 'malformed')
-  })
-
   it('analyzeWithProvider fija engine/demo y valida la salida', async () => {
     const provider = { id: 'mock', complete: async () => validAIOutput() }
     const a = await analyzeWithProvider(provider, input(true).context)
@@ -197,13 +186,12 @@ describe('prompt y proveedor (servidor)', () => {
     await assert.rejects(analyzeWithProvider(bad, input().context))
   })
 
-  it('configuración: sin clave → IA no disponible; AXIS_AI_ENABLED=false la desactiva', () => {
-    assert.equal(isAIAvailable(readAIServerConfig({})), false)
+  it('configuración: sin proveedor implementado la IA no está disponible; AXIS_AI_ENABLED=false la desactiva', () => {
     assert.equal(providerFromConfig(readAIServerConfig({})), null)
-    assert.equal(isAIAvailable(readAIServerConfig({ ANTHROPIC_API_KEY: 'k' })), true)
-    assert.equal(isAIAvailable(readAIServerConfig({ ANTHROPIC_API_KEY: 'k', AXIS_AI_ENABLED: 'false' })), false)
-    const provider = providerFromConfig(readAIServerConfig({ ANTHROPIC_API_KEY: 'k', AXIS_AI_MODEL: 'claude-opus-5' }))
-    assert.equal(provider?.id, 'anthropic:claude-opus-5')
+    assert.equal(isAIAvailable(readAIServerConfig({})), false)
+    assert.equal(readAIServerConfig({}).enabled, true)
+    assert.equal(readAIServerConfig({ AXIS_AI_ENABLED: 'false' }).enabled, false)
+    assert.equal(isAIAvailable(readAIServerConfig({ AXIS_AI_ENABLED: 'false' })), false)
   })
 
   it('isFinancialContext rechaza cuerpos arbitrarios', () => {

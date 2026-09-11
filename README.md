@@ -1,8 +1,8 @@
 # Finax V1
 
 Tu dinero, con sentido. Aplicación de finanzas personales, offline-first y sin login.
-Todos los datos viven en el dispositivo (IndexedDB vía Dexie). Sin analítica. El único servicio externo
-opcional es el proveedor de IA de AXIS, siempre desde el servidor y con fallback local (ver docs/AXIS.md).
+Todos los datos viven en el dispositivo (IndexedDB vía Dexie). Sin analítica ni servicios externos. AXIS tiene
+preparada una capa de IA opcional (solo servidor, con fallback local) sin proveedor implementado todavía.
 
 Stack: Next.js 16 (App Router, una sola ruta) · React 19 · TypeScript estricto · Tailwind 4 · Dexie.
 
@@ -10,7 +10,7 @@ Stack: Next.js 16 (App Router, una sola ruta) · React 19 · TypeScript estricto
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:3000  (opcional: copia .env.example a .env.local para activar la IA de AXIS)
+pnpm dev        # http://localhost:3000
 pnpm typecheck  # tsc --noEmit
 pnpm test       # tests unitarios de AXIS (node:test)
 pnpm build      # build de producción
@@ -43,7 +43,7 @@ lib/axis/                    motor de AXIS: contexto, reglas, composición, vali
 - Evolución del patrimonio solo con datos reales (mínimo 3 días con movimientos).
 - Inversiones manuales (activo, importe, fecha, valor actual); sin cotizaciones ni brokers.
 - AXIS: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN.
-  Motor local de reglas deterministas + capa de IA opcional (Anthropic, solo servidor, con
+  Motor local de reglas deterministas + capa de IA opcional (abstracción `AIProvider`, solo servidor, con
   fallback local). Sin datos de mercado. Arquitectura, seguridad y tests: `docs/AXIS.md`.
 - Backup: exportar/importar JSON versionado desde Ajustes.
 - Datos de demostración separados (`lib/db/demo-seed.ts`), solo en instalación vacía y

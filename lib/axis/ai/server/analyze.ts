@@ -4,35 +4,42 @@
  *   contexto recibido → comprobación de forma → buildAIRequest → AIProvider
  *   → parseAxisAnalysis → AxisAnalysis
  *
- * Configuración por variables de entorno (ver docs/AXIS.md):
- *   ANTHROPIC_API_KEY   clave del proveedor (sin ella, la IA no está disponible)
- *   AXIS_AI_ENABLED     "false" para desactivar la IA aunque haya clave
- *   AXIS_AI_MODEL       modelo a utilizar (opcional)
+ * ESTADO: no hay ningún proveedor de IA implementado. `providerFromConfig()`
+ * devuelve `null`, así que `/api/axis` responde «no disponible» y AXIS usa
+ * siempre el motor local. La arquitectura queda lista para un proveedor con
+ * nivel gratuito y límites estrictos (ver docs/AXIS.md → «Cómo añadir un
+ * proveedor de IA»).
+ *
+ * Configuración por variables de entorno:
+ *   AXIS_AI_ENABLED     "false" desactiva la IA aunque exista un proveedor
+ *   (las credenciales del proveedor se definirán cuando se elija uno; nunca
+ *   se exponen al cliente)
  */
 import { buildAIRequest } from '../prompt'
 import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
 import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext } from '../../types'
-import { createAnthropicProvider } from './anthropic-provider'
 
 export interface AIServerConfig {
-  apiKey?: string
   enabled: boolean
-  model?: string
 }
 
 export function readAIServerConfig(env: Record<string, string | undefined> = process.env): AIServerConfig {
-  const apiKey = env.ANTHROPIC_API_KEY?.trim() || undefined
-  return {
-    apiKey,
-    enabled: apiKey !== undefined && env.AXIS_AI_ENABLED?.trim().toLowerCase() !== 'false',
-    model: env.AXIS_AI_MODEL?.trim() || undefined,
-  }
+  return { enabled: env.AXIS_AI_ENABLED?.trim().toLowerCase() !== 'false' }
+}
+
+/**
+ * Proveedor configurado, o `null` si no hay ninguno. Aquí se instanciará la
+ * implementación concreta de `AIProvider` cuando se decida el proveedor.
+ */
+export function providerFromConfig(config: AIServerConfig): AIProvider | null {
+  if (!config.enabled) return null
+  return null
 }
 
 export function isAIAvailable(config: AIServerConfig): boolean {
-  return config.enabled && config.apiKey !== undefined
+  return providerFromConfig(config) !== null
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
@@ -69,9 +76,4 @@ export async function analyzeWithProvider(
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,
   })
-}
-
-export function providerFromConfig(config: AIServerConfig): AIProvider | null {
-  if (!isAIAvailable(config) || !config.apiKey) return null
-  return createAnthropicProvider({ apiKey: config.apiKey, model: config.model })
 }
