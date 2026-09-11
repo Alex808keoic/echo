@@ -125,7 +125,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 <ul className="flex-1 space-y-2.5">
                   {categories.slice(0, 6).map((c, i) => (
                     <li key={c.key}>
-                      <LegendRow color={chartColor(i)} label={c.label} pct={Math.round(c.pct)} />
+                      <LegendRow color={chartColor(i)} label={c.label} pct={c.pct} />
                     </li>
                   ))}
                 </ul>
@@ -170,7 +170,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 icon={iconFor(c.label)}
                 label={c.label}
                 amount={formatCents(c.cents)}
-                pct={Math.round(c.pct)}
+                pct={c.pct}
               />
             ))}
           </FinancialCard>

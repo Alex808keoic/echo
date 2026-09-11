@@ -1,7 +1,9 @@
 # Finax V1
 
 Tu dinero, con sentido. Aplicación de finanzas personales, offline-first y sin login.
-Todos los datos viven en el dispositivo (IndexedDB vía Dexie).
+Todos los datos viven en el dispositivo (IndexedDB vía Dexie). Sin analítica ni servicios externos.
+
+Stack: Next.js 16 (App Router, una sola ruta) · React 19 · TypeScript estricto · Tailwind 4 · Dexie.
 
 ## Ejecutar
 

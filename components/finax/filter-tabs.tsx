@@ -21,6 +21,7 @@ export function FilterTabs({ options, value, onChange, size = 'md' }: FilterTabs
         const active = option === value
         return (
           <button
+            type="button"
             key={option}
             onClick={() => onChange(option)}
             aria-pressed={active}
@@ -54,6 +55,7 @@ export function Segmented({ options, value, onChange }: SegmentedProps) {
         const active = option === value
         return (
           <button
+            type="button"
             key={option}
             onClick={() => onChange(option)}
             aria-pressed={active}

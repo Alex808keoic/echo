@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import type { Position, PositionInput } from '@/lib/types'
-import { centsToInputValue, parseAmountToCents } from '@/lib/money'
+import { centsToInputValue, parseAmountToCents, parseBalanceToCents } from '@/lib/money'
 import { isValidISODate, todayISO } from '@/lib/dates'
 import { addPosition, deletePosition, updatePosition } from '@/lib/db/positions'
 import { Button } from '../button'
@@ -38,8 +38,9 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
   async function submit(e: FormEvent) {
     e.preventDefault()
     const investedCents = parseAmountToCents(invested)
-    // Si no se indica valor actual, se asume igual al importe aportado.
-    const valueCents = value.trim() ? parseAmountToCents(value) : investedCents
+    // Si no se indica valor actual, se asume igual al importe aportado. Puede ser 0 (pérdida total), nunca negativo.
+    const parsedValue = value.trim() ? parseBalanceToCents(value) : investedCents
+    const valueCents = parsedValue !== null && parsedValue >= 0 ? parsedValue : null
     const next: Errors = {}
     if (!name.trim()) next.name = 'Indica el activo.'
     if (investedCents === null) next.invested = 'Introduce un importe mayor que cero.'

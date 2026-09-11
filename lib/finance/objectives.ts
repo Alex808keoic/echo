@@ -43,12 +43,6 @@ export function totalValueCents(positions: Position[]): number {
   return positions.reduce((t, p) => t + p.valueCents, 0)
 }
 
-/** Peso de una posición sobre el valor total, 0–100. */
-export function positionWeightPct(position: Position, totalCents: number): number {
-  if (totalCents <= 0) return 0
-  return Math.min(100, Math.max(0, (position.valueCents / totalCents) * 100))
-}
-
 /** Diferencia entre valor actual y aportado (rentabilidad simple, no ponderada). */
 export function positionGain(position: Position): { cents: number; pct: number | null } {
   const cents = position.valueCents - position.investedCents

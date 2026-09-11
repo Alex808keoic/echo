@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
@@ -13,7 +12,6 @@ export const metadata: Metadata = {
   title: 'Finax — Tu sistema financiero personal',
   description:
     'Finax: tu dinero, con sentido. Visualiza tu patrimonio, gestiona ingresos y gastos, analiza estadísticas y recibe recomendaciones de AXIS.',
-  generator: 'v0.app',
 }
 
 export const viewport: Viewport = {
@@ -32,7 +30,6 @@ export default function RootLayout({
     <html lang="es" className={`${jakarta.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

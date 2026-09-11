@@ -37,12 +37,33 @@ export function onDate(movements: Movement[], iso: string): Movement[] {
 }
 
 /**
- * Variación porcentual entre dos importes. `null` si no hay base con la que
- * comparar (base cero).
+ * Variación porcentual entre dos importes. `null` si no hay base positiva con
+ * la que comparar (una base cero o negativa daría un porcentaje sin sentido).
  */
 export function pctChange(current: number, previous: number): number | null {
-  if (previous === 0) return null
+  if (previous <= 0) return null
   return ((current - previous) / previous) * 100
+}
+
+/**
+ * Reparte 100 puntos porcentuales entre varias magnitudes (método del mayor
+ * resto): los porcentajes mostrados son enteros y suman exactamente 100.
+ */
+export function roundedShares(values: number[]): number[] {
+  const total = values.reduce((t, v) => t + v, 0)
+  if (total <= 0) return values.map(() => 0)
+  const exact = values.map((v) => (v / total) * 100)
+  const result = exact.map(Math.floor)
+  let remaining = 100 - result.reduce((t, v) => t + v, 0)
+  const byRest = exact
+    .map((v, i) => ({ i, rest: v - result[i] }))
+    .sort((a, b) => b.rest - a.rest)
+  for (const { i } of byRest) {
+    if (remaining <= 0) break
+    result[i] += 1
+    remaining -= 1
+  }
+  return result
 }
 
 /* ------------------------------ Categorías ------------------------------- */
@@ -51,7 +72,7 @@ export interface CategoryTotal {
   key: string
   label: string
   cents: number
-  /** Porcentaje sobre el total del tipo (0–100). */
+  /** Porcentaje entero sobre el total del tipo; los de una lista suman 100. */
   pct: number
 }
 
@@ -62,21 +83,14 @@ export interface CategoryTotal {
  */
 export function totalsByCategory(movements: Movement[], type: MovementType): CategoryTotal[] {
   const byKey = new Map<string, number>()
-  let total = 0
   for (const m of movements) {
     if (m.type !== type) continue
     const label = movementLabel(m)
     byKey.set(label, (byKey.get(label) ?? 0) + m.amountCents)
-    total += m.amountCents
   }
-  return [...byKey.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .map(([label, cents]) => ({
-      key: label,
-      label,
-      cents,
-      pct: total > 0 ? (cents / total) * 100 : 0,
-    }))
+  const entries = [...byKey.entries()].sort(([, a], [, b]) => b - a)
+  const shares = roundedShares(entries.map(([, cents]) => cents))
+  return entries.map(([label, cents], i) => ({ key: label, label, cents, pct: shares[i] }))
 }
 
 /* -------------------------------- Periodos ------------------------------- */

@@ -2,7 +2,7 @@
 
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { pctChange } from '@/lib/finance/summary'
+import { pctChange, roundedShares } from '@/lib/finance/summary'
 import { useAxis } from '@/hooks/use-axis'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FinancialCard } from '../card'
@@ -40,18 +40,13 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
   const { month, previousMonth, liquidCents, investedCents, patrimonioCents, objectivesTotals } = overview
   const reserved = Math.max(0, Math.min(objectivesTotals.savedCents, liquidCents))
   const available = Math.max(0, liquidCents - reserved)
-  const breakdownTotal = available + reserved + investedCents
-  const breakdown = [
+  const parts = [
     { key: 'disponible', label: 'Disponible', amount: available },
     { key: 'objetivos', label: 'Objetivos', amount: reserved },
     { key: 'inversiones', label: 'Inversiones', amount: investedCents },
-  ]
-    .filter((b) => b.amount > 0)
-    .map((b, i) => ({
-      ...b,
-      color: chartColor(i),
-      pct: breakdownTotal > 0 ? (b.amount / breakdownTotal) * 100 : 0,
-    }))
+  ].filter((b) => b.amount > 0)
+  const shares = roundedShares(parts.map((b) => b.amount))
+  const breakdown = parts.map((b, i) => ({ ...b, color: chartColor(i), pct: shares[i] }))
 
   const monthUp = (overview.monthChangeCents ?? 0) >= 0
 
@@ -142,7 +137,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
                     </p>
                   </div>
                   <span className="text-[12.5px] font-bold text-muted-foreground tabular-nums">
-                    {formatPct(Math.round(b.pct * 10) / 10)}
+                    {formatPct(b.pct)}
                   </span>
                 </li>
               ))}

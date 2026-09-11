@@ -3,7 +3,8 @@
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { formatShortDate } from '@/lib/dates'
-import { positionGain, positionWeightPct, totalInvestedCents, totalValueCents } from '@/lib/finance/objectives'
+import { positionGain, totalInvestedCents, totalValueCents } from '@/lib/finance/objectives'
+import { roundedShares } from '@/lib/finance/summary'
 import { SubPageHeader, IconButton } from '../page-header'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
@@ -26,6 +27,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
   const value = totalValueCents(positions)
   const gain = value - invested
   const gainPct = invested > 0 ? (gain / invested) * 100 : null
+  const weights = roundedShares(positions.map((p) => p.valueCents))
   const openNew = () => open('Nueva inversión', <PositionForm onDone={close} />)
 
   return (
@@ -74,10 +76,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
             <h2 className="text-[16px] font-bold tracking-tight text-grafito">Distribución</h2>
             <div className="mt-4 flex items-center gap-5">
               <DonutChart
-                segments={positions.map((p, i) => ({
-                  pct: positionWeightPct(p, value),
-                  color: chartColor(i),
-                }))}
+                segments={positions.map((_, i) => ({ pct: weights[i], color: chartColor(i) }))}
                 size={132}
                 thickness={16}
               >
@@ -94,7 +93,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: chartColor(i) }} />
                     <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-grafito">{p.name}</p>
                     <span className="shrink-0 text-[12.5px] font-bold text-muted-foreground tabular-nums">
-                      {formatPct(Math.round(positionWeightPct(p, value)))}
+                      {formatPct(weights[i])}
                     </span>
                   </li>
                 ))}

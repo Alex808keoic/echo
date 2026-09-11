@@ -7,6 +7,7 @@
  * variación y la misma evolución desde aquí, para que no puedan divergir.
  * Todo se deriva de los datos locales (Dexie) y se recalcula en vivo.
  */
+import { useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getConfig } from '@/lib/db/config'
 import { listMovements } from '@/lib/db/movements'
@@ -53,15 +54,27 @@ export function useFinancialOverview(): FinancialOverview | undefined {
   const objectives = useLiveQuery(listObjectives, [])
   const positions = useLiveQuery(listPositions, [])
 
-  if (
-    config === undefined ||
-    movements === undefined ||
-    objectives === undefined ||
-    positions === undefined
-  ) {
-    return undefined
-  }
+  // Identidad estable mientras no cambien los datos: evita recalcular (y
+  // relanzar el análisis de AXIS) en cada render del shell.
+  return useMemo(() => {
+    if (
+      config === undefined ||
+      movements === undefined ||
+      objectives === undefined ||
+      positions === undefined
+    ) {
+      return undefined
+    }
+    return buildOverview(config, movements, objectives, positions)
+  }, [config, movements, objectives, positions])
+}
 
+function buildOverview(
+  config: AppConfig | null,
+  movements: Movement[],
+  objectives: Objective[],
+  positions: Position[],
+): FinancialOverview {
   const initialBalanceCents = config?.initialBalanceCents ?? 0
   const liquidCents = computeLiquidCents(initialBalanceCents, movements)
   const investedCents = totalValueCents(positions)

@@ -24,7 +24,7 @@ export function Confirm({
     <div className="space-y-5">
       <p className="text-[14px] font-medium leading-snug text-grafito/80 text-pretty">{message}</p>
       <div className="grid grid-cols-2 gap-3">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={busy}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
           Cancelar
         </Button>
         <Button
