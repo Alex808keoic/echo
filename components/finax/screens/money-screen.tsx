@@ -32,7 +32,7 @@ function changeBadge(current: number, previous: number, goodWhenUp: boolean) {
 }
 
 export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
-  const axis = useAxis(overview)
+  const { state: axis } = useAxis(overview)
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

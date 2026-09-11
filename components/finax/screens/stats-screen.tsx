@@ -38,7 +38,7 @@ function iconFor(label: string) {
 export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const [filter, setFilter] = useState<string>('Gastos')
   const [range, setRange] = useState<string>('6M')
-  const axis = useAxis(overview)
+  const { state: axis } = useAxis(overview)
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

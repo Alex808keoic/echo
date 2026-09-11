@@ -15,3 +15,7 @@ node_modules
 .DS_Store
 # TypeScript incremental cache
 tsconfig.tsbuildinfo
+
+# Environment (secrets)
+.env
+.env.local

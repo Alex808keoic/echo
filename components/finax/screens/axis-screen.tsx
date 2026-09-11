@@ -199,14 +199,14 @@ function engineNote(engine: AxisEngineInfo | null): string {
   if (!engine) return 'AXIS analiza y recomienda; nunca ejecuta operaciones.'
   return engine.isAI
     ? `Análisis generado por ${engine.label} a partir de tus datos locales.`
-    : `${engine.label}: sin IA conectada. AXIS analiza y recomienda; nunca ejecuta operaciones.`
+    : `${engine.label} (sin IA). AXIS analiza y recomienda; nunca ejecuta operaciones.`
 }
 
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
-  const axis = useAxis(overview)
-  if (!overview || axis.status === 'loading') return <ScreenLoading />
+  const { state: axis, refresh } = useAxis(overview, { ai: true })
+  if (!overview) return <ScreenLoading />
 
-  const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.engine
+  const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null
 
   return (
     <div className="pb-8">
@@ -251,7 +251,13 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
 
         <SituationCard overview={overview} onNavigate={onNavigate} />
 
-        {axis.status === 'no-analysis' ? (
+        {axis.status === 'loading' ? (
+          <Layer label="Análisis">
+            <p className="text-[13.5px] font-medium leading-snug text-muted-foreground text-pretty">
+              Preparando el análisis de tus datos…
+            </p>
+          </Layer>
+        ) : axis.status === 'no-analysis' ? (
           <Layer label="Sin análisis">
             <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{axis.message}</p>
             {axis.facts.length > 0 && (
@@ -285,6 +291,16 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
           <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />
           {engineNote(engine)}
         </p>
+
+        {axis.status === 'analysis' && (
+          <button
+            type="button"
+            onClick={refresh}
+            className="mx-auto block text-[12px] font-semibold text-axis-violet transition-colors hover:text-axis-indigo"
+          >
+            Actualizar análisis
+          </button>
+        )}
       </div>
     </div>
   )

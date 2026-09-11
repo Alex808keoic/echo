@@ -24,7 +24,7 @@ import type { ScreenProps } from './types'
 
 export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const [range, setRange] = useState<PeriodId>('1A')
-  const axis = useAxis(overview)
+  const { state: axis } = useAxis(overview)
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

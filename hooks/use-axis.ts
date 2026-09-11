@@ -3,44 +3,70 @@
 /**
  * Estado de AXIS a partir del panorama financiero.
  *
- * El análisis se calcula una vez por instantánea de datos y se recuerda por
- * identidad del `overview` (que ya es estable mientras no cambian los datos
- * locales): navegar entre pantallas no vuelve a analizar; editar datos, sí.
+ * Coste y rendimiento:
+ * - Los resultados se recuerdan por identidad del `overview` (estable mientras
+ *   no cambian los datos locales): navegar no vuelve a analizar; editar, sí.
+ * - Solo quien pide `ai: true` (la pantalla AXIS) provoca una llamada al
+ *   proveedor. Las tarjetas de Inicio/Mi Dinero/Estadísticas usan el motor
+ *   local, salvo que ya exista un análisis con IA para la misma instantánea.
+ * - `refresh()` descarta el resultado cacheado y vuelve a analizar a petición
+ *   del usuario.
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { analyzeSnapshot } from '@/lib/axis/engine'
 import type { AxisResult } from '@/lib/axis/types'
 import type { FinancialOverview } from './use-financial-overview'
 
 export type AxisState = { status: 'loading' } | AxisResult
 
-const cache = new WeakMap<FinancialOverview, Promise<AxisResult>>()
-
-function resultFor(overview: FinancialOverview): Promise<AxisResult> {
-  let pending = cache.get(overview)
-  if (!pending) {
-    const { config, movements, objectives, positions } = overview
-    pending = analyzeSnapshot({ config, movements, objectives, positions })
-    cache.set(overview, pending)
-  }
-  return pending
+interface CacheEntry {
+  local?: Promise<AxisResult>
+  ai?: Promise<AxisResult>
 }
 
-export function useAxis(overview: FinancialOverview | undefined): AxisState {
+const cache = new WeakMap<FinancialOverview, CacheEntry>()
+
+function resultFor(overview: FinancialOverview, ai: boolean): Promise<AxisResult> {
+  const entry = cache.get(overview) ?? {}
+  cache.set(overview, entry)
+  if (entry.ai) return entry.ai
+  const kind = ai ? 'ai' : 'local'
+  if (!entry[kind]) {
+    const { config, movements, objectives, positions } = overview
+    entry[kind] = analyzeSnapshot({ config, movements, objectives, positions }, kind)
+  }
+  return entry[kind]
+}
+
+export interface UseAxisOptions {
+  /** Intentar el análisis con IA (con fallback local). Por defecto, solo local. */
+  ai?: boolean
+}
+
+export function useAxis(overview: FinancialOverview | undefined, { ai = false }: UseAxisOptions = {}) {
   const [state, setState] = useState<AxisState>({ status: 'loading' })
+  const [generation, setGeneration] = useState(0)
 
   useEffect(() => {
     if (!overview) return
     let cancelled = false
-    void resultFor(overview).then((result) => {
+    void resultFor(overview, ai).then((result) => {
       if (!cancelled) setState(result)
     })
     return () => {
       cancelled = true
     }
+  }, [overview, ai, generation])
+
+  /** Vuelve a analizar la instantánea actual (a petición del usuario). */
+  const refresh = useCallback(() => {
+    if (!overview) return
+    cache.delete(overview)
+    setState({ status: 'loading' })
+    setGeneration((g) => g + 1)
   }, [overview])
 
-  return state
+  return { state, refresh }
 }
 
 /** Frase corta para las tarjetas de AXIS en Inicio, Mi Dinero y Estadísticas. */
