@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "month": "2026-09",
+  "monthCalls": 2,
+  "monthTokens": 5438,
+  "deepResearchThisMonth": 1,
+  "day": "2026-09-13",
+  "dayCalls": 2,
+  "week": "2026-W37",
+  "eventResearchThisWeek": 0,
+  "attempts": [
+    {
+      "at": "2026-09-13T13:33:34.307Z",
+      "provider": "gemini:gemini-2.5-flash-lite",
+      "reason": "manual",
+      "ok": false,
+      "tokens": 0
+    },
+    {
+      "at": "2026-09-13T13:33:34.307Z",
+      "provider": "groq:openai/gpt-oss-120b",
+      "reason": "manual",
+      "ok": true,
+      "tokens": 5438
+    }
+  ]
+}

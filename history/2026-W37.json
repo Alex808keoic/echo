@@ -1,0 +1,421 @@
+{
+  "id": "2026-W37",
+  "kind": "deep",
+  "generatedAt": "2026-09-13T13:33:34.307Z",
+  "coversFrom": "2026-09-06",
+  "coversTo": "2026-09-13",
+  "region": "eurozone",
+  "overview": "Durante la semana del 6 al 13 de septiembre de 2026, el BCE incrementó la facilidad de depósito en 25 puntos básicos, situándola en 2,5 %. El Euríbor a 12 meses se mantuvo estable en 3,138 %. La inflación interanual en España se situó en 2,9 % y en la zona euro en 2 %, ambas ligeramente por debajo del mes anterior. El IBEX 35 cayó un 1,7 % hasta 19.659,8 puntos, mientras que el Euro Stoxx 50 mostró una subida mensual del 3,05 % hasta 6.483,56 puntos. Se publicaron varias declaraciones del BCE y del Banco de España, sin novedades de política monetaria más allá del aumento de tipos.",
+  "indicators": [
+    {
+      "key": "ecb-dfr",
+      "label": "BCE · facilidad de depósito",
+      "group": "rate",
+      "value": 2.5,
+      "unit": "%",
+      "asOf": "2026-09-16",
+      "changePct": 0.25,
+      "source": "BCE"
+    },
+    {
+      "key": "euribor-12m",
+      "label": "Euríbor 12 meses",
+      "group": "rate",
+      "value": 3.138,
+      "unit": "%",
+      "asOf": "2026-09-10",
+      "changePct": 0,
+      "source": "Banco de España"
+    },
+    {
+      "key": "ine-ipc",
+      "label": "IPC España (interanual)",
+      "group": "inflation",
+      "value": 2.9,
+      "unit": "%",
+      "asOf": "2025-12",
+      "changePct": -0.1,
+      "source": "INE"
+    },
+    {
+      "key": "ea-hicp",
+      "label": "Inflación eurozona (HICP interanual)",
+      "group": "inflation",
+      "value": 2,
+      "unit": "%",
+      "asOf": "2025-12",
+      "changePct": -0.1,
+      "source": "Eurostat"
+    },
+    {
+      "key": "ibex",
+      "label": "IBEX 35",
+      "group": "index",
+      "value": 19659.8,
+      "unit": "pts",
+      "asOf": "2026-09-10",
+      "changePct": -1.7,
+      "source": "Banco de España"
+    },
+    {
+      "key": "stoxx50",
+      "label": "EURO STOXX 50 (media mensual)",
+      "group": "index",
+      "value": 6483.56,
+      "unit": "pts",
+      "asOf": "2026-08",
+      "changePct": 3.05,
+      "source": "BCE"
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-09-12",
+      "title": "BCE · prensa: Christine Lagarde: Interview with Ouest-France",
+      "summary": "Lagarde ofreció una entrevista en la que explicó la posición actual del BCE sin anunciar cambios de política.",
+      "impact": "low",
+      "source": "BCE",
+      "affects": [
+        "equity-global",
+        "equity-europe",
+        "bonds-gov",
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "title": "BCE · prensa: Christine Lagarde: Europe seen from Normandy",
+      "summary": "Entrevista de Lagarde centrada en la visión del BCE sobre la economía europea.",
+      "impact": "low",
+      "source": "BCE",
+      "affects": [
+        "equity-global",
+        "equity-europe",
+        "bonds-gov",
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "BCE · prensa: Philip R. Lane: Outlook for the euro area economy",
+      "summary": "Lane presentó su perspectiva sobre la economía de la zona euro, destacando retos inflacionarios y de crecimiento.",
+      "impact": "medium",
+      "source": "BCE",
+      "affects": [
+        "equity-europe",
+        "bonds-gov",
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "Fed · prensa: Agencies seek comment on proposed third‑party risk management guidance and issue statement on community bank engagement with core service provider",
+      "summary": "Las agencias de la Fed solicitaron comentarios sobre nuevas directrices de gestión de riesgos para bancos comunitarios.",
+      "impact": "low",
+      "source": "Fed",
+      "affects": [
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "Banco de España · noticias: Agenda de sucursales",
+      "summary": "Publicación de la agenda de visitas a sucursales del Banco de España.",
+      "impact": "low",
+      "source": "Banco de España",
+      "affects": [
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "Banco de España · noticias: Soledad Nuñez. Eurofi",
+      "summary": "Participación de Soledad Nuñez en el evento Eurofi.",
+      "impact": "low",
+      "source": "Banco de España",
+      "affects": [
+        "equity-europe"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "Banco de España · noticias: José Luis Escrivá. IX Foro de Activos Digitales.",
+      "summary": "Escrivá habló en el IX Foro de Activos Digitales sobre la regulación del sector.",
+      "impact": "low",
+      "source": "Banco de España",
+      "affects": [
+        "crypto"
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "title": "Banco de España · noticias: Alberto Ríos. Safeguarding and shaping the future of euro cash",
+      "summary": "Ríos abordó la seguridad y futuro del efectivo en euros.",
+      "impact": "low",
+      "source": "Banco de España",
+      "affects": [
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "title": "Fed · prensa: Agencies reduce regulatory burden for community banks, increase eligibility for 18‑month exam cycle",
+      "summary": "La Fed anunció una reducción de la carga regulatoria para bancos comunitarios.",
+      "impact": "low",
+      "source": "Fed",
+      "affects": [
+        "cash"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "title": "BCE · prensa: Christine Lagarde, Boris Vujčić: Monetary policy statement (with Q&A)",
+      "summary": "Declaración de política monetaria del BCE que confirmó el aumento de tipos en 25 puntos básicos.",
+      "impact": "high",
+      "source": "BCE",
+      "affects": [
+        "equity-global",
+        "equity-europe",
+        "bonds-gov",
+        "bonds-corp",
+        "cash",
+        "gold"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "title": "BCE · prensa: Monetary policy decisions",
+      "summary": "Decisiones del BCE que incluyeron el alza de tipos y la revisión de la facilidad de depósito.",
+      "impact": "high",
+      "source": "BCE",
+      "affects": [
+        "equity-global",
+        "equity-europe",
+        "bonds-gov",
+        "bonds-corp",
+        "cash",
+        "gold"
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "title": "Banco de España · noticias: El BCE sube los tipos 25 puntos básicos en septiembre",
+      "summary": "El Banco de España informó del aumento de tipos del BCE en 25 puntos básicos.",
+      "impact": "high",
+      "source": "Banco de España",
+      "affects": [
+        "equity-global",
+        "equity-europe",
+        "bonds-gov",
+        "bonds-corp",
+        "cash",
+        "gold"
+      ]
+    }
+  ],
+  "trends": [
+    {
+      "title": "Inflación en la zona euro estable alrededor del 2 %",
+      "summary": "Los datos de HICP muestran una inflación interanual del 2 %, ligeramente por debajo del mes anterior, lo que sugiere que la presión inflacionaria está moderándose.",
+      "horizon": "months",
+      "confidence": "alta"
+    },
+    {
+      "title": "Política monetaria restrictiva del BCE",
+      "summary": "El BCE ha incrementado los tipos en 25 puntos básicos y ha elevado la facilidad de depósito a 2,5 %, indicando una postura de endurecimiento para controlar la inflación.",
+      "horizon": "months",
+      "confidence": "media"
+    },
+    {
+      "title": "Desempeño mixto de los mercados bursátiles europeos",
+      "summary": "El IBEX 35 ha retrocedido un 1,7 % mientras que el Euro Stoxx 50 ha subido un 3,05 % en el mes, reflejando divergencias sectoriales y de exposición geográfica.",
+      "horizon": "weeks",
+      "confidence": "media"
+    }
+  ],
+  "assetClasses": [
+    {
+      "key": "equity-global",
+      "label": "Acciones globales",
+      "aliases": [
+        "global",
+        "acciones",
+        "msci world",
+        "indexado"
+      ],
+      "note": "El entorno de tipos más altos y la inflación moderada pueden generar presión sobre valoraciones, aunque la recuperación de algunos índices europeos brinda soporte.",
+      "stance": "caution"
+    },
+    {
+      "key": "equity-europe",
+      "label": "Acciones Europa",
+      "aliases": [
+        "europeas",
+        "eurostoxx",
+        "ibex",
+        "acciones europeas"
+      ],
+      "note": "El IBEX ha caído mientras que el Euro Stoxx 50 muestra alza mensual; la política monetaria restrictiva del BCE es un factor clave.",
+      "stance": "caution"
+    },
+    {
+      "key": "equity-us",
+      "label": "Acciones EE. UU.",
+      "aliases": [
+        "us",
+        "s&p",
+        "nasdaq",
+        "acciones us"
+      ],
+      "note": "Sin datos específicos en el periodo, la postura se mantiene neutral.",
+      "stance": "neutral"
+    },
+    {
+      "key": "bonds-gov",
+      "label": "Bonos gubernamentales",
+      "aliases": [
+        "bono",
+        "bonos",
+        "gobierno",
+        "bonos soberanos"
+      ],
+      "note": "El aumento de tipos del BCE eleva los rendimientos y puede presionar a la baja los precios de los bonos.",
+      "stance": "caution"
+    },
+    {
+      "key": "bonds-corp",
+      "label": "Bonos corporativos",
+      "aliases": [
+        "bonos corporativos",
+        "corporate",
+        "deuda corporativa"
+      ],
+      "note": "Los costes de financiación aumentan con la subida de tipos, lo que podría afectar la valoración de la deuda corporativa.",
+      "stance": "caution"
+    },
+    {
+      "key": "cash",
+      "label": "Efectivo y cuentas remuneradas",
+      "aliases": [
+        "cash",
+        "cuenta remunerada",
+        "efectivo"
+      ],
+      "note": "Los tipos de depósito más altos mejoran la rentabilidad del efectivo, aunque la inflación sigue presente.",
+      "stance": "neutral"
+    },
+    {
+      "key": "gold",
+      "label": "Oro",
+      "aliases": [
+        "oro",
+        "gold"
+      ],
+      "note": "El oro suele beneficiarse de la incertidumbre inflacionaria; la inflación estable y tipos más altos pueden limitar su atractivo.",
+      "stance": "watch"
+    },
+    {
+      "key": "crypto",
+      "label": "Criptomonedas",
+      "aliases": [
+        "bitcoin",
+        "crypto",
+        "criptomonedas"
+      ],
+      "note": "El foro de activos digitales del Banco de España indica interés regulatorio, pero sin cambios inmediatos en el mercado.",
+      "stance": "watch"
+    },
+    {
+      "key": "real-estate",
+      "label": "Inmobiliario",
+      "aliases": [
+        "inmobiliario",
+        "real estate",
+        "propiedad"
+      ],
+      "note": "Sin datos específicos, la postura se mantiene neutral.",
+      "stance": "neutral"
+    }
+  ],
+  "uncertainties": [
+    "Dirección futura de la política monetaria del BCE más allá del aumento de septiembre.",
+    "Impacto del alza de tipos en el crecimiento económico español.",
+    "Evolución de la inflación en la zona euro durante los próximos meses.",
+    "Datos de referencia de algunos indicadores (IBEX, Euro Stoxx) provienen de fechas distintas, lo que genera lag temporal."
+  ],
+  "warnings": [
+    "Esta síntesis no es asesoramiento financiero",
+    "Datos de mercado con posible retraso"
+  ],
+  "sources": [
+    {
+      "name": "BCE · Data Portal (DFR)",
+      "url": "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&lastNObservations=2",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "official"
+    },
+    {
+      "name": "Banco de España · mercado monetario",
+      "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_7.csv",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "official"
+    },
+    {
+      "name": "BCE · Data Portal (Euríbor)",
+      "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.RT.MM.EURIBOR1YD_.HSTA?format=jsondata&lastNObservations=2",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "official"
+    },
+    {
+      "name": "INE · IPC",
+      "url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC251856?nult=2",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "official"
+    },
+    {
+      "name": "Eurostat · HICP",
+      "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_manr?geo=EA&coicop=CP00&unit=RCH_A&lastTimePeriod=2&format=JSON",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "official"
+    },
+    {
+      "name": "Banco de España · Bolsa de Madrid",
+      "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_6.csv",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "data"
+    },
+    {
+      "name": "BCE · Data Portal (EURO STOXX 50)",
+      "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.DS.EI.DJES50I.HSTA?format=jsondata&lastNObservations=2",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "data"
+    },
+    {
+      "name": "BCE · prensa",
+      "url": "https://www.ecb.europa.eu/rss/press.html",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "news"
+    },
+    {
+      "name": "Fed · prensa",
+      "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "news"
+    },
+    {
+      "name": "Banco de España · noticias",
+      "url": "https://www.bde.es/wbe/es/inicio/rss/rss-noticias/",
+      "retrievedAt": "2026-09-13T13:33:34.314Z",
+      "type": "news"
+    }
+  ],
+  "failedSources": [],
+  "provider": {
+    "id": "groq:openai/gpt-oss-120b",
+    "model": "openai/gpt-oss-120b"
+  },
+  "budget": {
+    "monthCalls": 2,
+    "monthLimit": 8
+  }
+}
