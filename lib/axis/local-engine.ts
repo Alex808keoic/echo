@@ -26,7 +26,7 @@ export function analyzeLocally(input: AxisInput, now: Date = new Date()): AxisRe
   if (context.quality.level === 'none') {
     return composeNoAnalysis(context, LOCAL_RULES_ENGINE_INFO)
   }
-  const signals = detectSignals(context)
+  const signals = detectSignals(context, input.market ?? null)
   const analysis = parseAxisAnalysis(composeAnalysis(context, signals, LOCAL_RULES_ENGINE_INFO, now))
   return { status: 'analysis', analysis }
 }

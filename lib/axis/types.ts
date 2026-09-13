@@ -138,24 +138,25 @@ export interface AxisMemory {
   previousConclusions?: Array<{ generatedAt: string; summary: string }>
 }
 
-/** Contexto de mercado (futuro). Hoy no existe ninguna fuente conectada. */
-export interface MarketContext {
-  asOf: string
-  source: string
-  notes: string[]
-}
+/**
+ * Contexto de mercado: vista reducida de la investigación pública, personalizada
+ * en el dispositivo (ver lib/market). Opcional: AXIS funciona igual sin él.
+ */
+import type { MarketContext } from '../market/types'
+
+export type { MarketContext }
 
 export interface AxisInput {
   context: FinancialContext
   memory?: AxisMemory
-  market?: MarketContext
+  market?: MarketContext | null
 }
 
 /* =============================== ANÁLISIS =============================== */
 
 export type Priority = 'critical' | 'high' | 'medium' | 'low'
 
-export type SignalDomain = 'income' | 'expenses' | 'savings' | 'objectives' | 'investments'
+export type SignalDomain = 'income' | 'expenses' | 'savings' | 'objectives' | 'investments' | 'market'
 
 /** Pantalla de Finax donde continuar. AXIS solo propone; nunca ejecuta. */
 export type AxisDestination = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'objetivos' | 'inversiones'

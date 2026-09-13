@@ -19,7 +19,7 @@ import { buildAIRequest } from '../prompt'
 import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
-import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext } from '../../types'
+import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 
 export interface AIServerConfig {
   enabled: boolean
@@ -66,8 +66,9 @@ export async function analyzeWithProvider(
   context: FinancialContext,
   memory?: AxisMemory,
   signal?: AbortSignal,
+  market: MarketContext | null = null,
 ): Promise<AxisAnalysis> {
-  const input: AxisInput = { context, memory }
+  const input: AxisInput = { context, memory, market }
   const raw = await provider.complete(buildAIRequest(input), signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({

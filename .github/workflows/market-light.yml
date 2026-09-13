@@ -1,0 +1,66 @@
+# Comprobación ligera del mercado (L–V, SIN IA).
+# Recopila fuentes oficiales, detecta acontecimientos y refresca indicadores en la
+# rama `market-data`. Solo hace commit si hay cambios. Puede disparar `market-deep`
+# por evento (una vez por semana como máximo, controlado por el ledger).
+name: market-light
+
+on:
+  schedule:
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: market
+  cancel-in-progress: false
+
+jobs:
+  light:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout rama de datos (se crea huérfana si no existe)
+        uses: actions/checkout@v4
+        with:
+          path: market-data
+          fetch-depth: 0
+      - run: |
+          cd market-data
+          if git ls-remote --exit-code --heads origin market-data >/dev/null; then
+            git checkout market-data
+          else
+            git checkout --orphan market-data
+            git rm -rf . >/dev/null 2>&1 || true
+            echo "# Finax market data" > README.md
+          fi
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: light
+        run: pnpm exec tsx scripts/market/cli.ts light --data-dir market-data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      - name: Commit solo si hay cambios
+        run: |
+          cd market-data
+          git config user.name "finax-market-bot"
+          git config user.email "market-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "sin cambios: no se hace commit"
+          else
+            git commit -m "market: comprobación ligera $(date -u +%F) [skip ci]"
+            git push origin HEAD:market-data
+          fi
+      - name: Disparar investigación profunda por evento
+        if: steps.light.outputs.trigger_deep == 'true' && vars.MARKET_AI_ENABLED == 'true'
+        run: gh workflow run market-deep.yml -f reason=event
+        env:
+          GH_TOKEN: ${{ github.token }}

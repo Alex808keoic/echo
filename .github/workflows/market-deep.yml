@@ -1,0 +1,72 @@
+# Investigación profunda del mercado (sábado, o por evento/manual).
+# Llama al proveedor de IA SOLO tras: kill switch → secret → presupuesto →
+# fuentes → compactar → estimar tokens → presupuesto. Máx. 6/mes (ledger).
+# Publica en la rama `market-data`; no despliega la app.
+name: market-deep
+
+on:
+  schedule:
+    - cron: '0 6 * * 6'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'scheduled | event | manual'
+        default: manual
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: market
+  cancel-in-progress: false
+
+jobs:
+  deep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Kill switch de plataforma: sin la variable de repositorio no se ejecuta nada.
+    if: vars.MARKET_AI_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout rama de datos (se crea huérfana si no existe)
+        uses: actions/checkout@v4
+        with:
+          path: market-data
+          fetch-depth: 0
+      - run: |
+          cd market-data
+          if git ls-remote --exit-code --heads origin market-data >/dev/null; then
+            git checkout market-data
+          else
+            git checkout --orphan market-data
+            git rm -rf . >/dev/null 2>&1 || true
+            echo "# Finax market data" > README.md
+          fi
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: deep
+        run: pnpm exec tsx scripts/market/cli.ts deep --data-dir market-data --reason "${{ github.event.inputs.reason || 'scheduled' }}"
+        env:
+          MARKET_AI_ENABLED: ${{ vars.MARKET_AI_ENABLED }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          MARKET_GEMINI_MODEL: ${{ vars.MARKET_GEMINI_MODEL }}
+          MARKET_GROQ_MODEL: ${{ vars.MARKET_GROQ_MODEL }}
+      - name: Commit solo si hay cambios (incluye el ledger de presupuesto)
+        run: |
+          cd market-data
+          git config user.name "finax-market-bot"
+          git config user.email "market-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "sin cambios: no se hace commit"
+          else
+            git commit -m "market: investigación ${{ steps.deep.outputs.status }} $(date -u +%F) [skip ci]"
+            git push origin HEAD:market-data
+          fi

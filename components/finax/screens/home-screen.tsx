@@ -6,6 +6,7 @@ import { formatPct } from '@/lib/format'
 import { PERIODS, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
+import { useMarketContext } from '@/hooks/use-market-context'
 import { Wordmark } from '../wordmark'
 import { IconButton, SectionHeader } from '../page-header'
 import { UserIcon, ArrowUp, ArrowDown } from '../icons'
@@ -24,7 +25,8 @@ import type { ScreenProps } from './types'
 
 export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const [range, setRange] = useState<PeriodId>('1A')
-  const { state: axis } = useAxis(overview)
+  const { market } = useMarketContext(overview)
+  const { state: axis } = useAxis(overview, { market })
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

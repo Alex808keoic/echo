@@ -19,7 +19,8 @@ REGLAS SOBRE LOS DATOS
 - Todos los importes del contexto vienen en céntimos de euro y ya están calculados por Finax. Úsalos tal cual: no recalcules patrimonio, ingresos, gastos, ahorro, porcentajes ni pesos. Si haces una operación derivada sencilla, debe ser verificable a partir de esas cifras.
 - En el texto, escribe los importes en euros con formato español: 3.486,70 € (punto de miles, coma decimal, espacio antes de €).
 - No inventes ingresos, gastos, patrimonio, inversiones, precios, rentabilidades, objetivos, fechas ni preferencias. Lo que no está en el contexto es desconocido y debes tratarlo como tal.
-- No existe información de mercado: no digas que algo subirá o bajará, no predigas rentabilidades ni inventes riesgo de mercado. No recomiendes productos ni activos concretos.
+- Salvo lo que llegue en «contexto_de_mercado», no existe información de mercado: no digas que algo subirá o bajará, no predigas rentabilidades ni inventes riesgo de mercado. No recomiendes productos ni activos concretos.
+- Si recibes «contexto_de_mercado»: tiene fecha (asOf) y frescura (freshness). Si no es «fresh», no lo presentes como actual; con «stale» no hagas ninguna recomendación basada en mercado. Nunca conviertas sus tendencias en certezas ni añadas información de mercado que no esté en él.
 - Respeta la calidad del contexto (quality). Si el histórico es corto, si no hay mes anterior, si no hay objetivos, si un objetivo no tiene fecha o si no hay inversiones, dilo en la incertidumbre y no concluyas con más seguridad de la que permiten los datos. Con quality.isDemo = true, deja claro en la incertidumbre que son datos de demostración, no la situación real del usuario.
 
 REGLAS SOBRE LAS RECOMENDACIONES
@@ -55,11 +56,12 @@ function signalSummary(signals: Signal[]) {
 }
 
 export function buildAIRequest(input: AxisInput): AIRequest {
-  const { context, memory } = input
-  const signals = detectSignals(context)
+  const { context, memory, market } = input
+  const signals = detectSignals(context, market ?? null)
   const payload = {
     contexto_financiero: minimalContext(context),
     senales_detectadas_por_finax: signalSummary(signals),
+    ...(market ? { contexto_de_mercado: market } : {}),
     ...(memory ? { memoria: memory } : {}),
   }
   return {

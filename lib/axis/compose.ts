@@ -190,8 +190,14 @@ export function composeAnalysis(
     (a) => a.name,
   ).slice(0, LIMITS.alternatives)
 
+  // Orden: demo (honestidad) → incertidumbres concretas de las señales → genéricas de calidad.
+  const quality = qualityUncertainties(ctx)
   const uncertainties = dedupe(
-    [...qualityUncertainties(ctx), ...signals.flatMap((s) => (s.uncertainty ? [s.uncertainty] : []))],
+    [
+      ...quality.filter((u) => u.title === 'Datos de demostración'),
+      ...signals.flatMap((s) => (s.uncertainty ? [s.uncertainty] : [])),
+      ...quality.filter((u) => u.title !== 'Datos de demostración'),
+    ],
     (u) => u.title,
   ).slice(0, LIMITS.uncertainties)
 

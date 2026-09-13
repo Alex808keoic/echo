@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server'
 import { analyzeWithProvider, isFinancialContext, providerFromConfig, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
 import { AIProviderError } from '@/lib/axis/ai/provider'
-import type { AxisMemory } from '@/lib/axis/types'
+import type { AxisMemory, MarketContext } from '@/lib/axis/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,11 +33,13 @@ export async function POST(request: Request) {
   }
   const context = typeof body === 'object' && body !== null ? (body as { context?: unknown }).context : undefined
   const memory = typeof body === 'object' && body !== null ? (body as { memory?: unknown }).memory : undefined
+  const market = typeof body === 'object' && body !== null ? (body as { market?: unknown }).market : undefined
   if (!isFinancialContext(context)) return NextResponse.json({ error: 'bad-request' }, { status: 400 })
 
   try {
     const safeMemory = typeof memory === 'object' && memory !== null ? (memory as AxisMemory) : undefined
-    const analysis = await analyzeWithProvider(provider, context, safeMemory, request.signal)
+    const safeMarket = typeof market === 'object' && market !== null ? (market as MarketContext) : null
+    const analysis = await analyzeWithProvider(provider, context, safeMemory, request.signal, safeMarket)
     return NextResponse.json({ analysis }, { headers: { 'cache-control': 'no-store' } })
   } catch (error) {
     // Clasificación sin detalles: el cliente solo necesita saber que debe usar el motor local.

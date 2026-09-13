@@ -7,6 +7,7 @@ import { inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/f
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { formatPct } from '@/lib/format'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
+import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FilterTabs, Segmented } from '../filter-tabs'
 import { FinancialCard } from '../card'
@@ -38,7 +39,8 @@ function iconFor(label: string) {
 export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const [filter, setFilter] = useState<string>('Gastos')
   const [range, setRange] = useState<string>('6M')
-  const { state: axis } = useAxis(overview)
+  const { market } = useMarketContext(overview)
+  const { state: axis } = useAxis(overview, { market })
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

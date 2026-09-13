@@ -2,12 +2,15 @@
   "name": "finax",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.24.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"lib/**/*.test.ts\""
+    "test": "node --import tsx --test \"lib/**/*.test.ts\" \"scripts/**/*.test.ts\"",
+    "market:light": "tsx scripts/market/cli.ts light --data-dir public/market-data-local",
+    "market:deep": "tsx scripts/market/cli.ts deep --data-dir public/market-data-local --provider mock"
   },
   "dependencies": {
     "clsx": "^2.1.1",

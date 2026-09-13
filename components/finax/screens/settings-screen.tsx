@@ -4,6 +4,9 @@ import { useRef, useState } from 'react'
 import { clearAllData, exportBackup, parseBackup, restoreBackup } from '@/lib/db/backup'
 import { loadDemoData } from '@/lib/db/demo-seed'
 import { getAxisEngine } from '@/lib/axis/engine'
+import { useMarket } from '@/hooks/use-market'
+import { FRESHNESS_LABEL } from '@/lib/market/freshness'
+import { formatShortDate } from '@/lib/dates'
 import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { ScreenLoading } from '../loading'
@@ -59,6 +62,7 @@ export function SettingsScreen({ overview, onBack }: ScreenProps) {
   const { open, close } = useSheet()
   const fileInput = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
+  const market = useMarket()
 
   if (!overview) return <ScreenLoading />
 
@@ -207,6 +211,21 @@ export function SettingsScreen({ overview, onBack }: ScreenProps) {
               : 'Lógica determinista sobre tus datos locales. No hay ningún modelo de IA conectado todavía.'
           }
         />
+        {market.status !== 'disabled' && (
+          <Row
+            title="Contexto de mercado"
+            description={
+              market.research && market.freshness
+                ? `Investigación del ${formatShortDate(market.research.generatedAt.slice(0, 10))} (${FRESHNESS_LABEL[market.freshness]}). Fuentes públicas; sin datos personales. Toca para comprobar si hay una nueva.`
+                : market.offline
+                  ? 'Sin conexión: no se ha podido descargar la investigación de mercado.'
+                  : 'Todavía no hay ninguna investigación descargada. Toca para comprobar.'
+            }
+            onClick={() => {
+              void market.refresh().then(() => setMessage({ text: 'Contexto de mercado comprobado.' }))
+            }}
+          />
+        )}
       </Group>
 
       <Group title="Información">

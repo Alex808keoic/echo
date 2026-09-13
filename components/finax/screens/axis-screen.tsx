@@ -3,6 +3,9 @@
 import type { ReactNode } from 'react'
 import { formatCents } from '@/lib/money'
 import { useAxis } from '@/hooks/use-axis'
+import { useMarketContext } from '@/hooks/use-market-context'
+import { FRESHNESS_LABEL } from '@/lib/market/freshness'
+import { formatShortDate } from '@/lib/dates'
 import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
 import type { FinancialOverview } from '@/hooks/use-financial-overview'
 import { AxisSphere } from '../axis-sphere'
@@ -203,7 +206,8 @@ function engineNote(engine: AxisEngineInfo | null): string {
 }
 
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
-  const { state: axis, refresh } = useAxis(overview, { ai: true })
+  const { market, marketState } = useMarketContext(overview)
+  const { state: axis, refresh } = useAxis(overview, { ai: true, market })
   if (!overview) return <ScreenLoading />
 
   const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null
@@ -250,6 +254,13 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         )}
 
         <SituationCard overview={overview} onNavigate={onNavigate} />
+
+        {market && marketState.freshness && (
+          <p className="px-1 text-[11.5px] font-medium text-muted-foreground text-pretty">
+            Mercado · {formatShortDate(market.asOf.slice(0, 10))} · {FRESHNESS_LABEL[marketState.freshness]}
+            {market.sources.length > 0 && ` · fuentes: ${market.sources.slice(0, 4).join(', ')}`}
+          </p>
+        )}
 
         {axis.status === 'loading' ? (
           <Layer label="Análisis">

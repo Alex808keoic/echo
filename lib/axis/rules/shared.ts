@@ -3,9 +3,10 @@
  */
 import { formatCents } from '../../money'
 import { formatPct } from '../../format'
-import type { FinancialContext, Signal } from '../types'
+import type { FinancialContext, MarketContext, Signal } from '../types'
 
-export type Rule = (ctx: FinancialContext) => Signal[]
+/** Una regla recibe el contexto financiero y, si existe, el de mercado. */
+export type Rule = (ctx: FinancialContext, market?: MarketContext | null) => Signal[]
 
 export const eur = (cents: number, withSign = false) => formatCents(cents, withSign)
 export const pct = (value: number, withSign = false) => formatPct(Math.round(value), withSign)

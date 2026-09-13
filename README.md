@@ -12,7 +12,9 @@ Stack: Next.js 16 (App Router, una sola ruta) · React 19 · TypeScript estricto
 pnpm install
 pnpm dev        # http://localhost:3000
 pnpm typecheck  # tsc --noEmit
-pnpm test       # tests unitarios de AXIS (node:test)
+pnpm test       # tests unitarios de AXIS y Market Research (node:test)
+pnpm market:light   # comprobación ligera de mercado en local (sin IA)
+pnpm market:deep    # investigación profunda en local con proveedor de prueba (sin IA)
 pnpm build      # build de producción
 pnpm start      # servir el build
 ```
@@ -32,6 +34,8 @@ lib/types.ts                 modelo de datos (céntimos enteros, fechas YYYY-MM-
 lib/db/                      Dexie: movimientos, objetivos, posiciones, config, backup, demo
 lib/finance/                 cálculos (patrimonio, evolución, resúmenes, categorías)
 lib/axis/                    motor de AXIS: contexto, reglas, composición, validación (ver docs/AXIS.md)
+lib/market/                  modelo, validación, frescura y relevancia del contexto de mercado
+scripts/market/              Market Research Engine (GitHub Actions): fuentes, presupuesto, proveedores (ver docs/MARKET_RESEARCH.md)
 ```
 
 ## Decisiones clave
@@ -46,5 +50,7 @@ lib/axis/                    motor de AXIS: contexto, reglas, composición, vali
   Motor local de reglas deterministas + capa de IA opcional (abstracción `AIProvider`, solo servidor, con
   fallback local). Sin datos de mercado. Arquitectura, seguridad y tests: `docs/AXIS.md`.
 - Backup: exportar/importar JSON versionado desde Ajustes.
+- Mercado: investigación semanal compartida (cron), publicada como JSON estático y cacheada en Dexie;
+  presupuesto de coste con límites duros; sin datos personales. Ver docs/MARKET_RESEARCH.md.
 - Datos de demostración separados (`lib/db/demo-seed.ts`), solo en instalación vacía y
   marcados como demo.

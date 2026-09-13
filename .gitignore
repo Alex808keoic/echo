@@ -19,3 +19,6 @@ tsconfig.tsbuildinfo
 # Environment (secrets)
 .env
 .env.local
+
+# Datos de mercado generados en local (pruebas)
+public/market-data-local/

@@ -4,6 +4,7 @@ import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { pctChange, roundedShares } from '@/lib/finance/summary'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
+import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
@@ -32,7 +33,8 @@ function changeBadge(current: number, previous: number, goodWhenUp: boolean) {
 }
 
 export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
-  const { state: axis } = useAxis(overview)
+  const { market } = useMarketContext(overview)
+  const { state: axis } = useAxis(overview, { market })
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />

@@ -21,7 +21,7 @@ export const browserTransport: AITransport = {
     const res = await fetch(AXIS_API_PATH, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ context: input.context, memory: input.memory }),
+      body: JSON.stringify({ context: input.context, market: input.market ?? undefined, memory: input.memory }),
       signal,
     })
     if (!res.ok) throw new Error(`axis api ${res.status}`)

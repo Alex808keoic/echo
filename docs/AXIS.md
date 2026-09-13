@@ -139,13 +139,26 @@ bundle cliente (`.next/static`) no contiene credenciales ni SDKs de proveedores.
   cambiar datos sí; «Actualizar análisis» fuerza una nueva.
 - Sin contexto (`quality.level === 'none'`) no se llama al proveedor.
 
+## Contexto de mercado (`AxisInput.market`)
+
+AXIS puede recibir un `MarketContext` reducido (≤ 6 indicadores, ≤ 3 eventos,
+≤ 4 investigaciones anteriores, clases de activo relevantes) construido en el
+dispositivo a partir de la investigación pública del Market Research Engine
+(ver `docs/MARKET_RESEARCH.md`). La regla `rules/market.ts` aporta hechos e
+incertidumbre; solo con frescura `fresh` y una clase en `caution` que cruce con
+una posición emite una recomendación de prudencia («revisa antes de ampliar»);
+con `stale` no hay recomendaciones de mercado. Sin `MarketContext`, AXIS
+funciona exactamente igual. La caché de `useAxis` se indexa también por
+`researchId` y frescura.
+
 ## Límites actuales
 
 - Motor local determinista: los textos son plantillas con cifras reales.
-- Sin datos de mercado: nunca opina sobre rentabilidad futura, riesgo de mercado ni productos.
+- Sin cotizaciones en tiempo real: el mercado llega como síntesis semanal con
+  fecha; nunca opina sobre rentabilidad futura, riesgo de mercado ni productos.
 - Comparación mes actual vs. mes anterior; sin medias móviles ni estacionalidad.
-- `AxisMemory` y `MarketContext` existen en el contrato (y `memory` viaja al
-  proveedor si se pasa) pero nadie los rellena todavía.
+- `AxisMemory` existe en el contrato (y viaja al proveedor si se pasa) pero
+  nadie lo rellena todavía.
 - Sin chat: AXIS sigue siendo un centro estratégico.
 
 ## Cómo añadir una regla

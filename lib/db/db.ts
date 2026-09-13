@@ -5,6 +5,7 @@
  */
 import Dexie, { type EntityTable } from 'dexie'
 import type { AppConfig, Movement, Objective, Position } from '../types'
+import type { MarketCacheEntry } from './market'
 
 export const CONFIG_KEY = 'config' as const
 
@@ -13,6 +14,8 @@ export const db = new Dexie('finax') as Dexie & {
   objectives: EntityTable<Objective, 'id'>
   positions: EntityTable<Position, 'id'>
   config: EntityTable<AppConfig, 'key'>
+  /** Caché de la investigación de mercado (no son datos del usuario; no entra en el backup). */
+  market: EntityTable<MarketCacheEntry, 'key'>
 }
 
 db.version(1).stores({
@@ -20,6 +23,10 @@ db.version(1).stores({
   objectives: 'id',
   positions: 'id, date',
   config: 'key',
+})
+
+db.version(2).stores({
+  market: 'key',
 })
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */

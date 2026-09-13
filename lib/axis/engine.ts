@@ -15,7 +15,7 @@ import { createAIEngine } from './ai-engine'
 import { browserTransport } from './ai/browser-transport'
 import { buildFinancialContext, type FinancialSnapshot } from './context'
 import { localRulesEngine } from './local-engine'
-import type { AxisEngine, AxisInput, AxisMemory, AxisResult } from './types'
+import type { AxisEngine, AxisInput, AxisMemory, AxisResult, MarketContext } from './types'
 
 const aiEngine: AxisEngine = createAIEngine({ transport: browserTransport, fallback: localRulesEngine })
 
@@ -28,8 +28,9 @@ export function getAxisEngine(prefer: 'ai' | 'local' = 'local'): AxisEngine {
 export function analyzeSnapshot(
   snapshot: FinancialSnapshot,
   prefer: 'ai' | 'local' = 'local',
+  market: MarketContext | null = null,
   memory?: AxisMemory,
 ): Promise<AxisResult> {
-  const input: AxisInput = { context: buildFinancialContext(snapshot), memory }
+  const input: AxisInput = { context: buildFinancialContext(snapshot), market, memory }
   return getAxisEngine(prefer).analyze(input)
 }
