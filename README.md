@@ -34,6 +34,7 @@ lib/types.ts                 modelo de datos (céntimos enteros, fechas YYYY-MM-
 lib/db/                      Dexie: movimientos, objetivos, posiciones, config, backup, demo
 lib/finance/                 cálculos (patrimonio, evolución, resúmenes, categorías)
 lib/axis/                    motor de AXIS: contexto, reglas, composición, validación (ver docs/AXIS.md)
+lib/ai/providers/            proveedores de IA (Gemini, Groq) compartidos por AXIS y Market Research
 lib/market/                  modelo, validación, frescura y relevancia del contexto de mercado
 scripts/market/              Market Research Engine (GitHub Actions): fuentes, presupuesto, proveedores (ver docs/MARKET_RESEARCH.md)
 ```
@@ -47,10 +48,12 @@ scripts/market/              Market Research Engine (GitHub Actions): fuentes, p
 - Evolución del patrimonio solo con datos reales (mínimo 3 días con movimientos).
 - Inversiones manuales (activo, importe, fecha, valor actual); sin cotizaciones ni brokers.
 - AXIS: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN.
-  Motor local de reglas deterministas + capa de IA opcional (abstracción `AIProvider`, solo servidor, con
-  fallback local). Sin datos de mercado. Arquitectura, seguridad y tests: `docs/AXIS.md`.
+  Motor local de reglas deterministas + IA opcional en el servidor (Gemini o Groq, free tier, límites
+  duros, fallback local; se activa con `AXIS_AI_PROVIDER`). Memoria de conclusiones en Dexie.
+  Arquitectura, seguridad y tests: `docs/AXIS.md`.
 - Backup: exportar/importar JSON versionado desde Ajustes.
 - Mercado: investigación semanal compartida (cron), publicada como JSON estático y cacheada en Dexie;
   presupuesto de coste con límites duros; sin datos personales. Ver docs/MARKET_RESEARCH.md.
+- PWA: manifest + service worker (shell y datos de mercado en caché; nunca /api ni datos del usuario).
 - Datos de demostración separados (`lib/db/demo-seed.ts`), solo en instalación vacía y
   marcados como demo.

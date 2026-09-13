@@ -14,8 +14,10 @@
  * - `refresh()` descarta el resultado cacheado y vuelve a analizar.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { analyzeSnapshot } from '@/lib/axis/engine'
-import type { AxisResult, MarketContext } from '@/lib/axis/types'
+import { getAxisMemory, rememberConclusion } from '@/lib/db/axis-memory'
+import type { AxisMemory, AxisResult, MarketContext } from '@/lib/axis/types'
 import type { FinancialOverview } from './use-financial-overview'
 
 export type AxisState = { status: 'loading' } | AxisResult
@@ -24,7 +26,7 @@ type CacheEntry = Map<string, Promise<AxisResult>>
 
 const cache = new WeakMap<FinancialOverview, CacheEntry>()
 
-function resultFor(overview: FinancialOverview, ai: boolean, market: MarketContext | null): Promise<AxisResult> {
+function resultFor(overview: FinancialOverview, ai: boolean, market: MarketContext | null, memory: AxisMemory | null): Promise<AxisResult> {
   const entry = cache.get(overview) ?? new Map<string, Promise<AxisResult>>()
   cache.set(overview, entry)
   const marketKey = market ? `${market.researchId}@${market.freshness}` : 'none'
@@ -35,7 +37,7 @@ function resultFor(overview: FinancialOverview, ai: boolean, market: MarketConte
   let pending = entry.get(key)
   if (!pending) {
     const { config, movements, objectives, positions } = overview
-    pending = analyzeSnapshot({ config, movements, objectives, positions }, ai ? 'ai' : 'local', market)
+    pending = analyzeSnapshot({ config, movements, objectives, positions }, ai ? 'ai' : 'local', market, memory)
     entry.set(key, pending)
   }
   return pending
@@ -46,22 +48,30 @@ export interface UseAxisOptions {
   ai?: boolean
   /** Contexto de mercado reducido, construido en el dispositivo. */
   market?: MarketContext | null
+  /** Guardar la conclusión del análisis en la memoria de AXIS (solo la pantalla AXIS). */
+  remember?: boolean
 }
 
-export function useAxis(overview: FinancialOverview | undefined, { ai = false, market = null }: UseAxisOptions = {}) {
+export function useAxis(overview: FinancialOverview | undefined, { ai = false, market = null, remember = false }: UseAxisOptions = {}) {
   const [state, setState] = useState<AxisState>({ status: 'loading' })
   const [generation, setGeneration] = useState(0)
+  // La memoria se lee una vez por montaje; no forma parte de la clave de caché
+  // (es contexto, no dato), para no reanalizar por recordar la propia conclusión.
+  const memory = useLiveQuery(getAxisMemory, [], undefined)
 
   useEffect(() => {
-    if (!overview) return
+    if (!overview || memory === undefined) return
     let cancelled = false
-    void resultFor(overview, ai, market).then((result) => {
-      if (!cancelled) setState(result)
+    void resultFor(overview, ai, market, memory).then((result) => {
+      if (cancelled) return
+      setState(result)
+      if (remember && result.status === 'analysis') void rememberConclusion(result.analysis)
     })
     return () => {
       cancelled = true
     }
-  }, [overview, ai, market, generation])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overview, ai, market, generation, memory === undefined])
 
   /** Vuelve a analizar la instantánea actual (a petición del usuario). */
   const refresh = useCallback(() => {

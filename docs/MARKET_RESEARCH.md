@@ -43,7 +43,7 @@ Principios:
 | Capa | Archivos | Se ejecuta en |
 |---|---|---|
 | Modelo y lógica pura | `lib/market/types.ts`, `validate.ts`, `freshness.ts`, `relevance.ts`, `schema.ts` | app y scripts |
-| Engine | `scripts/market/limits.ts`, `budget.ts`, `store.ts`, `sources/*`, `material.ts`, `light.ts`, `deep.ts`, `publish.ts`, `cli.ts`, `providers/{gemini,groq,mock}.ts` | GitHub Actions (Node + tsx) |
+| Engine | `scripts/market/limits.ts`, `budget.ts`, `store.ts`, `sources/*`, `material.ts`, `light.ts`, `deep.ts`, `publish.ts`, `cli.ts`, `providers/mock.ts`; proveedores compartidos en `lib/ai/providers/{gemini,groq}.ts` | GitHub Actions (Node + tsx) |
 | Workflows | `.github/workflows/market-light.yml`, `market-deep.yml` | GitHub |
 | Cliente | `lib/db/market.ts` (Dexie v2, tabla `market`), `hooks/use-market.ts` | navegador |
 | AXIS | `lib/axis/rules/market.ts`, `types.ts` (`MarketContext`), `ai/prompt.ts`, `engine.ts`, `hooks/use-axis.ts` | navegador |
@@ -162,7 +162,7 @@ una caída no rompe la investigación y queda en `failedSources`.
   la regla «el mercado tiene fecha; no lo presentes como actual si no es
   `fresh`; no conviertas tendencias en certezas».
 
-## 9. Proveedores (implementados en `scripts/market/providers/`)
+## 9. Proveedores (implementados en `lib/ai/providers/`, compartidos con AXIS)
 
 | | Principal | Fallback | Prueba |
 |---|---|---|---|
@@ -186,7 +186,9 @@ y `MARKET_GROQ_MODEL` (sin tocar código ni límites).
 | Pasos | checkout `main` → checkout/creación de la rama huérfana `market-data` → `pnpm install` → `cli.ts light` → commit **solo si hay diff** → si `trigger_deep` y `MARKET_AI_ENABLED`, `gh workflow run market-deep.yml -f reason=event` | igual con `cli.ts deep` (el ledger se commitea aunque la investigación falle: un intento consumido queda registrado) |
 | Protecciones | `concurrency: market` (nunca dos a la vez), `timeout-minutes` 10 / 15, permisos `contents: write` (+ `actions: write` en light para el dispatch), commits `[skip ci]`, `GITHUB_TOKEN` (sus pushes no disparan otros workflows) | |
 
-Los workflows están creados pero **no se han ejecutado todavía** en GitHub.
+Primera ejecución real completada el 13-09-2026: `market-light` creó la rama; `market-deep`
+publicó `2026-W37` (Gemini 404 en `gemini-2.5-flash-lite` → Groq como fallback; 2 intentos
+en el ledger). Desde entonces `MARKET_GEMINI_MODEL=gemini-3.5-flash-lite`.
 
 ## 11. Operación
 
@@ -197,8 +199,9 @@ Checklist antes de activar (`MARKET_AI_ENABLED=true`):
 3. Secrets en GitHub: `GEMINI_API_KEY`, `GROQ_API_KEY` (opcional `FRED_API_KEY`).
 4. Variable de repositorio `MARKET_AI_ENABLED=true` (opcionales `MARKET_GEMINI_MODEL`, `MARKET_GROQ_MODEL`).
 5. GitHub spending limit en 0 $ (por defecto). Repo público (para la lectura raw).
-6. `NEXT_PUBLIC_MARKET_DATA_URL` en Netlify apuntando a
-   `https://raw.githubusercontent.com/<usuario>/<repo>/market-data`.
+6. `NEXT_PUBLIC_MARKET_DATA_URL` ya está fijada en `.env.production` (versionado; es una URL
+   pública, no un secreto): `https://raw.githubusercontent.com/Alex808keoic/echo/market-data`.
+   No hace falta configurarla en Netlify.
 7. Primera ejecución manual de `market-light` (sin IA) para crear la rama;
    después, `market-deep` con `reason=manual`.
 
@@ -209,7 +212,7 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
 ## 12. Verificación de seguridad de costes (repetir al cerrar cada fase)
 
 - Sin `billing`/`prepay` en el código; sin `tools`, `google_search` ni grounding en los proveedores.
-- Las URLs de Gemini/Groq solo aparecen en `scripts/market/providers/`; el cliente no las contiene.
+- Las URLs de Gemini/Groq solo aparecen en `lib/ai/providers/` (usado por scripts y por el servidor); el cliente no las contiene.
 - `.next/static` sin `GEMINI_API_KEY`, `GROQ_API_KEY`, `FRED_API_KEY` ni endpoints de IA;
   único `process.env` en cliente: `NEXT_PUBLIC_MARKET_DATA_URL` (URL pública).
 - `assertBudget()` antes de cada `completeWithUsage()` (también en el fallback); `recordAttempt()` antes de llamar.

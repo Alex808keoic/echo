@@ -59,6 +59,15 @@ describe('lib/market · frescura y relevancia', () => {
     assert.doesNotMatch(JSON.stringify(ctx), /Fondo Indexado Global|Cuenta remunerada/)
   })
 
+  it('descarta titulares de ruido (agendas, entrevistas) cuando hay eventos de impacto', () => {
+    const noisy = research({ events: [
+      { date: '2026-09-11', title: 'Agenda de sucursales', summary: 'x', impact: 'low', source: 'BdE', affects: [] },
+      { date: '2026-09-10', title: 'El BCE sube los tipos', summary: 'y', impact: 'high', source: 'BdE', affects: [] },
+    ] })
+    const ctx = buildMarketContext(noisy, history, [], NOW)
+    assert.deepEqual(ctx.relevantEvents.map((e) => e.title), ['El BCE sube los tipos'])
+  })
+
   it('sin posiciones no hay clases relevantes, pero sí contexto general', () => {
     const ctx = buildMarketContext(research(), history, [], NOW)
     assert.equal(ctx.relevantAssetClasses.length, 0)

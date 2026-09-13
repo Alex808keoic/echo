@@ -6,6 +6,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { AppConfig, Movement, Objective, Position } from '../types'
 import type { MarketCacheEntry } from './market'
+import type { AxisMemoryEntry } from './axis-memory'
 
 export const CONFIG_KEY = 'config' as const
 
@@ -16,6 +17,8 @@ export const db = new Dexie('finax') as Dexie & {
   config: EntityTable<AppConfig, 'key'>
   /** Caché de la investigación de mercado (no son datos del usuario; no entra en el backup). */
   market: EntityTable<MarketCacheEntry, 'key'>
+  /** Memoria de AXIS: conclusiones anteriores (contexto, no fuente de verdad financiera). */
+  axisMemory: EntityTable<AxisMemoryEntry, 'key'>
 }
 
 db.version(1).stores({
@@ -27,6 +30,10 @@ db.version(1).stores({
 
 db.version(2).stores({
   market: 'key',
+})
+
+db.version(3).stores({
+  axisMemory: 'key',
 })
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */

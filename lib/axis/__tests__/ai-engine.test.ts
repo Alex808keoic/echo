@@ -4,7 +4,7 @@ import { AI_ENGINE_INFO, createAIEngine, type AITransport } from '../ai-engine'
 import { buildFinancialContext } from '../context'
 import { analyzeLocally, localRulesEngine } from '../local-engine'
 import { buildAIRequest } from '../ai/prompt'
-import { analyzeWithProvider, isFinancialContext, readAIServerConfig, isAIAvailable, providerFromConfig } from '../ai/server/analyze'
+import { analyzeWithProvider, isFinancialContext } from '../ai/server/analyze'
 import type { AxisAnalysis, AxisInput, AxisResult } from '../types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
@@ -180,19 +180,14 @@ describe('prompt y proveedor (servidor)', () => {
   it('analyzeWithProvider fija engine/demo y valida la salida', async () => {
     const provider = { id: 'mock', complete: async () => validAIOutput() }
     const a = await analyzeWithProvider(provider, input(true).context)
-    assert.deepEqual(a.engine, AI_ENGINE_INFO)
+    assert.equal(a.engine.id, AI_ENGINE_INFO.id)
+    assert.equal(a.engine.isAI, true)
+    assert.match(a.engine.label, /mock/)
     assert.equal(a.basedOnDemoData, true)
     const bad = { id: 'mock', complete: async () => ({ headline: 'x' }) }
     await assert.rejects(analyzeWithProvider(bad, input().context))
   })
 
-  it('configuración: sin proveedor implementado la IA no está disponible; AXIS_AI_ENABLED=false la desactiva', () => {
-    assert.equal(providerFromConfig(readAIServerConfig({})), null)
-    assert.equal(isAIAvailable(readAIServerConfig({})), false)
-    assert.equal(readAIServerConfig({}).enabled, true)
-    assert.equal(readAIServerConfig({ AXIS_AI_ENABLED: 'false' }).enabled, false)
-    assert.equal(isAIAvailable(readAIServerConfig({ AXIS_AI_ENABLED: 'false' })), false)
-  })
 
   it('isFinancialContext rechaza cuerpos arbitrarios', () => {
     assert.equal(isFinancialContext(null), false)

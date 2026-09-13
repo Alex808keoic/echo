@@ -6,7 +6,7 @@
  * el material y devuelve JSON conforme al esquema. La clave llega por
  * `GEMINI_API_KEY` (GitHub Actions Secrets) y nunca sale de este proceso.
  */
-import { AIProviderError, type AIRequest } from '../../../lib/axis/ai/provider'
+import { AIProviderError, type AIRequest } from '../../axis/ai/provider'
 import { classifyHttpStatus, fetchWithTimeout, parseJSONOutput, type Completion, type MarketAIProvider } from './types'
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-lite'

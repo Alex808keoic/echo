@@ -161,15 +161,16 @@ export async function restoreBackup(backup: Backup): Promise<void> {
   })
 }
 
-/** Borra todos los datos locales (incluida la caché de mercado, aunque no sea del usuario). */
+/** Borra todos los datos locales (incluidas la caché de mercado y la memoria de AXIS). */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', db.config, db.movements, db.objectives, db.positions, db.market, async () => {
+  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory], async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
       db.objectives.clear(),
       db.positions.clear(),
       db.market.clear(),
+      db.axisMemory.clear(),
     ])
   })
 }

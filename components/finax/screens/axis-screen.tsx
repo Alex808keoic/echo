@@ -207,7 +207,7 @@ function engineNote(engine: AxisEngineInfo | null): string {
 
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
   const { market, marketState } = useMarketContext(overview)
-  const { state: axis, refresh } = useAxis(overview, { ai: true, market })
+  const { state: axis, refresh } = useAxis(overview, { ai: true, market, remember: true })
   if (!overview) return <ScreenLoading />
 
   const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null

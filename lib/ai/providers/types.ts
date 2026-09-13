@@ -3,7 +3,7 @@
  * `lib/axis/ai/provider.ts` y añaden el uso real de tokens, que el ledger
  * necesita. Ningún proveedor activa herramientas, búsqueda ni grounding.
  */
-import type { AIProvider, AIRequest } from '../../../lib/axis/ai/provider'
+import type { AIProvider, AIRequest } from '../../axis/ai/provider'
 
 export interface TokenUsage {
   inputTokens: number

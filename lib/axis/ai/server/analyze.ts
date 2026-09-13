@@ -1,41 +1,51 @@
 /**
  * SOLO SERVIDOR. Orquestación del análisis con IA:
  *
- *   contexto recibido → comprobación de forma → buildAIRequest → AIProvider
- *   → parseAxisAnalysis → AxisAnalysis
+ *   contexto recibido → comprobación de forma y tamaño → límite de la instancia
+ *   → buildAIRequest → AIProvider → parseAxisAnalysis → AxisAnalysis
  *
- * ESTADO: no hay ningún proveedor de IA implementado. `providerFromConfig()`
- * devuelve `null`, así que `/api/axis` responde «no disponible» y AXIS usa
- * siempre el motor local. La arquitectura queda lista para un proveedor con
- * nivel gratuito y límites estrictos (ver docs/AXIS.md → «Cómo añadir un
- * proveedor de IA»).
+ * Proveedor por variables de entorno (solo servidor; nunca `NEXT_PUBLIC_`):
+ *   AXIS_AI_ENABLED               "false" desactiva la IA aunque haya proveedor
+ *   AXIS_AI_PROVIDER              "gemini" | "groq" (sin valor → sin IA, AXIS local)
+ *   GEMINI_API_KEY / GROQ_API_KEY clave del proveedor elegido
+ *   AXIS_AI_MODEL                 modelo (opcional; por defecto el del proveedor)
+ *   AXIS_AI_MAX_REQUESTS_PER_DAY  solo puede reducir el tope diario (por defecto 40)
  *
- * Configuración por variables de entorno:
- *   AXIS_AI_ENABLED     "false" desactiva la IA aunque exista un proveedor
- *   (las credenciales del proveedor se definirán cuando se elija uno; nunca
- *   se exponen al cliente)
+ * Cuentas siempre en free tier y sin billing: si la cuota se agota, el
+ * proveedor devuelve 429 y el cliente usa el motor local.
  */
+import { createGeminiProvider } from '../../../ai/providers/gemini'
+import { createGroqProvider } from '../../../ai/providers/groq'
+import type { MarketAIProvider } from '../../../ai/providers/types'
 import { buildAIRequest } from '../prompt'
 import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
 import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
+import { AXIS_AI_LIMITS } from './limits'
+
+export type AxisAiProviderId = 'gemini' | 'groq'
 
 export interface AIServerConfig {
   enabled: boolean
+  provider: AxisAiProviderId | null
+  apiKey?: string
+  model?: string
 }
 
 export function readAIServerConfig(env: Record<string, string | undefined> = process.env): AIServerConfig {
-  return { enabled: env.AXIS_AI_ENABLED?.trim().toLowerCase() !== 'false' }
+  const enabled = env.AXIS_AI_ENABLED?.trim().toLowerCase() !== 'false'
+  const raw = env.AXIS_AI_PROVIDER?.trim().toLowerCase()
+  const provider: AxisAiProviderId | null = raw === 'gemini' || raw === 'groq' ? raw : null
+  const apiKey = (provider === 'gemini' ? env.GEMINI_API_KEY : provider === 'groq' ? env.GROQ_API_KEY : undefined)?.trim() || undefined
+  return { enabled, provider, apiKey, model: env.AXIS_AI_MODEL?.trim() || undefined }
 }
 
-/**
- * Proveedor configurado, o `null` si no hay ninguno. Aquí se instanciará la
- * implementación concreta de `AIProvider` cuando se decida el proveedor.
- */
-export function providerFromConfig(config: AIServerConfig): AIProvider | null {
-  if (!config.enabled) return null
-  return null
+/** Proveedor configurado, o `null` si falta el proveedor o su clave. */
+export function providerFromConfig(config: AIServerConfig): MarketAIProvider | null {
+  if (!config.enabled || !config.provider || !config.apiKey) return null
+  const options = { apiKey: config.apiKey, model: config.model, timeoutMs: AXIS_AI_LIMITS.TIMEOUT_MS }
+  return config.provider === 'gemini' ? createGeminiProvider(options) : createGroqProvider(options)
 }
 
 export function isAIAvailable(config: AIServerConfig): boolean {
@@ -62,18 +72,22 @@ export function isFinancialContext(v: unknown): v is FinancialContext {
 
 /** Ejecuta el análisis con un proveedor dado. Lanza si el resultado no es válido. */
 export async function analyzeWithProvider(
-  provider: AIProvider,
+  provider: AIProvider | MarketAIProvider,
   context: FinancialContext,
   memory?: AxisMemory,
   signal?: AbortSignal,
   market: MarketContext | null = null,
 ): Promise<AxisAnalysis> {
   const input: AxisInput = { context, memory, market }
-  const raw = await provider.complete(buildAIRequest(input), signal)
+  const request = buildAIRequest(input)
+  const raw =
+    'completeWithUsage' in provider
+      ? (await provider.completeWithUsage(request, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })).output
+      : await provider.complete(request, signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({
     ...raw,
-    engine: AI_ENGINE_INFO,
+    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${provider.id})` },
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,
   })

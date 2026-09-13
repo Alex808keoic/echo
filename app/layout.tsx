@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
+import { ServiceWorkerRegister } from '@/components/finax/sw-register'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
   title: 'Finax — Tu sistema financiero personal',
   description:
     'Finax: tu dinero, con sentido. Visualiza tu patrimonio, gestiona ingresos y gastos, analiza estadísticas y recibe recomendaciones de AXIS.',
+  applicationName: 'Finax',
+  appleWebApp: { capable: true, title: 'Finax', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = {
@@ -30,6 +33,7 @@ export default function RootLayout({
     <html lang="es" className={`${jakarta.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   )

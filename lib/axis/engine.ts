@@ -29,8 +29,8 @@ export function analyzeSnapshot(
   snapshot: FinancialSnapshot,
   prefer: 'ai' | 'local' = 'local',
   market: MarketContext | null = null,
-  memory?: AxisMemory,
+  memory: AxisMemory | null = null,
 ): Promise<AxisResult> {
-  const input: AxisInput = { context: buildFinancialContext(snapshot), market, memory }
+  const input: AxisInput = { context: buildFinancialContext(snapshot), market, memory: memory ?? undefined }
   return getAxisEngine(prefer).analyze(input)
 }

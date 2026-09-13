@@ -6,7 +6,7 @@
  */
 import type { AIRequest } from '../../../lib/axis/ai/provider'
 import { DEFAULT_ASSET_ALIASES } from '../../../lib/market/schema'
-import type { MarketAIProvider } from './types'
+import type { MarketAIProvider } from '../../../lib/ai/providers/types'
 
 export function createMockProvider(): MarketAIProvider {
   return {

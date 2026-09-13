@@ -41,8 +41,12 @@ function pickIndicators(indicators: MarketIndicator[]): MarketIndicator[] {
   return [...ordered, ...rest].slice(0, MARKET_CONTEXT_LIMITS.indicators)
 }
 
+/** Titulares que no describen acontecimientos de mercado (agendas, entrevistas, actos). */
+const NOISE = /\b(agenda|entrevista|interview|discurso|speech|foro|forum|conferencia|conference|jornada|seminario|podcast|blog|nombramiento|appointment)\b/i
+
 function pickEvents(events: MarketEvent[], relevantKeys: string[]): MarketEvent[] {
-  return [...events]
+  const meaningful = events.filter((e) => e.impact !== 'low' || !NOISE.test(e.title))
+  return [...(meaningful.length > 0 ? meaningful : events)]
     .sort((a, b) => {
       const ra = a.affects.some((k) => relevantKeys.includes(k)) ? 0 : 1
       const rb = b.affects.some((k) => relevantKeys.includes(k)) ? 0 : 1

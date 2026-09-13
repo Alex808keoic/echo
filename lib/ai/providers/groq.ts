@@ -5,7 +5,7 @@
  * `strict: true` (soportado por `openai/gpt-oss-120b`). Sin herramientas.
  * La clave llega por `GROQ_API_KEY` (GitHub Actions Secrets).
  */
-import { AIProviderError, type AIRequest } from '../../../lib/axis/ai/provider'
+import { AIProviderError, type AIRequest } from '../../axis/ai/provider'
 import { classifyHttpStatus, fetchWithTimeout, parseJSONOutput, type Completion, type MarketAIProvider } from './types'
 
 export const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b'

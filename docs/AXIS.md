@@ -100,14 +100,24 @@ local; no recalcula ni sustituye la lógica financiera.
   usa la clave. 503 sin proveedor, 400 con cuerpo no válido, 502/429 si el
   proveedor falla; sin trazas ni secretos en la respuesta.
 - `ai/provider.ts`: abstracción `AIProvider` (`complete(request) → unknown`).
-  **Todavía no hay ninguna implementación concreta**: `providerFromConfig()`
-  devuelve `null`, `/api/axis` responde «no disponible» y AXIS usa siempre el
-  motor local. El prompt (`ai/prompt.ts`) y el JSON Schema de salida
-  (`ai/schema.ts`) ya están listos para el proveedor que se elija.
+  Implementaciones compartidas con el Market Research Engine en
+  `lib/ai/providers/`: **Gemini** (REST, JSON por esquema, sin `tools`) y
+  **Groq** (`json_schema` strict, sin `tools`). El servidor elige una con
+  `AXIS_AI_PROVIDER`; sin ella, `providerFromConfig()` devuelve `null`,
+  `/api/axis` responde «no disponible» y AXIS usa siempre el motor local.
 - `ai/server/analyze.ts`: lee la configuración, valida la forma del contexto,
-  llama al proveedor y pasa la salida por `parseAxisAnalysis` fijando `engine`,
-  `generatedAt` y `basedOnDemoData` desde Finax, nunca desde el modelo. El
-  cliente vuelve a validar y a fijar esos campos: doble frontera.
+  llama al proveedor con `MAX_OUTPUT_TOKENS` fijo y pasa la salida por
+  `parseAxisAnalysis` fijando `engine`, `generatedAt` y `basedOnDemoData` desde
+  Finax, nunca desde el modelo. El cliente vuelve a validar: doble frontera.
+- `ai/server/limits.ts`: límites del servidor **antes de cada llamada** —
+  40 peticiones/día y 4/minuto por instancia (constantes; la variable de
+  entorno solo puede reducirlas), contexto ≤ 40 000 caracteres (413 si se
+  supera), 3 000 tokens de salida, 20 s de timeout. Sin cupo → 429 y el
+  cliente usa el motor local; nunca se llama al proveedor.
+- Memoria: la pantalla AXIS guarda las últimas 5 conclusiones en Dexie
+  (`lib/db/axis-memory.ts`, tabla `axisMemory`) y las pasa como
+  `AxisInput.memory` al siguiente análisis (`memoria` en el prompt). No
+  contiene importes, no entra en el backup y se borra con «Borrar todos los datos».
 
 **Prompt de sistema** (`AXIS_SYSTEM_PROMPT`): AXIS no es un chatbot; usa los
 importes calculados por Finax sin recalcular; lo que no está en el contexto es
@@ -122,13 +132,22 @@ las señales. No se envían nombres personales, cuentas, credenciales ni datos t
 
 | Variable | Efecto |
 |---|---|
+| `AXIS_AI_PROVIDER` | `gemini` o `groq`. Sin valor → sin IA (AXIS local). |
+| `GEMINI_API_KEY` / `GROQ_API_KEY` | Clave del proveedor elegido (cuenta free tier, sin billing ni tarjeta). |
+| `AXIS_AI_MODEL` | Modelo (por defecto `gemini-2.5-flash-lite` / `openai/gpt-oss-120b`). |
 | `AXIS_AI_ENABLED` | `false` desactiva la IA aunque exista un proveedor. |
+| `AXIS_AI_MAX_REQUESTS_PER_DAY` | Solo puede reducir el tope diario por instancia (máx. fijo 40). |
 
-Las credenciales del proveedor se añadirán cuando se elija uno. Reglas fijas:
-nunca hardcodearlas, nunca exponerlas con `NEXT_PUBLIC_`, nunca guardarlas en
-Dexie o localStorage, nunca subir `.env` / `.env.local` (ignorados en Git). El
-usuario no introduce claves en la app. Comprobación al cerrar cada fase: el
-bundle cliente (`.next/static`) no contiene credenciales ni SDKs de proveedores.
+Se configuran en el servidor (Netlify → *Environment variables*, ámbito de
+funciones/servidor). Reglas fijas: nunca hardcodearlas, nunca exponerlas con
+`NEXT_PUBLIC_`, nunca guardarlas en Dexie o localStorage, nunca subir `.env` /
+`.env.local` (ignorados en Git). El usuario no introduce claves en la app.
+Comprobación al cerrar cada fase: el bundle cliente (`.next/static`) no
+contiene credenciales ni endpoints de proveedores.
+
+**Estado**: implementado y probado con clave falsa (401 → 502 → fallback
+local; 4.ª llamada del día con tope 3 → 429 sin llamar). **No activado en
+producción** hasta que se configure `AXIS_AI_PROVIDER` y su clave en Netlify.
 
 ### Coste
 
@@ -157,9 +176,10 @@ funciona exactamente igual. La caché de `useAxis` se indexa también por
 - Sin cotizaciones en tiempo real: el mercado llega como síntesis semanal con
   fecha; nunca opina sobre rentabilidad futura, riesgo de mercado ni productos.
 - Comparación mes actual vs. mes anterior; sin medias móviles ni estacionalidad.
-- `AxisMemory` existe en el contrato (y viaja al proveedor si se pasa) pero
-  nadie lo rellena todavía.
+- Memoria mínima: solo las últimas conclusiones; sin preferencias declaradas por el usuario.
 - Sin chat: AXIS sigue siendo un centro estratégico.
+- El contador de la IA es por instancia de servidor (serverless puede tener varias); la
+  barrera principal sigue siendo la cuenta sin billing y la caché del cliente.
 
 ## Cómo añadir una regla
 
