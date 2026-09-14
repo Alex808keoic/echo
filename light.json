@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-09-13T13:11:48.290Z",
+  "checkedAt": "2026-09-14T14:19:40.186Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -15,10 +15,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.138,
+      "value": 3.16,
       "unit": "%",
-      "asOf": "2026-09-10",
-      "changePct": 0,
+      "asOf": "2026-09-11",
+      "changePct": 0.022,
       "source": "Banco de España"
     },
     {

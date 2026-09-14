@@ -21,10 +21,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.138,
+      "value": 3.16,
       "unit": "%",
-      "asOf": "2026-09-10",
-      "changePct": 0,
+      "asOf": "2026-09-11",
+      "changePct": 0.022,
       "source": "Banco de España"
     },
     {
