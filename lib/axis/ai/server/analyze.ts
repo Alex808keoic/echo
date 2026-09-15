@@ -21,6 +21,9 @@ import { buildAIRequest } from '../prompt'
 import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
+import { buildChatRequest } from '../../chat/prompt'
+import type { ChatInput, ChatReply } from '../../chat/types'
+import { parseChatReply } from '../../chat/validate'
 import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
 
@@ -90,5 +93,24 @@ export async function analyzeWithProvider(
     engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${provider.id})` },
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,
+  })
+}
+
+/**
+ * Conversación con un proveedor dado: mismo proveedor, mismos límites y misma
+ * frontera de validación que el análisis. El contexto solo vive en esta
+ * petición: no se persiste ni se registra nada en el servidor.
+ */
+export async function chatWithProvider(provider: AIProvider | MarketAIProvider, input: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
+  const request = buildChatRequest(input)
+  const raw =
+    'completeWithUsage' in provider
+      ? (await provider.completeWithUsage(request, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })).output
+      : await provider.complete(request, signal)
+  if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
+  return parseChatReply({
+    ...raw,
+    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${provider.id})` },
+    generatedAt: new Date().toISOString(),
   })
 }

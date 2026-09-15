@@ -3,12 +3,14 @@
 import type { ReactNode } from 'react'
 import { formatCents } from '@/lib/money'
 import { useAxis } from '@/hooks/use-axis'
+import { useAxisChat } from '@/hooks/use-axis-chat'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
 import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
 import type { FinancialOverview } from '@/hooks/use-financial-overview'
 import { AxisSphere } from '../axis-sphere'
+import { AxisConversation } from '../axis-conversation'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
 import { IconButton } from '../page-header'
@@ -208,6 +210,7 @@ function engineNote(engine: AxisEngineInfo | null): string {
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
   const { market, marketState } = useMarketContext(overview)
   const { state: axis, refresh } = useAxis(overview, { ai: true, market, remember: true })
+  const chat = useAxisChat(overview, market)
   if (!overview) return <ScreenLoading />
 
   const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null
@@ -297,6 +300,18 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         ) : (
           <Analysis analysis={axis.analysis} onNavigate={onNavigate} />
         )}
+
+        <AxisConversation
+          status={chat.status}
+          online={chat.online}
+          messages={chat.messages}
+          memories={chat.memories}
+          onSend={chat.send}
+          onResolveProposal={chat.resolveProposal}
+          onClear={chat.clear}
+          onForget={chat.forget}
+          onNavigate={onNavigate}
+        />
 
         <p className="flex items-center justify-center gap-1.5 px-4 text-center text-[11.5px] font-medium text-muted-foreground text-pretty">
           <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />

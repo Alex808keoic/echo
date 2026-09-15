@@ -109,7 +109,7 @@ export function SettingsScreen({ overview, onBack }: ScreenProps) {
     open(
       'Borrar todos los datos',
       <Confirm
-        message="Se eliminarán movimientos, objetivos, inversiones y saldo inicial de este dispositivo. Exporta una copia antes si quieres conservarlos."
+        message="Se eliminarán movimientos, objetivos, inversiones, saldo inicial y toda la memoria y conversación de AXIS de este dispositivo. Exporta una copia antes si quieres conservar tus datos."
         confirmLabel="Borrar todo"
         destructive
         onCancel={close}

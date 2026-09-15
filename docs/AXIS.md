@@ -158,6 +158,68 @@ producción** hasta que se configure `AXIS_AI_PROVIDER` y su clave en Netlify.
   cambiar datos sí; «Actualizar análisis» fuerza una nueva.
 - Sin contexto (`quality.level === 'none'`) no se llama al proveedor.
 
+## Modo conversacional (`chat/`, `hooks/use-axis-chat.ts`, `components/finax/axis-conversation.tsx`)
+
+AXIS conversa dentro de su propia pantalla, debajo del análisis. No es un
+chatbot genérico: responde con el mismo `FinancialContext`, las mismas
+señales, el mismo contexto de mercado y la memoria, por el mismo endpoint y
+con los mismos límites. Analiza y recomienda; nunca ejecuta operaciones.
+
+```
+mensaje del usuario
+  └─ hooks/use-axis-chat.ts  (en el dispositivo)
+       FinancialContext actual + MarketContext + AxisMemory + ventana de conversación
+         └─ createChatEngine (chat/engine.ts) ─► POST /api/axis { mode:'chat', … }
+              │                                     └─ chatWithProvider ─► AIProvider ─► parseChatReply
+              │  ante CUALQUIER fallo / sin conexión / sin cupo / sin datos ─► composeLocalReply (motor local, lo dice)
+              ▼
+         parseChatReply (chat/validate.ts) — única puerta hacia la UI
+              ▼
+         ChatMessage (texto, engine, fallbackReason, nextStep, memoryProposal) ─► Dexie `axisConversation` ─► UI
+```
+
+**Contexto en cuatro niveles** (`chat/prompt.ts`, `buildChatRequest`): el modelo
+recibe siempre un JSON con `datos_actuales` (contexto mínimo sin la serie
+diaria + señales + mercado), `memoria` (memorias aceptadas + conclusiones
+anteriores), `conversacion_actual` (resumen de lo antiguo + últimos
+`MAX_RECENT_FOR_MODEL` mensajes) y `consulta_actual`. El prompt de sistema
+fija la precedencia: para cualquier cifra manda `datos_actuales`; la memoria
+es contexto para razonar, nunca fuente de importes; solo «recuerda» lo que está
+en `memoria`; nunca ejecuta; propone recordar solo información útil y no sensible.
+
+**Memoria persistente** (`chat/memory.ts`, `lib/db/axis-memories.ts`, tabla
+`axisMemories`): entradas `{ id, content, category, importance, confidence,
+source:'conversation', createdAt, updatedAt }`, categorías `preference | goal |
+financial_plan | constraint | decision | context | other`. Solo entra lo que el
+usuario acepta con «Recordar»; una propuesta con `replacesId` **actualiza** la
+memoria existente (sin duplicados ni contradicciones); contenido equivalente no
+se duplica; máximo 30 (salen primero las menos importantes y, a igual importancia,
+las más antiguas; la recién aceptada nunca sale y las expulsadas se devuelven
+en `evicted`); nada
+que parezca un secreto (`chat/secrets.ts`: contraseñas, claves, tokens, IBAN,
+tarjetas) se propone ni se guarda — se filtra en el servidor y en el cliente.
+`getAxisMemory()` une conclusiones + memorias, así que el análisis también las
+recibe. «Lo que recuerdo» permite ver y olvidar cada nota.
+
+**Historial** (`chat/history.ts`, tabla `axisConversation`): se conservan los
+últimos 20 mensajes íntegros; lo anterior se comprime, sin IA, en un resumen
+de texto (una línea por mensaje, ≤ 160 caracteres, total ≤ 1 500, conservando
+lo más reciente). Persiste entre recargas; «Borrar» lo elimina (las memorias se
+conservan); «Borrar todos los datos» elimina memorias, historial, resumen y
+conclusiones. Nada de esto entra en el backup.
+
+**Estados reales** (`ChatStatus`): `preparing` (cargando lo local), `analyzing`
+(contexto + disponibilidad), `responding` (llamada en curso), `error`; sin
+conexión se indica y se responde en local. Cada respuesta lleva un indicador
+«IA» o «Motor local» (+ motivo del fallback). No se finge actividad.
+
+**Servidor**: `POST /api/axis` con `mode:'chat'` comparte proveedor, cupo de
+instancia (40/día, 4/min), 40 000 caracteres de cuerpo, 3 000 tokens de salida
+y 20 s de timeout con el análisis; además valida mensaje ≤ 1 000 caracteres,
+resumen ≤ 1 500 y ≤ 8 mensajes recientes (`isChatPayload`). Procesa la
+petición y no persiste nada. Nunca se envían backups, credenciales, la serie
+diaria de patrimonio ni el historial completo.
+
 ## Contexto de mercado (`AxisInput.market`)
 
 AXIS puede recibir un `MarketContext` reducido (≤ 6 indicadores, ≤ 3 eventos,
@@ -189,7 +251,7 @@ funciona exactamente igual. La caché de `useAxis` se indexa también por
 3. Añadirla a `RULES` en `rules/index.ts`.
 4. Cubrirla en `lib/axis/__tests__/engine.test.ts`.
 
-## Cómo añadir un proveedor de IA (pendiente)
+## Cómo añadir un proveedor de IA
 
 1. Implementar `AIProvider` en `lib/axis/ai/server/<proveedor>-provider.ts`:
    `complete(request)` envía `request.system` + `request.user`, exige salida
@@ -213,7 +275,10 @@ pnpm build
 ```
 
 `engine.test.ts` cubre el motor local y la validación con contextos ficticios
-(`fixtures.ts`) y fecha fija. `ai-engine.test.ts` mockea transporte y
+(`fixtures.ts`) y fecha fija. `chat.test.ts` cubre la conversación (contexto en
+cuatro niveles, memoria, multiturno, compresión, fallback, errores, límites,
+secretos, servidor) y `lib/db/__tests__/axis-store.test.ts` la persistencia en
+Dexie (recarga y borrado completo) con `fake-indexeddb`. `ai-engine.test.ts` mockea transporte y
 proveedor: JSON válido, inválido, incompleto, timeout, proveedor caído, clave
 ausente, datos demo, contexto inmutable, salida sin operaciones. Ningún test
 llama a Internet.

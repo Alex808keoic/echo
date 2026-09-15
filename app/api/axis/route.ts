@@ -1,18 +1,21 @@
 /**
  * Route handler de AXIS (servidor).
  *
- *   GET  /api/axis  → { available: boolean }   ¿hay proveedor de IA configurado?
- *   POST /api/axis  → { analysis }             análisis validado, o error sin detalles técnicos
+ *   GET  /api/axis                  → { available: boolean }   ¿hay proveedor de IA configurado?
+ *   POST /api/axis                  → { analysis }             análisis validado, o error sin detalles técnicos
+ *   POST /api/axis  { mode:'chat' } → { reply }                respuesta conversacional validada
  *
  * Es el único punto donde se usa la clave del proveedor. Nunca devuelve
  * secretos ni trazas; el cliente hace fallback al motor local ante cualquier
  * respuesta que no sea 200. Antes de cada llamada se consume un cupo de la
  * instancia (`consumeInstanceSlot`); agotado el cupo, no se llama al proveedor.
+ * El contexto recibido se procesa en la petición y no se persiste.
  */
 import { NextResponse } from 'next/server'
-import { analyzeWithProvider, isFinancialContext, providerFromConfig, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
+import { analyzeWithProvider, chatWithProvider, isFinancialContext, providerFromConfig, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
+import { isChatPayload } from '@/lib/axis/chat/validate'
 import type { AxisMemory, MarketContext } from '@/lib/axis/types'
 
 export const runtime = 'nodejs'
@@ -43,16 +46,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
   }
   const rec = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
-  if (!isFinancialContext(rec.context)) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
+  const context = rec.context
+  if (!isFinancialContext(context)) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
   const memory = typeof rec.memory === 'object' && rec.memory !== null ? (rec.memory as AxisMemory) : undefined
   const market = typeof rec.market === 'object' && rec.market !== null ? (rec.market as MarketContext) : null
+  const chat = rec.mode === 'chat' ? (isChatPayload(rec) ? rec : null) : null
+  if (rec.mode === 'chat' && !chat) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
 
   // Límite de la instancia: se consume ANTES de llamar; si no hay cupo, no hay llamada.
   const slot = consumeInstanceSlot()
   if (!slot.allowed) return NextResponse.json({ error: 'rate-limited' }, { status: 429, headers: NO_STORE })
 
   try {
-    const analysis = await analyzeWithProvider(provider, rec.context, memory, request.signal, market)
+    if (chat) {
+      const reply = await chatWithProvider(provider, { context, market, memory, conversation: chat.conversation, message: chat.message }, request.signal)
+      return NextResponse.json({ reply }, { headers: NO_STORE })
+    }
+    const analysis = await analyzeWithProvider(provider, context, memory, request.signal, market)
     return NextResponse.json({ analysis }, { headers: NO_STORE })
   } catch (error) {
     // Clasificación sin detalles: el cliente solo necesita saber que debe usar el motor local.

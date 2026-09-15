@@ -125,7 +125,7 @@ export interface FinancialContext {
 }
 
 /**
- * Memoria de AXIS (futuro). Contexto adicional aportado por el usuario o por
+ * Memoria de AXIS. Contexto adicional aportado por el usuario o por
  * análisis anteriores. NUNCA es fuente de verdad financiera: los importes
  * salen siempre de `FinancialContext`.
  */
@@ -136,6 +136,12 @@ export interface AxisMemory {
     notes?: string[]
   }
   previousConclusions?: Array<{ generatedAt: string; summary: string }>
+  /**
+   * Memorias que el usuario ha aceptado guardar en conversaciones con AXIS
+   * (preferencias, decisiones, planes). Vista reducida de `UserMemory`
+   * (lib/axis/chat/types.ts); la `id` permite actualizarlas sin duplicar.
+   */
+  userMemories?: Array<{ id: string; content: string; category: string; importance: string; fecha: string }>
 }
 
 /**

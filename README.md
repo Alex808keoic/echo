@@ -30,10 +30,12 @@ components/finax/            UI (diseño del prototipo v0)
   charts/                    gráficos SVG propios
 hooks/use-financial-overview  panorama financiero derivado (única fuente para todas las pantallas)
 hooks/use-axis               estado de AXIS
+hooks/use-axis-chat          conversación con AXIS (historial, memoria, estados)
 lib/types.ts                 modelo de datos (céntimos enteros, fechas YYYY-MM-DD)
 lib/db/                      Dexie: movimientos, objetivos, posiciones, config, backup, demo
 lib/finance/                 cálculos (patrimonio, evolución, resúmenes, categorías)
 lib/axis/                    motor de AXIS: contexto, reglas, composición, validación (ver docs/AXIS.md)
+lib/axis/chat/               modo conversacional: contexto en 4 niveles, memoria, historial, fallback local
 lib/ai/providers/            proveedores de IA (Gemini, Groq) compartidos por AXIS y Market Research
 lib/market/                  modelo, validación, frescura y relevancia del contexto de mercado
 scripts/market/              Market Research Engine (GitHub Actions): fuentes, presupuesto, proveedores (ver docs/MARKET_RESEARCH.md)
@@ -50,6 +52,9 @@ scripts/market/              Market Research Engine (GitHub Actions): fuentes, p
 - AXIS: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN.
   Motor local de reglas deterministas + IA opcional en el servidor (Gemini o Groq, free tier, límites
   duros, fallback local; se activa con `AXIS_AI_PROVIDER`). Memoria de conclusiones en Dexie.
+  Conversación integrada en la pantalla AXIS: contexto en cuatro niveles (datos actuales → memoria →
+  conversación → consulta), memoria persistente solo con confirmación del usuario, historial comprimido,
+  mismo endpoint y límites, fallback local explícito.
   Arquitectura, seguridad y tests: `docs/AXIS.md`.
 - Backup: exportar/importar JSON versionado desde Ajustes.
 - Mercado: investigación semanal compartida (cron), publicada como JSON estático y cacheada en Dexie;
