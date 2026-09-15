@@ -5,9 +5,19 @@
  * el contexto financiero al servidor de la propia app y recibe un análisis.
  */
 import type { AITransport } from '../ai-engine'
-import type { AxisInput } from '../types'
+import type { AxisInput, FinancialContext } from '../types'
 
 export const AXIS_API_PATH = '/api/axis'
+
+/**
+ * Contexto que viaja al servidor: el `FinancialContext` sin la serie diaria
+ * (`flows.history`). El servidor la descarta antes de construir el prompt;
+ * enviarla solo engorda el cuerpo (un punto por día con movimientos) y puede
+ * superar el límite de 40 000 caracteres. El resto va íntegro; no muta el original.
+ */
+export function contextForRequest(context: FinancialContext): FinancialContext {
+  return { ...context, flows: { ...context.flows, history: [] } }
+}
 
 export const browserTransport: AITransport = {
   async isAvailable() {
@@ -21,7 +31,7 @@ export const browserTransport: AITransport = {
     const res = await fetch(AXIS_API_PATH, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ context: input.context, market: input.market ?? undefined, memory: input.memory }),
+      body: JSON.stringify({ context: contextForRequest(input.context), market: input.market ?? undefined, memory: input.memory }),
       signal,
     })
     if (!res.ok) throw new Error(`axis api ${res.status}`)

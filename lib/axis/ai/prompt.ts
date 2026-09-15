@@ -37,12 +37,17 @@ TONO
 SALIDA
 - Devuelve únicamente el JSON que exige el esquema. Usa los mismos ids de señal que recibes cuando reutilices una señal de Finax. El campo «to» de cada siguiente paso solo admite: inicio, dinero, movimientos, estadisticas, objetivos, inversiones.`
 
-/** Contexto mínimo que se envía: el `FinancialContext` sin la serie diaria (no aporta a la lectura y abulta). */
+/**
+ * Contexto mínimo que se envía: el `FinancialContext` sin la serie diaria (no
+ * aporta a la lectura y abulta). `historyDays` sale de `quality`, que conserva
+ * el valor real aunque el transporte ya no envíe `flows.history`.
+ */
 function minimalContext(ctx: FinancialContext) {
-  const { history, ...flows } = ctx.flows
+  const { history: _history, ...flows } = ctx.flows
+  void _history
   return {
     ...ctx,
-    flows: { ...flows, historyDays: history.length },
+    flows: { ...flows, historyDays: ctx.quality.historyDays },
   }
 }
 

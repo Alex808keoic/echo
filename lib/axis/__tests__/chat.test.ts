@@ -4,6 +4,8 @@ import { buildFinancialContext } from '../context'
 import { AI_ENGINE_INFO } from '../ai-engine'
 import { chatWithProvider } from '../ai/server/analyze'
 import { AXIS_AI_LIMITS } from '../ai/server/limits'
+import { contextForRequest } from '../ai/browser-transport'
+import { browserChatTransport } from '../chat/browser-transport'
 import { ChatTransportError, createChatEngine, type ChatPhase, type ChatTransport } from '../chat/engine'
 import { appendMessage, compact, EMPTY_CONVERSATION, windowForModel } from '../chat/history'
 import { composeLocalReply } from '../chat/local-reply'
@@ -12,6 +14,7 @@ import { AXIS_CHAT_SYSTEM_PROMPT, buildChatRequest } from '../chat/prompt'
 import { looksLikeSecret } from '../chat/secrets'
 import { CHAT_LIMITS, type ChatInput, type ChatMessage, type ConversationState, type MemoryProposal, type UserMemory } from '../chat/types'
 import { isChatPayload, parseChatReply } from '../chat/validate'
+import { isFinancialContext } from '../ai/server/analyze'
 import type { MarketAIProvider } from '../../ai/providers/types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
@@ -437,6 +440,66 @@ describe('AXIS conversación · secretos', () => {
     assert.equal(reply.memoryProposal, null, 'contenido demasiado corto')
     assert.equal(reply.nextStep?.to, undefined, 'destino desconocido descartado')
     assert.equal(reply.nextStep?.label, 'Ver objetivos')
+  })
+})
+
+/* --------------------------- transporte del navegador --------------------- */
+
+describe('AXIS conversación · transporte del navegador', () => {
+  it('el POST mode:chat no envía flows.history pero conserva el resto del contexto', async () => {
+    const ctx = context()
+    assert.ok(ctx.flows.history.length > 0, 'el contexto de prueba tiene serie diaria')
+    const captured: { url?: string; init?: RequestInit } = {}
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      captured.url = String(url)
+      captured.init = init
+      return new Response(JSON.stringify({ reply: validAIOutput() }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as typeof fetch
+    try {
+      await browserChatTransport.ask(input('¿Cómo voy?', { context: ctx }), new AbortController().signal)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+    assert.equal(captured.url, '/api/axis')
+    const body = JSON.parse(String(captured.init?.body)) as { mode: string; message: string; conversation: unknown; context: typeof ctx }
+    assert.equal(body.mode, 'chat')
+    assert.equal(body.message, '¿Cómo voy?')
+    assert.ok(body.conversation)
+    assert.deepEqual(body.context.flows.history, [], 'la serie diaria no viaja')
+    // Todo lo demás, íntegro y aceptado por la comprobación de forma del servidor.
+    assert.equal(isFinancialContext(body.context), true)
+    const { history: _sent, ...sentFlows } = body.context.flows
+    const { history: _orig, ...origFlows } = ctx.flows
+    void _sent
+    void _orig
+    assert.deepEqual(sentFlows, origFlows)
+    assert.deepEqual(body.context.wealth, ctx.wealth)
+    assert.deepEqual(body.context.objectives, ctx.objectives)
+    assert.deepEqual(body.context.investments, ctx.investments)
+    assert.deepEqual(body.context.quality, ctx.quality, 'quality (incl. historyDays) se conserva')
+    assert.equal(body.context.asOf, ctx.asOf)
+    assert.ok(String(captured.init?.body).length < JSON.stringify({ mode: 'chat', context: ctx }).length)
+  })
+
+  it('contextForRequest no muta el contexto original', () => {
+    const ctx = context()
+    const before = JSON.stringify(ctx)
+    contextForRequest(ctx)
+    assert.equal(JSON.stringify(ctx), before)
+  })
+
+  it('el prompt del chat toma historyDays de quality aunque flows.history llegue vacío', () => {
+    const ctx = context()
+    assert.ok(ctx.quality.historyDays > 0)
+    const sent = contextForRequest(ctx)
+    assert.equal(sent.flows.history.length, 0)
+    const req = buildChatRequest(input('¿Cómo voy?', { context: sent }))
+    const payload = JSON.parse(req.user.slice(req.user.indexOf('{'))) as {
+      datos_actuales: { contexto_financiero: { flows: { historyDays: number; history?: unknown } } }
+    }
+    assert.equal(payload.datos_actuales.contexto_financiero.flows.historyDays, ctx.quality.historyDays)
+    assert.equal('history' in payload.datos_actuales.contexto_financiero.flows, false)
   })
 })
 

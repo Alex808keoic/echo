@@ -3,7 +3,7 @@
  * el análisis (`/api/axis`, `mode: 'chat'`). El navegador nunca habla con
  * el proveedor ni conoce su clave; envía solo el contexto necesario.
  */
-import { browserTransport } from '../ai/browser-transport'
+import { browserTransport, contextForRequest } from '../ai/browser-transport'
 import { ChatTransportError, type ChatTransport } from './engine'
 import type { ChatInput } from './types'
 
@@ -16,7 +16,7 @@ export const browserChatTransport: ChatTransport = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         mode: 'chat',
-        context: input.context,
+        context: contextForRequest(input.context),
         market: input.market ?? undefined,
         memory: input.memory,
         conversation: input.conversation,

@@ -4,6 +4,7 @@ import { AI_ENGINE_INFO, createAIEngine, type AITransport } from '../ai-engine'
 import { buildFinancialContext } from '../context'
 import { analyzeLocally, localRulesEngine } from '../local-engine'
 import { buildAIRequest } from '../ai/prompt'
+import { browserTransport, contextForRequest } from '../ai/browser-transport'
 import { analyzeWithProvider, isFinancialContext } from '../ai/server/analyze'
 import type { AxisAnalysis, AxisInput, AxisResult } from '../types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
@@ -193,5 +194,50 @@ describe('prompt y proveedor (servidor)', () => {
     assert.equal(isFinancialContext(null), false)
     assert.equal(isFinancialContext({ asOf: 'x' }), false)
     assert.equal(isFinancialContext(input().context), true)
+  })
+})
+
+describe('transporte del navegador (análisis)', () => {
+  it('el POST no envía flows.history pero conserva el resto del contexto', async () => {
+    const i = input()
+    assert.ok(i.context.flows.history.length > 0, 'el contexto de prueba tiene serie diaria')
+    const captured: { url?: string; init?: RequestInit } = {}
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      captured.url = String(url)
+      captured.init = init
+      return new Response(JSON.stringify({ analysis: validAIOutput() }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as typeof fetch
+    try {
+      await browserTransport.analyze(i, new AbortController().signal)
+    } finally {
+      globalThis.fetch = realFetch
+    }
+    assert.equal(captured.url, '/api/axis')
+    const body = JSON.parse(String(captured.init?.body)) as { context: typeof i.context; mode?: unknown }
+    assert.equal(body.mode, undefined, 'el análisis no lleva mode')
+    assert.deepEqual(body.context.flows.history, [], 'la serie diaria no viaja')
+    assert.equal(isFinancialContext(body.context), true)
+    const { history: _sent, ...sentFlows } = body.context.flows
+    const { history: _orig, ...origFlows } = i.context.flows
+    void _sent
+    void _orig
+    assert.deepEqual(sentFlows, origFlows)
+    assert.deepEqual(body.context.wealth, i.context.wealth)
+    assert.deepEqual(body.context.objectives, i.context.objectives)
+    assert.deepEqual(body.context.investments, i.context.investments)
+    assert.deepEqual(body.context.quality, i.context.quality, 'quality (incl. historyDays) se conserva')
+    assert.equal(body.context.asOf, i.context.asOf)
+    assert.ok(i.context.flows.history.length > 0, 'el original no se muta')
+  })
+
+  it('el prompt del análisis toma historyDays de quality aunque flows.history llegue vacío', () => {
+    const i = input()
+    assert.ok(i.context.quality.historyDays > 0)
+    const sent = contextForRequest(i.context)
+    const req = buildAIRequest({ context: sent })
+    const payload = JSON.parse(req.user.slice(req.user.indexOf('{'))) as { contexto_financiero: { flows: { historyDays: number; history?: unknown } } }
+    assert.equal(payload.contexto_financiero.flows.historyDays, i.context.quality.historyDays)
+    assert.equal('history' in payload.contexto_financiero.flows, false)
   })
 })

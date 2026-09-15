@@ -51,10 +51,15 @@ TONO Y FORMATO
 - «confidence» refleja la solidez de tu respuesta con los datos disponibles. «nextStep» solo si hay una pantalla de Finax donde continuar; su campo «to» admite únicamente: inicio, dinero, movimientos, estadisticas, objetivos, inversiones.
 - Devuelve únicamente el JSON que exige el esquema.`
 
-/** Mismo contexto mínimo que el análisis: sin la serie diaria (abulta y no aporta a la conversación). */
+/**
+ * Mismo contexto mínimo que el análisis: sin la serie diaria (abulta y no
+ * aporta a la conversación). `historyDays` sale de `quality`, que conserva el
+ * valor real aunque el transporte ya no envíe `flows.history`.
+ */
 function minimalContext(ctx: FinancialContext) {
-  const { history, ...flows } = ctx.flows
-  return { ...ctx, flows: { ...flows, historyDays: history.length } }
+  const { history: _history, ...flows } = ctx.flows
+  void _history
+  return { ...ctx, flows: { ...flows, historyDays: ctx.quality.historyDays } }
 }
 
 function signalSummary(signals: Signal[]) {
