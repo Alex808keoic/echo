@@ -21,9 +21,9 @@ Dexie (config, movimientos, objetivos, posiciones)
                        getAxisEngine('local' | 'ai').analyze(input)            lib/axis/engine.ts
                               │                                  │
   motor local (siempre)       │                                  │  motor de IA (prescindible)   lib/axis/ai-engine.ts
-  reglas ─► señales ─►        │                                  │  transporte ─► POST /api/axis ─► AIProvider (servidor)
-  priorización ─► composición │                                  │  ante CUALQUIER fallo ─► motor local
-  rules/*  rules/index.ts  compose.ts                            │
+  decide() ─► AxisDecision ─► │                                  │  transporte ─► POST /api/axis ─► AxisLanguageModel (servidor)
+  render()                    │                                  │  ante CUALQUIER fallo ─► motor local (core/fallback.ts)
+  rules/*  core/decision.ts  compose.ts                          │
                               ▼                                  ▼
                            parseAxisAnalysis (validate.ts) — única puerta hacia la UI
                                                           ▼
@@ -32,6 +32,75 @@ Dexie (config, movimientos, objetivos, posiciones)
                                                           ▼
                               hooks/use-axis.ts (cache por instantánea)  ─►  UI (axis-screen, tarjetas)
 ```
+
+## Arquitectura: AXIS no es Gemini
+
+Principio: **AXIS decide; el modelo de lenguaje, si lo hay, redacta.** Gemini
+(o Groq, o ninguno) es un motor lingüístico intercambiable. Arquitectura
+objetivo, por capas:
+
+```
+Usuario
+  ▼
+AXIS Conversation   intención estructurada (fase 3)               lib/axis/chat/
+  ▼
+AXIS Context        datos, nunca conclusiones                     lib/axis/context.ts · lib/market/relevance.ts
+  ▼
+AXIS Memory         aceptada · conversación · conclusiones        lib/db/axis-*.ts · lib/axis/chat/{memory,history}.ts
+  ▼
+AXIS Decision       decide(): AxisDecision, solo reglas           lib/axis/core/decision.ts · rules/
+  ▼
+AXIS Safety         validación estructural (y semántica, fase 2)  lib/axis/validate.ts · chat/validate.ts · chat/secrets.ts
+  ▼
+AXIS Personality    cómo comunica, nunca qué decide               lib/axis/personality.ts
+  ▼
+¿Hace falta LLM?    NO → render() local                           lib/axis/compose.ts · chat/local-reply.ts
+                    SÍ → AxisLanguageModel                        lib/axis/language/ (fromProvider · noModel)
+  ▼
+AXIS Response       AxisResult · ChatReply
+```
+
+Estado por fases:
+
+- **Fase 0 (hecha)**: tests dorados (`__tests__/golden.test.ts`, 13 escenarios:
+  resultado local, respuesta local del chat y peticiones efectivas al modelo)
+  y `AxisDecision` (`types.ts`).
+- **Fase 1 (hecha, sin cambio de comportamiento)**: `decide()` separado de
+  `render()`; `AxisLanguageModel` con `fromProvider` (envuelve Gemini/Groq sin
+  tocarlos), `noModel` y `languageModelFromConfig`; prompts ensamblados por
+  bloques (`prompts/{contract,safety,memory,output}.ts` + `personality.ts`)
+  byte a byte iguales a los originales (`__tests__/prompts.test.ts`);
+  `withFallback()` común a los dos motores (`core/fallback.ts`).
+- **Fase 2 (pendiente)**: decisión primero también con LLM — el modelo recibe la
+  `AxisDecision` y solo redacta; recomendación, siguiente paso y confianza los
+  fija AXIS; seguridad semántica (cifras del texto ⊆ decisión). Con flag.
+- **Fase 3 (pendiente)**: conversación por intención (`EXPLAIN_CURRENT_SITUATION`,
+  `SIMULATE_SCENARIO`, `CREATE_GOAL`, …), plan de respuesta, simulador
+  determinista, respuesta local sin LLM cuando la intención está cubierta.
+- **Fase 4 (pendiente)**: un solo pipeline para análisis y conversación.
+
+Regla de oro de las fases 0–1: Finax se usa exactamente igual que antes; solo
+cambia que, por dentro, existe una decisión separada del lenguaje y un modelo
+de lenguaje intercambiable.
+
+### `AxisDecision` (`core/decision.ts`)
+
+`decide(input)` es determinista y no usa ningún modelo: señales priorizadas,
+señal líder, señales relevantes (≤ 4), hechos (≤ 5), una recomendación o
+`null` (no actuar), alternativas (≤ 2), incertidumbres (≤ 3, demo primero),
+confianza, qué falta (`missing`, solo sin datos) y siguiente paso. `render()`
+(`compose.ts`) la convierte en `AxisResult` poniendo solo palabras (titular,
+resumen, conclusión). Hoy el motor local es `render(decide(input))`; el motor
+de IA todavía no recibe la decisión (fase 2).
+
+### `AxisLanguageModel` (`language/`)
+
+`{ id, available, complete(request, { maxOutputTokens, signal }) }`.
+`fromProvider()` adapta cualquier `AIProvider`/`MarketAIProvider` existente;
+`noModel` no está disponible y rechaza con `unavailable`;
+`languageModelFromConfig()` (solo servidor) elige según `AXIS_AI_PROVIDER`.
+El servidor (`ai/server/analyze.ts`, `app/api/axis/route.ts`) solo conoce
+esta interfaz.
 
 ## Qué recibe: `FinancialContext`
 
@@ -61,7 +130,7 @@ Toda salida — local o de IA — pasa por `parseAxisAnalysis` (`validate.ts`):
 comprueba forma, recorta longitudes, limpia textos y descarta destinos de
 navegación desconocidos. Es la única puerta hacia la UI.
 
-## Motor local (`local-engine.ts`, `rules/`, `compose.ts`)
+## Motor local (`local-engine.ts`, `rules/`, `core/decision.ts`, `compose.ts`)
 
 | Regla | Señal | Prioridad |
 |---|---|---|
@@ -275,7 +344,10 @@ pnpm build
 ```
 
 `engine.test.ts` cubre el motor local y la validación con contextos ficticios
-(`fixtures.ts`) y fecha fija. `chat.test.ts` cubre la conversación (contexto en
+(`fixtures.ts`) y fecha fija. `golden.test.ts` congela el comportamiento (13
+escenarios; regenerar solo a propósito con `UPDATE_GOLDEN=1 pnpm test`),
+`prompts.test.ts` la igualdad byte a byte de los prompts y `core.test.ts` la
+decisión, el modelo de lenguaje y el fallback común. `chat.test.ts` cubre la conversación (contexto en
 cuatro niveles, memoria, multiturno, compresión, fallback, errores, límites,
 secretos, servidor) y `lib/db/__tests__/axis-store.test.ts` la persistencia en
 Dexie (recarga y borrado completo) con `fake-indexeddb`. `ai-engine.test.ts` mockea transporte y

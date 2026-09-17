@@ -1,0 +1,455 @@
+{
+  "local": {
+    "status": "analysis",
+    "analysis": {
+      "headline": "Este mes ahorras el 65% de tus ingresos (1.300,00 €).",
+      "data": {
+        "facts": [
+          "Patrimonio: 5.130,00 € (líquido 3.550,00 €, invertido 1.580,00 €).",
+          "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+          "La investigación señala prudencia en «Renta variable global», una clase de activo que cruza con tus posiciones.",
+          "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+          "Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio)."
+        ]
+      },
+      "interpretation": {
+        "summary": "A tener en cuenta: Ha subido durante el periodo con volatilidad moderada.",
+        "signals": [
+          {
+            "id": "market.caution:equity-global",
+            "priority": "medium",
+            "text": "Ha subido durante el periodo con volatilidad moderada."
+          },
+          {
+            "id": "savings.healthy",
+            "priority": "low",
+            "text": "Cubres el gasto con margen y queda excedente real."
+          },
+          {
+            "id": "investments.manual-values",
+            "priority": "low",
+            "text": "El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización."
+          },
+          {
+            "id": "market.snapshot",
+            "priority": "low",
+            "text": "Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos."
+          }
+        ]
+      },
+      "recommendation": {
+        "what": "Antes de ampliar tu posición en «Renta variable global», revisa el contexto y tu horizonte.",
+        "why": "No es una señal de vender ni de comprar: es un momento para no aumentar el compromiso sin haberlo revisado.",
+        "nextStep": {
+          "label": "Ver inversiones",
+          "to": "inversiones"
+        }
+      },
+      "alternatives": [
+        {
+          "name": "Mantener liquidez",
+          "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+        }
+      ],
+      "uncertainty": {
+        "items": [
+          {
+            "title": "Sin datos de mercado en tiempo real",
+            "detail": "La lectura procede de una síntesis semanal de fuentes públicas, no de cotizaciones actuales."
+          },
+          {
+            "title": "Valores manuales, sin mercado",
+            "detail": "No hay cotizaciones conectadas: no puedo valorar rentabilidad futura ni riesgo de mercado de estas posiciones."
+          },
+          {
+            "title": "Contexto de mercado de hace 3 días",
+            "detail": "Describe el periodo analizado con datos públicos; no anticipa lo que harán los mercados."
+          }
+        ],
+        "confidence": "media"
+      },
+      "conclusion": {
+        "summary": "Situación estable. Un ajuste moderado en el punto señalado mejoraría tu margen.",
+        "nextStep": {
+          "label": "Ver inversiones",
+          "to": "inversiones"
+        }
+      },
+      "basedOnDemoData": false,
+      "generatedAt": "2026-09-15T10:00:00.000Z",
+      "engine": {
+        "id": "local-rules",
+        "label": "Motor local de reglas",
+        "isAI": false
+      }
+    }
+  },
+  "chatLocal": {
+    "unavailable": {
+      "confidence": "baja",
+      "memoryProposal": null,
+      "engine": {
+        "id": "local-rules",
+        "label": "Motor local de reglas",
+        "isAI": false
+      },
+      "fallbackReason": "unavailable",
+      "generatedAt": "2026-09-15T10:00:00.000Z",
+      "text": "Ahora mismo no tengo IA disponible, así que no puedo razonar sobre tu pregunta ni usar lo que me has contado. Con mis reglas locales, esto es lo que veo hoy en tus datos:\n\nEste mes ahorras el 65% de tus ingresos (1.300,00 €). A tener en cuenta: Ha subido durante el periodo con volatilidad moderada.\n\nAntes de ampliar tu posición en «Renta variable global», revisa el contexto y tu horizonte. No es una señal de vender ni de comprar: es un momento para no aumentar el compromiso sin haberlo revisado.",
+      "nextStep": {
+        "label": "Ver inversiones",
+        "to": "inversiones"
+      }
+    },
+    "error": {
+      "confidence": "baja",
+      "memoryProposal": null,
+      "engine": {
+        "id": "local-rules",
+        "label": "Motor local de reglas",
+        "isAI": false
+      },
+      "fallbackReason": "error",
+      "generatedAt": "2026-09-15T10:00:00.000Z",
+      "text": "No he podido completar la consulta con IA; no puedo razonar sobre tu pregunta ni usar lo que me has contado. Con mis reglas locales, esto es lo que veo hoy en tus datos:\n\nEste mes ahorras el 65% de tus ingresos (1.300,00 €). A tener en cuenta: Ha subido durante el periodo con volatilidad moderada.\n\nAntes de ampliar tu posición en «Renta variable global», revisa el contexto y tu horizonte. No es una señal de vender ni de comprar: es un momento para no aumentar el compromiso sin haberlo revisado.",
+      "nextStep": {
+        "label": "Ver inversiones",
+        "to": "inversiones"
+      }
+    }
+  },
+  "analysisRequest": {
+    "system": "Eres AXIS, el motor de inteligencia financiera personal de Finax. No eres un chatbot, ni un asistente general, ni un asesor bancario, ni un agente autónomo.\n\nTu única función es analizar el contexto financiero que recibes y devolver una lectura estructurada en español, en este orden: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN / SIGUIENTE PASO.\n\nREGLAS SOBRE LOS DATOS\n- Todos los importes del contexto vienen en céntimos de euro y ya están calculados por Finax. Úsalos tal cual: no recalcules patrimonio, ingresos, gastos, ahorro, porcentajes ni pesos. Si haces una operación derivada sencilla, debe ser verificable a partir de esas cifras.\n- En el texto, escribe los importes en euros con formato español: 3.486,70 € (punto de miles, coma decimal, espacio antes de €).\n- No inventes ingresos, gastos, patrimonio, inversiones, precios, rentabilidades, objetivos, fechas ni preferencias. Lo que no está en el contexto es desconocido y debes tratarlo como tal.\n- Salvo lo que llegue en «contexto_de_mercado», no existe información de mercado: no digas que algo subirá o bajará, no predigas rentabilidades ni inventes riesgo de mercado. No recomiendes productos ni activos concretos.\n- Si recibes «contexto_de_mercado»: tiene fecha (asOf) y frescura (freshness). Si no es «fresh», no lo presentes como actual; con «stale» no hagas ninguna recomendación basada en mercado. Nunca conviertas sus tendencias en certezas ni añadas información de mercado que no esté en él.\n- Si recibes «memoria»: «userMemories» son preferencias, objetivos, límites y decisiones que el usuario te pidió recordar en conversaciones anteriores; tenlas en cuenta al recomendar (por ejemplo, un colchón mínimo de liquidez), pero nunca son fuente de cifras actuales: si contradicen al contexto, manda el contexto.\n- Respeta la calidad del contexto (quality). Si el histórico es corto, si no hay mes anterior, si no hay objetivos, si un objetivo no tiene fecha o si no hay inversiones, dilo en la incertidumbre y no concluyas con más seguridad de la que permiten los datos. Con quality.isDemo = true, deja claro en la incertidumbre que son datos de demostración, no la situación real del usuario.\n\nREGLAS SOBRE LAS RECOMENDACIONES\n- AXIS analiza y recomienda; nunca ejecuta operaciones. No propongas que tú muevas dinero, crees o modifiques movimientos, objetivos o inversiones: la decisión y la acción son del usuario.\n- Cada recomendación debe derivarse de un dato concreto del contexto y ser prudente. Usa formulaciones como «con los datos disponibles parece razonable…», «una opción sería…», «antes de una decisión importante faltaría conocer…».\n- No asumas que el usuario quiere invertir ni cuál es su tolerancia al riesgo. No prometas resultados.\n- Si no hace falta actuar, devuelve recommendation = null y explícalo en la conclusión: no actuar también es una respuesta válida.\n- Prioriza: una recomendación principal, como máximo 2 alternativas, como máximo 3 incertidumbres y como máximo 5 hechos. Las señales de Finax ya vienen ordenadas por prioridad; puedes reformularlas y agruparlas, pero no contradigas sus cifras.\n\nTONO\n- Claro, tranquilo, directo, humano y comprensible. Sin jerga bancaria, sin alarmismo, sin paternalismo. Habla directamente de la situación; nunca de ti mismo ni de tus capacidades.\n\nSALIDA\n- Devuelve únicamente el JSON que exige el esquema. Usa los mismos ids de señal que recibes cuando reutilices una señal de Finax. El campo «to» de cada siguiente paso solo admite: inicio, dinero, movimientos, estadisticas, objetivos, inversiones.",
+    "user": "Analiza este contexto y devuelve el JSON del análisis.\n\n{\"contexto_financiero\":{\"asOf\":\"2026-09-15\",\"wealth\":{\"totalCents\":513000,\"liquidCents\":355000,\"investedCents\":158000,\"reservedForObjectivesCents\":0,\"initialBalanceCents\":100000},\"flows\":{\"current\":{\"key\":\"2026-09\",\"incomeCents\":200000,\"expenseCents\":70000,\"savingsCents\":130000,\"savingsRatePct\":65,\"movementCount\":4,\"expensesByCategory\":[{\"label\":\"Comida\",\"cents\":42000,\"pct\":60},{\"label\":\"Restaurantes\",\"cents\":18000,\"pct\":26},{\"label\":\"Salidas\",\"cents\":10000,\"pct\":14}],\"incomeByCategory\":[{\"label\":\"Trabajo\",\"cents\":200000,\"pct\":100}]},\"previous\":{\"key\":\"2026-08\",\"incomeCents\":200000,\"expenseCents\":75000,\"savingsCents\":125000,\"savingsRatePct\":62.5,\"movementCount\":4,\"expensesByCategory\":[{\"label\":\"Comida\",\"cents\":40000,\"pct\":53},{\"label\":\"Restaurantes\",\"cents\":20000,\"pct\":27},{\"label\":\"Ropa\",\"cents\":15000,\"pct\":20}],\"incomeByCategory\":[{\"label\":\"Trabajo\",\"cents\":200000,\"pct\":100}]},\"incomeChangePct\":0,\"expenseChangePct\":-6.666666666666667,\"historyDays\":8},\"objectives\":[],\"investments\":{\"positions\":[{\"id\":\"t-74\",\"name\":\"Fondo Indexado Global\",\"investedCents\":150000,\"valueCents\":158000,\"weightPct\":100}],\"totalInvestedCents\":150000,\"totalValueCents\":158000,\"shareOfWealthPct\":31},\"quality\":{\"level\":\"sufficient\",\"hasInitialBalance\":true,\"movementCount\":8,\"historyDays\":8,\"monthsWithData\":2,\"hasPreviousPeriod\":true,\"hasObjectives\":false,\"hasInvestments\":true,\"isDemo\":false}},\"senales_detectadas_por_finax\":[{\"id\":\"market.caution:equity-global\",\"priority\":\"medium\",\"fact\":\"La investigación señala prudencia en «Renta variable global», una clase de activo que cruza con tus posiciones.\",\"interpretation\":\"Ha subido durante el periodo con volatilidad moderada.\",\"recommendation\":{\"what\":\"Antes de ampliar tu posición en «Renta variable global», revisa el contexto y tu horizonte.\",\"why\":\"No es una señal de vender ni de comprar: es un momento para no aumentar el compromiso sin haberlo revisado.\",\"to\":\"inversiones\"}},{\"id\":\"savings.healthy\",\"priority\":\"low\",\"fact\":\"Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).\",\"interpretation\":\"Cubres el gasto con margen y queda excedente real.\",\"recommendation\":{\"what\":\"Define un objetivo para dar destino a lo que ahorras.\",\"why\":\"Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.\",\"to\":\"objetivos\"}},{\"id\":\"investments.manual-values\",\"priority\":\"low\",\"fact\":\"Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio).\",\"interpretation\":\"El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.\",\"recommendation\":null},{\"id\":\"market.snapshot\",\"priority\":\"low\",\"fact\":\"Mercado (reciente, 2026-09-05 → 2026-09-12): BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).\",\"interpretation\":\"Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.\",\"recommendation\":null}],\"contexto_de_mercado\":{\"researchId\":\"2026-W37\",\"asOf\":\"2026-09-12T06:00:00.000Z\",\"freshness\":\"fresh\",\"ageDays\":3,\"coversFrom\":\"2026-09-05\",\"coversTo\":\"2026-09-12\",\"overview\":\"Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.\",\"keyIndicators\":[{\"key\":\"ecb-dfr\",\"label\":\"BCE · facilidad de depósito\",\"group\":\"rate\",\"value\":2,\"unit\":\"%\",\"asOf\":\"2026-09-11\",\"changePct\":0,\"source\":\"BCE\"},{\"key\":\"euribor-12m\",\"label\":\"Euríbor 12 meses\",\"group\":\"rate\",\"value\":2.15,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"Banco de España\"},{\"key\":\"ine-ipc\",\"label\":\"IPC España\",\"group\":\"inflation\",\"value\":2.1,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"INE\"},{\"key\":\"ea-hicp\",\"label\":\"HICP eurozona\",\"group\":\"inflation\",\"value\":2,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"Eurostat\"},{\"key\":\"ibex\",\"label\":\"IBEX 35\",\"group\":\"index\",\"value\":12000,\"unit\":\"pts\",\"asOf\":\"2026-09-11\",\"changePct\":1.2,\"source\":\"Stooq\"},{\"key\":\"spx\",\"label\":\"S&P 500\",\"group\":\"index\",\"value\":6000,\"unit\":\"pts\",\"asOf\":\"2026-09-11\",\"changePct\":-0.5,\"source\":\"Stooq\"}],\"relevantEvents\":[{\"date\":\"2026-09-11\",\"title\":\"El BCE mantiene los tipos\",\"summary\":\"Decisión de política monetaria sin cambios.\",\"impact\":\"high\",\"source\":\"BCE · prensa\",\"affects\":[\"bonds-gov\",\"cash\"]},{\"date\":\"2026-09-09\",\"title\":\"Dato de IPC de agosto\",\"summary\":\"La inflación se moderó en agosto.\",\"impact\":\"medium\",\"source\":\"INE\",\"affects\":[\"cash\"]},{\"date\":\"2026-09-08\",\"title\":\"Nota de la Fed\",\"summary\":\"Comunicado rutinario.\",\"impact\":\"low\",\"source\":\"Fed · prensa\",\"affects\":[\"equity-us\"]}],\"relevantAssetClasses\":[{\"key\":\"equity-global\",\"label\":\"Renta variable global\",\"aliases\":[\"indexado\",\"msci world\",\"global\"],\"note\":\"Ha subido durante el periodo con volatilidad moderada.\",\"stance\":\"caution\"}],\"uncertainties\":[\"Los datos de inflación tienen un mes de retraso.\"],\"warnings\":[\"Esta síntesis no es asesoramiento financiero\",\"Datos de mercado con posible retraso\"],\"sources\":[\"BCE\",\"Stooq\"],\"history\":[{\"id\":\"2026-W36\",\"generatedAt\":\"2026-09-05T06:00:00.000Z\",\"overview\":\"semana 36\"},{\"id\":\"2026-W35\",\"generatedAt\":\"2026-08-29T06:00:00.000Z\",\"overview\":\"semana 35\"},{\"id\":\"2026-W34\",\"generatedAt\":\"2026-08-22T06:00:00.000Z\",\"overview\":\"semana 34\"},{\"id\":\"2026-W33\",\"generatedAt\":\"2026-08-15T06:00:00.000Z\",\"overview\":\"semana 33\"}]},\"memoria\":{\"previousConclusions\":[{\"generatedAt\":\"2026-09-01T00:00:00.000Z\",\"summary\":\"Lectura anterior: ahorro sólido.\"}]}}",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "headline": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "facts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "facts"
+          ],
+          "additionalProperties": false
+        },
+        "interpretation": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "signals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "priority",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "summary",
+            "signals"
+          ],
+          "additionalProperties": false
+        },
+        "recommendation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "why": {
+                  "type": "string"
+                },
+                "nextStep": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "string",
+                      "enum": [
+                        "inicio",
+                        "dinero",
+                        "movimientos",
+                        "estadisticas",
+                        "objetivos",
+                        "inversiones"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "to"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "what",
+                "why",
+                "nextStep"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "uncertainty": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title",
+                  "detail"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "confidence": {
+              "type": "string",
+              "enum": [
+                "alta",
+                "media",
+                "baja"
+              ]
+            }
+          },
+          "required": [
+            "items",
+            "confidence"
+          ],
+          "additionalProperties": false
+        },
+        "conclusion": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "nextStep": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string",
+                  "enum": [
+                    "inicio",
+                    "dinero",
+                    "movimientos",
+                    "estadisticas",
+                    "objetivos",
+                    "inversiones"
+                  ]
+                }
+              },
+              "required": [
+                "label",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "summary",
+            "nextStep"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "headline",
+        "data",
+        "interpretation",
+        "recommendation",
+        "alternatives",
+        "uncertainty",
+        "conclusion"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "chatRequest": {
+    "system": "Eres AXIS, el cerebro financiero personal de Finax. Vives dentro de la app del usuario: conoces su situación porque Finax te la da calculada, y recuerdas lo que el usuario te ha pedido que recuerdes. No eres un chatbot genérico, ni un asistente general, ni un asesor bancario, ni un agente autónomo. Eres su asesor financiero personal: analizas antes de responder, hablas con números reales, y le dices con claridad cuándo una idea es mala o arriesgada.\n\nRECIBES CUATRO NIVELES DE CONTEXTO, SEPARADOS. NO LOS MEZCLES.\n1. «datos_actuales»: la verdad objetiva calculada por Finax hoy (patrimonio, liquidez, inversiones, reservas, ingresos, gastos, ahorro, evolución, categorías, objetivos, posiciones, calidad de los datos) más las señales detectadas por sus reglas y, si existe, el contexto de mercado. Es la ÚNICA fuente de cifras. Los importes vienen en céntimos de euro.\n2. «memoria»: lo que el usuario dijo en conversaciones anteriores y aceptó guardar (preferencias, objetivos declarados, planes, límites, decisiones) y, si las hay, conclusiones de análisis anteriores. Es contexto para razonar, NUNCA fuente de cifras actuales.\n3. «conversacion_actual»: resumen de lo antiguo y los últimos mensajes. Sirve para la continuidad: si el usuario dijo antes «quiero ahorrar 1.000 €» y ahora dice «para diciembre», diciembre se refiere a ese objetivo. No vuelvas a pedir información que ya está aquí, en la memoria o en los datos.\n4. «consulta_actual»: el mensaje que acaba de escribir. Responde a esto.\n\nREGLAS SOBRE LOS DATOS\n- Usa las cifras de «datos_actuales» tal cual. No recalcules lo que Finax ya ha calculado; las operaciones derivadas sencillas (una resta, una división por meses) deben ser verificables con esas cifras y debes mostrarlas.\n- Si la memoria o la conversación contienen una cifra que contradice «datos_actuales», manda «datos_actuales». Puedes decir «antes tenías X», pero el dato actual es el de Finax.\n- No inventes ingresos, gastos, importes, precios, rentabilidades, objetivos, fechas ni preferencias. Lo que no está en el contexto es desconocido: dilo. No existe información de mercado fuera de «contexto_de_mercado» y, si no es «fresh», no lo presentes como actual.\n- Respeta «quality»: con poco histórico, sin mes anterior, sin objetivos o con datos demo, di la limitación y no concluyas con más seguridad de la que permiten los datos.\n- Escribe los importes en euros con formato español: 3.486,70 € (punto de miles, coma decimal, espacio antes de €).\n\nREGLAS SOBRE LA MEMORIA\n- Solo «recuerdas» lo que está en «memoria». Si el usuario pregunta «¿te acuerdas de…?» y no hay nada guardado sobre ello, di con naturalidad que no lo tienes guardado, sin fingir. Nunca afirmes recordar algo que no está ahí.\n- Usa la memoria para razonar, no para repetirla. Ejemplo: si recuerdas que quiere mantener 200 € de colchón, la liquidez actual es 240 € y pregunta si puede invertir 100 €, la respuesta es que matemáticamente sí, pero le dejaría en 140 €, por debajo del colchón que te pidió mantener, y que tú no lo harías ahora.\n- Propón guardar una memoria («memoryProposal») SOLO cuando el usuario cuente algo útil para conversaciones futuras: una preferencia, un objetivo o plan, un límite, una decisión, una circunstancia relevante. Una sola propuesta por respuesta, redactada en tercera persona, breve y sin datos sensibles. Si el usuario contradice o cambia una memoria existente, indica su «id» en «replacesId» para actualizarla; no crees dos memorias contradictorias. No propongas lo que ya está en la memoria ni lo que ya está configurado en Finax (por ejemplo, un objetivo que ya existe en «datos_actuales»). Si no hay nada que recordar, «memoryProposal» = null.\n- NUNCA propongas guardar contraseñas, claves, PIN, números de cuenta o tarjeta, ni el texto completo de un mensaje.\n\nREGLAS SOBRE LAS RECOMENDACIONES\n- Analizas y recomiendas; NUNCA ejecutas operaciones. No crees, edites ni borres movimientos, objetivos o inversiones, ni digas que lo harás. Si el usuario quiere cambiar algo (por ejemplo, un objetivo), explica cómo verlo con los datos y usa «nextStep» para llevarle a la pantalla donde hacerlo él mismo.\n- Sé claro, directo y razonado: hechos primero, después tu interpretación, después qué harías tú y por qué. Distingue lo que es dato de lo que es opinión. Si una decisión tiene consecuencias relevantes, sé prudente y dilo; si una idea es mala o arriesgada con sus datos, dilo sin rodeos y explica por qué. No actuar también es una respuesta válida.\n- No asumas que quiere invertir ni cuál es su tolerancia al riesgo si no lo ha dicho. No recomiendes productos ni activos concretos. No prometas resultados.\n- No digas «como IA no puedo dar asesoramiento»; da tu lectura con la prudencia que merezca.\n\nTONO Y FORMATO\n- Habla en español, de tú, con un tono tranquilo, humano y directo. Sin jerga bancaria, sin alarmismo, sin paternalismo, sin saludos ni frases de relleno («¿en qué puedo ayudarte?»). Nunca hables de ti mismo ni de tus capacidades.\n- Respuestas breves: normalmente 2–5 frases; algo más solo si hay que mostrar un cálculo. Párrafos cortos separados por una línea en blanco. Sin listas con viñetas salvo que enumeres pasos.\n- «confidence» refleja la solidez de tu respuesta con los datos disponibles. «nextStep» solo si hay una pantalla de Finax donde continuar; su campo «to» admite únicamente: inicio, dinero, movimientos, estadisticas, objetivos, inversiones.\n- Devuelve únicamente el JSON que exige el esquema.",
+    "user": "Responde a «consulta_actual» y devuelve el JSON de la respuesta.\n\n{\"datos_actuales\":{\"contexto_financiero\":{\"asOf\":\"2026-09-15\",\"wealth\":{\"totalCents\":513000,\"liquidCents\":355000,\"investedCents\":158000,\"reservedForObjectivesCents\":0,\"initialBalanceCents\":100000},\"flows\":{\"current\":{\"key\":\"2026-09\",\"incomeCents\":200000,\"expenseCents\":70000,\"savingsCents\":130000,\"savingsRatePct\":65,\"movementCount\":4,\"expensesByCategory\":[{\"label\":\"Comida\",\"cents\":42000,\"pct\":60},{\"label\":\"Restaurantes\",\"cents\":18000,\"pct\":26},{\"label\":\"Salidas\",\"cents\":10000,\"pct\":14}],\"incomeByCategory\":[{\"label\":\"Trabajo\",\"cents\":200000,\"pct\":100}]},\"previous\":{\"key\":\"2026-08\",\"incomeCents\":200000,\"expenseCents\":75000,\"savingsCents\":125000,\"savingsRatePct\":62.5,\"movementCount\":4,\"expensesByCategory\":[{\"label\":\"Comida\",\"cents\":40000,\"pct\":53},{\"label\":\"Restaurantes\",\"cents\":20000,\"pct\":27},{\"label\":\"Ropa\",\"cents\":15000,\"pct\":20}],\"incomeByCategory\":[{\"label\":\"Trabajo\",\"cents\":200000,\"pct\":100}]},\"incomeChangePct\":0,\"expenseChangePct\":-6.666666666666667,\"historyDays\":8},\"objectives\":[],\"investments\":{\"positions\":[{\"id\":\"t-74\",\"name\":\"Fondo Indexado Global\",\"investedCents\":150000,\"valueCents\":158000,\"weightPct\":100}],\"totalInvestedCents\":150000,\"totalValueCents\":158000,\"shareOfWealthPct\":31},\"quality\":{\"level\":\"sufficient\",\"hasInitialBalance\":true,\"movementCount\":8,\"historyDays\":8,\"monthsWithData\":2,\"hasPreviousPeriod\":true,\"hasObjectives\":false,\"hasInvestments\":true,\"isDemo\":false}},\"senales_detectadas_por_finax\":[{\"id\":\"market.caution:equity-global\",\"priority\":\"medium\",\"fact\":\"La investigación señala prudencia en «Renta variable global», una clase de activo que cruza con tus posiciones.\",\"interpretation\":\"Ha subido durante el periodo con volatilidad moderada.\"},{\"id\":\"savings.healthy\",\"priority\":\"low\",\"fact\":\"Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).\",\"interpretation\":\"Cubres el gasto con margen y queda excedente real.\"},{\"id\":\"investments.manual-values\",\"priority\":\"low\",\"fact\":\"Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio).\",\"interpretation\":\"El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.\"},{\"id\":\"market.snapshot\",\"priority\":\"low\",\"fact\":\"Mercado (reciente, 2026-09-05 → 2026-09-12): BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).\",\"interpretation\":\"Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.\"}],\"contexto_de_mercado\":{\"researchId\":\"2026-W37\",\"asOf\":\"2026-09-12T06:00:00.000Z\",\"freshness\":\"fresh\",\"ageDays\":3,\"coversFrom\":\"2026-09-05\",\"coversTo\":\"2026-09-12\",\"overview\":\"Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.\",\"keyIndicators\":[{\"key\":\"ecb-dfr\",\"label\":\"BCE · facilidad de depósito\",\"group\":\"rate\",\"value\":2,\"unit\":\"%\",\"asOf\":\"2026-09-11\",\"changePct\":0,\"source\":\"BCE\"},{\"key\":\"euribor-12m\",\"label\":\"Euríbor 12 meses\",\"group\":\"rate\",\"value\":2.15,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"Banco de España\"},{\"key\":\"ine-ipc\",\"label\":\"IPC España\",\"group\":\"inflation\",\"value\":2.1,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"INE\"},{\"key\":\"ea-hicp\",\"label\":\"HICP eurozona\",\"group\":\"inflation\",\"value\":2,\"unit\":\"%\",\"asOf\":\"2026-08\",\"changePct\":null,\"source\":\"Eurostat\"},{\"key\":\"ibex\",\"label\":\"IBEX 35\",\"group\":\"index\",\"value\":12000,\"unit\":\"pts\",\"asOf\":\"2026-09-11\",\"changePct\":1.2,\"source\":\"Stooq\"},{\"key\":\"spx\",\"label\":\"S&P 500\",\"group\":\"index\",\"value\":6000,\"unit\":\"pts\",\"asOf\":\"2026-09-11\",\"changePct\":-0.5,\"source\":\"Stooq\"}],\"relevantEvents\":[{\"date\":\"2026-09-11\",\"title\":\"El BCE mantiene los tipos\",\"summary\":\"Decisión de política monetaria sin cambios.\",\"impact\":\"high\",\"source\":\"BCE · prensa\",\"affects\":[\"bonds-gov\",\"cash\"]},{\"date\":\"2026-09-09\",\"title\":\"Dato de IPC de agosto\",\"summary\":\"La inflación se moderó en agosto.\",\"impact\":\"medium\",\"source\":\"INE\",\"affects\":[\"cash\"]},{\"date\":\"2026-09-08\",\"title\":\"Nota de la Fed\",\"summary\":\"Comunicado rutinario.\",\"impact\":\"low\",\"source\":\"Fed · prensa\",\"affects\":[\"equity-us\"]}],\"relevantAssetClasses\":[{\"key\":\"equity-global\",\"label\":\"Renta variable global\",\"aliases\":[\"indexado\",\"msci world\",\"global\"],\"note\":\"Ha subido durante el periodo con volatilidad moderada.\",\"stance\":\"caution\"}],\"uncertainties\":[\"Los datos de inflación tienen un mes de retraso.\"],\"warnings\":[\"Esta síntesis no es asesoramiento financiero\",\"Datos de mercado con posible retraso\"],\"sources\":[\"BCE\",\"Stooq\"],\"history\":[{\"id\":\"2026-W36\",\"generatedAt\":\"2026-09-05T06:00:00.000Z\",\"overview\":\"semana 36\"},{\"id\":\"2026-W35\",\"generatedAt\":\"2026-08-29T06:00:00.000Z\",\"overview\":\"semana 35\"},{\"id\":\"2026-W34\",\"generatedAt\":\"2026-08-22T06:00:00.000Z\",\"overview\":\"semana 34\"},{\"id\":\"2026-W33\",\"generatedAt\":\"2026-08-15T06:00:00.000Z\",\"overview\":\"semana 33\"}]}},\"memoria\":{\"memorias_del_usuario\":[{\"id\":\"mem-1\",\"content\":\"Quiere mantener 200 € de liquidez mínima.\",\"category\":\"constraint\",\"importance\":\"high\",\"fecha\":\"2026-09-01\"}],\"conclusiones_anteriores\":[{\"generatedAt\":\"2026-09-01T00:00:00.000Z\",\"summary\":\"Lectura anterior: ahorro sólido.\"}]},\"conversacion_actual\":{\"resumen_de_lo_anterior\":\"Usuario: quiero ahorrar 1.000 €. · AXIS: ¿Para qué fecha?\",\"ultimos_mensajes\":[{\"role\":\"user\",\"text\":\"Para diciembre.\"},{\"role\":\"axis\",\"text\":\"Entendido.\"}]},\"consulta_actual\":\"¿Y cuánto tendría que ahorrar al mes?\"}",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "reply": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "alta",
+            "media",
+            "baja"
+          ]
+        },
+        "nextStep": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string",
+                  "enum": [
+                    "inicio",
+                    "dinero",
+                    "movimientos",
+                    "estadisticas",
+                    "objetivos",
+                    "inversiones"
+                  ]
+                }
+              },
+              "required": [
+                "label",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "memoryProposal": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "preference",
+                    "goal",
+                    "financial_plan",
+                    "constraint",
+                    "decision",
+                    "context",
+                    "other"
+                  ]
+                },
+                "importance": {
+                  "type": "string",
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "replacesId": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "content",
+                "category",
+                "importance",
+                "confidence",
+                "replacesId"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "reply",
+        "confidence",
+        "nextStep",
+        "memoryProposal"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

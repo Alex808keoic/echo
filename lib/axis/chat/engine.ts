@@ -3,7 +3,7 @@
  * ------------------------------------------------------------------
  * Misma filosofía que `createAIEngine`: delega en un transporte (en la app,
  * `/api/axis`; en tests, un mock) y ante CUALQUIER fallo responde el motor
- * local, diciéndolo. Nunca conoce secretos.
+ * local, diciéndolo (core/fallback.ts). Nunca conoce secretos.
  *
  *   ChatInput → transporte → salida cruda → parseChatReply → ChatReply
  *
@@ -12,6 +12,7 @@
  *   'responding' la llamada al proveedor está en curso
  */
 import { AI_ENGINE_INFO } from '../ai-engine'
+import { rememberAvailability, withFallback } from '../core/fallback'
 import { composeLocalReply } from './local-reply'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 import { parseChatReply } from './validate'
@@ -51,27 +52,20 @@ export interface ChatEngine {
 }
 
 export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_MS, isOffline, onPhase, onFallback }: ChatEngineOptions): ChatEngine {
-  let availability: Promise<boolean> | null = null
-  const isAvailable = () => (availability ??= transport.isAvailable().catch(() => false))
+  const isAvailable = rememberAvailability(() => transport.isAvailable())
 
-  async function askAI(input: ChatInput): Promise<ChatReply> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
-    try {
-      onPhase?.('responding')
-      const raw = await transport.ask(input, controller.signal)
-      if (typeof raw !== 'object' || raw === null) throw new Error('respuesta no válida')
-      const generatedAt = (raw as { generatedAt?: unknown }).generatedAt
-      // Estos campos los fija Finax, nunca el modelo ni el transporte.
-      return parseChatReply({
-        ...raw,
-        engine: AI_ENGINE_INFO,
-        fallbackReason: undefined,
-        generatedAt: typeof generatedAt === 'string' ? generatedAt : new Date().toISOString(),
-      })
-    } finally {
-      clearTimeout(timer)
-    }
+  async function askAI(input: ChatInput, signal: AbortSignal): Promise<ChatReply> {
+    onPhase?.('responding')
+    const raw = await transport.ask(input, signal)
+    if (typeof raw !== 'object' || raw === null) throw new Error('respuesta no válida')
+    const generatedAt = (raw as { generatedAt?: unknown }).generatedAt
+    // Estos campos los fija Finax, nunca el modelo ni el transporte.
+    return parseChatReply({
+      ...raw,
+      engine: AI_ENGINE_INFO,
+      fallbackReason: undefined,
+      generatedAt: typeof generatedAt === 'string' ? generatedAt : new Date().toISOString(),
+    })
   }
 
   return {
@@ -83,17 +77,20 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
         onFallback?.('offline', 'sin conexión')
         return composeLocalReply(input, 'offline')
       }
-      if (!(await isAvailable())) {
-        onFallback?.('unavailable', 'IA no configurada')
-        return composeLocalReply(input, 'unavailable')
-      }
-      try {
-        return await askAI(input)
-      } catch (error) {
-        const reason: FallbackReason = error instanceof ChatTransportError ? error.reason : 'error'
-        onFallback?.(reason, error instanceof Error ? error.message : 'error desconocido')
-        return composeLocalReply(input, reason)
-      }
+      return withFallback<ChatReply>({
+        isAvailable,
+        timeoutMs,
+        attempt: (signal) => askAI(input, signal),
+        whenUnavailable: () => {
+          onFallback?.('unavailable', 'IA no configurada')
+          return composeLocalReply(input, 'unavailable')
+        },
+        whenFailed: (error) => {
+          const reason: FallbackReason = error instanceof ChatTransportError ? error.reason : 'error'
+          onFallback?.(reason, error instanceof Error ? error.message : 'error desconocido')
+          return composeLocalReply(input, reason)
+        },
+      })
     },
   }
 }

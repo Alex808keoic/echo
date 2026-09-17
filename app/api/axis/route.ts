@@ -12,7 +12,8 @@
  * El contexto recibido se procesa en la petición y no se persiste.
  */
 import { NextResponse } from 'next/server'
-import { analyzeWithProvider, chatWithProvider, isFinancialContext, providerFromConfig, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
+import { analyzeWithProvider, chatWithProvider, isFinancialContext } from '@/lib/axis/ai/server/analyze'
+import { languageModelFromConfig } from '@/lib/axis/language/server'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
 import { isChatPayload } from '@/lib/axis/chat/validate'
@@ -24,13 +25,12 @@ export const dynamic = 'force-dynamic'
 const NO_STORE = { 'cache-control': 'no-store' }
 
 export async function GET() {
-  const provider = providerFromConfig(readAIServerConfig())
-  return NextResponse.json({ available: provider !== null }, { headers: NO_STORE })
+  return NextResponse.json({ available: languageModelFromConfig().available }, { headers: NO_STORE })
 }
 
 export async function POST(request: Request) {
-  const provider = providerFromConfig(readAIServerConfig())
-  if (!provider) return NextResponse.json({ error: 'ai-unavailable' }, { status: 503, headers: NO_STORE })
+  const model = languageModelFromConfig()
+  if (!model.available) return NextResponse.json({ error: 'ai-unavailable' }, { status: 503, headers: NO_STORE })
 
   let text: string
   try {
@@ -59,10 +59,10 @@ export async function POST(request: Request) {
 
   try {
     if (chat) {
-      const reply = await chatWithProvider(provider, { context, market, memory, conversation: chat.conversation, message: chat.message }, request.signal)
+      const reply = await chatWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message }, request.signal)
       return NextResponse.json({ reply }, { headers: NO_STORE })
     }
-    const analysis = await analyzeWithProvider(provider, context, memory, request.signal, market)
+    const analysis = await analyzeWithProvider(model, context, memory, request.signal, market)
     return NextResponse.json({ analysis }, { headers: NO_STORE })
   } catch (error) {
     // Clasificación sin detalles: el cliente solo necesita saber que debe usar el motor local.

@@ -2,7 +2,11 @@
  * SOLO SERVIDOR. Orquestación del análisis con IA:
  *
  *   contexto recibido → comprobación de forma y tamaño → límite de la instancia
- *   → buildAIRequest → AIProvider → parseAxisAnalysis → AxisAnalysis
+ *   → buildAIRequest → AxisLanguageModel → parseAxisAnalysis → AxisAnalysis
+ *
+ * El modelo de lenguaje es intercambiable (lib/axis/language): aquí solo se
+ * lee la configuración y se orquesta; ningún proveedor concreto se nombra
+ * fuera de `providerFromConfig`.
  *
  * Proveedor por variables de entorno (solo servidor; nunca `NEXT_PUBLIC_`):
  *   AXIS_AI_ENABLED               "false" desactiva la IA aunque haya proveedor
@@ -21,6 +25,7 @@ import { buildAIRequest } from '../prompt'
 import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
+import { asLanguageModel, type AxisLanguageModel } from '../../language/model'
 import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { parseChatReply } from '../../chat/validate'
@@ -55,6 +60,9 @@ export function isAIAvailable(config: AIServerConfig): boolean {
   return providerFromConfig(config) !== null
 }
 
+/** Modelo de lenguaje o proveedor crudo: ambos se aceptan para no romper a los llamadores existentes. */
+type Model = AxisLanguageModel | AIProvider | MarketAIProvider
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 
 /** Comprobación de forma del contexto recibido del cliente: lo justo para no procesar basura. */
@@ -73,24 +81,21 @@ export function isFinancialContext(v: unknown): v is FinancialContext {
   )
 }
 
-/** Ejecuta el análisis con un proveedor dado. Lanza si el resultado no es válido. */
+/** Ejecuta el análisis con un modelo dado. Lanza si el resultado no es válido. */
 export async function analyzeWithProvider(
-  provider: AIProvider | MarketAIProvider,
+  provider: Model,
   context: FinancialContext,
   memory?: AxisMemory,
   signal?: AbortSignal,
   market: MarketContext | null = null,
 ): Promise<AxisAnalysis> {
+  const model = asLanguageModel(provider)
   const input: AxisInput = { context, memory, market }
-  const request = buildAIRequest(input)
-  const raw =
-    'completeWithUsage' in provider
-      ? (await provider.completeWithUsage(request, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })).output
-      : await provider.complete(request, signal)
+  const raw = await model.complete(buildAIRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({
     ...raw,
-    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${provider.id})` },
+    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` },
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,
   })
@@ -101,16 +106,13 @@ export async function analyzeWithProvider(
  * frontera de validación que el análisis. El contexto solo vive en esta
  * petición: no se persiste ni se registra nada en el servidor.
  */
-export async function chatWithProvider(provider: AIProvider | MarketAIProvider, input: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
-  const request = buildChatRequest(input)
-  const raw =
-    'completeWithUsage' in provider
-      ? (await provider.completeWithUsage(request, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })).output
-      : await provider.complete(request, signal)
+export async function chatWithProvider(provider: Model, input: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
+  const model = asLanguageModel(provider)
+  const raw = await model.complete(buildChatRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseChatReply({
     ...raw,
-    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${provider.id})` },
+    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` },
     generatedAt: new Date().toISOString(),
   })
 }

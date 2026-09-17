@@ -34,7 +34,9 @@ hooks/use-axis-chat          conversación con AXIS (historial, memoria, estados
 lib/types.ts                 modelo de datos (céntimos enteros, fechas YYYY-MM-DD)
 lib/db/                      Dexie: movimientos, objetivos, posiciones, config, backup, demo
 lib/finance/                 cálculos (patrimonio, evolución, resúmenes, categorías)
-lib/axis/                    motor de AXIS: contexto, reglas, composición, validación (ver docs/AXIS.md)
+lib/axis/                    motor de AXIS: contexto, reglas, decisión (core/), redacción, validación (ver docs/AXIS.md)
+lib/axis/language/           modelo de lenguaje intercambiable (Gemini/Groq envueltos, noModel); AXIS no es Gemini
+lib/axis/prompts/            prompts por bloques (contrato, seguridad, memoria, salida) + personality.ts
 lib/axis/chat/               modo conversacional: contexto en 4 niveles, memoria, historial, fallback local
 lib/ai/providers/            proveedores de IA (Gemini, Groq) compartidos por AXIS y Market Research
 lib/market/                  modelo, validación, frescura y relevancia del contexto de mercado

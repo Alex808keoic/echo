@@ -193,6 +193,42 @@ export interface Signal {
 
 export type Confidence = 'alta' | 'media' | 'baja'
 
+/* =============================== DECISIÓN =============================== */
+
+/**
+ * Decisión de AXIS: qué ha concluido sobre la situación ANTES de que nadie
+ * la redacte. La produce `decide()` (lib/axis/core/decision.ts) solo con
+ * reglas deterministas; nunca un modelo de lenguaje. Es serializable y es la
+ * única fuente de «qué recomendar»: la redacción local (`render`) y, en fases
+ * posteriores, el modelo de lenguaje se limitan a expresarla.
+ *
+ * Con `level === 'none'` no hay situación que interpretar: `facts` son los
+ * datos que sí se conocen y `missing` lo que hace falta para razonar.
+ */
+export interface AxisDecision {
+  context: FinancialContext
+  level: ContextLevel
+  /** Todas las señales, ya priorizadas por las reglas. */
+  signals: Signal[]
+  /** Señal que lidera la lectura (la de mayor prioridad), si hay alguna. */
+  lead: Signal | null
+  /** Señales que llegan a la lectura, acotadas para limitar el ruido. */
+  relevant: Signal[]
+  /** Hechos con cifras reales, ya seleccionados y acotados. */
+  facts: string[]
+  /** Una única recomendación principal; `null` = no actuar también es una decisión. */
+  recommendation: AxisRecommendation | null
+  alternatives: AxisAlternative[]
+  /** Incertidumbres concretas (de las señales) y de calidad de los datos, acotadas. Puede estar vacía. */
+  uncertainties: AxisUncertainty[]
+  confidence: Confidence
+  /** Qué necesita AXIS para poder razonar (solo sin análisis). */
+  missing: Array<{ label: string; to?: AxisDestination }>
+  /** Siguiente paso decidido, si lo hay. */
+  nextStep?: AxisNextStep
+  basedOnDemoData: boolean
+}
+
 export interface AxisData {
   /** Observaciones objetivas con cifras reales, ya priorizadas. */
   facts: string[]
