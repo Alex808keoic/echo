@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-09-17T12:41:47.744Z",
+  "checkedAt": "2026-09-18T12:18:59.294Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -15,10 +15,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.374,
+      "value": 3.345,
       "unit": "%",
-      "asOf": "2026-09-16",
-      "changePct": 0.048,
+      "asOf": "2026-09-17",
+      "changePct": -0.029,
       "source": "Banco de España"
     },
     {
@@ -45,10 +45,10 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19635.8,
+      "value": 19831.8,
       "unit": "pts",
-      "asOf": "2026-09-16",
-      "changePct": -0.3,
+      "asOf": "2026-09-17",
+      "changePct": 0.87,
       "source": "Banco de España"
     },
     {
@@ -73,5 +73,5 @@
     }
   ],
   "failedSources": [],
-  "eventTriggered": true
+  "eventTriggered": false
 }
