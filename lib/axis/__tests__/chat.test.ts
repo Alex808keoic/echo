@@ -12,8 +12,8 @@ import { composeLocalReply } from '../chat/local-reply'
 import { applyProposal, isSavableProposal, memoriesForModel, trimMemories } from '../chat/memory'
 import { AXIS_CHAT_SYSTEM_PROMPT, buildChatRequest } from '../chat/prompt'
 import { looksLikeSecret } from '../chat/secrets'
-import { CHAT_LIMITS, type ChatInput, type ChatMessage, type ConversationState, type MemoryProposal, type UserMemory } from '../chat/types'
-import { isChatPayload, parseChatReply } from '../chat/validate'
+import { CHAT_LIMITS, type ChatInput, type ChatMessage, type ChatReply, type ConversationState, type MemoryProposal, type UserMemory } from '../chat/types'
+import { isChatPayload, isChatReply, parseChatReply } from '../chat/validate'
 import { isFinancialContext } from '../ai/server/analyze'
 import type { MarketAIProvider } from '../../ai/providers/types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
@@ -51,6 +51,11 @@ function validAIOutput(overrides: Record<string, unknown> = {}): Record<string, 
   }
 }
 
+/** Lo que el servidor devuelve en `{ reply }`: la salida cruda ya validada por `parseChatReply` (con engine/generatedAt). */
+function serverReply(overrides: Record<string, unknown> = {}): ChatReply {
+  return parseChatReply({ ...validAIOutput(overrides), engine: { ...AI_ENGINE_INFO, label: 'IA de AXIS (groq:openai/gpt-oss-20b)' }, generatedAt: NOW.toISOString() })
+}
+
 function transport(overrides: Partial<ChatTransport> = {}): ChatTransport & { calls: number; last?: ChatInput } {
   const t = {
     calls: 0,
@@ -59,7 +64,7 @@ function transport(overrides: Partial<ChatTransport> = {}): ChatTransport & { ca
     ask: async (i: ChatInput) => {
       t.calls++
       t.last = i
-      return validAIOutput()
+      return serverReply()
     },
     ...overrides,
   }
@@ -335,11 +340,40 @@ describe('AXIS conversación · fallback local', () => {
     assert.match(reply.text, /cupo/)
   })
 
-  it('salida inválida del modelo → motor local', async () => {
-    const t = transport({ ask: async () => ({ reply: '' }) })
+  it('salida inválida del modelo → la rechaza el servidor (502) y el cliente responde en local', async () => {
+    // Servidor: la salida cruda vacía no pasa parseChatReply → la ruta responde 502.
+    const provider: MarketAIProvider = {
+      id: 'mock',
+      model: 'mock',
+      completeWithUsage: async () => ({ output: { reply: '' }, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }),
+      complete: async () => ({ reply: '' }),
+    }
+    await assert.rejects(() => chatWithProvider(provider, input()), /«reply» está vacío/)
+    // Cliente: ese 502 llega como ChatTransportError y acaba en el motor local.
+    const t = transport({
+      ask: async () => {
+        throw new ChatTransportError('error', 'axis api 502')
+      },
+    })
     const reply = await createChatEngine({ transport: t }).ask(input())
     assert.equal(reply.engine.id, 'local-rules')
     assert.equal(reply.fallbackReason, 'error')
+  })
+
+  it('un cuerpo 200 sin la forma de ChatReply → el transporte lanza y el motor responde en local', async () => {
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? new Response(JSON.stringify({ reply: { confidence: 'media' } }), { status: 200, headers: { 'content-type': 'application/json' } })
+        : new Response(JSON.stringify({ available: true, mode: 'decision-first' }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+    try {
+      await assert.rejects(() => browserChatTransport.ask(input(), new AbortController().signal), (e: unknown) => e instanceof ChatTransportError && e.reason === 'error')
+      const reply = await createChatEngine({ transport: browserChatTransport }).ask(input())
+      assert.equal(reply.engine.id, 'local-rules')
+      assert.equal(reply.fallbackReason, 'error')
+    } finally {
+      globalThis.fetch = realFetch
+    }
   })
 
   it('timeout → motor local', async () => {
@@ -454,7 +488,7 @@ describe('AXIS conversación · transporte del navegador', () => {
     globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
       captured.url = String(url)
       captured.init = init
-      return new Response(JSON.stringify({ reply: validAIOutput() }), { status: 200, headers: { 'content-type': 'application/json' } })
+      return new Response(JSON.stringify({ reply: serverReply() }), { status: 200, headers: { 'content-type': 'application/json' } })
     }) as typeof fetch
     try {
       await browserChatTransport.ask(input('¿Cómo voy?', { context: ctx }), new AbortController().signal)
@@ -503,9 +537,98 @@ describe('AXIS conversación · transporte del navegador', () => {
   })
 })
 
+/* ------------------- contrato servidor → cliente (regresión) -------------- */
+
+describe('AXIS conversación · contrato { reply: ChatReply }', () => {
+  /** Cuerpo real de producción (POST /api/axis mode:chat, HTTP 200). */
+  const PRODUCTION_BODY = {
+    reply: {
+      text: 'respuesta de prueba',
+      confidence: 'media',
+      nextStep: null,
+      memoryProposal: null,
+      engine: { id: 'external-ai', label: 'IA de AXIS (groq:openai/gpt-oss-20b)', isAI: true },
+      generatedAt: '2026-09-18T16:11:05.342Z',
+    },
+  }
+
+  async function withProductionFetch<T>(run: () => Promise<T>): Promise<{ result: T; posts: number }> {
+    const realFetch = globalThis.fetch
+    let posts = 0
+    globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === 'POST') posts++
+      const body = init?.method === 'POST' ? PRODUCTION_BODY : { available: true, mode: 'decision-first' }
+      return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as typeof fetch
+    try {
+      return { result: await run(), posts }
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  }
+
+  it('el transporte devuelve el ChatReply del servidor tal cual (text, no reply)', async () => {
+    const { result } = await withProductionFetch(() => browserChatTransport.ask(input(), new AbortController().signal))
+    assert.equal(isChatReply(result), true)
+    assert.equal(result.text, 'respuesta de prueba')
+    assert.equal(result.engine.isAI, true)
+    assert.equal('reply' in result, false, 'el servidor ya convirtió «reply» en «text»')
+  })
+
+  it('ask() con el cuerpo real de producción devuelve la respuesta de la IA sin entrar en fallback', async () => {
+    const fallbacks: string[] = []
+    const phases: ChatPhase[] = []
+    const { result: reply, posts } = await withProductionFetch(() =>
+      createChatEngine({ transport: browserChatTransport, onFallback: (r) => fallbacks.push(r), onPhase: (p) => phases.push(p) }).ask(input()),
+    )
+    assert.equal(posts, 1)
+    assert.deepEqual(fallbacks, [], 'no hay fallback')
+    assert.deepEqual(phases, ['analyzing', 'responding'])
+    assert.equal(reply.engine.isAI, true)
+    assert.equal(reply.engine.id, 'external-ai')
+    assert.equal(reply.fallbackReason, undefined)
+    assert.equal(reply.text, 'respuesta de prueba')
+    assert.equal(reply.confidence, 'media')
+    assert.equal(reply.memoryProposal, null)
+    assert.equal(reply.generatedAt, PRODUCTION_BODY.reply.generatedAt)
+    assert.doesNotMatch(reply.text, /No he podido completar la consulta con IA|Motor local|reglas locales/)
+  })
+
+  it('el motor no vuelve a parsear: un ChatReply del transporte se entrega íntegro y los campos de Finax se fijan', async () => {
+    const t = transport({ ask: async () => ({ ...serverReply(), fallbackReason: 'rate-limited' as const, engine: { id: 'local-rules', label: 'colado', isAI: false } }) })
+    const reply = await createChatEngine({ transport: t }).ask(input())
+    assert.equal(reply.fallbackReason, undefined, 'un fallbackReason que viniera por HTTP se descarta')
+    assert.deepEqual(reply.engine, AI_ENGINE_INFO, 'engine lo fija Finax')
+    assert.match(reply.text, /ahorras 130,00 €/)
+  })
+})
+
 /* ------------------------------ servidor ---------------------------------- */
 
 describe('AXIS conversación · servidor', () => {
+  it('la salida cruda del proveedor ({ reply, confidence, nextStep, memoryProposal }) sigue parseándose y validándose en servidor', async () => {
+    const provider: MarketAIProvider = {
+      id: 'groq:openai/gpt-oss-20b',
+      model: 'openai/gpt-oss-20b',
+      completeWithUsage: async () => ({
+        output: { reply: '  Con los datos disponibles,\tahorras 130,00 €.\n\n\n\nNada que cambiar.  ', confidence: 'alta', nextStep: { label: 'Ver objetivos', to: 'objetivos' }, memoryProposal: null },
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      }),
+      complete: async () => ({}),
+    }
+    const reply = await chatWithProvider(provider, input())
+    assert.equal(isChatReply(reply), true)
+    assert.equal(reply.text, 'Con los datos disponibles, ahorras 130,00 €.\n\nNada que cambiar.', 'texto limpio y acotado por parseChatReply')
+    assert.equal('reply' in reply, false, '«reply» del modelo pasa a ser «text»')
+    assert.equal(reply.confidence, 'alta')
+    assert.deepEqual(reply.nextStep, { label: 'Ver objetivos', to: 'objetivos' })
+    assert.equal(reply.memoryProposal, null)
+    assert.equal(reply.engine.id, 'external-ai')
+    assert.equal(reply.engine.isAI, true)
+    assert.match(reply.engine.label, /groq:openai\/gpt-oss-20b/)
+    assert.ok(!Number.isNaN(Date.parse(reply.generatedAt)))
+  })
+
   it('chatWithProvider usa el tope de salida, el esquema de chat y fija engine/generatedAt', async () => {
     const seen: { maxOutputTokens?: number; user?: string; schema?: Record<string, unknown> } = {}
     const provider: MarketAIProvider = {

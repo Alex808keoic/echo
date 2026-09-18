@@ -5,7 +5,11 @@
  * `/api/axis`; en tests, un mock) y ante CUALQUIER fallo responde el motor
  * local, diciéndolo (core/fallback.ts). Nunca conoce secretos.
  *
- *   ChatInput → transporte → salida cruda → parseChatReply → ChatReply
+ *   ChatInput → transporte → ChatReply (ya validado en el servidor con
+ *   `parseChatReply`) → campos fijados por Finax → ChatReply
+ *
+ * La salida cruda del modelo solo la ve el servidor (`chatWithProvider`):
+ * aquí no se vuelve a parsear, porque lo que llega ya no es esa salida.
  *
  * Fases reales, notificadas para la UI (nunca se finge actividad):
  *   'analyzing'  preparando el contexto y comprobando disponibilidad
@@ -15,14 +19,13 @@ import { AI_ENGINE_INFO } from '../ai-engine'
 import { rememberAvailability, withFallback } from '../core/fallback'
 import { composeLocalReply } from './local-reply'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
-import { parseChatReply } from './validate'
 
 export type ChatPhase = 'analyzing' | 'responding'
 
 export interface ChatTransport {
   isAvailable(): Promise<boolean>
-  /** Devuelve la salida cruda de la respuesta (se valida después). */
-  ask(input: ChatInput, signal: AbortSignal): Promise<unknown>
+  /** Devuelve el `ChatReply` ya validado por el servidor, o lanza `ChatTransportError`. */
+  ask(input: ChatInput, signal: AbortSignal): Promise<ChatReply>
 }
 
 /** Error del transporte con causa clasificada (p. ej. 429 → sin cupo). */
@@ -56,16 +59,16 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
 
   async function askAI(input: ChatInput, signal: AbortSignal): Promise<ChatReply> {
     onPhase?.('responding')
-    const raw = await transport.ask(input, signal)
-    if (typeof raw !== 'object' || raw === null) throw new Error('respuesta no válida')
-    const generatedAt = (raw as { generatedAt?: unknown }).generatedAt
+    const reply = await transport.ask(input, signal)
+    // El texto, la propuesta y el siguiente paso ya vienen validados del servidor.
     // Estos campos los fija Finax, nunca el modelo ni el transporte.
-    return parseChatReply({
-      ...raw,
+    const { fallbackReason: _ignored, ...rest } = reply
+    void _ignored
+    return {
+      ...rest,
       engine: AI_ENGINE_INFO,
-      fallbackReason: undefined,
-      generatedAt: typeof generatedAt === 'string' ? generatedAt : new Date().toISOString(),
-    })
+      generatedAt: typeof reply.generatedAt === 'string' ? reply.generatedAt : new Date().toISOString(),
+    }
   }
 
   return {

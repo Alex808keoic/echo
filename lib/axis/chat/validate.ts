@@ -1,8 +1,9 @@
 /**
  * Frontera de validación de la conversación.
  *
- *   salida del modelo → parseChatReply → ChatReply (única puerta hacia la UI)
+ *   salida del modelo → parseChatReply → ChatReply (única puerta hacia la UI; SOLO en servidor)
  *   cuerpo recibido   → isChatInput    → ChatInput  (única puerta hacia el modelo)
+ *   ChatReply por HTTP → isChatReply   → forma comprobada en el navegador, sin volver a parsear
  *
  * Mismo criterio que `parseAxisAnalysis`: forma comprobada, textos limpios y
  * acotados, destinos desconocidos descartados, propuestas de memoria con
@@ -74,6 +75,15 @@ export function parseChatReply(input: unknown): ChatReply {
     reply.fallbackReason = input.fallbackReason as ChatReply['fallbackReason']
   }
   return reply
+}
+
+/**
+ * Forma de un `ChatReply` ya validado por el servidor (`{ text, engine, … }`), tal y
+ * como viaja en `{ reply }` desde `/api/axis`. Solo comprueba la forma: la limpieza
+ * y el acotado los hizo `parseChatReply` en el servidor y no se repiten.
+ */
+export function isChatReply(v: unknown): v is ChatReply {
+  return isRecord(v) && typeof v.text === 'string' && v.text.length > 0 && isRecord(v.engine) && typeof v.engine.id === 'string'
 }
 
 /* --------------------------- Entrada (servidor) --------------------------- */
