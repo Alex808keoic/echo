@@ -71,9 +71,11 @@ Estado por fases:
   bloques (`prompts/{contract,safety,memory,output}.ts` + `personality.ts`)
   byte a byte iguales a los originales (`__tests__/prompts.test.ts`);
   `withFallback()` común a los dos motores (`core/fallback.ts`).
-- **Fase 2 (pendiente)**: decisión primero también con LLM — el modelo recibe la
-  `AxisDecision` y solo redacta; recomendación, siguiente paso y confianza los
-  fija AXIS; seguridad semántica (cifras del texto ⊆ decisión). Con flag.
+- **Fase 2 (hecha, tras flag)**: Decision First en el análisis — con
+  `AXIS_DECISION_FIRST=true` el modelo recibe la `AxisDecision` y solo la
+  expresa; hechos, prioridades, `recommendation.what`, siguiente paso,
+  confianza y demo los fija AXIS; validación semántica mecánica; ante
+  cualquier fallo, la misma decisión en local. Ver «Decision First» más abajo.
 - **Fase 3 (pendiente)**: conversación por intención (`EXPLAIN_CURRENT_SITUATION`,
   `SIMULATE_SCENARIO`, `CREATE_GOAL`, …), plan de respuesta, simulador
   determinista, respuesta local sin LLM cuando la intención está cubierta.
@@ -92,6 +94,66 @@ confianza, qué falta (`missing`, solo sin datos) y siguiente paso. `render()`
 (`compose.ts`) la convierte en `AxisResult` poniendo solo palabras (titular,
 resumen, conclusión). Hoy el motor local es `render(decide(input))`; el motor
 de IA todavía no recibe la decisión (fase 2).
+
+### Decision First (`AXIS_DECISION_FIRST=true`)
+
+**El LLM no decide. AXIS decide y el LLM expresa.** Flujo en el servidor
+(`ai/server/analyze.ts`, `analyzeDecisionFirst`):
+
+```
+POST /api/axis {context, market, memory}   (cliente sin cambios)
+  ▼
+decide({context, market})                  → AxisDecision                       core/decision.ts
+  ▼
+buildExpressionRequest(decision, memory)   → { decision_de_axis, cifras_permitidas, memoria_relevante }   core/expression.ts
+  ▼
+AxisLanguageModel.complete(…)              → salida cruda (esquema de expresión, solo texto)   ai/schema-expression.ts · prompts/expression.ts
+  ▼
+parseExpression                            → Expression (forma)                 core/expression.ts
+  ▼
+validateExpression(decision, expression)   → ok | violaciones                   core/semantic.ts
+  ▼
+mergeExpression(decision, expression)      → AxisAnalysis (la decisión manda)   core/expression.ts
+  ▼
+parseAxisAnalysis                          → 200 { analysis }
+```
+
+Contrato con el modelo. Recibe: la decisión (señal principal, señales
+relevantes con prioridad y textos de AXIS, hechos, recomendación —`que`
+verbatim, `por_que_de_axis`, siguiente paso—, alternativas, incertidumbres,
+confianza, demo), `cifras_permitidas` (lista cerrada con etiqueta, calculada
+por AXIS: patrimonio, flujos, categorías, variaciones, objetivos, posiciones,
+recuentos; `core/figures.ts`) y `memoria_relevante` (≤ 5 notas del usuario y
+la última conclusión, en cualitativo). **No** recibe el contexto bruto ni el
+mercado. Devuelve solo redacción: `headline`, `interpretation.summary`,
+`interpretation.signals[{id,text}]`, `recommendation_why | null`,
+`alternatives[{name,summary}]`, `uncertainties[{title,detail}]`, `conclusion`.
+
+Fusión (`mergeExpression`): hechos, ids y prioridades de las señales,
+`recommendation.what` y `nextStep`, nombres de alternativas, títulos de
+incertidumbres, confianza, `basedOnDemoData`, `engine` y `generatedAt` salen
+de la decisión; cualquier `priority`, `nextStep`, `confidence`,
+`recommendation` o `facts` que devuelva el modelo se descarta.
+
+Invariantes mecánicas (`validateExpression`): toda cifra escrita (importes,
+porcentajes, recuentos con unidad) ∈ cifras permitidas, normalizando formato
+(`1.300 €` ≡ `1.300,00 €`, `65 %` ≡ `65%`); ninguna afirmación de haber
+ejecutado u ofrecerse a ejecutar una operación; ningún lenguaje de certeza
+(patrones de `lib/market/validate.ts`) ni incertidumbre negada; cobertura
+exacta de ids de señal, nombres de alternativa y títulos de incertidumbre;
+`recommendation_why` null ⇔ AXIS no recomienda. La memoria no aporta cifras
+permitidas: una cifra tomada de ella que no esté en los datos falla.
+
+Si algo falla (proveedor, timeout, 429, forma, invariantes): el servidor
+registra `[axis] decision-first: expresión rechazada: …` y responde 502; el
+cliente muestra `render(decide(input))`, **la misma decisión** en redacción
+local. La disponibilidad del modelo solo cambia la calidad de la prosa, nunca
+el contenido decidido. Con `level none` la ruta responde 400 sin consumir cupo.
+
+Con `AXIS_DECISION_FIRST` ausente o distinto de `true`: comportamiento
+anterior (prompt y esquema completos), byte a byte (tests dorados).
+`GET /api/axis` expone `mode: 'legacy' | 'decision-first'` para verificarlo
+en producción sin cambios de UI. No se hace ninguna segunda llamada al modelo.
 
 ### `AxisLanguageModel` (`language/`)
 
@@ -201,7 +263,7 @@ las señales. No se envían nombres personales, cuentas, credenciales ni datos t
 
 | Variable | Efecto |
 |---|---|
-| `AXIS_AI_PROVIDER` | `gemini` o `groq`. Sin valor → sin IA (AXIS local). |
+| `AXIS_AI_PROVIDER` | `groq` (producción) o `gemini`. Sin valor → sin IA (AXIS local). Ambos proveedores viven en `lib/ai/providers/`; el servidor solo conoce `AxisLanguageModel`. |
 | `GEMINI_API_KEY` / `GROQ_API_KEY` | Clave del proveedor elegido (cuenta free tier, sin billing ni tarjeta). |
 | `AXIS_AI_MODEL` | Modelo (por defecto `gemini-2.5-flash-lite` / `openai/gpt-oss-120b`). |
 | `AXIS_AI_ENABLED` | `false` desactiva la IA aunque exista un proveedor. |
@@ -346,8 +408,10 @@ pnpm build
 `engine.test.ts` cubre el motor local y la validación con contextos ficticios
 (`fixtures.ts`) y fecha fija. `golden.test.ts` congela el comportamiento (13
 escenarios; regenerar solo a propósito con `UPDATE_GOLDEN=1 pnpm test`),
-`prompts.test.ts` la igualdad byte a byte de los prompts y `core.test.ts` la
-decisión, el modelo de lenguaje y el fallback común. `chat.test.ts` cubre la conversación (contexto en
+`prompts.test.ts` la igualdad byte a byte de los prompts, `core.test.ts` la
+decisión, el modelo de lenguaje y el fallback común, y `decision-first.test.ts`
+que nada de lo que devuelva el modelo puede cambiar la decisión y que toda
+violación acaba en la misma decisión en local. `chat.test.ts` cubre la conversación (contexto en
 cuatro niveles, memoria, multiturno, compresión, fallback, errores, límites,
 secretos, servidor) y `lib/db/__tests__/axis-store.test.ts` la persistencia en
 Dexie (recarga y borrado completo) con `fake-indexeddb`. `ai-engine.test.ts` mockea transporte y

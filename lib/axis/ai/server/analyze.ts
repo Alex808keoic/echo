@@ -14,6 +14,8 @@
  *   GEMINI_API_KEY / GROQ_API_KEY clave del proveedor elegido
  *   AXIS_AI_MODEL                 modelo (opcional; por defecto el del proveedor)
  *   AXIS_AI_MAX_REQUESTS_PER_DAY  solo puede reducir el tope diario (por defecto 40)
+ *   AXIS_DECISION_FIRST           "true": el modelo solo EXPRESA la AxisDecision (Decision First);
+ *                                 en otro caso, comportamiento anterior (el modelo redacta el análisis completo)
  *
  * Cuentas siempre en free tier y sin billing: si la cuota se agota, el
  * proveedor devuelve 429 y el cliente usa el motor local.
@@ -26,19 +28,26 @@ import { AIProviderError, type AIProvider } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
 import { asLanguageModel, type AxisLanguageModel } from '../../language/model'
+import { decide } from '../../core/decision'
+import { buildExpressionRequest, mergeExpression, parseExpression } from '../../core/expression'
+import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { parseChatReply } from '../../chat/validate'
-import type { AxisAnalysis, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
+import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
 
 export type AxisAiProviderId = 'gemini' | 'groq'
+
+export type AnalysisMode = 'legacy' | 'decision-first'
 
 export interface AIServerConfig {
   enabled: boolean
   provider: AxisAiProviderId | null
   apiKey?: string
   model?: string
+  /** Decision First activo (`AXIS_DECISION_FIRST=true`). */
+  decisionFirst: boolean
 }
 
 export function readAIServerConfig(env: Record<string, string | undefined> = process.env): AIServerConfig {
@@ -46,8 +55,11 @@ export function readAIServerConfig(env: Record<string, string | undefined> = pro
   const raw = env.AXIS_AI_PROVIDER?.trim().toLowerCase()
   const provider: AxisAiProviderId | null = raw === 'gemini' || raw === 'groq' ? raw : null
   const apiKey = (provider === 'gemini' ? env.GEMINI_API_KEY : provider === 'groq' ? env.GROQ_API_KEY : undefined)?.trim() || undefined
-  return { enabled, provider, apiKey, model: env.AXIS_AI_MODEL?.trim() || undefined }
+  const decisionFirst = env.AXIS_DECISION_FIRST?.trim().toLowerCase() === 'true'
+  return { enabled, provider, apiKey, model: env.AXIS_AI_MODEL?.trim() || undefined, decisionFirst }
 }
+
+export const analysisModeOf = (config: AIServerConfig): AnalysisMode => (config.decisionFirst ? 'decision-first' : 'legacy')
 
 /** Proveedor configurado, o `null` si falta el proveedor o su clave. */
 export function providerFromConfig(config: AIServerConfig): MarketAIProvider | null {
@@ -81,24 +93,52 @@ export function isFinancialContext(v: unknown): v is FinancialContext {
   )
 }
 
-/** Ejecuta el análisis con un modelo dado. Lanza si el resultado no es válido. */
+/**
+ * Ejecuta el análisis con un modelo dado. Lanza si el resultado no es válido.
+ * `mode`: 'legacy' (el modelo redacta el análisis completo) o 'decision-first'
+ * (AXIS decide, el modelo expresa; ver `analyzeDecisionFirst`).
+ */
 export async function analyzeWithProvider(
   provider: Model,
   context: FinancialContext,
   memory?: AxisMemory,
   signal?: AbortSignal,
   market: MarketContext | null = null,
+  mode: AnalysisMode = 'legacy',
 ): Promise<AxisAnalysis> {
   const model = asLanguageModel(provider)
   const input: AxisInput = { context, memory, market }
+  const engine = { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` }
+  if (mode === 'decision-first') return analyzeDecisionFirst(model, input, engine, signal)
   const raw = await model.complete(buildAIRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({
     ...raw,
-    engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` },
+    engine,
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,
   })
+}
+
+/**
+ * DECISION FIRST. AXIS decide (`decide`), el modelo solo expresa
+ * (`buildExpressionRequest` → `parseExpression`), la expresión se valida
+ * (`validateExpression`) y se fusiona con la decisión (`mergeExpression`),
+ * que aporta todo lo decisorio. Cualquier fallo lanza: la ruta responde 502 y
+ * el cliente muestra `render(decide(input))`, la MISMA decisión en local.
+ */
+export async function analyzeDecisionFirst(model: AxisLanguageModel, input: AxisInput, engine: AxisEngineInfo, signal?: AbortSignal): Promise<AxisAnalysis> {
+  const decision = decide(input)
+  if (decision.level === 'none') throw new AIProviderError('malformed', 'sin datos suficientes para decidir')
+  const raw = await model.complete(buildExpressionRequest(decision, input.memory), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
+  const expression = parseExpression(raw)
+  const verdict = validateExpression(decision, expression)
+  if (!verdict.ok) {
+    const summary = verdict.violations.map((v) => `${v.invariant}@${v.field}: ${v.detail}`).join(' | ')
+    console.warn('[axis] decision-first: expresión rechazada:', summary)
+    throw new AIProviderError('malformed', `expresión no válida (${verdict.violations.map((v) => v.invariant).join(', ')})`)
+  }
+  return parseAxisAnalysis(mergeExpression(decision, expression, engine))
 }
 
 /**

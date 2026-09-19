@@ -1,7 +1,7 @@
 /**
  * Route handler de AXIS (servidor).
  *
- *   GET  /api/axis                  → { available: boolean }   ¿hay proveedor de IA configurado?
+ *   GET  /api/axis                  → { available, mode }      ¿hay proveedor de IA? · 'legacy' | 'decision-first'
  *   POST /api/axis                  → { analysis }             análisis validado, o error sin detalles técnicos
  *   POST /api/axis  { mode:'chat' } → { reply }                respuesta conversacional validada
  *
@@ -12,7 +12,7 @@
  * El contexto recibido se procesa en la petición y no se persiste.
  */
 import { NextResponse } from 'next/server'
-import { analyzeWithProvider, chatWithProvider, isFinancialContext } from '@/lib/axis/ai/server/analyze'
+import { analysisModeOf, analyzeWithProvider, chatWithProvider, isFinancialContext, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
 import { languageModelFromConfig } from '@/lib/axis/language/server'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
@@ -25,11 +25,13 @@ export const dynamic = 'force-dynamic'
 const NO_STORE = { 'cache-control': 'no-store' }
 
 export async function GET() {
-  return NextResponse.json({ available: languageModelFromConfig().available }, { headers: NO_STORE })
+  const config = readAIServerConfig()
+  return NextResponse.json({ available: languageModelFromConfig(config).available, mode: analysisModeOf(config) }, { headers: NO_STORE })
 }
 
 export async function POST(request: Request) {
-  const model = languageModelFromConfig()
+  const config = readAIServerConfig()
+  const model = languageModelFromConfig(config)
   if (!model.available) return NextResponse.json({ error: 'ai-unavailable' }, { status: 503, headers: NO_STORE })
 
   let text: string
@@ -52,6 +54,11 @@ export async function POST(request: Request) {
   const market = typeof rec.market === 'object' && rec.market !== null ? (rec.market as MarketContext) : null
   const chat = rec.mode === 'chat' ? (isChatPayload(rec) ? rec : null) : null
   if (rec.mode === 'chat' && !chat) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
+  const mode = analysisModeOf(config)
+  // Decision First: sin datos no hay decisión que expresar; no se consume cupo ni se llama al modelo.
+  if (!chat && mode === 'decision-first' && context.quality.level === 'none') {
+    return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
+  }
 
   // Límite de la instancia: se consume ANTES de llamar; si no hay cupo, no hay llamada.
   const slot = consumeInstanceSlot()
@@ -62,7 +69,7 @@ export async function POST(request: Request) {
       const reply = await chatWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message }, request.signal)
       return NextResponse.json({ reply }, { headers: NO_STORE })
     }
-    const analysis = await analyzeWithProvider(model, context, memory, request.signal, market)
+    const analysis = await analyzeWithProvider(model, context, memory, request.signal, market, mode)
     return NextResponse.json({ analysis }, { headers: NO_STORE })
   } catch (error) {
     // Clasificación sin detalles: el cliente solo necesita saber que debe usar el motor local.

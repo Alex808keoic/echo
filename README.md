@@ -52,8 +52,10 @@ scripts/market/              Market Research Engine (GitHub Actions): fuentes, p
 - Evolución del patrimonio solo con datos reales (mínimo 3 días con movimientos).
 - Inversiones manuales (activo, importe, fecha, valor actual); sin cotizaciones ni brokers.
 - AXIS: DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN.
-  Motor local de reglas deterministas + IA opcional en el servidor (Gemini o Groq, free tier, límites
+  Motor local de reglas deterministas + IA opcional en el servidor (Groq en producción, Gemini disponible; free tier, límites
   duros, fallback local; se activa con `AXIS_AI_PROVIDER`). Memoria de conclusiones en Dexie.
+  Decision First (`AXIS_DECISION_FIRST=true`): AXIS decide con reglas y el modelo solo expresa la
+  decisión, con validación mecánica y fallback a la misma decisión en local.
   Conversación integrada en la pantalla AXIS: contexto en cuatro niveles (datos actuales → memoria →
   conversación → consulta), memoria persistente solo con confirmación del usuario, historial comprimido,
   mismo endpoint y límites, fallback local explícito.

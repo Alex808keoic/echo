@@ -5,7 +5,8 @@
  * Para cada escenario se congela, con fecha fija y sin red:
  *   - el `AxisResult` del motor local (análisis o «sin análisis»);
  *   - la respuesta local de la conversación (fallback);
- *   - las peticiones efectivas al modelo (system + user) del análisis y del chat.
+ *   - las peticiones efectivas al modelo (system + user) del análisis y del chat;
+ *   - la petición de expresión (Decision First): decisión + cifras permitidas.
  *
  * Los snapshots viven en `__snapshots__/<escenario>.json`. Para regenerarlos
  * de forma deliberada: `UPDATE_GOLDEN=1 pnpm test`. Un cambio inesperado aquí
@@ -21,6 +22,8 @@ import { analyzeLocally } from '../local-engine'
 import { buildAIRequest } from '../ai/prompt'
 import { buildChatRequest } from '../chat/prompt'
 import { composeLocalReply } from '../chat/local-reply'
+import { decide } from '../core/decision'
+import { buildExpressionRequest } from '../core/expression'
 import { buildMarketContext } from '../../market/relevance'
 import { history as marketHistory, research } from '../../market/__tests__/fixtures'
 import type { AxisInput, MarketContext } from '../types'
@@ -128,6 +131,7 @@ function golden(input: AxisInput) {
     chatLocal: Object.fromEntries(REASONS.map((r) => [r, composeLocalReply(chat, r, NOW)])),
     analysisRequest: buildAIRequest(input),
     chatRequest: buildChatRequest(chat),
+    expressionRequest: buildExpressionRequest(decide(input), chat.memory),
   }
 }
 

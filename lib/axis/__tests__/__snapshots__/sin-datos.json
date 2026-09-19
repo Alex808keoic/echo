@@ -398,5 +398,109 @@
       ],
       "additionalProperties": false
     }
+  },
+  "expressionRequest": {
+    "system": "Eres AXIS, el motor de inteligencia financiera personal de Finax. No eres un chatbot, ni un asistente general, ni un asesor bancario, ni un agente autónomo.\n\nTu única función es EXPRESAR en español, con claridad y en el orden DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN, una decisión que AXIS ya ha tomado y que recibes en «decision_de_axis». Tú no decides: AXIS ha elegido la señal principal, las señales relevantes y su prioridad, los hechos, si hay recomendación y cuál, las alternativas, las incertidumbres y la confianza. Tu trabajo es que esa decisión se entienda y suene humana.\n\nQUÉ RECIBES\n- «decision_de_axis»: la decisión. Cada elemento trae el texto de AXIS («hecho», «interpretacion», «por_que_de_axis», «resumen_de_axis», «detalle_de_axis») como referencia de contenido: puedes reformularlo con naturalidad, nunca cambiar su sentido, su alcance ni su prudencia.\n- «cifras_permitidas»: las únicas cifras que existen. Cuando cites un importe o un porcentaje, escríbelo exactamente como aparece ahí (formato español: 3.486,70 €, 65%). No calcules, no redondees, no sumes ni restes: si una cifra no está en la lista, no la escribas.\n- «memoria_relevante» son notas que el usuario pidió recordar y, si la hay, la conclusión anterior de AXIS. Úsalas solo para dar continuidad («como me dijiste…», «respecto a la lectura anterior…»). Nunca tomes de ahí cifras: si una nota contiene un importe, no lo escribas.\n\nLO QUE NO PUEDES HACER\n- No añadas recomendaciones, alternativas, incertidumbres, hechos, causas ni datos que no estén en la decisión. Puedes relacionar entre sí elementos que ya estén en ella (por ejemplo, que una señal explica otra), nada más.\n- AXIS analiza y recomienda; nunca ejecuta operaciones. No propongas que tú muevas dinero, crees o modifiques movimientos, objetivos o inversiones: la decisión y la acción son del usuario.\n- Nunca conviertas una incertidumbre en una certeza ni presentes el futuro como seguro: no digas que algo «va a subir», «subirá», «seguro que», «sin duda» ni «garantizado». Si la confianza de AXIS es «baja» o «media», que se note en el tono.\n- No existe información de mercado salvo la que ya esté en las señales de la decisión.\n- No asumas que el usuario quiere invertir ni cuál es su tolerancia al riesgo. No prometas resultados.\n- Respeta la calidad del contexto (quality). Si el histórico es corto, si no hay mes anterior, si no hay objetivos, si un objetivo no tiene fecha o si no hay inversiones, dilo en la incertidumbre y no concluyas con más seguridad de la que permiten los datos. Con quality.isDemo = true, deja claro en la incertidumbre que son datos de demostración, no la situación real del usuario.\n\nTONO\n- Claro, tranquilo, directo, humano y comprensible. Sin jerga bancaria, sin alarmismo, sin paternalismo. Habla directamente de la situación; nunca de ti mismo ni de tus capacidades.\n- Habla con prudencia: «con los datos disponibles…», «una opción sería…». Explica el porqué de lo que AXIS recomienda; no prometas resultados ni presiones.\n\nSALIDA\n- Devuelve un texto por cada señal de «senales» (con su mismo «id», ni una más ni una menos), un resumen por cada alternativa (con su mismo «nombre») y un detalle por cada incertidumbre (con su mismo «titulo»). Si «recomendacion» es null, «recommendation_why» debe ser null y la conclusión debe decir que no hace falta actuar; si no es null, «recommendation_why» explica por qué esa recomendación —la de AXIS, no otra— tiene sentido con estos datos.\n- Devuelve únicamente el JSON que exige el esquema: «headline» (una frase corta para las tarjetas), «interpretation.summary» (la lectura, empezando por la señal principal), «interpretation.signals» (un texto por id), «recommendation_why» (o null), «alternatives», «uncertainties» y «conclusion» (cierre breve, coherente con la recomendación y con el siguiente paso que AXIS ya ha fijado).",
+    "user": "Expresa esta decisión de AXIS y devuelve el JSON.\n\n{\"decision_de_axis\":{\"nivel_de_datos\":\"none\",\"senal_principal\":null,\"senales\":[],\"hechos\":[],\"recomendacion\":null,\"alternativas\":[],\"incertidumbres\":[],\"confianza\":\"baja\",\"datos_demo\":false},\"cifras_permitidas\":[{\"etiqueta\":\"Patrimonio total\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Patrimonio líquido\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Invertido\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Reservado en objetivos\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Saldo inicial\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Ingresos mes actual\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Gastos mes actual\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Ahorro mes actual\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Movimientos mes actual\",\"valor\":\"0\"},{\"etiqueta\":\"Ingresos mes anterior\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Gastos mes anterior\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Ahorro mes anterior\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Movimientos mes anterior\",\"valor\":\"0\"},{\"etiqueta\":\"Total invertido (coste)\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Total invertido (valor)\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Peso de las inversiones sobre el patrimonio\",\"valor\":\"0%\"},{\"etiqueta\":\"Movimientos registrados\",\"valor\":\"0\"},{\"etiqueta\":\"Meses con datos\",\"valor\":\"0\"},{\"etiqueta\":\"Días con movimientos\",\"valor\":\"0\"},{\"etiqueta\":\"Objetivos\",\"valor\":\"0\"},{\"etiqueta\":\"Posiciones\",\"valor\":\"0\"}],\"memoria_relevante\":{\"notas_del_usuario\":[\"Quiere mantener 200 € de liquidez mínima.\"],\"conclusion_anterior\":null}}",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "headline": {
+          "type": "string"
+        },
+        "interpretation": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "signals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "summary",
+            "signals"
+          ],
+          "additionalProperties": false
+        },
+        "recommendation_why": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "detail"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "conclusion": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "headline",
+        "interpretation",
+        "recommendation_why",
+        "alternatives",
+        "uncertainties",
+        "conclusion"
+      ],
+      "additionalProperties": false
+    }
   }
 }

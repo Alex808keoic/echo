@@ -14,7 +14,8 @@ import { AXIS_CHAT_SYSTEM_PROMPT as FROM_CHAT_MODULE } from '../chat/prompt'
 import { PERSONALITY } from '../personality'
 import { SAFETY } from '../prompts/safety'
 
-const golden = (name: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '__snapshots__', name), 'utf8')
+// Los .txt pueden llegar con CRLF según `core.autocrlf`; la comparación es sobre el contenido, no sobre los finales de línea.
+const golden = (name: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '__snapshots__', name), 'utf8').replace(/\r\n/g, '\n')
 
 describe('AXIS · prompts por bloques', () => {
   it('el prompt del análisis es byte a byte el original', () => {

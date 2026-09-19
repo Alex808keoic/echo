@@ -440,5 +440,109 @@
       ],
       "additionalProperties": false
     }
+  },
+  "expressionRequest": {
+    "system": "Eres AXIS, el motor de inteligencia financiera personal de Finax. No eres un chatbot, ni un asistente general, ni un asesor bancario, ni un agente autónomo.\n\nTu única función es EXPRESAR en español, con claridad y en el orden DATOS → INTERPRETACIÓN → RECOMENDACIÓN → ALTERNATIVAS → INCERTIDUMBRE → CONCLUSIÓN, una decisión que AXIS ya ha tomado y que recibes en «decision_de_axis». Tú no decides: AXIS ha elegido la señal principal, las señales relevantes y su prioridad, los hechos, si hay recomendación y cuál, las alternativas, las incertidumbres y la confianza. Tu trabajo es que esa decisión se entienda y suene humana.\n\nQUÉ RECIBES\n- «decision_de_axis»: la decisión. Cada elemento trae el texto de AXIS («hecho», «interpretacion», «por_que_de_axis», «resumen_de_axis», «detalle_de_axis») como referencia de contenido: puedes reformularlo con naturalidad, nunca cambiar su sentido, su alcance ni su prudencia.\n- «cifras_permitidas»: las únicas cifras que existen. Cuando cites un importe o un porcentaje, escríbelo exactamente como aparece ahí (formato español: 3.486,70 €, 65%). No calcules, no redondees, no sumes ni restes: si una cifra no está en la lista, no la escribas.\n- «memoria_relevante» son notas que el usuario pidió recordar y, si la hay, la conclusión anterior de AXIS. Úsalas solo para dar continuidad («como me dijiste…», «respecto a la lectura anterior…»). Nunca tomes de ahí cifras: si una nota contiene un importe, no lo escribas.\n\nLO QUE NO PUEDES HACER\n- No añadas recomendaciones, alternativas, incertidumbres, hechos, causas ni datos que no estén en la decisión. Puedes relacionar entre sí elementos que ya estén en ella (por ejemplo, que una señal explica otra), nada más.\n- AXIS analiza y recomienda; nunca ejecuta operaciones. No propongas que tú muevas dinero, crees o modifiques movimientos, objetivos o inversiones: la decisión y la acción son del usuario.\n- Nunca conviertas una incertidumbre en una certeza ni presentes el futuro como seguro: no digas que algo «va a subir», «subirá», «seguro que», «sin duda» ni «garantizado». Si la confianza de AXIS es «baja» o «media», que se note en el tono.\n- No existe información de mercado salvo la que ya esté en las señales de la decisión.\n- No asumas que el usuario quiere invertir ni cuál es su tolerancia al riesgo. No prometas resultados.\n- Respeta la calidad del contexto (quality). Si el histórico es corto, si no hay mes anterior, si no hay objetivos, si un objetivo no tiene fecha o si no hay inversiones, dilo en la incertidumbre y no concluyas con más seguridad de la que permiten los datos. Con quality.isDemo = true, deja claro en la incertidumbre que son datos de demostración, no la situación real del usuario.\n\nTONO\n- Claro, tranquilo, directo, humano y comprensible. Sin jerga bancaria, sin alarmismo, sin paternalismo. Habla directamente de la situación; nunca de ti mismo ni de tus capacidades.\n- Habla con prudencia: «con los datos disponibles…», «una opción sería…». Explica el porqué de lo que AXIS recomienda; no prometas resultados ni presiones.\n\nSALIDA\n- Devuelve un texto por cada señal de «senales» (con su mismo «id», ni una más ni una menos), un resumen por cada alternativa (con su mismo «nombre») y un detalle por cada incertidumbre (con su mismo «titulo»). Si «recomendacion» es null, «recommendation_why» debe ser null y la conclusión debe decir que no hace falta actuar; si no es null, «recommendation_why» explica por qué esa recomendación —la de AXIS, no otra— tiene sentido con estos datos.\n- Devuelve únicamente el JSON que exige el esquema: «headline» (una frase corta para las tarjetas), «interpretation.summary» (la lectura, empezando por la señal principal), «interpretation.signals» (un texto por id), «recommendation_why» (o null), «alternatives», «uncertainties» y «conclusion» (cierre breve, coherente con la recomendación y con el siguiente paso que AXIS ya ha fijado).",
+    "user": "Expresa esta decisión de AXIS y devuelve el JSON.\n\n{\"decision_de_axis\":{\"nivel_de_datos\":\"sufficient\",\"senal_principal\":{\"id\":\"savings.healthy\",\"prioridad\":\"low\",\"hecho\":\"Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).\",\"interpretacion\":\"Cubres el gasto con margen y queda excedente real.\"},\"senales\":[{\"id\":\"savings.healthy\",\"prioridad\":\"low\",\"hecho\":\"Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).\",\"interpretacion\":\"Cubres el gasto con margen y queda excedente real.\"},{\"id\":\"investments.none\",\"prioridad\":\"low\",\"hecho\":\"No hay inversiones registradas: todo el patrimonio es líquido.\",\"interpretacion\":\"Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.\"}],\"hechos\":[\"Patrimonio: 3.550,00 € (líquido 3.550,00 €).\",\"Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.\",\"Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).\",\"No hay inversiones registradas: todo el patrimonio es líquido.\"],\"recomendacion\":{\"que\":\"Define un objetivo para dar destino a lo que ahorras.\",\"por_que_de_axis\":\"Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.\",\"siguiente_paso\":{\"label\":\"Crear objetivo\",\"to\":\"objetivos\"}},\"alternativas\":[{\"nombre\":\"Mantener liquidez\",\"resumen_de_axis\":\"Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro.\"}],\"incertidumbres\":[{\"titulo\":\"Sin posiciones registradas\",\"detalle_de_axis\":\"No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura.\"},{\"titulo\":\"Histórico corto\",\"detalle_de_axis\":\"Solo hay 2 meses con movimientos. No tengo suficiente histórico para saber si este patrón se mantiene.\"},{\"titulo\":\"Sin objetivos\",\"detalle_de_axis\":\"Sin un objetivo no puedo valorar si el ahorro es suficiente ni recomendar un destino para él.\"}],\"confianza\":\"media\",\"datos_demo\":false},\"cifras_permitidas\":[{\"etiqueta\":\"Patrimonio total\",\"valor\":\"3.550,00 €\"},{\"etiqueta\":\"Patrimonio líquido\",\"valor\":\"3.550,00 €\"},{\"etiqueta\":\"Invertido\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Reservado en objetivos\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Saldo inicial\",\"valor\":\"1.000,00 €\"},{\"etiqueta\":\"Ingresos mes actual\",\"valor\":\"2.000,00 €\"},{\"etiqueta\":\"Gastos mes actual\",\"valor\":\"700,00 €\"},{\"etiqueta\":\"Ahorro mes actual\",\"valor\":\"1.300,00 €\"},{\"etiqueta\":\"Tasa de ahorro mes actual\",\"valor\":\"65%\"},{\"etiqueta\":\"Movimientos mes actual\",\"valor\":\"4\"},{\"etiqueta\":\"Comida (mes actual)\",\"valor\":\"420,00 €\"},{\"etiqueta\":\"Comida sobre el total (mes actual)\",\"valor\":\"60%\"},{\"etiqueta\":\"Restaurantes (mes actual)\",\"valor\":\"180,00 €\"},{\"etiqueta\":\"Restaurantes sobre el total (mes actual)\",\"valor\":\"26%\"},{\"etiqueta\":\"Salidas (mes actual)\",\"valor\":\"100,00 €\"},{\"etiqueta\":\"Salidas sobre el total (mes actual)\",\"valor\":\"14%\"},{\"etiqueta\":\"Trabajo (mes actual)\",\"valor\":\"2.000,00 €\"},{\"etiqueta\":\"Trabajo sobre el total (mes actual)\",\"valor\":\"100%\"},{\"etiqueta\":\"Ingresos mes anterior\",\"valor\":\"2.000,00 €\"},{\"etiqueta\":\"Gastos mes anterior\",\"valor\":\"750,00 €\"},{\"etiqueta\":\"Ahorro mes anterior\",\"valor\":\"1.250,00 €\"},{\"etiqueta\":\"Tasa de ahorro mes anterior\",\"valor\":\"63%\"},{\"etiqueta\":\"Movimientos mes anterior\",\"valor\":\"4\"},{\"etiqueta\":\"Comida (mes anterior)\",\"valor\":\"400,00 €\"},{\"etiqueta\":\"Comida sobre el total (mes anterior)\",\"valor\":\"53%\"},{\"etiqueta\":\"Restaurantes (mes anterior)\",\"valor\":\"200,00 €\"},{\"etiqueta\":\"Restaurantes sobre el total (mes anterior)\",\"valor\":\"27%\"},{\"etiqueta\":\"Ropa (mes anterior)\",\"valor\":\"150,00 €\"},{\"etiqueta\":\"Ropa sobre el total (mes anterior)\",\"valor\":\"20%\"},{\"etiqueta\":\"Trabajo (mes anterior)\",\"valor\":\"2.000,00 €\"},{\"etiqueta\":\"Trabajo sobre el total (mes anterior)\",\"valor\":\"100%\"},{\"etiqueta\":\"Variación de ingresos\",\"valor\":\"0%\"},{\"etiqueta\":\"Variación de gastos\",\"valor\":\"7%\"},{\"etiqueta\":\"Total invertido (coste)\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Total invertido (valor)\",\"valor\":\"0,00 €\"},{\"etiqueta\":\"Peso de las inversiones sobre el patrimonio\",\"valor\":\"0%\"},{\"etiqueta\":\"Movimientos registrados\",\"valor\":\"8\"},{\"etiqueta\":\"Meses con datos\",\"valor\":\"2\"},{\"etiqueta\":\"Días con movimientos\",\"valor\":\"8\"},{\"etiqueta\":\"Objetivos\",\"valor\":\"0\"},{\"etiqueta\":\"Posiciones\",\"valor\":\"0\"}],\"memoria_relevante\":{\"notas_del_usuario\":[\"Quiere mantener 200 € de liquidez mínima.\"],\"conclusion_anterior\":null}}",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "headline": {
+          "type": "string"
+        },
+        "interpretation": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "signals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "summary",
+            "signals"
+          ],
+          "additionalProperties": false
+        },
+        "recommendation_why": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "detail"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "conclusion": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "headline",
+        "interpretation",
+        "recommendation_why",
+        "alternatives",
+        "uncertainties",
+        "conclusion"
+      ],
+      "additionalProperties": false
+    }
   }
 }
