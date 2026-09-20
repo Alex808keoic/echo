@@ -8,13 +8,16 @@
  */
 import { browserTransport, contextForRequest } from '../ai/browser-transport'
 import { ChatTransportError, type ChatTransport } from './engine'
+import { redactChatInput } from './secrets'
 import type { ChatInput } from './types'
 import { isChatReply } from './validate'
 
 export const browserChatTransport: ChatTransport = {
   isAvailable: () => browserTransport.isAvailable(),
 
-  async ask(input: ChatInput, signal: AbortSignal) {
+  async ask(rawInput: ChatInput, signal: AbortSignal) {
+    // Última barrera antes de salir del dispositivo: nada detectable como secreto viaja al servidor.
+    const input = redactChatInput(rawInput)
     const res = await fetch('/api/axis', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

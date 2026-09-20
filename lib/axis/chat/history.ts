@@ -10,6 +10,7 @@
  *
  * Funciones puras: la persistencia vive en lib/db/axis-conversation.ts.
  */
+import { redactWindow } from './secrets'
 import { CHAT_LIMITS, type ChatMessage, type ConversationState, type ConversationWindow } from './types'
 
 const ROLE_LABEL = { user: 'Usuario', axis: 'AXIS' } as const
@@ -49,12 +50,12 @@ export function compact(state: ConversationState): ConversationState {
   }
 }
 
-/** Ventana que se envía al modelo: resumen + últimos mensajes (sin metadatos). */
+/** Ventana que se envía al modelo: resumen + últimos mensajes (sin metadatos), con los secretos detectables redactados. */
 export function windowForModel(state: ConversationState): ConversationWindow {
-  return {
+  return redactWindow({
     summary: state.summary,
     recent: state.messages.slice(-CHAT_LIMITS.MAX_RECENT_FOR_MODEL).map(({ role, text }) => ({ role, text })),
-  }
+  })
 }
 
 export function updateMessage(state: ConversationState, id: string, patch: (m: ChatMessage) => ChatMessage): ConversationState {

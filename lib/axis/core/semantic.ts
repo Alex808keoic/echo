@@ -2,7 +2,8 @@
  * Validación semántica de una expresión (Decision First): garantías
  * mecánicas sobre lo que el modelo ha escrito, antes de mostrarlo.
  *
- *   figures    toda cifra escrita ∈ cifras permitidas (importes, %, recuentos con unidad)
+ *   figures    toda cifra escrita ∈ cifras permitidas (importes, %, recuentos con unidad;
+ *              un número desnudo solo si coincide con una cifra permitida)
  *   execution  ninguna afirmación de haber ejecutado (o ir a ejecutar) una operación
  *   certainty  ninguna certeza indebida ni incertidumbre negada (lib/text/certainty.ts,
  *              compartido con el chat y el Market Research: por cláusulas y con negación)
@@ -19,7 +20,7 @@
 import { findCertainty } from '../../text/certainty'
 import type { AxisDecision } from '../types'
 import type { Expression } from './expression'
-import { allowedFigureKeys, extractFigures } from './figures'
+import { buildAllowedFigures, checkFigures } from './figures'
 
 export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage'
 
@@ -69,10 +70,10 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
   }
 
   // figures · execution · certainty, campo a campo
-  const allowed = allowedFigureKeys(decision)
+  const allowed = buildAllowedFigures(decision)
   for (const [field, text] of writtenFields(expression)) {
-    for (const f of extractFigures(text)) {
-      if (!allowed.has(f.key)) violations.push({ invariant: 'figures', field, detail: `cifra no permitida «${f.raw}»` })
+    for (const f of checkFigures(text, allowed)) {
+      violations.push({ invariant: 'figures', field, detail: `${f.reason === 'bare-number' ? 'número sin unidad no permitido' : 'cifra no permitida'} «${f.raw}»` })
     }
     const execution = EXECUTION_PATTERNS.find((re) => re.test(text))
     if (execution) violations.push({ invariant: 'execution', field, detail: `«${text.match(execution)?.[0]}»` })

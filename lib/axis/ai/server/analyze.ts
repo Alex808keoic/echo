@@ -33,6 +33,7 @@ import { buildExpressionRequest, mergeExpression, parseExpression } from '../../
 import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
+import { redactChatInput, redactMemory } from '../../chat/secrets'
 import { validateChatReply } from '../../chat/semantic'
 import { parseChatReply } from '../../chat/validate'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
@@ -108,7 +109,8 @@ export async function analyzeWithProvider(
   mode: AnalysisMode = 'legacy',
 ): Promise<AxisAnalysis> {
   const model = asLanguageModel(provider)
-  const input: AxisInput = { context, memory, market }
+  // Defensa en profundidad: la memoria (texto escrito por personas) se redacta también en el servidor.
+  const input: AxisInput = { context, memory: memory ? redactMemory(memory) : memory, market }
   const engine = { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` }
   if (mode === 'decision-first') return analyzeDecisionFirst(model, input, engine, signal)
   const raw = await model.complete(buildAIRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
@@ -149,8 +151,10 @@ export async function analyzeDecisionFirst(model: AxisLanguageModel, input: Axis
  * solo vive en esta petición: no se persiste ni se registra nada en el servidor.
  * Un rechazo lanza: la ruta responde 502 y el cliente responde en local.
  */
-export async function chatWithProvider(provider: Model, input: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
+export async function chatWithProvider(provider: Model, rawInput: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
   const model = asLanguageModel(provider)
+  // Defensa en profundidad: mensaje, conversación y memoria se redactan también aquí antes de construir el prompt.
+  const input = redactChatInput(rawInput)
   const raw = await model.complete(buildChatRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   const reply = parseChatReply({

@@ -19,6 +19,7 @@ import { buildFinancialContext } from '@/lib/axis/context'
 import { browserChatTransport } from '@/lib/axis/chat/browser-transport'
 import { createChatEngine, type ChatPhase } from '@/lib/axis/chat/engine'
 import { appendMessage, updateMessage, windowForModel } from '@/lib/axis/chat/history'
+import { redactSecrets } from '@/lib/axis/chat/secrets'
 import { CHAT_LIMITS, type ChatMessage, type ConversationState, type UserMemory } from '@/lib/axis/chat/types'
 import type { MarketContext } from '@/lib/axis/types'
 import { clearConversation, getConversation, putConversation } from '@/lib/db/axis-conversation'
@@ -79,7 +80,8 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
 
   const send = useCallback(
     async (rawText: string) => {
-      const text = rawText.replace(/\s+/g, ' ').trim().slice(0, CHAT_LIMITS.MAX_MESSAGE_CHARS)
+      // Un secreto detectable (clave, IBAN, tarjeta…) se redacta ANTES de persistir y de enviar; sin secretos, el texto no cambia.
+      const text = redactSecrets(rawText.replace(/\s+/g, ' ').trim()).text.slice(0, CHAT_LIMITS.MAX_MESSAGE_CHARS)
       if (!text || !overview || !conversation || busy.current) return
       busy.current = true
       const userMessage: ChatMessage = { id: newId(), role: 'user', text, createdAt: Date.now() }
