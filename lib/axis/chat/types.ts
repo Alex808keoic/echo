@@ -9,6 +9,7 @@
  * Cuatro niveles de contexto, siempre separados (ver prompt.ts):
  *   DATOS ACTUALES → MEMORIA → CONVERSACIÓN ACTUAL → CONSULTA ACTUAL
  */
+import type { MemoryFact } from '../profile/types'
 import type { AxisEngineInfo, AxisMemory, AxisNextStep, Confidence, FinancialContext, MarketContext } from '../types'
 
 /* ================================ MEMORIA =============================== */
@@ -35,6 +36,12 @@ export interface UserMemory {
   source: 'conversation'
   createdAt: number
   updatedAt: number
+  /**
+   * Hecho ESTRUCTURADO ligado a esta memoria (fase 2): solo existe si vino en la
+   * propuesta aceptada y era válido. El texto libre nunca se convierte en hecho.
+   * Campo opcional y sin índice: no exige versión nueva de Dexie.
+   */
+  fact?: MemoryFact
 }
 
 /** Propuesta de memoria que AXIS hace en una respuesta; solo se guarda si el usuario acepta. */
@@ -45,6 +52,8 @@ export interface MemoryProposal {
   confidence: number
   /** Memoria existente que esta propuesta actualiza o sustituye (evita duplicados y contradicciones). */
   replacesId: string | null
+  /** Hecho estructurado propuesto (fase 2). Ausente o null = solo texto. Al actualizar una memoria, sustituye al anterior. */
+  fact?: MemoryFact | null
 }
 
 export type ProposalStatus = 'pending' | 'accepted' | 'rejected'

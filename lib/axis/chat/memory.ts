@@ -8,10 +8,14 @@
  *   conviven dos versiones de la misma decisión.
  * - Contenido equivalente a uno existente → se refresca `updatedAt`, no se duplica.
  * - Nada que parezca un secreto entra en la memoria.
+ * - Un hecho estructurado (`fact`) solo entra si es válido; al actualizar una
+ *   memoria (`replacesId`) el hecho anterior NO sobrevive salvo que la
+ *   propuesta traiga uno: el hecho debe corresponder al texto aceptado.
  * - Al superar el máximo, salen primero las menos importantes y, a igual
  *   importancia, las más antiguas; la memoria recién aceptada nunca sale, y
  *   las expulsadas se devuelven en `evicted` (nunca desaparecen en silencio).
  */
+import { isValidMemoryFact } from '../profile/types'
 import { looksLikeSecret } from './secrets'
 import { CHAT_LIMITS, MEMORY_CATEGORIES, MEMORY_IMPORTANCES, type MemoryImportance, type MemoryProposal, type UserMemory } from './types'
 
@@ -27,14 +31,15 @@ const comparable = (text: string) =>
     .replace(/[.,;:!?¡¿"'«»()]/g, '')
     .trim()
 
-/** Propuesta válida: texto útil, categoría e importancia conocidas, sin secretos. */
+/** Propuesta válida: texto útil, categoría e importancia conocidas, sin secretos y, si trae hecho, un hecho válido. */
 export function isSavableProposal(p: MemoryProposal): boolean {
   const content = normalizeMemoryContent(p.content)
   return (
     content.length >= 8 &&
     MEMORY_CATEGORIES.includes(p.category) &&
     MEMORY_IMPORTANCES.includes(p.importance) &&
-    !looksLikeSecret(content)
+    !looksLikeSecret(content) &&
+    (p.fact === undefined || p.fact === null || isValidMemoryFact(p.fact))
   )
 }
 
@@ -49,9 +54,12 @@ export function applyProposal(memories: UserMemory[], proposal: MemoryProposal, 
   const content = normalizeMemoryContent(proposal.content)
   const confidence = clamp01(proposal.confidence)
 
+  const fact = proposal.fact ?? undefined
   const target = proposal.replacesId ? memories.find((m) => m.id === proposal.replacesId) : undefined
   if (target) {
-    const updated: UserMemory = { ...target, content, category: proposal.category, importance: proposal.importance, confidence, updatedAt: now }
+    const { fact: _previous, ...rest } = target
+    void _previous
+    const updated: UserMemory = { ...rest, content, category: proposal.category, importance: proposal.importance, confidence, updatedAt: now, ...(fact ? { fact } : {}) }
     return { action: 'updated', memories: memories.map((m) => (m.id === target.id ? updated : m)) }
   }
 
@@ -69,6 +77,7 @@ export function applyProposal(memories: UserMemory[], proposal: MemoryProposal, 
     source: 'conversation',
     createdAt: now,
     updatedAt: now,
+    ...(fact ? { fact } : {}),
   }
   // La recién aceptada siempre se conserva: el hueco se hace entre las anteriores.
   const { kept, evicted } = trimMemories(memories, CHAT_LIMITS.MAX_MEMORIES - 1)
