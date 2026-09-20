@@ -43,6 +43,11 @@
         "nextStep": {
           "label": "Ver inversiones",
           "to": "inversiones"
+        },
+        "action": {
+          "verb": "hold",
+          "target": "position",
+          "targetId": "equity-global"
         }
       },
       "alternatives": [

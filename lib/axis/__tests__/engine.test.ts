@@ -4,7 +4,7 @@ import { buildFinancialContext } from '../context'
 import { analyzeLocally } from '../local-engine'
 import { detectSignals } from '../rules'
 import { parseAxisAnalysis, AxisValidationError } from '../validate'
-import type { AxisAnalysis, AxisResult } from '../types'
+import { ACTION_TARGETS, ACTION_VERBS, type AxisAnalysis, type AxisResult } from '../types'
 import { config, gasto, healthyMovements, ingreso, NOW, objective, position, snapshot, TODAY } from './fixtures'
 
 function run(partial: Parameters<typeof snapshot>[0]): AxisResult {
@@ -184,8 +184,11 @@ describe('AxisEngine (motor local de reglas)', () => {
 
   it('nunca ejecuta operaciones: el resultado solo contiene texto y destinos de navegación', () => {
     const analysis = analysisOf(run({ config: config(100_000), movements: healthyMovements() }))
-    const json = JSON.stringify(analysis)
+    // La única «action» admisible es la descripción cerrada de la recomendación de AXIS (verbo/destino), nunca una operación.
+    const { action, ...restOfRecommendation } = analysis.recommendation ?? { action: undefined }
+    const json = JSON.stringify({ ...analysis, recommendation: restOfRecommendation })
     assert.doesNotMatch(json, /"action"|"execute"|"amountCents"/)
+    if (action) assert.ok(ACTION_VERBS.includes(action.verb) && ACTION_TARGETS.includes(action.target))
     for (const step of [analysis.recommendation?.nextStep, analysis.conclusion.nextStep]) {
       if (step?.to) assert.ok(['inicio', 'dinero', 'movimientos', 'estadisticas', 'objetivos', 'inversiones'].includes(step.to))
     }

@@ -38,6 +38,7 @@ export const investmentRules: Rule = (ctx) => {
         what: 'Decide si esa concentración es deliberada; si no lo es, conviene que lo sea antes de añadir más a la misma posición.',
         why: 'No puedo valorar el riesgo de ese activo sin datos de mercado; sí puedo decir que el reparto es desigual.',
         nextStep: { label: 'Ver inversiones', to: 'inversiones' },
+        action: { verb: 'decide', target: 'position', targetId: largest.id },
       },
     })
   }
@@ -53,6 +54,7 @@ export const investmentRules: Rule = (ctx) => {
         what: 'Comprueba que el líquido cubre tus gastos de varios meses antes de seguir invirtiendo.',
         why: 'El colchón de liquidez es lo que permite mantener las inversiones cuando llega un gasto inesperado.',
         nextStep: { label: 'Ver Mi Dinero', to: 'dinero' },
+        action: { verb: 'review', target: 'cushion' },
       },
     })
   }

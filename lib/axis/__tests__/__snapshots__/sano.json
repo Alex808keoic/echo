@@ -32,6 +32,10 @@
         "nextStep": {
           "label": "Crear objetivo",
           "to": "objetivos"
+        },
+        "action": {
+          "verb": "define",
+          "target": "objective"
         }
       },
       "alternatives": [

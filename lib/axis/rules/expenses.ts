@@ -26,6 +26,7 @@ export const expenseRules: Rule = (ctx) => {
           ? `Revisa «${top.label}» antes que ninguna otra partida: es donde un ajuste tiene más efecto.`
           : 'Revisa los gastos del mes para volver a un balance positivo.',
         why: 'Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.',
+        action: top ? { verb: 'adjust', target: 'category', targetId: top.label } : { verb: 'adjust', target: 'none' },
         nextStep: { label: 'Ver gastos por categoría', to: 'estadisticas' },
       },
       alternative: {
@@ -54,6 +55,7 @@ export const expenseRules: Rule = (ctx) => {
               : 'Revisa qué ha cambiado en el gasto antes de asumir nuevos compromisos.',
             why: 'Si la subida se consolida, el margen de ahorro del mes que viene será menor.',
             nextStep: { label: 'Ver gastos por categoría', to: 'estadisticas' },
+            action: top ? { verb: 'review', target: 'category', targetId: top.label } : { verb: 'review', target: 'none' },
           }
         : undefined,
       alternative: tightMargin
@@ -87,6 +89,7 @@ export const expenseRules: Rule = (ctx) => {
         what: `Decide si el peso de «${top.label}» es el que quieres; el resto de categorías apenas mueven el total.`,
         why: 'Ajustar la partida dominante cambia el resultado del mes; ajustar las pequeñas, no.',
         nextStep: { label: 'Ver estadísticas', to: 'estadisticas' },
+        action: { verb: 'decide', target: 'category', targetId: top.label },
       },
     })
   }

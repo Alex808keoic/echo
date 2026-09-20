@@ -38,6 +38,11 @@
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
+        },
+        "action": {
+          "verb": "allocate",
+          "target": "objective",
+          "targetId": "t-22"
         }
       },
       "alternatives": [

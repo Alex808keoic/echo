@@ -184,7 +184,7 @@ export interface Signal {
   fact: string
   /** INTERPRETACIÓN: qué significa ese dato. */
   interpretation: string
-  recommendation?: AxisRecommendation
+  recommendation?: DecidedRecommendation
   alternative?: AxisAlternative
   uncertainty?: AxisUncertainty
 }
@@ -217,7 +217,7 @@ export interface AxisDecision {
   /** Hechos con cifras reales, ya seleccionados y acotados. */
   facts: string[]
   /** Una única recomendación principal; `null` = no actuar también es una decisión. */
-  recommendation: AxisRecommendation | null
+  recommendation: DecidedRecommendation | null
   alternatives: AxisAlternative[]
   /** Incertidumbres concretas (de las señales) y de calidad de los datos, acotadas. Puede estar vacía. */
   uncertainties: AxisUncertainty[]
@@ -240,11 +240,38 @@ export interface AxisInterpretation {
   signals: Array<{ id: string; priority: Priority; text: string }>
 }
 
+/**
+ * ACCIÓN de una recomendación: qué está recomendando AXIS, en forma cerrada y
+ * determinista. La producen las reglas (nunca el modelo de lenguaje) y es lo
+ * que licencia los consejos que el modelo puede expresar (lib/text/advice.ts).
+ * Hoy ninguna regla produce invertir/comprar/vender: no existen como verbos.
+ */
+export const ACTION_VERBS = ['allocate', 'reserve', 'define', 'review', 'register', 'adjust', 'hold', 'complete-cushion', 'decide'] as const
+export type ActionVerb = (typeof ACTION_VERBS)[number]
+export const ACTION_TARGETS = ['objective', 'position', 'category', 'cushion', 'data', 'none'] as const
+export type ActionTarget = (typeof ACTION_TARGETS)[number]
+
+export interface AxisAction {
+  verb: ActionVerb
+  target: ActionTarget
+  /** Id del objetivo o posición, o etiqueta de la categoría / clave de clase de activo, cuando la acción apunta a una concreta. */
+  targetId?: string
+}
+
 export interface AxisRecommendation {
   what: string
   why: string
   nextStep?: AxisNextStep
+  /**
+   * Presente siempre que la recomendación la ha producido AXIS (reglas, decisión,
+   * fusión Decision First). Ausente solo en la salida del modo legacy, donde el
+   * modelo redacta la recomendación y no puede fabricar una acción.
+   */
+  action?: AxisAction
 }
+
+/** Recomendación decidida por AXIS: la acción es obligatoria. */
+export type DecidedRecommendation = AxisRecommendation & { action: AxisAction }
 
 export interface AxisAlternative {
   name: string

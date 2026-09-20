@@ -9,6 +9,8 @@
  *              compartido con el chat y el Market Research: por cláusulas y con negación)
  *   coverage   ids de señal, nombres de alternativa y títulos de incertidumbre
  *              exactamente los de la decisión; `recommendation_why` null ⇔ sin recomendación
+ *   advice     ningún consejo que AXIS no haya decidido (lib/text/advice.ts): con
+ *              recomendación, solo su `action` y sus alternativas; sin ella, ninguno
  *
  * No intenta juzgar el significado de la prosa. Prioridad, siguiente paso,
  * `recommendation.what`, confianza y hechos no se validan porque no existen
@@ -17,12 +19,13 @@
  * Si algo falla, la expresión NO se muestra: el llamador responde con
  * `render(decide(input))`, la misma decisión en redacción local.
  */
+import { checkAdvice, type KnownEntities } from '../../text/advice'
 import { findCertainty } from '../../text/certainty'
 import type { AxisDecision } from '../types'
 import type { Expression } from './expression'
 import { buildAllowedFigures, checkFigures } from './figures'
 
-export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage'
+export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage' | 'advice'
 
 export interface Violation {
   invariant: Invariant
@@ -50,6 +53,16 @@ function* writtenFields(e: Expression): Generator<[string, string]> {
   yield ['conclusion', e.conclusion]
 }
 
+/** Entidades del contexto con las que un consejo puede identificar su destino. */
+export function knownEntities(decision: AxisDecision): KnownEntities {
+  const ctx = decision.context
+  return {
+    objectives: ctx.objectives.map((o) => ({ id: o.id, name: o.name })),
+    positions: ctx.investments.positions.map((p) => ({ id: p.id, name: p.name })),
+    categories: [...new Set([...ctx.flows.current.expensesByCategory, ...ctx.flows.previous.expensesByCategory].map((c) => c.label))],
+  }
+}
+
 const sameSet = (a: string[], b: string[]) => a.length === b.length && new Set(a).size === a.length && a.every((x) => b.includes(x))
 
 export function validateExpression(decision: AxisDecision, expression: Expression): SemanticVerdict {
@@ -69,8 +82,10 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
     violations.push({ invariant: 'coverage', field: 'recommendation_why', detail: decision.recommendation ? 'AXIS recomienda y el modelo no lo explica' : 'AXIS no recomienda actuar y el modelo aporta una recomendación' })
   }
 
-  // figures · execution · certainty, campo a campo
+  // figures · execution · certainty · advice, campo a campo
   const allowed = buildAllowedFigures(decision)
+  const entities = knownEntities(decision)
+  const license = { stance: decision.recommendation ? ('recommend' as const) : ('inform' as const), action: decision.recommendation?.action, alternatives: decision.alternatives.map((a) => a.name) }
   for (const [field, text] of writtenFields(expression)) {
     for (const f of checkFigures(text, allowed)) {
       violations.push({ invariant: 'figures', field, detail: `${f.reason === 'bare-number' ? 'número sin unidad no permitido' : 'cifra no permitida'} «${f.raw}»` })
@@ -80,6 +95,9 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
     // Certeza (incluida la incertidumbre negada, en cualquier campo): una sola violación por campo.
     const certainty = findCertainty(text)
     if (certainty) violations.push({ invariant: 'certainty', field, detail: `${certainty.kind === 'denied-uncertainty' ? 'incertidumbre negada: ' : ''}«${certainty.match}»` })
+    for (const a of checkAdvice(text, entities, license)) {
+      violations.push({ invariant: 'advice', field, detail: `consejo no decidido por AXIS: «${a.verb}» (${a.verbClass} → ${a.target.kind}${'name' in a.target ? ` ${a.target.name}` : 'text' in a.target ? ` ${a.target.text}` : ''})` })
+    }
   }
 
   return violations.length === 0 ? { ok: true } : { ok: false, violations }

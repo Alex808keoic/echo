@@ -79,6 +79,14 @@ type Model = AxisLanguageModel | AIProvider | MarketAIProvider
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 
+/** Elimina cualquier `action` que el modelo haya devuelto en una recomendación (solo AXIS decide acciones). */
+function withoutModelAction(v: unknown): unknown {
+  if (!isRecord(v)) return v
+  const { action: _model, ...rest } = v
+  void _model
+  return rest
+}
+
 /** Comprobación de forma del contexto recibido del cliente: lo justo para no procesar basura. */
 export function isFinancialContext(v: unknown): v is FinancialContext {
   return (
@@ -117,6 +125,8 @@ export async function analyzeWithProvider(
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({
     ...raw,
+    // La acción es de AXIS: en modo legacy el modelo redacta la recomendación y no puede fabricar una.
+    recommendation: withoutModelAction(raw.recommendation),
     engine,
     generatedAt: new Date().toISOString(),
     basedOnDemoData: context.quality.isDemo,

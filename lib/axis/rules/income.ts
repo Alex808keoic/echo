@@ -21,6 +21,7 @@ export const incomeRules: Rule = (ctx) => {
         what: 'Comprueba si falta registrar algún ingreso de este mes.',
         why: 'Sin ingresos en el registro, la lectura del ahorro y del ritmo de gasto queda incompleta.',
         nextStep: { label: 'Registrar un movimiento', to: 'movimientos' as const },
+        action: { verb: 'register' as const, target: 'data' as const },
       },
     })
   }
@@ -37,6 +38,7 @@ export const incomeRules: Rule = (ctx) => {
         what: 'Ajusta el gasto de este mes al nuevo nivel de ingresos antes de asumir nuevos compromisos.',
         why: 'Un mes con menos ingresos no es un problema si el gasto se adapta; lo es si el gasto sigue igual.',
         nextStep: { label: 'Ver gastos por categoría', to: 'estadisticas' as const },
+        action: { verb: 'adjust' as const, target: 'none' as const },
       },
       uncertainty: {
         title: 'Puede ser temporal',

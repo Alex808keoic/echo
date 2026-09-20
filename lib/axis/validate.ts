@@ -8,16 +8,21 @@
  * se limpian los textos y se descartan destinos de navegación desconocidos.
  * Sin dependencias: guardas de TypeScript a mano.
  */
-import type {
-  AxisAlternative,
-  AxisAnalysis,
-  AxisDestination,
-  AxisEngineInfo,
-  AxisNextStep,
-  AxisRecommendation,
-  AxisUncertainty,
-  Confidence,
-  Priority,
+import {
+  ACTION_TARGETS,
+  ACTION_VERBS,
+  type ActionTarget,
+  type ActionVerb,
+  type AxisAction,
+  type AxisAlternative,
+  type AxisAnalysis,
+  type AxisDestination,
+  type AxisEngineInfo,
+  type AxisNextStep,
+  type AxisRecommendation,
+  type AxisUncertainty,
+  type Confidence,
+  type Priority,
 } from './types'
 
 export class AxisValidationError extends Error {
@@ -71,10 +76,23 @@ function nextStep(v: unknown, field: string): AxisNextStep | undefined {
   return step
 }
 
+/**
+ * Acción de AXIS: se conserva solo si tiene la forma cerrada (verbo y destino
+ * conocidos). Nunca se fabrica: si falta o es inválida, la recomendación va sin acción.
+ */
+function action(v: unknown): AxisAction | undefined {
+  if (!isRecord(v)) return undefined
+  if (!ACTION_VERBS.includes(v.verb as ActionVerb) || !ACTION_TARGETS.includes(v.target as ActionTarget)) return undefined
+  const a: AxisAction = { verb: v.verb as ActionVerb, target: v.target as ActionTarget }
+  if (typeof v.targetId === 'string' && v.targetId.trim().length > 0) a.targetId = v.targetId.trim().slice(0, 120)
+  return a
+}
+
 function recommendation(v: unknown): AxisRecommendation | null {
   if (v === undefined || v === null) return null
   if (!isRecord(v)) throw new AxisValidationError('«recommendation» no es válida')
-  return { what: text(v.what, 'recommendation.what'), why: text(v.why, 'recommendation.why'), nextStep: nextStep(v.nextStep, 'recommendation.nextStep') }
+  const a = action(v.action)
+  return { what: text(v.what, 'recommendation.what'), why: text(v.why, 'recommendation.why'), nextStep: nextStep(v.nextStep, 'recommendation.nextStep'), ...(a ? { action: a } : {}) }
 }
 
 function alternative(v: unknown, i: number): AxisAlternative {

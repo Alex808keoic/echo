@@ -21,6 +21,7 @@ export const objectiveRules: Rule = (ctx) => {
           what: `Decide el siguiente destino de tu ahorro ahora que «${o.name}» está cubierto.`,
           why: 'Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.',
           nextStep: { label: 'Ver objetivos', to: 'objetivos' },
+          action: { verb: 'decide', target: 'none' },
         },
       })
       continue
@@ -37,6 +38,7 @@ export const objectiveRules: Rule = (ctx) => {
           what: `Ajusta la fecha o la cantidad de «${o.name}» para que vuelva a ser un plan real.`,
           why: 'Un objetivo con fecha vencida deja de orientar el ahorro.',
           nextStep: { label: 'Editar objetivo', to: 'objetivos' },
+          action: { verb: 'adjust', target: 'objective', targetId: o.id },
         },
       })
       continue
@@ -61,6 +63,7 @@ export const objectiveRules: Rule = (ctx) => {
               what: `Elige entre aplazar la fecha de «${o.name}», reducir la meta o aumentar la aportación mensual.`,
               why: 'Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.',
               nextStep: { label: 'Editar objetivo', to: 'objetivos' },
+              action: { verb: 'adjust', target: 'objective', targetId: o.id },
             },
         alternative: feasible
           ? undefined
@@ -87,6 +90,7 @@ export const objectiveRules: Rule = (ctx) => {
           what: `Reserva los ${eur(o.remainingCents)} que faltan para cerrar «${o.name}».`,
           why: 'Cerrar un objetivo libera el ahorro siguiente para otra cosa.',
           nextStep: { label: 'Ver objetivos', to: 'objetivos' },
+          action: { verb: 'reserve', target: 'objective', targetId: o.id },
         },
       })
       continue
@@ -103,6 +107,7 @@ export const objectiveRules: Rule = (ctx) => {
           what: `Decide si «${o.name}» sigue siendo prioritario; si lo es, fija una aportación mensual realista.`,
           why: 'Un objetivo que no avanza no orienta el ahorro.',
           nextStep: { label: 'Editar objetivo', to: 'objetivos' },
+          action: { verb: 'decide', target: 'objective', targetId: o.id },
         },
       })
       continue

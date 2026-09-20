@@ -38,6 +38,11 @@
         "nextStep": {
           "label": "Editar objetivo",
           "to": "objetivos"
+        },
+        "action": {
+          "verb": "adjust",
+          "target": "objective",
+          "targetId": "t-65"
         }
       },
       "alternatives": [

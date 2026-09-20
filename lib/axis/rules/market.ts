@@ -69,6 +69,7 @@ export const marketRules: Rule = (_ctx, market) => {
           what: `Antes de ampliar tu posición en «${ac.label}», revisa el contexto y tu horizonte.`,
           why: 'No es una señal de vender ni de comprar: es un momento para no aumentar el compromiso sin haberlo revisado.',
           nextStep: { label: 'Ver inversiones', to: 'inversiones' },
+          action: { verb: 'hold', target: 'position', targetId: ac.key },
         },
         uncertainty: {
           title: 'Sin datos de mercado en tiempo real',

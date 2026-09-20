@@ -6,7 +6,7 @@ import { analyzeLocally, localRulesEngine } from '../local-engine'
 import { buildAIRequest } from '../ai/prompt'
 import { browserTransport, contextForRequest } from '../ai/browser-transport'
 import { analyzeWithProvider, isFinancialContext } from '../ai/server/analyze'
-import type { AxisAnalysis, AxisInput, AxisResult } from '../types'
+import { ACTION_TARGETS, ACTION_VERBS, type AxisAnalysis, type AxisInput, type AxisResult } from '../types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
 function input(demo = false): AxisInput {
@@ -127,7 +127,10 @@ describe('aiEngine (IA con fallback al motor local)', () => {
     const engine = createAIEngine({ transport: transport({ analyze: async () => malicious }), fallback: localRulesEngine })
     const a = analysisOf(await engine.analyze(input()))
     assert.equal(a.conclusion.nextStep?.to, undefined, 'destino desconocido descartado')
-    assert.doesNotMatch(JSON.stringify(a), /"action"|"execute"|amountCents/)
+    // La única «action» admisible es la descripción cerrada de la recomendación de AXIS (verbo/destino), nunca una operación.
+    const { action, ...restOfRecommendation } = a.recommendation ?? { action: undefined }
+    assert.doesNotMatch(JSON.stringify({ ...a, recommendation: restOfRecommendation }), /"action"|"execute"|amountCents/)
+    if (action) assert.ok(ACTION_VERBS.includes(action.verb) && ACTION_TARGETS.includes(action.target))
   })
 
   it('9 · datos demo se mantienen marcados aunque el modelo diga lo contrario', async () => {

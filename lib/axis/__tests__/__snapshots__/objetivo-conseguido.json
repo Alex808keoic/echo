@@ -38,6 +38,10 @@
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
+        },
+        "action": {
+          "verb": "decide",
+          "target": "none"
         }
       },
       "alternatives": [

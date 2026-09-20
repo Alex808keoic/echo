@@ -43,6 +43,11 @@
         "nextStep": {
           "label": "Ver gastos por categoría",
           "to": "estadisticas"
+        },
+        "action": {
+          "verb": "adjust",
+          "target": "category",
+          "targetId": "Comida"
         }
       },
       "alternatives": [

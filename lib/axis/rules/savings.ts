@@ -20,6 +20,7 @@ export const savingsRules: Rule = (ctx) => {
         what: 'Registra los ingresos y gastos del mes para que la lectura sea actual.',
         why: 'El ahorro y el ritmo de gasto solo pueden valorarse con los movimientos del periodo.',
         nextStep: { label: 'Registrar un movimiento', to: 'movimientos' },
+        action: { verb: 'register', target: 'data' },
       },
     })
     return signals
@@ -43,12 +44,14 @@ export const savingsRules: Rule = (ctx) => {
               what: `Destina parte del excedente a «${pendingObjective.name}».`,
               why: `Te faltan ${eur(pendingObjective.remainingCents)} y el balance del mes lo permite sin forzar.`,
               nextStep: { label: 'Ver objetivos', to: 'objetivos' },
+              action: { verb: 'allocate', target: 'objective', targetId: pendingObjective.id },
             }
           : ctx.objectives.length === 0
             ? {
                 what: 'Define un objetivo para dar destino a lo que ahorras.',
                 why: 'Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.',
                 nextStep: { label: 'Crear objetivo', to: 'objetivos' },
+                action: { verb: 'define', target: 'objective' },
               }
             : undefined
         : undefined,

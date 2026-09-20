@@ -6,8 +6,8 @@
  *
  * El modelo recibe la decisión, las cifras permitidas y la memoria en
  * cualitativo; devuelve solo texto. La fusión toma de la decisión TODO lo
- * decisorio (hechos, prioridades, `recommendation.what`, siguiente paso,
- * confianza, demo) e ignora cualquier intento del modelo de devolverlos.
+ * decisorio (hechos, prioridades, `recommendation.what` y su `action`, siguiente
+ * paso, confianza, demo) e ignora cualquier intento del modelo de devolverlos.
  */
 import type { AIRequest } from '../ai/provider'
 import { AXIS_EXPRESSION_SCHEMA } from '../ai/schema-expression'
@@ -110,7 +110,7 @@ export function mergeExpression(decision: AxisDecision, expression: Expression, 
       signals: decision.relevant.map((s) => ({ id: s.id, priority: s.priority, text: textFor(s.id) ?? s.interpretation })),
     },
     recommendation: decision.recommendation
-      ? { what: decision.recommendation.what, why: expression.recommendationWhy ?? decision.recommendation.why, nextStep: decision.recommendation.nextStep }
+      ? { what: decision.recommendation.what, why: expression.recommendationWhy ?? decision.recommendation.why, nextStep: decision.recommendation.nextStep, action: decision.recommendation.action }
       : null,
     alternatives: decision.alternatives.map((a) => ({ name: a.name, summary: summaryFor(a.name) ?? a.summary })),
     uncertainty: {
