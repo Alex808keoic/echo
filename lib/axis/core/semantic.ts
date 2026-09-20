@@ -4,7 +4,8 @@
  *
  *   figures    toda cifra escrita ∈ cifras permitidas (importes, %, recuentos con unidad)
  *   execution  ninguna afirmación de haber ejecutado (o ir a ejecutar) una operación
- *   certainty  ninguna certeza indebida ni incertidumbre negada
+ *   certainty  ninguna certeza indebida ni incertidumbre negada (lib/text/certainty.ts,
+ *              compartido con el chat y el Market Research: por cláusulas y con negación)
  *   coverage   ids de señal, nombres de alternativa y títulos de incertidumbre
  *              exactamente los de la decisión; `recommendation_why` null ⇔ sin recomendación
  *
@@ -15,7 +16,7 @@
  * Si algo falla, la expresión NO se muestra: el llamador responde con
  * `render(decide(input))`, la misma decisión en redacción local.
  */
-import { hasCertaintyLanguage } from '../../market/validate'
+import { findCertainty } from '../../text/certainty'
 import type { AxisDecision } from '../types'
 import type { Expression } from './expression'
 import { allowedFigureKeys, extractFigures } from './figures'
@@ -37,9 +38,6 @@ export const EXECUTION_PATTERNS: RegExp[] = [
   /\b(voy|vamos) a\s+(crear|mover|transferir|actualizar|guardar|invertir|retirar|aportar|borrar|eliminar|modificar|registrar)\b/i,
   /\bya (he|está)\s+(hecho|creado|movido|transferido|actualizado|guardado|invertido)\b/i,
 ]
-
-/** Una incertidumbre que se niega a sí misma. */
-const DENIED_UNCERTAINTY = /\b(no hay (ninguna )?incertidumbre|es seguro|está garantizado|sin ninguna duda)\b/i
 
 function* writtenFields(e: Expression): Generator<[string, string]> {
   yield ['headline', e.headline]
@@ -78,11 +76,9 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
     }
     const execution = EXECUTION_PATTERNS.find((re) => re.test(text))
     if (execution) violations.push({ invariant: 'execution', field, detail: `«${text.match(execution)?.[0]}»` })
-    const certainty = hasCertaintyLanguage(text)
-    if (certainty) violations.push({ invariant: 'certainty', field, detail: `«${text.match(certainty)?.[0]}»` })
-    if (field.startsWith('uncertainties[') && DENIED_UNCERTAINTY.test(text)) {
-      violations.push({ invariant: 'certainty', field, detail: `incertidumbre negada: «${text.match(DENIED_UNCERTAINTY)?.[0]}»` })
-    }
+    // Certeza (incluida la incertidumbre negada, en cualquier campo): una sola violación por campo.
+    const certainty = findCertainty(text)
+    if (certainty) violations.push({ invariant: 'certainty', field, detail: `${certainty.kind === 'denied-uncertainty' ? 'incertidumbre negada: ' : ''}«${certainty.match}»` })
   }
 
   return violations.length === 0 ? { ok: true } : { ok: false, violations }

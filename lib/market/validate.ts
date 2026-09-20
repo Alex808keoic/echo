@@ -3,6 +3,7 @@
  * todo, rechazo de lenguaje que presente predicciones como certezas. Es la
  * única puerta entre el proveedor (o un archivo descargado) y Finax.
  */
+import { findCertainty, type CertaintyHit } from '../text/certainty'
 import type {
   AssetClassNote,
   MarketEvent,
@@ -25,25 +26,13 @@ const MAX_LIST = 12
 const CONTROL_CHARS = new RegExp(`[${String.fromCharCode(0)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`, 'g')
 
 /**
- * Patrones de certeza sobre el futuro. Una investigación describe lo que ha
- * pasado y lo que es incierto; nunca lo que «va a» pasar.
+ * Certeza sobre el futuro. Una investigación describe lo que ha pasado y lo
+ * que es incierto; nunca lo que «va a» pasar. El detector es el compartido
+ * con AXIS (`lib/text/certainty.ts`): por cláusulas y con negación, para que
+ * «no podemos garantizar…» siga siendo válido.
  */
-export const CERTAINTY_PATTERNS: RegExp[] = [
-  /\bva[n]? a (subir|bajar|caer|dispararse|desplomarse|recuperarse|repuntar)\b/i,
-  // Futuro simple («subirá», «caerán») salvo en condicionales («si bajara»).
-  /(?<!\bsi )(?<!\baunque )\b(subir|bajar|caer|desplomar|repuntar|recuperar)[aá]n?(?=[\s.,;:!?)]|$)/i,
-  /\bgarantizad[oa]s?\b/i,
-  /\bseguro que\b/i,
-  /\bsin duda\b/i,
-  /\bcon (total )?certeza\b/i,
-  /\bes seguro\b/i,
-  /\binevitable(mente)?\b/i,
-  /\bwill (rise|fall|drop|surge|rally|crash)\b/i,
-  /\bguaranteed\b/i,
-]
-
-export function hasCertaintyLanguage(text: string): RegExp | null {
-  return CERTAINTY_PATTERNS.find((re) => re.test(text)) ?? null
+export function hasCertaintyLanguage(text: string): CertaintyHit | null {
+  return findCertainty(text)
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
@@ -57,7 +46,7 @@ function text(v: unknown, field: string, { optional = false, max = MAX_TEXT } = 
   const clean = v.replace(CONTROL_CHARS, '').replace(/\s+/g, ' ').trim()
   if (!optional && clean.length === 0) throw new MarketValidationError(`«${field}» está vacío`)
   const certainty = hasCertaintyLanguage(clean)
-  if (certainty) throw new MarketValidationError(`«${field}» presenta una predicción como certeza (${certainty.source})`)
+  if (certainty) throw new MarketValidationError(`«${field}» presenta una predicción como certeza («${certainty.match}»)`)
   return clean.slice(0, max)
 }
 

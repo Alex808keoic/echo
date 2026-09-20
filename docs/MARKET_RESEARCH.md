@@ -237,3 +237,31 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
 
 Trading o ejecución automática, recomendaciones de compra/venta, scraping,
 cambios de navegación o diseño, chat de AXIS, memoria persistida.
+
+## 15. Reutilización prevista: periódico + bajo demanda (diseño, sin implementar)
+
+Auditoría de la fase 0 de la evolución de AXIS. Clasifica cada módulo según
+si podrá compartirse entre el job periódico (este documento) y una futura
+investigación bajo demanda desde el chat. **Nada se ha movido todavía**: es
+el mapa para hacerlo sin duplicar lógica ni tocar los workflows.
+
+| Módulo | Clase | Motivo |
+|---|---|---|
+| `scripts/market/sources/shared.ts` (`fetchText/JSON`, `parseRSS`, `parseBdeTable`, `parseEcbSeries`, `pctChange`, `source()`) | **Reutilizable** | Sin `fs` ni `process`; solo `fetch` con timeout. Base de cualquier fuente nueva (p. ej. FMI PCPS para el oro, ver `SPIKE_GOLD_SOURCES.md`). |
+| `scripts/market/sources/{ecb,bde,inflation,fred,rss}.ts` | **Reutilizable** | Funciones `Source(ctx)` puras; `fred.ts` lee la clave de `ctx.env`, no de `process.env`. |
+| `scripts/market/sources/index.ts` (`collectSources`, `CollectedMaterial`) | **Reutilizable** (parametrizando la lista de fuentes) | `Promise.allSettled` con aislamiento por fuente; hoy usa `ALL_SOURCES` por defecto. |
+| `scripts/market/material.ts` (`compactMaterial`, `detectEvents`, `MARKET_SYSTEM_PROMPT`) | **Reutilizable** | Acota el material al TPM del proveedor; el prompt de síntesis serviría de base para uno «por tema». |
+| `scripts/market/budget.ts` (`assertBudget`, `recordAttempt`, `recordUsage`, `rollover`) | **Reutilizable** (con otro ledger) | Lógica pura sobre `BudgetLedger`; el job la persiste en `budget.json`, un servidor sin estado la usaría con un ledger en memoria por instancia. |
+| `scripts/market/limits.ts` (`LIMITS`, `estimateTokens`) | **Reutilizable** | Constantes inmutables; un modo bajo demanda añadiría las suyas sin tocar estas. |
+| `lib/market/validate.ts` (`parseIndicator/Event/Trend/AssetClass`, fuentes `https`, certeza vía `lib/text/certainty.ts`) | **Reutilizable** | Única puerta de validación; ya en `lib/`. |
+| `lib/market/relevance.ts`, `lib/market/freshness.ts` | **Reutilizable** (patrón) | Reducir a contexto + cruzar con posiciones + frescura por edad: el mismo patrón vale para un resultado por tema. |
+| `lib/db/market.ts`, `hooks/use-market.ts` | **Reutilizable** (patrón) | Caché en el dispositivo con `fetchedAt`/etag y refresco compartido; el cliente es la caché duradera. |
+| `lib/ai/providers/{groq,gemini,types}.ts` | **Reutilizable tal cual** | Mismo `MarketAIProvider` (`completeWithUsage`) para síntesis y para AXIS. |
+| `scripts/market/deep.ts`, `light.ts` | **Específicos del job periódico** | Orden estricto kill switch → presupuesto → fuentes → síntesis → publicar, ids `YYYY-Www`, eventos vs. última investigación. Un modo bajo demanda **copiaría el orden**, no el código. |
+| `scripts/market/store.ts` (`fileStore`), `publish.ts` | **Específicos del job / rama de datos** | Disco, `history/`, `budget.json`, `light.json`. `memoryStore` sí es reutilizable en tests. |
+| `scripts/market/cli.ts`, `.github/workflows/market-*.yml` | **Específicos de GitHub Actions** | Único lugar que lee `process.env` y construye proveedores reales; kill switch de plataforma. |
+| `MarketResearch` / `MarketContext` (`lib/market/types.ts`) | **Se conservan** | El periódico no cambia de forma; un resultado por tema sería un tipo aparte que reutiliza `MarketIndicator`, `MarketEvent`, `MarketTrend`, `MarketSource`. |
+
+Adecuados para una futura `MarketResearchEngine` común: todo lo marcado
+«reutilizable», extraído a `lib/market/research/` con re‑exportaciones desde
+`scripts/market/` para que el job y sus tests no cambien.

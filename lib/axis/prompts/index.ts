@@ -4,8 +4,9 @@
  * memoria (precedencia y propuestas), personalidad (cómo comunica) y salida
  * (qué devuelve). Cada prompt es una concatenación fija y estable (cacheable).
  *
- * `__tests__/prompts.test.ts` garantiza que el resultado es byte a byte el
- * prompt que ya estaba en producción: reorganizar bloques no cambia nada.
+ * `__tests__/prompts.test.ts` garantiza que el prompt legacy del análisis es
+ * byte a byte el original (no lleva la voz), y que el del chat coincide con su
+ * golden, regenerable solo de forma deliberada (`UPDATE_GOLDEN=1`).
  */
 import { PERSONALITY } from '../personality'
 import { CONTRACT } from './contract'
@@ -58,5 +59,5 @@ export const AXIS_CHAT_SYSTEM_PROMPT = prompt([
     SAFETY.chat.noAssumptions,
     PERSONALITY.style.noDisclaimer,
   ]),
-  section('TONO Y FORMATO', [PERSONALITY.tone.chat, PERSONALITY.style.brevity, OUTPUT.chat.fields, OUTPUT.chat.jsonOnly]),
+  section('VOZ Y FORMATO', [PERSONALITY.tone.chat, ...Object.values(PERSONALITY.voice), PERSONALITY.style.brevity, OUTPUT.chat.fields, OUTPUT.chat.jsonOnly]),
 ])

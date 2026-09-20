@@ -33,6 +33,7 @@ import { buildExpressionRequest, mergeExpression, parseExpression } from '../../
 import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
+import { validateChatReply } from '../../chat/semantic'
 import { parseChatReply } from '../../chat/validate'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
@@ -143,16 +144,24 @@ export async function analyzeDecisionFirst(model: AxisLanguageModel, input: Axis
 
 /**
  * Conversación con un proveedor dado: mismo proveedor, mismos límites y misma
- * frontera de validación que el análisis. El contexto solo vive en esta
- * petición: no se persiste ni se registra nada en el servidor.
+ * frontera de validación que el análisis (forma con `parseChatReply`, y
+ * semántica con `validateChatReply`: sin certezas injustificadas). El contexto
+ * solo vive en esta petición: no se persiste ni se registra nada en el servidor.
+ * Un rechazo lanza: la ruta responde 502 y el cliente responde en local.
  */
 export async function chatWithProvider(provider: Model, input: ChatInput, signal?: AbortSignal): Promise<ChatReply> {
   const model = asLanguageModel(provider)
   const raw = await model.complete(buildChatRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
-  return parseChatReply({
+  const reply = parseChatReply({
     ...raw,
     engine: { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` },
     generatedAt: new Date().toISOString(),
   })
+  const verdict = validateChatReply(reply)
+  if (!verdict.ok) {
+    console.warn('[axis] chat: respuesta rechazada:', verdict.violations.map((v) => `${v.invariant}@${v.field}: ${v.detail}`).join(' | '))
+    throw new AIProviderError('malformed', `respuesta no válida (${verdict.violations.map((v) => v.invariant).join(', ')})`)
+  }
+  return reply
 }

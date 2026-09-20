@@ -408,7 +408,9 @@ pnpm build
 `engine.test.ts` cubre el motor local y la validación con contextos ficticios
 (`fixtures.ts`) y fecha fija. `golden.test.ts` congela el comportamiento (13
 escenarios; regenerar solo a propósito con `UPDATE_GOLDEN=1 pnpm test`),
-`prompts.test.ts` la igualdad byte a byte de los prompts, `core.test.ts` la
+`prompts.test.ts` la igualdad byte a byte de los prompts, `lib/text/__tests__/certainty.test.ts`
+el detector compartido de certeza injustificada (por cláusulas, con negación; también
+valida el chat en el servidor, `chat-semantic.test.ts`), `core.test.ts` la
 decisión, el modelo de lenguaje y el fallback común, y `decision-first.test.ts`
 que nada de lo que devuelva el modelo puede cambiar la decisión y que toda
 violación acaba en la misma decisión en local. `chat.test.ts` cubre la conversación (contexto en
