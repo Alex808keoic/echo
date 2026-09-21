@@ -1,0 +1,364 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 255000,
+      "liquidCents": 255000,
+      "investedCents": 0,
+      "reservedForObjectivesCents": 100000,
+      "initialBalanceCents": 0
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 200000,
+        "expenseCents": 70000,
+        "savingsCents": 130000,
+        "savingsRatePct": 65,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 42000,
+            "pct": 60
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 18000,
+            "pct": 26
+          },
+          {
+            "label": "Salidas",
+            "cents": 10000,
+            "pct": 14
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 200000,
+        "expenseCents": 75000,
+        "savingsCents": 125000,
+        "savingsRatePct": 62.5,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 40000,
+            "pct": 53
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 20000,
+            "pct": 27
+          },
+          {
+            "label": "Ropa",
+            "cents": 15000,
+            "pct": 20
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": -6.666666666666667,
+      "history": [
+        {
+          "date": "2026-08-01",
+          "cents": 200000
+        },
+        {
+          "date": "2026-08-05",
+          "cents": 160000
+        },
+        {
+          "date": "2026-08-12",
+          "cents": 140000
+        },
+        {
+          "date": "2026-08-20",
+          "cents": 125000
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 325000
+        },
+        {
+          "date": "2026-09-04",
+          "cents": 283000
+        },
+        {
+          "date": "2026-09-10",
+          "cents": 265000
+        },
+        {
+          "date": "2026-09-12",
+          "cents": 255000
+        }
+      ]
+    },
+    "objectives": [
+      {
+        "id": "t-65",
+        "name": "Coche",
+        "targetCents": 1000000,
+        "currentCents": 100000,
+        "remainingCents": 900000,
+        "progressPct": 10,
+        "completed": false,
+        "ageDays": 106,
+        "targetDate": "2027-03-15",
+        "monthsLeft": 5.946123521681997,
+        "requiredMonthlyCents": 151400
+      }
+    ],
+    "investments": {
+      "positions": [],
+      "totalInvestedCents": 0,
+      "totalValueCents": 0,
+      "shareOfWealthPct": 0
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 8,
+      "historyDays": 8,
+      "monthsWithData": 2,
+      "hasPreviousPeriod": true,
+      "hasObjectives": true,
+      "hasInvestments": false,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "objectives.pace:t-65",
+      "domain": "objectives",
+      "priority": "high",
+      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+      "recommendation": {
+        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+        "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
+        "nextStep": {
+          "label": "Editar objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "adjust",
+          "target": "objective",
+          "targetId": "t-65"
+        }
+      },
+      "alternative": {
+        "name": "Mantener la fecha",
+        "summary": "Es posible si el ahorro mensual sube de forma estable, no solo un mes."
+      },
+      "uncertainty": {
+        "title": "Ritmo basado en un solo mes",
+        "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+      }
+    },
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Destina parte del excedente a «Coche».",
+        "why": "Te faltan 9.000,00 € y el balance del mes lo permite sin forzar.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "allocate",
+          "target": "objective",
+          "targetId": "t-65"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "lead": {
+    "id": "objectives.pace:t-65",
+    "domain": "objectives",
+    "priority": "high",
+    "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+    "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+    "recommendation": {
+      "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+      "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
+      "nextStep": {
+        "label": "Editar objetivo",
+        "to": "objetivos"
+      },
+      "action": {
+        "verb": "adjust",
+        "target": "objective",
+        "targetId": "t-65"
+      }
+    },
+    "alternative": {
+      "name": "Mantener la fecha",
+      "summary": "Es posible si el ahorro mensual sube de forma estable, no solo un mes."
+    },
+    "uncertainty": {
+      "title": "Ritmo basado en un solo mes",
+      "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+    }
+  },
+  "relevant": [
+    {
+      "id": "objectives.pace:t-65",
+      "domain": "objectives",
+      "priority": "high",
+      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+      "recommendation": {
+        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+        "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
+        "nextStep": {
+          "label": "Editar objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "adjust",
+          "target": "objective",
+          "targetId": "t-65"
+        }
+      },
+      "alternative": {
+        "name": "Mantener la fecha",
+        "summary": "Es posible si el ahorro mensual sube de forma estable, no solo un mes."
+      },
+      "uncertainty": {
+        "title": "Ritmo basado en un solo mes",
+        "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+      }
+    },
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Destina parte del excedente a «Coche».",
+        "why": "Te faltan 9.000,00 € y el balance del mes lo permite sin forzar.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "allocate",
+          "target": "objective",
+          "targetId": "t-65"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 2.550,00 € (líquido 2.550,00 €).",
+    "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+    "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+    "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "No hay inversiones registradas: todo el patrimonio es líquido."
+  ],
+  "recommendation": {
+    "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+    "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
+    "nextStep": {
+      "label": "Editar objetivo",
+      "to": "objetivos"
+    },
+    "action": {
+      "verb": "adjust",
+      "target": "objective",
+      "targetId": "t-65"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "Mantener la fecha",
+      "summary": "Es posible si el ahorro mensual sube de forma estable, no solo un mes."
+    },
+    {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Ritmo basado en un solo mes",
+      "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+    },
+    {
+      "title": "Sin posiciones registradas",
+      "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+    },
+    {
+      "title": "Histórico corto",
+      "detail": "Solo hay 2 meses con movimientos. No tengo suficiente histórico para saber si este patrón se mantiene."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Editar objetivo",
+    "to": "objetivos"
+  },
+  "profile": {
+    "fields": {
+      "sources": {},
+      "conflicts": [],
+      "droppedPriorities": []
+    },
+    "influence": []
+  }
+}

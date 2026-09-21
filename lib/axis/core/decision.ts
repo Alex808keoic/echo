@@ -9,7 +9,14 @@
  * Solo reglas deterministas (`rules/`): ningún modelo de lenguaje decide aquí.
  * Redactar la decisión es responsabilidad de `render` (compose.ts) o, en
  * fases posteriores, de un modelo de lenguaje que la expresa sin alterarla.
+ *
+ * Perfil del usuario: `input.profile` (opcional) se reconcilia con el
+ * contexto UNA sola vez aquí (`reconcileProfile`) y llega a las reglas como
+ * tercer parámetro. Sin perfil, o con uno vacío, la decisión es exactamente
+ * la misma; lo aplicado queda siempre en `decision.profile`.
  */
+import { EMPTY_PROFILE, type DecisionProfile, type ProfileInfluence } from '../profile/types'
+import { reconcileProfile } from '../profile/derive'
 import { detectSignals } from '../rules'
 import { eur } from '../rules/shared'
 import type { AxisDecision, AxisDestination, AxisInput, AxisUncertainty, Confidence, FinancialContext, Signal } from '../types'
@@ -102,6 +109,11 @@ function confidenceFor(ctx: FinancialContext): Confidence {
   return 'media'
 }
 
+/** Influencia del perfil recogida de las señales, en su orden. Sin comportamiento de perfil, vacía. */
+function collectInfluence(signals: Signal[]): ProfileInfluence[] {
+  return signals.flatMap((s) => s.profileInfluence ?? [])
+}
+
 function dedupe<T>(items: T[], key: (item: T) => string): T[] {
   const seen = new Set<string>()
   return items.filter((item) => {
@@ -112,12 +124,15 @@ function dedupe<T>(items: T[], key: (item: T) => string): T[] {
   })
 }
 
-/** Decide sobre un contexto. Determinista: mismo contexto (y mercado) → misma decisión. */
+/** Decide sobre un contexto. Determinista: mismo contexto (mercado y perfil) → misma decisión. */
 export function decide(input: AxisInput): AxisDecision {
   const ctx = input.context
+  // Única reconciliación: los datos actuales mandan sobre el perfil (solo quita, nunca añade).
+  const profile = reconcileProfile(input.profile ?? EMPTY_PROFILE, ctx)
   const base = { context: ctx, level: ctx.quality.level, basedOnDemoData: ctx.quality.isDemo }
 
   if (ctx.quality.level === 'none') {
+    const applied: DecisionProfile = { fields: profile, influence: [] }
     return {
       ...base,
       signals: [],
@@ -132,10 +147,11 @@ export function decide(input: AxisInput): AxisDecision {
       nextStep: ctx.quality.hasInitialBalance
         ? { label: 'Registrar un movimiento', to: 'movimientos' }
         : { label: 'Configurar saldo inicial', to: 'dinero' },
+      profile: applied,
     }
   }
 
-  const signals: Signal[] = detectSignals(ctx, input.market ?? null)
+  const signals: Signal[] = detectSignals(ctx, input.market ?? null, profile)
   const lead = signals[0] ?? null
   const relevant = signals.slice(0, LIMITS.signals)
   const recommendation = signals.find((s) => s.recommendation)?.recommendation ?? null
@@ -166,5 +182,6 @@ export function decide(input: AxisInput): AxisDecision {
     confidence: confidenceFor(ctx),
     missing: [],
     nextStep: recommendation?.nextStep ?? (lead ? undefined : { label: 'Registrar un movimiento', to: 'movimientos' }),
+    profile: { fields: profile, influence: collectInfluence(signals) },
   }
 }

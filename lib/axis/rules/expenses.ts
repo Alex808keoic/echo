@@ -5,7 +5,7 @@
 import type { Signal } from '../types'
 import { eur, pct, THRESHOLDS, type Rule } from './shared'
 
-export const expenseRules: Rule = (ctx) => {
+export const expenseRules: Rule = (ctx, _market, _profile) => {
   const { current, previous, expenseChangePct } = ctx.flows
   const top = current.expensesByCategory[0]
   const signals: Signal[] = []

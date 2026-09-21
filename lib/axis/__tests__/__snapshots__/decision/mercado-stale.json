@@ -1,0 +1,312 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 513000,
+      "liquidCents": 355000,
+      "investedCents": 158000,
+      "reservedForObjectivesCents": 0,
+      "initialBalanceCents": 100000
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 200000,
+        "expenseCents": 70000,
+        "savingsCents": 130000,
+        "savingsRatePct": 65,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 42000,
+            "pct": 60
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 18000,
+            "pct": 26
+          },
+          {
+            "label": "Salidas",
+            "cents": 10000,
+            "pct": 14
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 200000,
+        "expenseCents": 75000,
+        "savingsCents": 125000,
+        "savingsRatePct": 62.5,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 40000,
+            "pct": 53
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 20000,
+            "pct": 27
+          },
+          {
+            "label": "Ropa",
+            "cents": 15000,
+            "pct": 20
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": -6.666666666666667,
+      "history": [
+        {
+          "date": "2026-08-01",
+          "cents": 300000
+        },
+        {
+          "date": "2026-08-05",
+          "cents": 260000
+        },
+        {
+          "date": "2026-08-12",
+          "cents": 240000
+        },
+        {
+          "date": "2026-08-20",
+          "cents": 225000
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 425000
+        },
+        {
+          "date": "2026-09-04",
+          "cents": 383000
+        },
+        {
+          "date": "2026-09-10",
+          "cents": 365000
+        },
+        {
+          "date": "2026-09-12",
+          "cents": 355000
+        }
+      ]
+    },
+    "objectives": [],
+    "investments": {
+      "positions": [
+        {
+          "id": "t-83",
+          "name": "Fondo Indexado Global",
+          "investedCents": 150000,
+          "valueCents": 158000,
+          "weightPct": 100
+        }
+      ],
+      "totalInvestedCents": 150000,
+      "totalValueCents": 158000,
+      "shareOfWealthPct": 31
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 8,
+      "historyDays": 8,
+      "monthsWithData": 2,
+      "hasPreviousPeriod": true,
+      "hasObjectives": false,
+      "hasInvestments": true,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Define un objetivo para dar destino a lo que ahorras.",
+        "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+        "nextStep": {
+          "label": "Crear objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "define",
+          "target": "objective"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.manual-values",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio).",
+      "interpretation": "El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.",
+      "uncertainty": {
+        "title": "Valores manuales, sin mercado",
+        "detail": "No hay cotizaciones conectadas: no puedo valorar rentabilidad futura ni riesgo de mercado de estas posiciones."
+      }
+    },
+    {
+      "id": "market.stale",
+      "domain": "market",
+      "priority": "low",
+      "fact": "El contexto de mercado disponible es de hace 76 días (2026-07-01).",
+      "interpretation": "Está desactualizado: no sirve para valorar el momento actual de los mercados.",
+      "uncertainty": {
+        "title": "Contexto de mercado desactualizado",
+        "detail": "No se emiten lecturas de mercado hasta que haya una investigación reciente."
+      }
+    }
+  ],
+  "lead": {
+    "id": "savings.healthy",
+    "domain": "savings",
+    "priority": "low",
+    "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "interpretation": "Cubres el gasto con margen y queda excedente real.",
+    "recommendation": {
+      "what": "Define un objetivo para dar destino a lo que ahorras.",
+      "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+      "nextStep": {
+        "label": "Crear objetivo",
+        "to": "objetivos"
+      },
+      "action": {
+        "verb": "define",
+        "target": "objective"
+      }
+    },
+    "alternative": {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  },
+  "relevant": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Define un objetivo para dar destino a lo que ahorras.",
+        "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+        "nextStep": {
+          "label": "Crear objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "define",
+          "target": "objective"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.manual-values",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio).",
+      "interpretation": "El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.",
+      "uncertainty": {
+        "title": "Valores manuales, sin mercado",
+        "detail": "No hay cotizaciones conectadas: no puedo valorar rentabilidad futura ni riesgo de mercado de estas posiciones."
+      }
+    },
+    {
+      "id": "market.stale",
+      "domain": "market",
+      "priority": "low",
+      "fact": "El contexto de mercado disponible es de hace 76 días (2026-07-01).",
+      "interpretation": "Está desactualizado: no sirve para valorar el momento actual de los mercados.",
+      "uncertainty": {
+        "title": "Contexto de mercado desactualizado",
+        "detail": "No se emiten lecturas de mercado hasta que haya una investigación reciente."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 5.130,00 € (líquido 3.550,00 €, invertido 1.580,00 €).",
+    "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+    "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "Valor invertido: 1.580,00 € en 1 posición (31% del patrimonio).",
+    "El contexto de mercado disponible es de hace 76 días (2026-07-01)."
+  ],
+  "recommendation": {
+    "what": "Define un objetivo para dar destino a lo que ahorras.",
+    "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+    "nextStep": {
+      "label": "Crear objetivo",
+      "to": "objetivos"
+    },
+    "action": {
+      "verb": "define",
+      "target": "objective"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Valores manuales, sin mercado",
+      "detail": "No hay cotizaciones conectadas: no puedo valorar rentabilidad futura ni riesgo de mercado de estas posiciones."
+    },
+    {
+      "title": "Contexto de mercado desactualizado",
+      "detail": "No se emiten lecturas de mercado hasta que haya una investigación reciente."
+    },
+    {
+      "title": "Histórico corto",
+      "detail": "Solo hay 2 meses con movimientos. No tengo suficiente histórico para saber si este patrón se mantiene."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Crear objetivo",
+    "to": "objetivos"
+  },
+  "profile": {
+    "fields": {
+      "sources": {},
+      "conflicts": [],
+      "droppedPriorities": []
+    },
+    "influence": []
+  }
+}

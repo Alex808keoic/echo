@@ -71,6 +71,43 @@ export interface ReconciledProfile extends UserProfile {
   droppedPriorities: DroppedPriority[]
 }
 
+/* ------------------------- influencia en la decisión ------------------------ */
+
+/**
+ * Cómo ha influido el perfil en una señal (bloque 4). Cada efecto es de una
+ * lista cerrada y queda ligado al campo del perfil, a la memoria que lo
+ * aporta y a la señal afectada: toda influencia es trazable.
+ *
+ *   added-signal         la señal existe solo por el perfil (su hecho sigue siendo objetivo)
+ *   priority-lowered     la prioridad ha bajado un nivel (nunca sube)
+ *   interpretation       cambia solo el texto de la interpretación
+ *   uncertainty          cambia o añade la incertidumbre de la señal
+ *   alternative-removed  la señal deja de ofrecer su alternativa
+ *   target-selected      el perfil elige el destino entre candidatos equivalentes
+ *
+ * En el paso 1 (plomería) ninguna regla produce influencia: el tipo existe
+ * para que la estructura sea estable antes de que haya comportamiento.
+ */
+export const PROFILE_EFFECTS = ['added-signal', 'priority-lowered', 'interpretation', 'uncertainty', 'alternative-removed', 'target-selected'] as const
+export type ProfileEffect = (typeof PROFILE_EFFECTS)[number]
+
+export interface ProfileInfluence {
+  field: ProfileField
+  /** Memoria que aporta el campo (`UserProfile.sources[field]`). */
+  sourceMemoryId: string
+  signalId: string
+  effect: ProfileEffect
+  /** Valor anterior y nuevo cuando el efecto los tiene (p. ej. prioridad). */
+  from?: string
+  to?: string
+}
+
+/** Perfil tal y como lo ha aplicado `decide()`: los campos reconciliados y toda su influencia. */
+export interface DecisionProfile {
+  fields: ReconciledProfile
+  influence: ProfileInfluence[]
+}
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 
 /** Forma estricta de un hecho: clase conocida, campos exactos de su clase, enums y rangos válidos. Sin contexto. */

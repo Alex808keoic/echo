@@ -1,7 +1,7 @@
 /**
  * Contrato de AXIS: la capa de inteligencia financiera personal de Finax.
  *
- *   INPUT      FinancialContext (+ AxisMemory + MarketContext en el futuro)
+ *   INPUT      FinancialContext (+ AxisMemory + MarketContext + UserProfile)
  *      ↓
  *   ANÁLISIS   AxisEngine  →  señales priorizadas  →  composición
  *      ↓
@@ -149,6 +149,7 @@ export interface AxisMemory {
  * en el dispositivo (ver lib/market). Opcional: AXIS funciona igual sin él.
  */
 import type { MarketContext } from '../market/types'
+import type { DecisionProfile, ProfileInfluence, UserProfile } from './profile/types'
 
 export type { MarketContext }
 
@@ -156,6 +157,13 @@ export interface AxisInput {
   context: FinancialContext
   memory?: AxisMemory
   market?: MarketContext | null
+  /**
+   * Perfil estructurado del usuario (lib/axis/profile), derivado de las
+   * memorias aceptadas con hecho. Opcional: sin él, AXIS decide exactamente
+   * igual que con un perfil vacío. Se reconcilia con el contexto dentro de
+   * `decide()`; nunca aporta cifras del FinancialContext.
+   */
+  profile?: UserProfile
 }
 
 /* =============================== ANÁLISIS =============================== */
@@ -187,6 +195,12 @@ export interface Signal {
   recommendation?: DecidedRecommendation
   alternative?: AxisAlternative
   uncertainty?: AxisUncertainty
+  /**
+   * Cómo ha influido el perfil del usuario en esta señal, si lo ha hecho.
+   * Solo existe cuando hay influencia real (nunca vacío ni `undefined`
+   * explícito): sin perfil, la señal es idéntica a la de siempre.
+   */
+  profileInfluence?: ProfileInfluence[]
 }
 
 /* ================================ OUTPUT ================================ */
@@ -227,6 +241,12 @@ export interface AxisDecision {
   /** Siguiente paso decidido, si lo hay. */
   nextStep?: AxisNextStep
   basedOnDemoData: boolean
+  /**
+   * Perfil del usuario tal y como se ha aplicado: campos reconciliados con el
+   * contexto y toda su influencia (trazable por señal). Siempre presente:
+   * «sin perfil» es un estado declarado (campos vacíos, influencia vacía).
+   */
+  profile: DecisionProfile
 }
 
 export interface AxisData {

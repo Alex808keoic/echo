@@ -1,0 +1,281 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 355000,
+      "liquidCents": 355000,
+      "investedCents": 0,
+      "reservedForObjectivesCents": 0,
+      "initialBalanceCents": 100000
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 200000,
+        "expenseCents": 70000,
+        "savingsCents": 130000,
+        "savingsRatePct": 65,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 42000,
+            "pct": 60
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 18000,
+            "pct": 26
+          },
+          {
+            "label": "Salidas",
+            "cents": 10000,
+            "pct": 14
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 200000,
+        "expenseCents": 75000,
+        "savingsCents": 125000,
+        "savingsRatePct": 62.5,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 40000,
+            "pct": 53
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 20000,
+            "pct": 27
+          },
+          {
+            "label": "Ropa",
+            "cents": 15000,
+            "pct": 20
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": -6.666666666666667,
+      "history": [
+        {
+          "date": "2026-08-01",
+          "cents": 300000
+        },
+        {
+          "date": "2026-08-05",
+          "cents": 260000
+        },
+        {
+          "date": "2026-08-12",
+          "cents": 240000
+        },
+        {
+          "date": "2026-08-20",
+          "cents": 225000
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 425000
+        },
+        {
+          "date": "2026-09-04",
+          "cents": 383000
+        },
+        {
+          "date": "2026-09-10",
+          "cents": 365000
+        },
+        {
+          "date": "2026-09-12",
+          "cents": 355000
+        }
+      ]
+    },
+    "objectives": [],
+    "investments": {
+      "positions": [],
+      "totalInvestedCents": 0,
+      "totalValueCents": 0,
+      "shareOfWealthPct": 0
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 8,
+      "historyDays": 8,
+      "monthsWithData": 2,
+      "hasPreviousPeriod": true,
+      "hasObjectives": false,
+      "hasInvestments": false,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Define un objetivo para dar destino a lo que ahorras.",
+        "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+        "nextStep": {
+          "label": "Crear objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "define",
+          "target": "objective"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "lead": {
+    "id": "savings.healthy",
+    "domain": "savings",
+    "priority": "low",
+    "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "interpretation": "Cubres el gasto con margen y queda excedente real.",
+    "recommendation": {
+      "what": "Define un objetivo para dar destino a lo que ahorras.",
+      "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+      "nextStep": {
+        "label": "Crear objetivo",
+        "to": "objetivos"
+      },
+      "action": {
+        "verb": "define",
+        "target": "objective"
+      }
+    },
+    "alternative": {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  },
+  "relevant": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Define un objetivo para dar destino a lo que ahorras.",
+        "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+        "nextStep": {
+          "label": "Crear objetivo",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "define",
+          "target": "objective"
+        }
+      },
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 3.550,00 € (líquido 3.550,00 €).",
+    "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+    "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "No hay inversiones registradas: todo el patrimonio es líquido."
+  ],
+  "recommendation": {
+    "what": "Define un objetivo para dar destino a lo que ahorras.",
+    "why": "Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.",
+    "nextStep": {
+      "label": "Crear objetivo",
+      "to": "objetivos"
+    },
+    "action": {
+      "verb": "define",
+      "target": "objective"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Sin posiciones registradas",
+      "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+    },
+    {
+      "title": "Histórico corto",
+      "detail": "Solo hay 2 meses con movimientos. No tengo suficiente histórico para saber si este patrón se mantiene."
+    },
+    {
+      "title": "Sin objetivos",
+      "detail": "Sin un objetivo no puedo valorar si el ahorro es suficiente ni recomendar un destino para él."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Crear objetivo",
+    "to": "objetivos"
+  },
+  "profile": {
+    "fields": {
+      "sources": {},
+      "conflicts": [],
+      "droppedPriorities": []
+    },
+    "influence": []
+  }
+}

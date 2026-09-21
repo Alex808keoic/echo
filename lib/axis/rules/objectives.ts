@@ -1,15 +1,30 @@
 /**
  * Reglas de objetivos: conseguido, cerca, retrasado respecto a su fecha,
  * esfuerzo mensual necesario, sin progreso.
+ *
+ * Perfil:
+ *   - `irregularIncome`: `objectives.pace` compara el ritmo necesario con el
+ *     ahorro de un solo mes; con ingresos irregulares, su incertidumbre lo
+ *     dice. Solo cambia ese texto: ni prioridad, ni recomendación, ni alternativa.
+ *   - `priorities`: los objetivos se recorren con los priorizados primero, en
+ *     su orden; así, a igual prioridad de señal, la del objetivo priorizado
+ *     lidera (y su recomendación es la elegida). Cada objetivo produce la
+ *     misma señal que sin prioridades: ninguna aparece, desaparece ni cambia
+ *     de prioridad; un objetivo vencido sigue vencido esté o no priorizado.
  */
 import type { Signal } from '../types'
-import { eur, pct, THRESHOLDS, type Rule } from './shared'
+import { eur, irregularIncomeOf, pct, prioritiesOf, rankByPriorities, THRESHOLDS, type Rule } from './shared'
 
-export const objectiveRules: Rule = (ctx) => {
+/** Objetivo al que pertenece una señal `objectives.<tipo>:<id>`. */
+const objectiveIdOf = (s: Signal) => s.id.slice(s.id.indexOf(':') + 1)
+
+export const objectiveRules: Rule = (ctx, _market, profile) => {
   const signals: Signal[] = []
   const monthlySavings = ctx.flows.current.savingsCents
+  const irregular = irregularIncomeOf(profile)
+  const priorities = prioritiesOf(profile)
 
-  for (const o of ctx.objectives) {
+  for (const o of priorities ? rankByPriorities(ctx.objectives, priorities.ids) : ctx.objectives) {
     if (o.completed) {
       signals.push({
         id: `objectives.completed:${o.id}`,
@@ -73,8 +88,13 @@ export const objectiveRules: Rule = (ctx) => {
             },
         uncertainty: {
           title: 'Ritmo basado en un solo mes',
-          detail: 'La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo.',
+          detail: irregular
+            ? 'La aportación mensual necesaria se compara con el ahorro de este mes; con ingresos irregulares, un solo mes es aún menos representativo.'
+            : 'La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo.',
         },
+        ...(irregular
+          ? { profileInfluence: [{ field: 'irregularIncome', sourceMemoryId: irregular.sourceMemoryId, signalId: `objectives.pace:${o.id}`, effect: 'uncertainty' }] }
+          : {}),
       })
       continue
     }
@@ -128,5 +148,21 @@ export const objectiveRules: Rule = (ctx) => {
     }
   }
 
-  return signals
+  if (!priorities) return signals
+
+  // Influencia solo donde las prioridades han cambiado algo de verdad: una señal de un objetivo
+  // priorizado que, entre las de su misma prioridad, ahora va por delante de otra que sin
+  // prioridades la precedía (el orden original es el del contexto).
+  const originalIndex = new Map(ctx.objectives.map((o, i) => [o.id, i]))
+  const originalOrder = [...signals].sort((a, b) => (originalIndex.get(objectiveIdOf(a)) ?? 0) - (originalIndex.get(objectiveIdOf(b)) ?? 0))
+  const samePriority = (list: Signal[], s: Signal) => list.filter((t) => t.priority === s.priority)
+  return signals.map((s) => {
+    const objectiveId = objectiveIdOf(s)
+    if (!priorities.ids.includes(objectiveId)) return s
+    const ranked = samePriority(signals, s).findIndex((t) => t.id === s.id)
+    const original = samePriority(originalOrder, s).findIndex((t) => t.id === s.id)
+    if (ranked >= original) return s
+    const overtaken = samePriority(originalOrder, s)[ranked]
+    return { ...s, profileInfluence: [...(s.profileInfluence ?? []), { field: 'priorities', sourceMemoryId: priorities.sourceMemoryId, signalId: s.id, effect: 'target-selected', from: objectiveIdOf(overtaken), to: objectiveId }] }
+  })
 }

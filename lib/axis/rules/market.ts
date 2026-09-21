@@ -21,7 +21,7 @@ function fmtIndicator(i: MarketIndicator): string {
   return `${i.label}: ${value} (${i.asOf}, ${i.source})`
 }
 
-export const marketRules: Rule = (_ctx, market) => {
+export const marketRules: Rule = (_ctx, market, _profile) => {
   if (!market) return []
   const signals: Signal[] = []
   const age = `${market.ageDays} día${market.ageDays === 1 ? '' : 's'}`

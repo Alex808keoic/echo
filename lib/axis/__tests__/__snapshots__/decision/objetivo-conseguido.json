@@ -1,0 +1,291 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 555000,
+      "liquidCents": 555000,
+      "investedCents": 0,
+      "reservedForObjectivesCents": 100000,
+      "initialBalanceCents": 300000
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 200000,
+        "expenseCents": 70000,
+        "savingsCents": 130000,
+        "savingsRatePct": 65,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 42000,
+            "pct": 60
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 18000,
+            "pct": 26
+          },
+          {
+            "label": "Salidas",
+            "cents": 10000,
+            "pct": 14
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 200000,
+        "expenseCents": 75000,
+        "savingsCents": 125000,
+        "savingsRatePct": 62.5,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 40000,
+            "pct": 53
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 20000,
+            "pct": 27
+          },
+          {
+            "label": "Ropa",
+            "cents": 15000,
+            "pct": 20
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Trabajo",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": -6.666666666666667,
+      "history": [
+        {
+          "date": "2026-08-01",
+          "cents": 500000
+        },
+        {
+          "date": "2026-08-05",
+          "cents": 460000
+        },
+        {
+          "date": "2026-08-12",
+          "cents": 440000
+        },
+        {
+          "date": "2026-08-20",
+          "cents": 425000
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 625000
+        },
+        {
+          "date": "2026-09-04",
+          "cents": 583000
+        },
+        {
+          "date": "2026-09-10",
+          "cents": 565000
+        },
+        {
+          "date": "2026-09-12",
+          "cents": 555000
+        }
+      ]
+    },
+    "objectives": [
+      {
+        "id": "t-31",
+        "name": "Colchón",
+        "targetCents": 100000,
+        "currentCents": 100000,
+        "remainingCents": 0,
+        "progressPct": 100,
+        "completed": true,
+        "ageDays": 106
+      }
+    ],
+    "investments": {
+      "positions": [],
+      "totalInvestedCents": 0,
+      "totalValueCents": 0,
+      "shareOfWealthPct": 0
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 8,
+      "historyDays": 8,
+      "monthsWithData": 2,
+      "hasPreviousPeriod": true,
+      "hasObjectives": true,
+      "hasInvestments": false,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "objectives.completed:t-31",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
+      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "recommendation": {
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
+        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "decide",
+          "target": "none"
+        }
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "lead": {
+    "id": "savings.healthy",
+    "domain": "savings",
+    "priority": "low",
+    "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "interpretation": "Cubres el gasto con margen y queda excedente real.",
+    "alternative": {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  },
+  "relevant": [
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "alternative": {
+        "name": "Mantener liquidez",
+        "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+      }
+    },
+    {
+      "id": "objectives.completed:t-31",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
+      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "recommendation": {
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
+        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "decide",
+          "target": "none"
+        }
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 5.550,00 € (líquido 5.550,00 €).",
+    "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+    "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
+    "No hay inversiones registradas: todo el patrimonio es líquido."
+  ],
+  "recommendation": {
+    "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
+    "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+    "nextStep": {
+      "label": "Ver objetivos",
+      "to": "objetivos"
+    },
+    "action": {
+      "verb": "decide",
+      "target": "none"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "Mantener liquidez",
+      "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Sin posiciones registradas",
+      "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+    },
+    {
+      "title": "Histórico corto",
+      "detail": "Solo hay 2 meses con movimientos. No tengo suficiente histórico para saber si este patrón se mantiene."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Ver objetivos",
+    "to": "objetivos"
+  },
+  "profile": {
+    "fields": {
+      "sources": {},
+      "conflicts": [],
+      "droppedPriorities": []
+    },
+    "influence": []
+  }
+}
