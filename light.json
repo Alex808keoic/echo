@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-09-18T12:18:59.294Z",
+  "checkedAt": "2026-09-21T14:25:55.047Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -15,10 +15,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.345,
+      "value": 3.343,
       "unit": "%",
-      "asOf": "2026-09-17",
-      "changePct": -0.029,
+      "asOf": "2026-09-18",
+      "changePct": -0.002,
       "source": "Banco de España"
     },
     {
@@ -45,10 +45,10 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19831.8,
+      "value": 19513.8,
       "unit": "pts",
-      "asOf": "2026-09-17",
-      "changePct": 0.87,
+      "asOf": "2026-09-18",
+      "changePct": -1.64,
       "source": "Banco de España"
     },
     {
@@ -62,16 +62,7 @@
       "source": "BCE"
     }
   ],
-  "events": [
-    {
-      "kind": "headline",
-      "detail": "Fed · prensa: Federal Reserve issues FOMC statement"
-    },
-    {
-      "kind": "headline",
-      "detail": "Fed · prensa: Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting"
-    }
-  ],
+  "events": [],
   "failedSources": [],
   "eventTriggered": false
 }
