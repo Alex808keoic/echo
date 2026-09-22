@@ -4,7 +4,7 @@
  * Índices declarados: solo los que se consultan. `id` es la clave primaria.
  */
 import Dexie, { type EntityTable } from 'dexie'
-import type { AppConfig, Movement, Objective, Position } from '../types'
+import { currentCategory, type AppConfig, type Movement, type Objective, type Position } from '../types'
 import type { MarketCacheEntry } from './market'
 import type { AxisMemoryEntry } from './axis-memory'
 import type { ConversationEntry } from './axis-conversation'
@@ -46,6 +46,24 @@ db.version(4).stores({
   axisMemories: 'id, updatedAt',
   axisConversation: 'key',
 })
+
+/**
+ * Renombrado de la categoría de ingreso «Trabajo» → «Paga». Solo cambia la
+ * etiqueta: importes, fechas y el resto del movimiento quedan intactos. Sin
+ * este paso, los ingresos anteriores mostrarían una categoría que ya no
+ * existe en la lista y no se podrían editar sin reasignarla a mano.
+ */
+db.version(5)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table<Movement, string>('movements')
+      .toCollection()
+      .modify((m) => {
+        const current = currentCategory(m.category)
+        if (current !== m.category) m.category = current as Movement['category']
+      }),
+  )
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */
 export function newId(): string {

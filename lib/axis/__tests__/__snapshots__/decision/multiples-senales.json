@@ -30,7 +30,7 @@
         ],
         "incomeByCategory": [
           {
-            "label": "Trabajo",
+            "label": "Paga",
             "cents": 150000,
             "pct": 100
           }
@@ -52,7 +52,7 @@
         ],
         "incomeByCategory": [
           {
-            "label": "Trabajo",
+            "label": "Paga",
             "cents": 200000,
             "pct": 100
           }

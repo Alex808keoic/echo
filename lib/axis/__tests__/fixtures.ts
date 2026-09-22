@@ -20,7 +20,7 @@ export const gasto = (date: string, amountCents: number, category: Movement['cat
   movement({ type: 'gasto', amountCents, date, category, motivo })
 
 export const ingreso = (date: string, amountCents: number) =>
-  movement({ type: 'ingreso', amountCents, date, category: 'Trabajo' })
+  movement({ type: 'ingreso', amountCents, date, category: 'Paga' })
 
 export function objective(input: Partial<Objective> & { name: string; targetCents: number }): Objective {
   const createdAt = input.createdAt ?? Date.parse('2026-06-01')

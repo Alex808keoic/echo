@@ -17,7 +17,7 @@ import type { MovementInput } from '../types'
 /** Movimientos relativos a hoy (días atrás) para que la evolución tenga sentido. */
 const DEMO_MOVEMENTS: Array<{ daysAgo: number } & Omit<MovementInput, 'date'>> = [
   { daysAgo: 0, type: 'gasto', amountCents: 8640, category: 'Comida' },
-  { daysAgo: 0, type: 'ingreso', amountCents: 145000, category: 'Trabajo' },
+  { daysAgo: 0, type: 'ingreso', amountCents: 145000, category: 'Paga' },
   { daysAgo: 1, type: 'gasto', amountCents: 1299, category: 'Otros', motivo: 'Netflix' },
   { daysAgo: 1, type: 'gasto', amountCents: 5230, category: 'Otros', motivo: 'Gasolina' },
   { daysAgo: 3, type: 'gasto', amountCents: 6420, category: 'Otros', motivo: 'Luz' },
@@ -27,15 +27,15 @@ const DEMO_MOVEMENTS: Array<{ daysAgo: number } & Omit<MovementInput, 'date'>> =
   { daysAgo: 12, type: 'gasto', amountCents: 7150, category: 'Comida' },
   { daysAgo: 15, type: 'ingreso', amountCents: 5000, category: 'Regalos' },
   { daysAgo: 20, type: 'gasto', amountCents: 1990, category: 'Caprichos' },
-  { daysAgo: 31, type: 'ingreso', amountCents: 145000, category: 'Trabajo' },
+  { daysAgo: 31, type: 'ingreso', amountCents: 145000, category: 'Paga' },
   { daysAgo: 33, type: 'gasto', amountCents: 9800, category: 'Comida' },
   { daysAgo: 40, type: 'gasto', amountCents: 4600, category: 'Restaurantes' },
   { daysAgo: 48, type: 'gasto', amountCents: 3300, category: 'Salidas' },
   { daysAgo: 55, type: 'gasto', amountCents: 6100, category: 'Ropa' },
-  { daysAgo: 62, type: 'ingreso', amountCents: 145000, category: 'Trabajo' },
+  { daysAgo: 62, type: 'ingreso', amountCents: 145000, category: 'Paga' },
   { daysAgo: 70, type: 'gasto', amountCents: 8200, category: 'Comida' },
   { daysAgo: 85, type: 'gasto', amountCents: 5400, category: 'Otros', motivo: 'Luz' },
-  { daysAgo: 93, type: 'ingreso', amountCents: 145000, category: 'Trabajo' },
+  { daysAgo: 93, type: 'ingreso', amountCents: 145000, category: 'Paga' },
 ]
 
 export async function isDatabaseEmpty(): Promise<boolean> {

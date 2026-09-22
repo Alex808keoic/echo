@@ -4,6 +4,7 @@
  */
 import { CONFIG_KEY, db } from './db'
 import {
+  currentCategory,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   type AppConfig,
@@ -51,6 +52,18 @@ const isInt = (v: unknown): v is number => Number.isSafeInteger(v)
 const isStr = (v: unknown): v is string => typeof v === 'string'
 const isOptStr = (v: unknown): v is string | undefined => v === undefined || isStr(v)
 
+/**
+ * Traduce las categorías que ya no existen a su equivalente actual. Una copia
+ * exportada antes de un renombrado sigue siendo importable; se migra al leerla,
+ * igual que se migra la base local. No muta la entrada.
+ */
+function withCurrentCategories(movements: Movement[]): Movement[] {
+  return movements.map((m) => {
+    const category = currentCategory(m.category)
+    return category === m.category ? m : { ...m, category: category as Movement['category'] }
+  })
+}
+
 function isMovement(v: unknown): v is Movement {
   if (!isRecord(v)) return false
   const cats: readonly string[] = v.type === 'gasto' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
@@ -62,7 +75,7 @@ function isMovement(v: unknown): v is Movement {
     isStr(v.date) &&
     isValidISODate(v.date) &&
     isStr(v.category) &&
-    cats.includes(v.category) &&
+    cats.includes(currentCategory(v.category)) &&
     isOptStr(v.motivo) &&
     isOptStr(v.nota) &&
     isInt(v.createdAt) &&
@@ -139,7 +152,7 @@ export function parseBackup(text: string): Backup {
     version: BACKUP_VERSION,
     exportedAt: isStr(raw.exportedAt) ? raw.exportedAt : '',
     config,
-    movements,
+    movements: withCurrentCategories(movements),
     objectives,
     positions,
   }

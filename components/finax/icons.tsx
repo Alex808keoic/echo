@@ -306,7 +306,7 @@ export const categoryIconMap: Record<Category, (props: IconProps) => React.React
   Caprichos: SparkIcon,
   Ropa: ShoppingBagIcon,
   Otros: DotsIcon,
-  Trabajo: SalaryIcon,
+  Paga: SalaryIcon,
   Regalos: GiftIcon,
 }
 

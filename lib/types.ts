@@ -20,7 +20,18 @@ export const EXPENSE_CATEGORIES = [
 ] as const
 
 /** Categorías de ingreso (D-13). Lista independiente de la de gastos. */
-export const INCOME_CATEGORIES = ['Trabajo', 'Regalos', 'Otros'] as const
+export const INCOME_CATEGORIES = ['Paga', 'Regalos', 'Otros'] as const
+
+/**
+ * Categorías que existieron y ya no: al leer datos antiguos (base local o
+ * copia de seguridad) se traducen a la actual. Nunca se ofrecen al usuario.
+ */
+export const LEGACY_CATEGORIES: Readonly<Record<string, Category>> = Object.freeze({ Trabajo: 'Paga' })
+
+/** Categoría vigente equivalente a una guardada antes, o la misma si ya lo es. */
+export function currentCategory(category: string): string {
+  return LEGACY_CATEGORIES[category] ?? category
+}
 
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 export type IncomeCategory = (typeof INCOME_CATEGORIES)[number]
