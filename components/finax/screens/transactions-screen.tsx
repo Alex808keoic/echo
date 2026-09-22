@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { movementLabel } from '@/lib/types'
+import { formatCents } from '@/lib/money'
 import { formatDayHeading, groupByDay } from '@/lib/dates'
 import { PageHeader, IconButton } from '../page-header'
 import { FilterTabs } from '../filter-tabs'
@@ -25,10 +26,10 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
   const { open, close } = useSheet()
 
   const movements = overview?.movements
-  const groups = useMemo(() => {
+  const filtered = useMemo(() => {
     if (!movements) return []
     const q = query.trim().toLowerCase()
-    const filtered = movements.filter((m) => {
+    return movements.filter((m) => {
       const byType =
         filter === 'Todos' ||
         (filter === 'Ingresos' && m.type === 'ingreso') ||
@@ -39,8 +40,15 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
         m.category.toLowerCase().includes(q)
       return byType && byQuery
     })
-    return groupByDay(filtered)
   }, [movements, filter, query])
+  const groups = useMemo(() => groupByDay(filtered), [filtered])
+
+  /** Lo que el usuario está viendo ahora mismo: cuántos y cuánto suman. */
+  const shown = useMemo(() => {
+    const incomeCents = filtered.filter((m) => m.type === 'ingreso').reduce((t, m) => t + m.amountCents, 0)
+    const expenseCents = filtered.filter((m) => m.type === 'gasto').reduce((t, m) => t + m.amountCents, 0)
+    return { count: filtered.length, incomeCents, expenseCents }
+  }, [filtered])
 
   if (!overview) return <ScreenLoading />
 
@@ -60,6 +68,14 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
       <FilterTabs options={FILTERS} value={filter} onChange={setFilter} />
 
       <SearchBar placeholder="Buscar movimiento..." value={query} onChange={setQuery} />
+
+      {shown.count > 0 && (
+        <p className="-mt-1 text-[13px] text-muted-foreground">
+          {shown.count === 1 ? '1 movimiento' : `${shown.count} movimientos`}
+          {shown.incomeCents > 0 && ` · ${formatCents(shown.incomeCents)} en ingresos`}
+          {shown.expenseCents > 0 && ` · ${formatCents(shown.expenseCents)} en gastos`}
+        </p>
+      )}
 
       {groups.length === 0 ? (
         hasAny ? (
