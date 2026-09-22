@@ -13,7 +13,13 @@
  */
 export const AXIS_AI_LIMITS = Object.freeze({
   MAX_REQUESTS_PER_DAY: 40,
-  MAX_REQUESTS_PER_MINUTE: 4,
+  /**
+   * Ráfaga por minuto. Una conversación normal encadena varias peticiones
+   * seguidas (el análisis de la pantalla y cada mensaje del chat consumen
+   * una cada uno), así que un tope demasiado bajo corta la conversación sin
+   * proteger la cuota: quien la protege es el tope DIARIO.
+   */
+  MAX_REQUESTS_PER_MINUTE: 12,
   /** Tamaño máximo del contexto recibido del cliente (JSON), en caracteres. */
   MAX_CONTEXT_CHARS: 40_000,
   MAX_OUTPUT_TOKENS: 3_000,

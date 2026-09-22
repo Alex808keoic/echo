@@ -241,8 +241,10 @@ local; no recalcula ni sustituye la lógica financiera.
   `parseAxisAnalysis` fijando `engine`, `generatedAt` y `basedOnDemoData` desde
   Finax, nunca desde el modelo. El cliente vuelve a validar: doble frontera.
 - `ai/server/limits.ts`: límites del servidor **antes de cada llamada** —
-  40 peticiones/día y 4/minuto por instancia (constantes; la variable de
-  entorno solo puede reducirlas), contexto ≤ 40 000 caracteres (413 si se
+  40 peticiones/día y 12/minuto por instancia (constantes; la variable de
+  entorno solo puede reducir el tope diario). El tope diario es el que protege
+  la cuota; el de minuto solo acota la ráfaga. Sin cupo se registra
+  `[axis] sin cupo de la instancia: …`, para distinguirlo de un 429 del proveedor, contexto ≤ 40 000 caracteres (413 si se
   supera), 3 000 tokens de salida, 20 s de timeout. Sin cupo → 429 y el
   cliente usa el motor local; nunca se llama al proveedor.
 - Memoria: la pantalla AXIS guarda las últimas 5 conclusiones en Dexie
@@ -345,7 +347,7 @@ conexión se indica y se responde en local. Cada respuesta lleva un indicador
 «IA» o «Motor local» (+ motivo del fallback). No se finge actividad.
 
 **Servidor**: `POST /api/axis` con `mode:'chat'` comparte proveedor, cupo de
-instancia (40/día, 4/min), 40 000 caracteres de cuerpo, 3 000 tokens de salida
+instancia (40/día, 12/min), 40 000 caracteres de cuerpo, 3 000 tokens de salida
 y 20 s de timeout con el análisis; además valida mensaje ≤ 1 000 caracteres,
 resumen ≤ 1 500 y ≤ 8 mensajes recientes (`isChatPayload`). Procesa la
 petición y no persiste nada. Nunca se envían backups, credenciales, la serie

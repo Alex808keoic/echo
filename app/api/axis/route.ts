@@ -62,7 +62,11 @@ export async function POST(request: Request) {
 
   // Límite de la instancia: se consume ANTES de llamar; si no hay cupo, no hay llamada.
   const slot = consumeInstanceSlot()
-  if (!slot.allowed) return NextResponse.json({ error: 'rate-limited' }, { status: 429, headers: NO_STORE })
+  if (!slot.allowed) {
+    // Sin traza, un 429 propio es indistinguible de uno del proveedor. El motivo no lleva datos del usuario.
+    console.warn('[axis] sin cupo de la instancia:', slot.reason)
+    return NextResponse.json({ error: 'rate-limited' }, { status: 429, headers: NO_STORE })
+  }
 
   try {
     if (chat) {
