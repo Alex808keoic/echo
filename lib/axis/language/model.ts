@@ -11,11 +11,13 @@
  * modificarlos) y `noModel` (sin modelo: AXIS responde en local).
  */
 import type { MarketAIProvider } from '../../ai/providers/types'
-import { AIProviderError, type AIProvider, type AIRequest } from '../ai/provider'
+import { AIProviderError, type AIProvider, type AIRequest, type ProviderDiagnostics } from '../ai/provider'
 
 export interface LanguageOptions {
   maxOutputTokens: number
   signal?: AbortSignal
+  /** Recibe el diagnóstico de una llamada que ha respondido (uso de tokens, motivo de fin, límites). Solo para logs. */
+  onDiagnostics?: (diagnostics: ProviderDiagnostics) => void
 }
 
 export interface AxisLanguageModel {
@@ -34,7 +36,10 @@ export function fromProvider(provider: AIProvider | MarketAIProvider): AxisLangu
     available: true,
     complete: (request, options) =>
       'completeWithUsage' in provider
-        ? provider.completeWithUsage(request, options).then((c) => c.output)
+        ? provider.completeWithUsage(request, options).then((c) => {
+            if (c.diagnostics) options.onDiagnostics?.(c.diagnostics)
+            return c.output
+          })
         : provider.complete(request, options.signal),
   }
 }

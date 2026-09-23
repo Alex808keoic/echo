@@ -6,7 +6,7 @@
  * La clave llega por `GROQ_API_KEY` (GitHub Actions Secrets).
  */
 import { AIProviderError, type AIRequest } from '../../axis/ai/provider'
-import { classifyHttpStatus, fetchWithTimeout, parseJSONOutput, type Completion, type MarketAIProvider } from './types'
+import { classifyHttpStatus, failureDiagnostics, fetchWithTimeout, parseJSONOutput, rateLimitHeaders, type Completion, type MarketAIProvider } from './types'
 
 export const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b'
 const URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -45,19 +45,28 @@ export function createGroqProvider(opts: { apiKey: string; model?: string; timeo
       if (error instanceof Error && error.name === 'AbortError') throw new AIProviderError('timeout', 'Groq: tiempo de espera agotado')
       throw new AIProviderError('http', 'Groq: error de red')
     }
-    if (!res.ok) throw new AIProviderError(classifyHttpStatus(res.status), `Groq: HTTP ${res.status}`)
+    if (!res.ok) throw new AIProviderError(classifyHttpStatus(res.status), `Groq: HTTP ${res.status}`, await failureDiagnostics(res))
     const data = (await res.json()) as GroqResponse
     const choice = data.choices?.[0]
-    if (choice?.finish_reason === 'length') throw new AIProviderError('malformed', 'Groq: respuesta truncada')
+    const u = data.usage ?? {}
+    // `completion_tokens` incluye el razonamiento de los modelos gpt-oss: es la cifra que se compara con el tope de salida.
+    const diagnostics = {
+      status: res.status,
+      finishReason: choice?.finish_reason,
+      promptTokens: u.prompt_tokens,
+      completionTokens: u.completion_tokens,
+      totalTokens: u.total_tokens,
+      ...rateLimitHeaders(res.headers),
+    }
+    if (choice?.finish_reason === 'length') throw new AIProviderError('malformed', 'Groq: respuesta truncada', diagnostics)
     const text = choice?.message?.content ?? ''
-    if (!text) throw new AIProviderError('malformed', 'Groq: respuesta sin texto')
+    if (!text) throw new AIProviderError('malformed', 'Groq: respuesta sin texto', diagnostics)
     let output: unknown
     try {
       output = parseJSONOutput(text)
     } catch {
-      throw new AIProviderError('malformed', 'Groq: la respuesta no es JSON')
+      throw new AIProviderError('malformed', 'Groq: la respuesta no es JSON', diagnostics)
     }
-    const u = data.usage ?? {}
     return {
       output,
       usage: {
@@ -65,6 +74,7 @@ export function createGroqProvider(opts: { apiKey: string; model?: string; timeo
         outputTokens: u.completion_tokens ?? 0,
         totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
       },
+      diagnostics,
     }
   }
 

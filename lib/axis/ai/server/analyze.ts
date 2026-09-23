@@ -24,7 +24,7 @@ import { createGeminiProvider } from '../../../ai/providers/gemini'
 import { createGroqProvider } from '../../../ai/providers/groq'
 import type { MarketAIProvider } from '../../../ai/providers/types'
 import { buildAIRequest } from '../prompt'
-import { AIProviderError, type AIProvider } from '../provider'
+import { AIProviderError, type AIProvider, type AIRequest, type ProviderDiagnostics } from '../provider'
 import { parseAxisAnalysis } from '../../validate'
 import { AI_ENGINE_INFO } from '../../ai-engine'
 import { asLanguageModel, type AxisLanguageModel } from '../../language/model'
@@ -77,6 +77,58 @@ export function isAIAvailable(config: AIServerConfig): boolean {
 /** Modelo de lenguaje o proveedor crudo: ambos se aceptan para no romper a los llamadores existentes. */
 type Model = AxisLanguageModel | AIProvider | MarketAIProvider
 
+/* ------------------------------ diagnóstico ------------------------------ */
+
+export type AxisCallKind = 'analysis-legacy' | 'analysis-decision-first' | 'chat'
+
+const NUMERIC_FIELDS = ['status', 'promptTokens', 'completionTokens', 'totalTokens', 'limit', 'used', 'requested'] as const
+const TEXT_FIELDS = ['finishReason', 'limitType', 'retryAfter', 'limitRequests', 'limitTokens', 'remainingRequests', 'remainingTokens', 'resetRequests', 'resetTokens'] as const
+
+/** Solo los campos de diagnóstico conocidos y con su tipo: cualquier otra cosa no llega a los logs. */
+export function safeDiagnostics(d: ProviderDiagnostics | undefined): ProviderDiagnostics {
+  const out: Record<string, number | string> = {}
+  if (!d) return out
+  for (const f of NUMERIC_FIELDS) if (typeof d[f] === 'number' && Number.isFinite(d[f])) out[f] = d[f] as number
+  for (const f of TEXT_FIELDS) if (typeof d[f] === 'string') out[f] = (d[f] as string).slice(0, 32)
+  return out
+}
+
+export interface AxisCallLog {
+  kind: AxisCallKind
+  model: string
+  outcome: 'ok' | 'error'
+  /** Tamaño de lo enviado (instrucciones + mensaje + esquema), en caracteres: para comparar con los tokens reales. */
+  requestChars: number
+  maxOutputTokens: number
+  errorKind?: string
+  diagnostics: ProviderDiagnostics
+}
+
+/**
+ * Una línea por llamada al proveedor en los logs del servidor (`[axis] llamada:`):
+ * tipo, modelo, resultado, tamaño, uso de tokens y límites. Sin textos del
+ * modelo ni del usuario, sin cifras financieras y sin claves.
+ */
+export function logAxisCall(entry: AxisCallLog): void {
+  console.info('[axis] llamada:', JSON.stringify({ ...entry, diagnostics: safeDiagnostics(entry.diagnostics) }))
+}
+
+/** Llama al modelo y deja constancia de la llamada, haya respondido o no. No cambia el resultado ni el error. */
+async function completeLogged(model: AxisLanguageModel, request: AIRequest, kind: AxisCallKind, signal?: AbortSignal): Promise<unknown> {
+  const maxOutputTokens = AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS
+  const base = { kind, model: model.id, requestChars: request.system.length + request.user.length + JSON.stringify(request.schema).length, maxOutputTokens }
+  let diagnostics: ProviderDiagnostics = {}
+  try {
+    const raw = await model.complete(request, { maxOutputTokens, signal, onDiagnostics: (d) => (diagnostics = d) })
+    logAxisCall({ ...base, outcome: 'ok', diagnostics })
+    return raw
+  } catch (error) {
+    const providerError = error instanceof AIProviderError ? error : null
+    logAxisCall({ ...base, outcome: 'error', errorKind: providerError?.kind ?? (error instanceof Error ? error.name : 'unknown'), diagnostics: providerError?.diagnostics ?? {} })
+    throw error
+  }
+}
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 
 /** Elimina cualquier `action` que el modelo haya devuelto en una recomendación (solo AXIS decide acciones). */
@@ -121,7 +173,7 @@ export async function analyzeWithProvider(
   const input: AxisInput = { context, memory: memory ? redactMemory(memory) : memory, market }
   const engine = { ...AI_ENGINE_INFO, label: `IA de AXIS (${model.id})` }
   if (mode === 'decision-first') return analyzeDecisionFirst(model, input, engine, signal)
-  const raw = await model.complete(buildAIRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
+  const raw = await completeLogged(model, buildAIRequest(input), 'analysis-legacy', signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   return parseAxisAnalysis({
     ...raw,
@@ -143,7 +195,7 @@ export async function analyzeWithProvider(
 export async function analyzeDecisionFirst(model: AxisLanguageModel, input: AxisInput, engine: AxisEngineInfo, signal?: AbortSignal): Promise<AxisAnalysis> {
   const decision = decide(input)
   if (decision.level === 'none') throw new AIProviderError('malformed', 'sin datos suficientes para decidir')
-  const raw = await model.complete(buildExpressionRequest(decision, input.memory), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
+  const raw = await completeLogged(model, buildExpressionRequest(decision, input.memory), 'analysis-decision-first', signal)
   const expression = parseExpression(raw)
   const verdict = validateExpression(decision, expression)
   if (!verdict.ok) {
@@ -165,7 +217,7 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   const model = asLanguageModel(provider)
   // Defensa en profundidad: mensaje, conversación y memoria se redactan también aquí antes de construir el prompt.
   const input = redactChatInput(rawInput)
-  const raw = await model.complete(buildChatRequest(input), { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS, signal })
+  const raw = await completeLogged(model, buildChatRequest(input), 'chat', signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   const reply = parseChatReply({
     ...raw,

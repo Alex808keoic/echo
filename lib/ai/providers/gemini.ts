@@ -7,7 +7,7 @@
  * `GEMINI_API_KEY` (GitHub Actions Secrets) y nunca sale de este proceso.
  */
 import { AIProviderError, type AIRequest } from '../../axis/ai/provider'
-import { classifyHttpStatus, fetchWithTimeout, parseJSONOutput, type Completion, type MarketAIProvider } from './types'
+import { classifyHttpStatus, failureDiagnostics, fetchWithTimeout, parseJSONOutput, type Completion, type MarketAIProvider } from './types'
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-lite'
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
@@ -48,20 +48,27 @@ export function createGeminiProvider(opts: { apiKey: string; model?: string; tim
       if (error instanceof Error && error.name === 'AbortError') throw new AIProviderError('timeout', 'Gemini: tiempo de espera agotado')
       throw new AIProviderError('http', 'Gemini: error de red')
     }
-    if (!res.ok) throw new AIProviderError(classifyHttpStatus(res.status), `Gemini: HTTP ${res.status}`)
+    if (!res.ok) throw new AIProviderError(classifyHttpStatus(res.status), `Gemini: HTTP ${res.status}`, await failureDiagnostics(res))
     const data = (await res.json()) as GeminiResponse
-    if (data.promptFeedback?.blockReason) throw new AIProviderError('refusal', `Gemini: bloqueado (${data.promptFeedback.blockReason})`)
+    const u = data.usageMetadata ?? {}
     const candidate = data.candidates?.[0]
-    if (candidate?.finishReason === 'MAX_TOKENS') throw new AIProviderError('malformed', 'Gemini: respuesta truncada')
+    const diagnostics = {
+      status: res.status,
+      finishReason: candidate?.finishReason,
+      promptTokens: u.promptTokenCount,
+      completionTokens: u.candidatesTokenCount,
+      totalTokens: u.totalTokenCount,
+    }
+    if (data.promptFeedback?.blockReason) throw new AIProviderError('refusal', `Gemini: bloqueado (${data.promptFeedback.blockReason})`, diagnostics)
+    if (candidate?.finishReason === 'MAX_TOKENS') throw new AIProviderError('malformed', 'Gemini: respuesta truncada', diagnostics)
     const text = candidate?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
-    if (!text) throw new AIProviderError('malformed', 'Gemini: respuesta sin texto')
+    if (!text) throw new AIProviderError('malformed', 'Gemini: respuesta sin texto', diagnostics)
     let output: unknown
     try {
       output = parseJSONOutput(text)
     } catch {
-      throw new AIProviderError('malformed', 'Gemini: la respuesta no es JSON')
+      throw new AIProviderError('malformed', 'Gemini: la respuesta no es JSON', diagnostics)
     }
-    const u = data.usageMetadata ?? {}
     return {
       output,
       usage: {
@@ -69,6 +76,7 @@ export function createGeminiProvider(opts: { apiKey: string; model?: string; tim
         outputTokens: u.candidatesTokenCount ?? 0,
         totalTokens: u.totalTokenCount ?? (u.promptTokenCount ?? 0) + (u.candidatesTokenCount ?? 0),
       },
+      diagnostics,
     }
   }
 
