@@ -113,11 +113,40 @@ const GENERIC_POSITION = /\b(?:posicion(?:es)?|cartera|inversion(?:es)?)\b/
 /** Activos e instrumentos que no existen en los datos del usuario: siempre externos. */
 const EXTERNAL = /\b(?:acciones?|fondos?|etfs?|etc|indexados?|cripto(?:monedas?)?|bitcoin|ethereum|oro|plata|bonos?|letras|plazo fijo|depositos?|inmuebles?|pisos?|bolsa|criptos?|tesla|nvidia|apple|amazon|microsoft|google|s&p|nasdaq|ibex)\b/
 
+/**
+ * Longitud mínima del nombre de una entidad para buscarlo dentro de un texto.
+ * Un objetivo o una posición llamados «a» o «PC» aparecerían dentro de casi
+ * cualquier frase, y todo consejo quedaría atribuido a ellos por error.
+ */
+const MIN_ENTITY_NAME_CHARS = 3
+
+/**
+ * El nombre aparece en el texto como palabra (o secuencia de palabras)
+ * completa, no como trozo de otra: «a» no está en «ahorra», ni «Ropa» en
+ * «Europa». Los nombres demasiado cortos no se buscan.
+ */
+const WORD_CHAR = /[\p{L}\p{N}]/u
+const isWordChar = (c: string) => c !== '' && WORD_CHAR.test(c)
+
+function mentions(text: string, name: string): boolean {
+  const needle = normalizeForMatching(name).trim()
+  if (needle.length < MIN_ENTITY_NAME_CHARS) return false
+  let from = 0
+  for (;;) {
+    const at = text.indexOf(needle, from)
+    if (at < 0) return false
+    const before = at === 0 ? '' : text[at - 1]
+    const after = text[at + needle.length] ?? ''
+    if (!isWordChar(before) && !isWordChar(after)) return true
+    from = at + 1
+  }
+}
+
 function targetOf(clause: string, original: string, entities: KnownEntities, cls: AdviceVerbClass): AdviceTarget {
   const n = clause
-  for (const o of entities.objectives) if (o.name.trim() && n.includes(normalizeForMatching(o.name))) return { kind: 'objective', id: o.id, name: o.name }
-  for (const p of entities.positions) if (p.name.trim() && n.includes(normalizeForMatching(p.name))) return { kind: 'position', id: p.id, name: p.name }
-  for (const c of entities.categories) if (c.trim() && n.includes(normalizeForMatching(c))) return { kind: 'category', id: c, name: c }
+  for (const o of entities.objectives) if (mentions(n, o.name)) return { kind: 'objective', id: o.id, name: o.name }
+  for (const p of entities.positions) if (mentions(n, p.name)) return { kind: 'position', id: p.id, name: p.name }
+  for (const c of entities.categories) if (mentions(n, c)) return { kind: 'category', id: c, name: c }
   if (EXTERNAL.test(n)) return { kind: 'external', text: n.match(EXTERNAL)?.[0] ?? 'activo externo' }
   if (CUSHION.test(n)) return { kind: 'cushion' }
   if (GENERIC_OBJECTIVE.test(n)) return { kind: 'objective', name: 'objetivo' }

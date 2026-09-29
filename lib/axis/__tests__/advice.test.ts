@@ -109,6 +109,34 @@ describe('AXIS · consejos · licencia frente a la acción de AXIS', () => {
   })
 })
 
+describe('AXIS · consejos · nombres de entidad', () => {
+  // Caso real de producción: una posición llamada «a» hacía que «ahorra» se leyera como
+  // un consejo sobre esa posición, y toda respuesta válida acababa rechazada.
+  const cortos: KnownEntities = { objectives: [{ id: 'o1', name: 'a' }], positions: [{ id: 'p1', name: 'PC' }], categories: ['Ok'] }
+
+  it('un nombre de una o dos letras no convierte cualquier frase en un consejo sobre él', () => {
+    for (const t of ['Ahorra para tu colchón.', 'Destina parte del excedente a tu objetivo.', 'Revisa la cartera.']) {
+      const encontrado = checkAdvice(t, cortos, { stance: 'recommend', action: { verb: 'complete-cushion', target: 'cushion' }, alternatives: [] })
+      for (const c of encontrado) assert.notEqual(c.target.kind, 'position', t)
+      for (const c of encontrado) assert.notEqual('name' in c.target ? c.target.name : '', 'a', t)
+    }
+  })
+
+  it('el nombre se busca como palabra completa, no como trozo de otra', () => {
+    const entidades: KnownEntities = { objectives: [{ id: 'o1', name: 'Ropa' }], positions: [], categories: [] }
+    const license = { stance: 'recommend' as const, action: { verb: 'allocate' as const, target: 'objective' as const, targetId: 'o1' }, alternatives: [] }
+    assert.deepEqual(checkAdvice('Destina algo a Ropa.', entidades, license), [], 'el objetivo real sí se reconoce')
+    const enEuropa = checkAdvice('Destina algo a Europa.', entidades, license)
+    assert.equal(enEuropa.length, 1, '«Ropa» dentro de «Europa» no es el objetivo del usuario')
+    assert.equal(enEuropa[0].target.kind, 'external')
+  })
+
+  it('un nombre largo sigue reconociéndose con acentos y mayúsculas distintas', () => {
+    const entidades: KnownEntities = { objectives: [{ id: 'o1', name: 'Viaje a Japón' }], positions: [], categories: [] }
+    assert.deepEqual(checkAdvice('Aporta al viaje a japon este mes.', entidades, { stance: 'recommend', action: { verb: 'allocate', target: 'objective', targetId: 'o1' }, alternatives: [] }), [])
+  })
+})
+
 describe('AXIS · consejos · Decision First', () => {
   it('cada regla que recomienda declara una acción determinista (los 13 escenarios dorados)', () => {
     const dir = join(process.cwd(), 'lib', 'axis', '__tests__', '__snapshots__')
