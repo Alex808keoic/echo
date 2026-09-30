@@ -10,6 +10,52 @@
 
 ---
 
+## ⚡ Actualización 2026-09-30: Cloudflare Workers AI + cadena de fallback
+
+Esta sección manda sobre lo que la contradiga más abajo (§1, §6.10, §7, §9 y §14 describen el estado del 2026-09-27).
+
+- **Cadena de proveedores de AXIS:** `AXIS_AI_PROVIDER` (principal), luego `AXIS_AI_FALLBACK_PROVIDER` (opcional), luego el motor local (cliente, sin cambios).
+  Valores: `cloudflare` | `groq` | `gemini`. Configuración prevista: `cloudflare` → `groq`.
+- **Cloudflare** (`lib/ai/providers/cloudflare.ts`):
+  - Credenciales: `CF_ACCOUNT_ID` + `CF_API_TOKEN`.
+  - Modelo por defecto: `@cf/google/gemma-4-26b-a4b-it`, con `chat_template_kwargs.enable_thinking: false` y `json_schema strict`.
+- **Modelo por proveedor:** `AXIS_AI_MODEL_CLOUDFLARE`, `AXIS_AI_MODEL_GROQ` y `AXIS_AI_MODEL_GEMINI`.
+  `AXIS_AI_MODEL` queda como heredada y **solo se aplica al principal**.
+  Al pasar el principal a Cloudflare hay que borrarla en Vercel o poner un modelo `@cf/…`.
+- **Un proveedor sin credenciales se omite.** Si faltan las de Cloudflare, Groq funciona solo, igual que hoy.
+- **Cuándo se pasa al siguiente** (`isProviderFailure` en `lib/axis/language/model.ts`):
+  - Solo ante fallos del proveedor: 429, timeout, error de red, 5xx, respuesta vacía, truncada o que no es JSON, y 401/403 (credenciales de ese proveedor).
+  - **No** ante otros 4xx (404, 400…) ni negativas.
+  - **Nunca** tras un rechazo de validación o licencia de Decision First: eso ocurre fuera de la cadena y va directo al motor local.
+- **Plazo total compartido** (`fallbackChain`, en `limits.ts`):
+  - La cadena dispone de 22 s en total (el cliente espera 25 s).
+  - El principal recibe el plazo menos 8 s de reserva para el fallback.
+  - No se empieza un intento con menos de 3 s restantes; ese intento queda registrado como `skipped`.
+  - Si el cliente cancela, no se prueba el fallback.
+- **Error final:** si todos los proveedores dieron 429, la ruta responde 429 («sin cupo»). En cualquier otro caso usa el último fallo que no fue un 429, y la ruta responde 502.
+- **Topes de salida por proveedor** (`AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER`): Cloudflare 1.200, Groq 3.000, Gemini 3.000. `MAX_OUTPUT_TOKENS` vuelve a 3.000 como valor por defecto.
+- **Logs:**
+  - Una línea `[axis] llamada:` **por intento**, con `attempt`, `fallback` y `outcome` (`ok`|`error`|`skipped`).
+  - Se añade `neurons` (cuota diaria de Cloudflare) a la lista de campos permitidos.
+  - Siguen sin registrarse textos, cifras, cuentas ni claves.
+- **Etiqueta `engine`:** dice qué proveedor respondió realmente.
+- **Cupo por instancia:** se sigue consumiendo **uno por petición del usuario**, no uno por intento.
+- **Tests nuevos:** `cloudflare-language.test.ts` y `provider-chain.test.ts`, además de ampliaciones en `server.test.ts`, `call-log.test.ts` y `groq-language.test.ts`.
+- **Sin desplegar todavía.** Variables que habrá que definir en Vercel antes de desplegar:
+  - `AXIS_AI_PROVIDER=cloudflare`
+  - `AXIS_AI_FALLBACK_PROVIDER=groq`
+  - `CF_ACCOUNT_ID`
+  - `CF_API_TOKEN`
+  - `AXIS_AI_MODEL_GROQ=openai/gpt-oss-20b`
+  - y borrar `AXIS_AI_MODEL`.
+- **NO VERIFICABLE desde el repo:**
+  - El formato real del cuerpo de un 429 de Cloudflare (`rateLimitFromBody` solo entiende el de Groq).
+  - Si envía cabeceras `x-ratelimit-*`.
+  - Su latencia real con Gemma 4.
+- **El arreglo de `advice.ts` ya está commiteado** (`36b18b1`).
+
+---
+
 ## 0. Reglas de trabajo que se han seguido (conviene mantenerlas)
 
 - **Dinero siempre en céntimos enteros.** Nunca euros en coma flotante al guardar o calcular.
@@ -383,7 +429,7 @@ Detalle:
 
 **Selección en AXIS:**
 - `AXIS_AI_PROVIDER` (`groq`|`gemini`) + su clave + `AXIS_AI_ENABLED` distinto de `false`.
-- **No hay fallback entre proveedores en AXIS** (sí lo hay en Market Research).
+- **No hay fallback entre proveedores en AXIS** (sí lo hay en Market Research). *(Superado el 2026-09-30: ver la actualización al principio.)*
 
 **Modelo:**
 - `AXIS_AI_MODEL`, compartido por los dos proveedores. Si falta, se usa `openai/gpt-oss-120b` (Groq) o `gemini-2.5-flash-lite` (Gemini).

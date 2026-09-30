@@ -11,7 +11,8 @@ import { createGeminiProvider } from '../../ai/providers/gemini'
 import { createGroqProvider } from '../../ai/providers/groq'
 import { rateLimitFromBody } from '../../ai/providers/types'
 import { AIProviderError, type AIRequest } from '../ai/provider'
-import { chatWithProvider, safeDiagnostics } from '../ai/server/analyze'
+import { chatWithProvider, readAIServerConfig, safeDiagnostics } from '../ai/server/analyze'
+import { languageModelFromConfig } from '../language/server'
 import { AXIS_AI_LIMITS } from '../ai/server/limits'
 import { buildFinancialContext } from '../context'
 import { config, healthyMovements, objective, snapshot, TODAY } from './fixtures'
@@ -140,5 +141,74 @@ describe('AXIS · registro de llamadas · servidor', () => {
     const dirty = { status: 429, limitType: 'TPM', message: 'texto del proveedor', finishReason: 42, promptTokens: Number.NaN, retryAfter: 'x'.repeat(100) } as never
     assert.deepEqual(safeDiagnostics(dirty), { status: 429, limitType: 'TPM', retryAfter: 'x'.repeat(32) })
     assert.deepEqual(safeDiagnostics(undefined), {})
+  })
+
+  it('safeDiagnostics deja pasar las neuronas de Cloudflare (número) y nada más de su cuerpo', () => {
+    assert.deepEqual(safeDiagnostics({ status: 200, neurons: 57.5, accountId: 'acc' } as never), { status: 200, neurons: 57.5 })
+    assert.deepEqual(safeDiagnostics({ neurons: '57' } as never), {}, 'con su tipo')
+  })
+
+  it('una sola llamada al proveedor queda como intento 1, sin fallback', async () => {
+    const lines = await captureInfo(() => chatWithProvider(createGroqProvider({ apiKey: KEY, fetchImpl: groqOk() }), chatInput()))
+    const entry = JSON.parse(lines[0].slice(lines[0].indexOf('{')))
+    assert.equal(entry.attempt, 1)
+    assert.equal(entry.fallback, false)
+  })
+})
+
+describe('AXIS · registro de llamadas · cadena Cloudflare → Groq', () => {
+  const CF_ACCOUNT = 'acc-cuenta-secreta-0000'
+  const CF_TOKEN = 'cf-token-secreto-0000'
+  const ENV = { AXIS_AI_PROVIDER: 'cloudflare', AXIS_AI_FALLBACK_PROVIDER: 'groq', CF_ACCOUNT_ID: CF_ACCOUNT, CF_API_TOKEN: CF_TOKEN, GROQ_API_KEY: KEY, AXIS_AI_MODEL_GROQ: 'openai/gpt-oss-20b' }
+  const cf429 = () => new Response(JSON.stringify({ errors: [{ code: 4006, message: `daily free allocation exhausted for account ${CF_ACCOUNT}` }] }), { status: 429, headers: { 'retry-after': '60' } })
+  const cfOk = () =>
+    new Response(
+      JSON.stringify({
+        choices: [{ message: { content: JSON.stringify({ reply: 'Con tus datos, yo iría poco a poco.', confidence: 'media', nextStep: null, memoryProposal: null }) }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 3000, completion_tokens: 300, total_tokens: 3300, neurons: 42.25 },
+      }),
+      { status: 200 },
+    )
+
+  async function run(cloudflare: () => Response) {
+    const real = globalThis.fetch
+    globalThis.fetch = (async (url: string | URL | Request) => (String(url).includes('api.cloudflare.com') ? cloudflare() : groqOk()(url))) as typeof fetch
+    try {
+      const lines = await captureInfo(() => chatWithProvider(languageModelFromConfig(readAIServerConfig(ENV)), chatInput()))
+      return lines.map((l) => ({ line: l, entry: JSON.parse(l.slice(l.indexOf('{'))) }))
+    } finally {
+      globalThis.fetch = real
+    }
+  }
+
+  it('Cloudflare responde: una línea con neuronas y el tope de 1.200', async () => {
+    const out = await run(cfOk)
+    assert.equal(out.length, 1)
+    const e = out[0].entry
+    assert.equal(e.model, 'cloudflare:@cf/google/gemma-4-26b-a4b-it')
+    assert.deepEqual([e.attempt, e.fallback, e.outcome, e.maxOutputTokens], [1, false, 'ok', 1_200])
+    assert.equal(e.diagnostics.neurons, 42.25)
+  })
+
+  it('Cloudflare 429 → una línea por intento: error de Cloudflare y ok de Groq como fallback', async () => {
+    const out = await run(cf429)
+    assert.deepEqual(
+      out.map(({ entry: e }) => [e.model, e.attempt, e.fallback, e.outcome, e.errorKind, e.maxOutputTokens]),
+      [
+        ['cloudflare:@cf/google/gemma-4-26b-a4b-it', 1, false, 'error', 'rate-limit', 1_200],
+        ['groq:openai/gpt-oss-20b', 2, true, 'ok', undefined, 3_000],
+      ],
+    )
+    assert.equal(out[0].entry.diagnostics.retryAfter, '60')
+    assert.equal(out[1].entry.diagnostics.promptTokens, 4321)
+  })
+
+  it('ninguna línea contiene la cuenta, el token, la clave, textos ni cifras del usuario', async () => {
+    for (const cloudflare of [cfOk, cf429]) {
+      const all = (await run(cloudflare)).map((o) => o.line).join('\n')
+      for (const forbidden of [CF_ACCOUNT, CF_TOKEN, KEY, 'Kioto', '7.777,77', '9.876,54', 'poco a poco', 'daily free allocation']) {
+        assert.ok(!all.includes(forbidden), `el log contiene «${forbidden}»`)
+      }
+    }
   })
 })

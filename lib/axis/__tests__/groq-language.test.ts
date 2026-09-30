@@ -12,6 +12,7 @@ import { createGroqProvider, GROQ_DEFAULT_MODEL } from '../../ai/providers/groq'
 import { AXIS_EXPRESSION_SCHEMA } from '../ai/schema-expression'
 import { AIProviderError } from '../ai/provider'
 import { analyzeWithProvider, readAIServerConfig } from '../ai/server/analyze'
+import { AXIS_AI_LIMITS } from '../ai/server/limits'
 import { createAIEngine, type AITransport } from '../ai-engine'
 import { render } from '../compose'
 import { buildFinancialContext } from '../context'
@@ -108,7 +109,8 @@ describe('Groq como modelo de lenguaje de AXIS', () => {
     assert.equal(body.response_format.json_schema.strict, true)
     assert.deepEqual(body.response_format.json_schema.schema, AXIS_EXPRESSION_SCHEMA)
     assert.equal(body.tools, undefined, 'sin herramientas')
-    assert.equal(body.max_completion_tokens, 3000, 'mismo tope de salida que antes')
+    assert.equal(body.max_completion_tokens, AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.groq, 'el tope de salida es el de Groq en el servidor, no uno propio del adapter')
+    assert.equal(body.max_completion_tokens, 3_000, 'gpt-oss razona dentro de este tope: no se baja al de Cloudflare')
   })
 
   it('el JSON de Groq pasa por parse/validate/merge de Decision First y la decisión sigue siendo de AXIS', async () => {

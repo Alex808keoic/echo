@@ -36,6 +36,8 @@ export interface ProviderDiagnostics {
   promptTokens?: number
   completionTokens?: number
   totalTokens?: number
+  /** Neuronas consumidas (Cloudflare Workers AI: la unidad de su cuota diaria gratuita). */
+  neurons?: number
   /** Límite que ha saltado según el proveedor (`TPM`, `TPD`, `RPM`, `RPD`). */
   limitType?: string
   /** Cifras del mensaje de límite del proveedor: tope, consumido y pedido por esta llamada. */
