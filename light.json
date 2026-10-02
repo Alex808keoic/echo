@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-01T14:40:30.707Z",
+  "checkedAt": "2026-10-02T14:00:21.768Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -15,10 +15,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.329,
+      "value": 3.303,
       "unit": "%",
-      "asOf": "2026-09-30",
-      "changePct": -0.033,
+      "asOf": "2026-10-01",
+      "changePct": -0.026,
       "source": "Banco de España"
     },
     {
@@ -45,29 +45,25 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19426.2,
+      "value": 19005.3,
       "unit": "pts",
-      "asOf": "2026-09-30",
-      "changePct": -1.05,
+      "asOf": "2026-10-01",
+      "changePct": -2.9,
       "source": "Banco de España"
-    },
-    {
-      "key": "stoxx50",
-      "label": "EURO STOXX 50 (media mensual)",
-      "group": "index",
-      "value": 6316.39,
-      "unit": "pts",
-      "asOf": "2026-09",
-      "changePct": -2.58,
-      "source": "BCE"
     }
   ],
   "events": [
     {
       "kind": "headline",
+      "detail": "BCE · prensa: Decisions taken by the Governing Council of the ECB (in addition to decisions setting interest rates)"
+    },
+    {
+      "kind": "headline",
       "detail": "Banco de España · noticias: Estadísticas de los tipos de interés aplicados por las entidades de crédito de la zona del euro: agosto de 2026"
     }
   ],
-  "failedSources": [],
-  "eventTriggered": true
+  "failedSources": [
+    "BCE (EURO STOXX 50)"
+  ],
+  "eventTriggered": false
 }
