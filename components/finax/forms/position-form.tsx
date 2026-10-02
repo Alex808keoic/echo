@@ -31,6 +31,8 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
   const [invested, setInvested] = useState(position ? centsToInputValue(position.investedCents) : '')
   const [value, setValue] = useState(position ? centsToInputValue(position.valueCents) : '')
   const [date, setDate] = useState(position?.date ?? todayISO())
+  // Nueva inversión: lo normal es pagarla con el dinero registrado. Al editar se respeta lo guardado.
+  const [fromLiquid, setFromLiquid] = useState(position ? position.fromLiquid === true : true)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -49,7 +51,7 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
     setErrors(next)
     if (Object.keys(next).length > 0 || investedCents === null || valueCents === null) return
 
-    const input: PositionInput = { name, investedCents, valueCents, date }
+    const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid }
     setBusy(true)
     try {
       if (position) await updatePosition(position.id, input)
@@ -99,6 +101,22 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
       >
         <AmountInput value={value} onChange={(e) => setValue(e.target.value)} />
       </Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <input
+          type="checkbox"
+          checked={fromLiquid}
+          onChange={(e) => setFromLiquid(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-finax"
+        />
+        <span className="min-w-0">
+          <span className="block text-[13.5px] font-semibold text-grafito">Sale de mi dinero líquido</span>
+          <span className="mt-0.5 block text-[12px] font-medium text-muted-foreground text-pretty">
+            {fromLiquid
+              ? 'Se descuenta del líquido: tu patrimonio total no cambia al invertir. No lo registres también como gasto.'
+              : 'No toca tu líquido: úsalo para inversiones anteriores a tu saldo inicial o pagadas con dinero de fuera de Finax.'}
+          </span>
+        </span>
+      </label>
       <div className="flex gap-3 pt-1">
         {position && (
           <Button

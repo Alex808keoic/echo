@@ -101,7 +101,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
           </div>
           <EvolutionChart series={overview.series} range={patrimonioRange} className="h-[150px] w-full" />
           <p className="mt-3 text-[11.5px] font-medium text-muted-foreground text-pretty">
-            Cada punto es tu patrimonio líquido al cierre de un día con movimientos.
+            Parte de tu saldo inicial. Cada punto es tu patrimonio total al cierre de un día con movimientos; las
+            inversiones cuentan por lo aportado y, en el último punto, por su valor actual.
           </p>
         </FinancialCard>
       ) : (

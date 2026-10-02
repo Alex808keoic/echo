@@ -105,6 +105,7 @@ function isPosition(v: unknown): v is Position {
     isInt(v.valueCents) &&
     isStr(v.date) &&
     isValidISODate(v.date) &&
+    (v.fromLiquid === undefined || typeof v.fromLiquid === 'boolean') &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

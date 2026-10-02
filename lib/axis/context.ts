@@ -114,7 +114,7 @@ function contextLevel(movementCount: number, hasPreviousPeriod: boolean): Contex
 export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string = todayISO()): FinancialContext {
   const { config, movements, objectives, positions } = snapshot
   const initialBalanceCents = config?.initialBalanceCents ?? 0
-  const liquidCents = computeLiquidCents(initialBalanceCents, movements)
+  const liquidCents = computeLiquidCents(initialBalanceCents, movements, positions)
   const investedCents = totalValueCents(positions)
   const totalCents = liquidCents + investedCents
 
@@ -125,7 +125,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
   const objectiveCtxs = objectives.map((o) => objectiveContext(o, asOf))
   const savedForObjectives = objectives.reduce((t, o) => t + Math.min(o.currentCents, o.targetCents), 0)
 
-  const history = buildPatrimonioSeries(initialBalanceCents, movements)
+  const history = buildPatrimonioSeries(initialBalanceCents, movements, positions)
   const monthsWithData = new Set(movements.map((m) => m.date.slice(0, 7))).size
   const hasPreviousPeriod = previous.movementCount > 0
 

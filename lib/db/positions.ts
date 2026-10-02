@@ -30,6 +30,7 @@ export async function updatePosition(id: string, input: PositionInput): Promise<
     investedCents: n.investedCents,
     valueCents: n.valueCents,
     date: n.date,
+    fromLiquid: n.fromLiquid === true,
     updatedAt: Date.now(),
   })
 }

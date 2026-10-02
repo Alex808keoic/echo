@@ -112,8 +112,20 @@ export interface Position {
   valueCents: number
   /** Fecha de la aportación `YYYY-MM-DD`. */
   date: string
+  /**
+   * `true` si el importe invertido salió del dinero líquido registrado en
+   * Finax: se descuenta del líquido desde `date` y el patrimonio total no
+   * cambia al invertir. Ausente o `false` (posiciones anteriores a este campo,
+   * o dinero de fuera de Finax): no toca el líquido.
+   */
+  fromLiquid?: boolean
   createdAt: number
   updatedAt: number
+}
+
+/** Importe que una posición descuenta del líquido (0 si no salió de él). */
+export function liquidOutflowCents(p: Pick<Position, 'investedCents' | 'fromLiquid'>): number {
+  return p.fromLiquid === true ? p.investedCents : 0
 }
 
 export type PositionInput = Omit<Position, 'id' | 'createdAt' | 'updatedAt'>
