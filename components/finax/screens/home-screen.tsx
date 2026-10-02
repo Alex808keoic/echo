@@ -20,6 +20,7 @@ import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
 import { ObjectiveForm } from '../forms/objective-form'
+import { ContributeForm } from '../forms/contribute-form'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -69,7 +70,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             >
               {delta.cents >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
               {delta.pct !== null ? formatPct(delta.pct, true) : formatCents(delta.cents, true)}
-              <span className="font-medium text-muted-foreground">líquido, en el periodo</span>
+              <span className="font-medium text-muted-foreground">en el periodo</span>
             </p>
           ) : (
             <p className="mt-2 text-[13px] font-medium text-muted-foreground">
@@ -125,6 +126,17 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             <GoalCard
               goal={firstGoal}
               onClick={() => open('Editar objetivo', <ObjectiveForm objective={firstGoal} onDone={close} />)}
+              onContribute={() =>
+                open(
+                  'Aportar al objetivo',
+                  <ContributeForm
+                    objective={firstGoal}
+                    objectives={overview.objectives}
+                    liquidCents={overview.liquidCents}
+                    onDone={close}
+                  />,
+                )
+              }
             />
           ) : (
             <div className="flex items-center justify-between gap-3">

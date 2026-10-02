@@ -36,6 +36,21 @@ export async function updateObjective(id: string, input: ObjectiveInput): Promis
   })
 }
 
+/**
+ * Suma `amountCents` a lo ahorrado en el objetivo. Lee y escribe en la misma
+ * transacción para no pisar una edición simultánea. No crea movimientos: el
+ * dinero sigue en el líquido, solo queda apartado. Los límites los valida la
+ * UI con `contributionLimit`.
+ */
+export async function contributeToObjective(id: string, amountCents: number): Promise<void> {
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) throw new Error('Aportación no válida')
+  await db.transaction('rw', db.objectives, async () => {
+    const objective = await db.objectives.get(id)
+    if (!objective) throw new Error('Objetivo no encontrado')
+    await db.objectives.update(id, { currentCents: objective.currentCents + amountCents, updatedAt: Date.now() })
+  })
+}
+
 export async function deleteObjective(id: string): Promise<void> {
   await db.objectives.delete(id)
 }

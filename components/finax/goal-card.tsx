@@ -8,15 +8,36 @@ import { TargetIcon } from './icons'
 interface GoalCardProps {
   goal: Objective
   onClick?: () => void
+  /** Si se indica y el objetivo no está conseguido, muestra el botón «Aportar». */
+  onContribute?: () => void
 }
 
-/** Tarjeta de objetivo: chip, título, progreso y porcentaje. */
-export function GoalCard({ goal, onClick }: GoalCardProps) {
+/** Tarjeta de objetivo: chip, título, progreso, porcentaje y, opcionalmente, «Aportar». */
+export function GoalCard({ goal, onClick, onContribute }: GoalCardProps) {
+  const completed = isObjectiveCompleted(goal)
+  return (
+    <div className="flex items-center gap-2">
+      <GoalSummary goal={goal} onClick={onClick} />
+      {onContribute && !completed && (
+        <button
+          type="button"
+          onClick={onContribute}
+          aria-label={`Aportar a ${goal.name}`}
+          className="shrink-0 rounded-full bg-finax-soft px-3 py-1.5 text-[12px] font-bold text-finax transition-all hover:bg-finax-soft-2 active:scale-95"
+        >
+          Aportar
+        </button>
+      )}
+    </div>
+  )
+}
+
+function GoalSummary({ goal, onClick }: Pick<GoalCardProps, 'goal' | 'onClick'>) {
   const pct = objectiveProgressPct(goal)
   const completed = isObjectiveCompleted(goal)
   const remaining = goal.targetCents - goal.currentCents
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3.5 text-left">
+    <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
       <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
         <TargetIcon className="h-6 w-6" />
       </span>

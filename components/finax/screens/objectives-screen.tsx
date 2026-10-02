@@ -11,6 +11,7 @@ import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { ObjectiveForm } from '../forms/objective-form'
+import { ContributeForm } from '../forms/contribute-form'
 import { PlusIcon, TargetIcon } from '../icons'
 import type { ScreenProps } from './types'
 
@@ -68,6 +69,17 @@ export function ObjectivesScreen({ overview, onNavigate, onBack }: ScreenProps) 
                     key={o.id}
                     goal={o}
                     onClick={() => open('Editar objetivo', <ObjectiveForm objective={o} onDone={close} />)}
+                    onContribute={() =>
+                      open(
+                        'Aportar al objetivo',
+                        <ContributeForm
+                          objective={o}
+                          objectives={objectives}
+                          liquidCents={overview.liquidCents}
+                          onDone={close}
+                        />,
+                      )
+                    }
                   />
                 ))}
               </FinancialCard>

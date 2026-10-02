@@ -33,6 +33,41 @@ export function summarizeObjectives(objectives: Objective[]): ObjectivesTotals {
   }
 }
 
+/* -------------------------------- Aportar --------------------------------- */
+
+export interface ContributionLimit {
+  /** Lo que le falta al objetivo para llegar a la meta. */
+  remainingCents: number
+  /** Líquido que aún no está apartado en ningún objetivo. */
+  freeCents: number
+  /** Máximo aportable ahora: lo menor de los dos, nunca negativo. */
+  maxCents: number
+}
+
+/**
+ * Aportar a un objetivo no mueve dinero ni crea movimientos: aparta parte del
+ * líquido. Por eso no se puede apartar más líquido del que hay sin apartar.
+ */
+export function contributionLimit(
+  objective: Objective,
+  objectives: Objective[],
+  liquidCents: number,
+): ContributionLimit {
+  const remainingCents = Math.max(0, objective.targetCents - objective.currentCents)
+  const freeCents = Math.max(0, liquidCents - summarizeObjectives(objectives).savedCents)
+  return { remainingCents, freeCents, maxCents: Math.min(remainingCents, freeCents) }
+}
+
+/** Mensaje de error para una aportación, o `null` si es válida. */
+export function contributionError(amountCents: number | null, limit: ContributionLimit): string | null {
+  if (amountCents === null) return 'Introduce un importe mayor que cero.'
+  if (limit.remainingCents === 0) return 'Este objetivo ya está conseguido.'
+  if (limit.freeCents === 0) return 'No te queda líquido sin apartar en otros objetivos.'
+  if (amountCents > limit.remainingCents) return 'Es más de lo que le falta al objetivo.'
+  if (amountCents > limit.freeCents) return 'Es más del líquido que tienes sin apartar.'
+  return null
+}
+
 /* ------------------------------- Inversiones ------------------------------ */
 
 export function totalInvestedCents(positions: Position[]): number {
