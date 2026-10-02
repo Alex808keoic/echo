@@ -10,6 +10,46 @@
 
 ---
 
+## ✅ Actualización 2026-10-02: Cloudflare → Groq desplegado en producción
+
+Esta sección manda sobre la del 2026-09-30 donde la contradiga.
+
+- **Desplegado:** `main` = `origin/main` = `55ed6a9`, desplegado en producción (despliegue `echo-9ihztnvbc`). `GET /api/axis` → `{"available":true,"mode":"decision-first"}`.
+- **Despliegue automático confirmado:** Vercel está conectado a GitHub; un push a `main` despliega a producción.
+- **Vercel CLI:** cuenta `alexgisbertsalminen-8804`, equipo `alex-530c` (Hobby), proyecto `echo`.
+- **Variables de producción** (todas guardadas como *Secret*: no se pueden leer ni con `vercel env pull` ni en el panel):
+  - `AXIS_AI_PROVIDER=cloudflare`
+  - `AXIS_AI_FALLBACK_PROVIDER=groq`
+  - `AXIS_AI_MODEL_GROQ=openai/gpt-oss-20b`
+  - `CF_ACCOUNT_ID`, `CF_API_TOKEN`
+  - `GROQ_API_KEY`, `AXIS_DECISION_FIRST`
+  - `AXIS_AI_MODEL` **borrada**. Su valor anterior no se pudo leer; se asumió `openai/gpt-oss-20b`.
+- **Vuelta atrás:** poner `AXIS_AI_PROVIDER=groq` y redesplegar. Así queda solo Groq, con `AXIS_AI_MODEL_GROQ`.
+- **Previews en error de la rama `market-data`:** son los commits de los bots. Esa rama no contiene la app («No Next.js version detected»). Es ruido, no afecta a producción.
+
+### Primeras medidas reales (2026-10-02, 4 peticiones)
+
+| Petición | Proveedor | Resultado | Entrada / salida (tokens) |
+|---|---|---|---|
+| Análisis Decision First | Cloudflare → **timeout** → Groq (fallback) | ok vía Groq | 3.836 / 1.757 (Groq) |
+| Chat ×3 | Cloudflare (Gemma 4) | ok, `finishReason: stop` | 5,6k–5,9k / 150–260 |
+
+- **Cloudflare** gasta unas **55–60 neurons por mensaje de chat**. Con el plan gratuito (10.000 neurons/día, pendiente de confirmar en el panel de Cloudflare) da para unos 170 mensajes al día.
+- **Groq confirma 8.000 TPM** en sus cabeceras (`limitTokens: 8000`). Un solo análisis gastó 5.593 tokens, lo que confirma el diagnóstico del 429 de §7.1.
+- **El análisis con Cloudflare superó el plazo:** el principal dispone de ~14 s. Con una sola muestra no se sabe si es sistemático. Si lo es, el análisis irá casi siempre a Groq y volverá a consumir sus 8.000 TPM.
+- **Un chat de Cloudflare fue rechazado por el detector de certeza** («asegurar», `assurance`) y respondió el motor local. Es el comportamiento previsto (no hay fallback tras un rechazo de validación). Falta saber si Gemma lo provoca más que Groq; el log no guarda el texto.
+- **Resuelto respecto a la sección del 2026-09-30:** Cloudflare no envía cabeceras `x-ratelimit-*` en respuestas 200. El formato de su 429 sigue sin observarse.
+
+### Siguiente paso
+
+1. Recoger más muestras de producción: varios análisis y chats, filtrando `[axis] llamada` en los logs.
+   Con la CLI: `vercel logs --deployment <url> --since 1h -x`. Sin `--follow`, el comando no se queda escuchando.
+2. Según los datos:
+   - Si el timeout del análisis es sistemático, dar más plazo al principal o enviar el análisis directamente a Groq.
+   - Si «asegurar» salta a menudo con Gemma, revisarlo (sin relajar `certainty.ts` a ciegas).
+
+---
+
 ## ⚡ Actualización 2026-09-30: Cloudflare Workers AI + cadena de fallback
 
 Esta sección manda sobre lo que la contradiga más abajo (§1, §6.10, §7, §9 y §14 describen el estado del 2026-09-27).
@@ -41,7 +81,7 @@ Esta sección manda sobre lo que la contradiga más abajo (§1, §6.10, §7, §9
 - **Etiqueta `engine`:** dice qué proveedor respondió realmente.
 - **Cupo por instancia:** se sigue consumiendo **uno por petición del usuario**, no uno por intento.
 - **Tests nuevos:** `cloudflare-language.test.ts` y `provider-chain.test.ts`, además de ampliaciones en `server.test.ts`, `call-log.test.ts` y `groq-language.test.ts`.
-- **Sin desplegar todavía.** Variables que habrá que definir en Vercel antes de desplegar:
+- **Desplegado el 2026-10-02** (ver la sección anterior). Variables definidas en Vercel:
   - `AXIS_AI_PROVIDER=cloudflare`
   - `AXIS_AI_FALLBACK_PROVIDER=groq`
   - `CF_ACCOUNT_ID`
