@@ -12,6 +12,9 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import type { ChatMessage, UserMemory } from '@/lib/axis/chat/types'
 import { CHAT_LIMITS } from '@/lib/axis/chat/types'
 import type { AxisNextStep } from '@/lib/axis/types'
+import { describeFact } from '@/lib/axis/profile/describe'
+import { listObjectives } from '@/lib/db/objectives'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { ChatStatus } from '@/hooks/use-axis-chat'
 import type { ScreenKey } from './bottom-navigation'
 import { FinancialCard } from './card'
@@ -77,6 +80,7 @@ function NextStepLink({ step, onNavigate }: { step: AxisNextStep; onNavigate: Na
 function ProposalCard({ message, onResolve }: { message: ChatMessage; onResolve: (accept: boolean) => Promise<void> }) {
   const proposal = message.memoryProposal
   const [busy, setBusy] = useState(false)
+  const objectives = useLiveQuery(listObjectives, [])
   if (!proposal) return null
   if (proposal.status !== 'pending') {
     return (
@@ -99,6 +103,14 @@ function ProposalCard({ message, onResolve }: { message: ChatMessage; onResolve:
       <p className="mt-1 text-[13px] font-medium leading-snug text-grafito/85 text-pretty">
         He entendido que {lowerFirst(proposal.content)} ¿Quieres que lo recuerde para futuras conversaciones?
       </p>
+      {proposal.fact && (
+        <p className="mt-2 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
+          <span className="font-bold text-axis-indigo">
+            {describeFact(proposal.fact, (id) => objectives?.find((o) => o.id === id)?.name)}
+          </span>
+          {' · '}Lo tendré en cuenta al decidir qué te recomiendo.
+        </p>
+      )}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -157,6 +169,7 @@ function Message({ message, onResolve, onNavigate }: { message: ChatMessage; onR
 
 function MemoriesList({ memories, onForget }: { memories: UserMemory[]; onForget: (id: string) => Promise<void> }) {
   const [open, setOpen] = useState(false)
+  const objectives = useLiveQuery(listObjectives, [])
   if (memories.length === 0) return null
   return (
     <div>
@@ -175,7 +188,14 @@ function MemoriesList({ memories, onForget }: { memories: UserMemory[]; onForget
         <ul className="mt-2 space-y-1.5">
           {memories.map((m) => (
             <li key={m.id} className="flex items-start gap-2 rounded-2xl border border-border bg-card px-3.5 py-2.5">
-              <span className="flex-1 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">{m.content}</span>
+              <span className="flex-1 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+                {m.content}
+                {m.fact && (
+                  <span className="mt-0.5 block text-[11.5px] font-semibold text-axis-indigo">
+                    {describeFact(m.fact, (id) => objectives?.find((o) => o.id === id)?.name)}
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
                 aria-label="Olvidar"

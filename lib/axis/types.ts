@@ -141,7 +141,21 @@ export interface AxisMemory {
    * (preferencias, decisiones, planes). Vista reducida de `UserMemory`
    * (lib/axis/chat/types.ts); la `id` permite actualizarlas sin duplicar.
    */
-  userMemories?: Array<{ id: string; content: string; category: string; importance: string; fecha: string }>
+  userMemories?: Array<{ id: string; content: string; category: string; importance: string; fecha: string; hecho?: MemoryFact }>
+  /**
+   * Hechos estructurados de las memorias aceptadas (`UserMemory.fact`), con lo
+   * justo para derivar el perfil (`profileFromMemory`): id y fecha de
+   * actualización para desempatar. No va a ningún prompt. Viene del cliente:
+   * se valida al derivar, nunca se confía en su forma.
+   */
+  profileFacts?: ProfileFactEntry[]
+}
+
+/** Un hecho de perfil tal y como viaja en `AxisMemory.profileFacts`. */
+export interface ProfileFactEntry {
+  id: string
+  updatedAt: number
+  fact: MemoryFact
 }
 
 /**
@@ -149,7 +163,7 @@ export interface AxisMemory {
  * en el dispositivo (ver lib/market). Opcional: AXIS funciona igual sin él.
  */
 import type { MarketContext } from '../market/types'
-import type { DecisionProfile, ProfileInfluence, UserProfile } from './profile/types'
+import type { DecisionProfile, MemoryFact, ProfileInfluence, UserProfile } from './profile/types'
 
 export type { MarketContext }
 
@@ -158,9 +172,9 @@ export interface AxisInput {
   memory?: AxisMemory
   market?: MarketContext | null
   /**
-   * Perfil estructurado del usuario (lib/axis/profile), derivado de las
-   * memorias aceptadas con hecho. Opcional: sin él, AXIS decide exactamente
-   * igual que con un perfil vacío. Se reconcilia con el contexto dentro de
+   * Perfil estructurado del usuario (lib/axis/profile). Si falta, `decide()`
+   * lo deriva de `memory.profileFacts`; sin hechos, decide exactamente igual
+   * que con un perfil vacío. Se reconcilia con el contexto dentro de
    * `decide()`; nunca aporta cifras del FinancialContext.
    */
   profile?: UserProfile

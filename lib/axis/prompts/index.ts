@@ -52,7 +52,7 @@ export const AXIS_CHAT_SYSTEM_PROMPT = prompt([
     SAFETY.chat.quality,
     CONTRACT.chat.euroFormat,
   ]),
-  section('REGLAS SOBRE LA MEMORIA', [MEMORY.chat.onlyStored, MEMORY.chat.reasonWithIt, MEMORY.chat.proposals, SAFETY.chat.noSecrets]),
+  section('REGLAS SOBRE LA MEMORIA', [MEMORY.chat.onlyStored, MEMORY.chat.reasonWithIt, MEMORY.chat.proposals, MEMORY.chat.facts, SAFETY.chat.noSecrets]),
   section('REGLAS SOBRE LAS RECOMENDACIONES', [
     SAFETY.chat.neverExecutes,
     PERSONALITY.style.reasoned,

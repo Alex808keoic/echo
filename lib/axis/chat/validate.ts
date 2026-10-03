@@ -11,6 +11,7 @@
  */
 import { AxisValidationError } from '../validate'
 import { isSavableProposal, normalizeMemoryContent } from './memory'
+import { isValidMemoryFact } from '../profile/types'
 import type { AxisDestination, AxisEngineInfo, AxisNextStep, Confidence } from '../types'
 import { CHAT_LIMITS, MEMORY_CATEGORIES, MEMORY_IMPORTANCES, type ChatInput, type ChatReply, type ConversationWindow, type MemoryProposal } from './types'
 
@@ -51,6 +52,8 @@ function memoryProposal(v: unknown): MemoryProposal | null {
     confidence: typeof v.confidence === 'number' && Number.isFinite(v.confidence) ? Math.min(1, Math.max(0, v.confidence)) : 0.5,
     replacesId: typeof v.replacesId === 'string' && v.replacesId.trim().length > 0 ? v.replacesId.trim().slice(0, 64) : null,
   }
+  // Un hecho inválido no tumba la propuesta: se guarda solo el texto, que no cambia ninguna decisión.
+  if (isValidMemoryFact(v.fact)) proposal.fact = v.fact
   return isSavableProposal(proposal) ? proposal : null
 }
 

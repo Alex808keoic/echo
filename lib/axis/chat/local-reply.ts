@@ -4,9 +4,11 @@
  * Cuando la IA no está disponible, falla, no hay conexión o no hay cupo,
  * AXIS no finge: responde con el motor local de reglas y lo dice. No
  * interpreta la pregunta (no hay modelo de lenguaje): ofrece la lectura
- * determinista de los datos actuales. Nunca usa la memoria como dato.
+ * determinista de los datos actuales. Nunca usa la memoria como dato; solo
+ * aplica el perfil que el usuario declaró (`profileFromMemory`), como el análisis.
  */
 import { analyzeLocally, LOCAL_RULES_ENGINE_INFO } from '../local-engine'
+import { profileFromMemory } from '../profile/derive'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 const REASON_INTRO: Record<FallbackReason, string> = {
@@ -18,7 +20,7 @@ const REASON_INTRO: Record<FallbackReason, string> = {
 }
 
 export function composeLocalReply(input: ChatInput, reason: FallbackReason, now: Date = new Date()): ChatReply {
-  const result = analyzeLocally({ context: input.context, market: input.market ?? null }, now)
+  const result = analyzeLocally({ context: input.context, market: input.market ?? null, profile: profileFromMemory(input.memory) }, now)
   const base = { confidence: 'baja' as const, memoryProposal: null, engine: LOCAL_RULES_ENGINE_INFO, fallbackReason: reason, generatedAt: now.toISOString() }
 
   if (result.status === 'no-analysis') {

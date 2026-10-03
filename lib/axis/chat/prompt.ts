@@ -14,6 +14,7 @@
  * de usuario como JSON.
  */
 import { detectSignals } from '../rules'
+import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
 import type { FinancialContext, Signal } from '../types'
@@ -39,7 +40,7 @@ function signalSummary(signals: Signal[]) {
 
 export function buildChatRequest(input: ChatInput): AIRequest {
   const { context, market, memory, conversation, message } = input
-  const signals = detectSignals(context, market ?? null)
+  const signals = detectSignals(context, market ?? null, reconcileProfile(profileFromMemory(memory), context))
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),

@@ -13,11 +13,38 @@
  * contiene cifras del contexto; su única cifra (liquidez mínima) es una
  * preferencia declarada, que las reglas usarán como umbral en el bloque 3.
  */
-import type { FinancialContext } from '../types'
+import type { AxisMemory, FinancialContext, ProfileFactEntry } from '../types'
 import type { UserMemory } from '../chat/types'
 import { EMPTY_PROFILE, isValidMemoryFact, MEMORY_FACT_KINDS, type DroppedPriority, type MemoryFact, type MemoryFactKind, type ProfileConflict, type ReconciledProfile, type UserProfile } from './types'
 
-type Candidate = { memory: UserMemory; fact: MemoryFact }
+/** Lo único que la derivación lee de una memoria. */
+type FactSource = Pick<UserMemory, 'id' | 'updatedAt' | 'fact'>
+type Candidate = { memory: FactSource; fact: MemoryFact }
+
+/** Mismo tope que las memorias guardadas (`CHAT_LIMITS.MAX_MEMORIES`). */
+const MAX_PROFILE_FACTS = 30
+
+/** Hechos de perfil de las memorias aceptadas, para enviarlos con `AxisMemory.profileFacts`. */
+export function profileFactsOf(memories: UserMemory[]): ProfileFactEntry[] {
+  return memories.flatMap(({ id, updatedAt, fact }) => (isValidMemoryFact(fact) ? [{ id, updatedAt, fact }] : []))
+}
+
+/**
+ * Perfil a partir de `memory.profileFacts`. La memoria puede venir del
+ * cliente: se descarta cualquier entrada sin id, sin fecha entera o con un
+ * hecho inválido, y se acota el número de entradas. Sin hechos → perfil vacío.
+ */
+export function profileFromMemory(memory: AxisMemory | null | undefined): UserProfile {
+  const raw: unknown = memory?.profileFacts
+  if (!Array.isArray(raw)) return { sources: {}, conflicts: [] }
+  const entries = raw.slice(0, MAX_PROFILE_FACTS).flatMap((e: unknown): FactSource[] => {
+    if (typeof e !== 'object' || e === null) return []
+    const { id, updatedAt, fact } = e as Record<string, unknown>
+    if (typeof id !== 'string' || id.length === 0 || id.length > 64 || !Number.isSafeInteger(updatedAt)) return []
+    return isValidMemoryFact(fact) ? [{ id, updatedAt: updatedAt as number, fact }] : []
+  })
+  return deriveProfile(entries)
+}
 
 /** Más reciente primero; a igual `updatedAt`, id lexicográfico ascendente (estable e independiente del orden de entrada). */
 const byRecency = (a: Candidate, b: Candidate) => b.memory.updatedAt - a.memory.updatedAt || (a.memory.id < b.memory.id ? -1 : a.memory.id > b.memory.id ? 1 : 0)
@@ -28,7 +55,7 @@ const byRecency = (a: Candidate, b: Candidate) => b.memory.updatedAt - a.memory.
  * gana la memoria actualizada más recientemente (empate: id); el resto queda
  * en `conflicts`. Sin hechos → perfil vacío.
  */
-export function deriveProfile(memories: UserMemory[]): UserProfile {
+export function deriveProfile(memories: readonly FactSource[]): UserProfile {
   const candidates: Candidate[] = memories.flatMap((memory) => (isValidMemoryFact(memory.fact) ? [{ memory, fact: memory.fact }] : []))
   if (candidates.length === 0) return { sources: {}, conflicts: [] }
 

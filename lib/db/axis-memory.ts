@@ -8,10 +8,12 @@
  *
  * `getAxisMemory()` devuelve la memoria completa que reciben el análisis y la
  * conversación: conclusiones anteriores + memorias aceptadas por el usuario
- * (tabla `axisMemories`, ver lib/db/axis-memories.ts).
+ * (tabla `axisMemories`, ver lib/db/axis-memories.ts) + los hechos de perfil
+ * de esas memorias (`profileFacts`), de los que `decide()` deriva el perfil.
  */
 import type { AxisAnalysis, AxisMemory } from '../axis/types'
 import { memoriesForModel } from '../axis/chat/memory'
+import { profileFactsOf } from '../axis/profile/derive'
 import { db } from './db'
 
 export const AXIS_MEMORY_KEY = 'memory' as const
@@ -26,7 +28,12 @@ export interface AxisMemoryEntry {
 export async function getAxisMemory(): Promise<AxisMemory | null> {
   const [entry, userMemories] = await Promise.all([db.axisMemory.get(AXIS_MEMORY_KEY), db.axisMemories.toArray()])
   if (!entry && userMemories.length === 0) return null
-  return { ...(entry?.memory ?? {}), ...(userMemories.length > 0 ? { userMemories: memoriesForModel(userMemories) } : {}) }
+  const profileFacts = profileFactsOf(userMemories)
+  return {
+    ...(entry?.memory ?? {}),
+    ...(userMemories.length > 0 ? { userMemories: memoriesForModel(userMemories) } : {}),
+    ...(profileFacts.length > 0 ? { profileFacts } : {}),
+  }
 }
 
 /** Recuerda la conclusión de un análisis (deduplicada por fecha de generación). */

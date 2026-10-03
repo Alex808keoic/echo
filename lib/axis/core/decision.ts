@@ -10,13 +10,14 @@
  * Redactar la decisión es responsabilidad de `render` (compose.ts) o, en
  * fases posteriores, de un modelo de lenguaje que la expresa sin alterarla.
  *
- * Perfil del usuario: `input.profile` (opcional) se reconcilia con el
+ * Perfil del usuario: `input.profile` o, si falta, el derivado de
+ * `input.memory.profileFacts` (`profileFromMemory`) se reconcilia con el
  * contexto UNA sola vez aquí (`reconcileProfile`) y llega a las reglas como
  * tercer parámetro. Sin perfil, o con uno vacío, la decisión es exactamente
  * la misma; lo aplicado queda siempre en `decision.profile`.
  */
-import { EMPTY_PROFILE, type DecisionProfile, type ProfileInfluence } from '../profile/types'
-import { reconcileProfile } from '../profile/derive'
+import type { DecisionProfile, ProfileInfluence } from '../profile/types'
+import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { detectSignals } from '../rules'
 import { eur } from '../rules/shared'
 import type { AxisDecision, AxisDestination, AxisInput, AxisUncertainty, Confidence, FinancialContext, Signal } from '../types'
@@ -128,7 +129,7 @@ function dedupe<T>(items: T[], key: (item: T) => string): T[] {
 export function decide(input: AxisInput): AxisDecision {
   const ctx = input.context
   // Única reconciliación: los datos actuales mandan sobre el perfil (solo quita, nunca añade).
-  const profile = reconcileProfile(input.profile ?? EMPTY_PROFILE, ctx)
+  const profile = reconcileProfile(input.profile ?? profileFromMemory(input.memory), ctx)
   const base = { context: ctx, level: ctx.quality.level, basedOnDemoData: ctx.quality.isDemo }
 
   if (ctx.quality.level === 'none') {

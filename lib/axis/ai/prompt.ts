@@ -8,6 +8,7 @@
  * estable (cacheable); el contexto va en el mensaje de usuario.
  */
 import { detectSignals } from '../rules'
+import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_SYSTEM_PROMPT } from '../prompts'
 import type { AxisInput, FinancialContext, Signal } from '../types'
 import type { AIRequest } from './provider'
@@ -41,12 +42,15 @@ function signalSummary(signals: Signal[]) {
 
 export function buildAIRequest(input: AxisInput): AIRequest {
   const { context, memory, market } = input
-  const signals = detectSignals(context, market ?? null)
+  const signals = detectSignals(context, market ?? null, reconcileProfile(input.profile ?? profileFromMemory(memory), context))
+  // Los hechos de perfil ya están aplicados en las señales; no van al modelo.
+  const { profileFacts: _facts, ...memoryForModel } = memory ?? {}
+  void _facts
   const payload = {
     contexto_financiero: minimalContext(context),
     senales_detectadas_por_finax: signalSummary(signals),
     ...(market ? { contexto_de_mercado: market } : {}),
-    ...(memory ? { memoria: memory } : {}),
+    ...(memory ? { memoria: memoryForModel } : {}),
   }
   return {
     system: AXIS_SYSTEM_PROMPT,

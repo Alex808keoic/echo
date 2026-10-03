@@ -6,9 +6,31 @@
  * validación (`parseChatReply`) los garantiza. Mismos patrones que
  * `AXIS_OUTPUT_SCHEMA`, ya probados con el proveedor.
  */
+import { HORIZONS, RISK_ATTITUDES } from '../profile/types'
 import { MEMORY_CATEGORIES, MEMORY_IMPORTANCES } from './types'
 
 const text = { type: 'string' } as const
+
+/** Una variante de `MemoryFact`: `kind` fijo (enum de un valor) y sus campos exactos. */
+const factOf = (kind: string, properties: Record<string, unknown>) =>
+  ({
+    type: 'object',
+    properties: { kind: { type: 'string', enum: [kind] }, ...properties },
+    required: ['kind', ...Object.keys(properties)],
+    additionalProperties: false,
+  }) as const
+
+/** Hecho de perfil de la propuesta (`MemoryFact` | null). La validación fina la hace `isValidMemoryFact`. */
+const FACT_SCHEMA = {
+  anyOf: [
+    { type: 'null' },
+    factOf('horizon', { value: { type: 'string', enum: [...HORIZONS] } }),
+    factOf('riskAttitude', { value: { type: 'string', enum: [...RISK_ATTITUDES] } }),
+    factOf('minLiquidity', { cents: { type: 'integer' } }),
+    factOf('irregularIncome', { value: { type: 'boolean' } }),
+    factOf('priorities', { objectiveIds: { type: 'array', items: text } }),
+  ],
+} as const
 
 export const AXIS_CHAT_SCHEMA = {
   type: 'object',
@@ -40,8 +62,9 @@ export const AXIS_CHAT_SCHEMA = {
             importance: { type: 'string', enum: [...MEMORY_IMPORTANCES] },
             confidence: { type: 'number' },
             replacesId: { anyOf: [{ type: 'null' }, text] },
+            fact: FACT_SCHEMA,
           },
-          required: ['content', 'category', 'importance', 'confidence', 'replacesId'],
+          required: ['content', 'category', 'importance', 'confidence', 'replacesId', 'fact'],
           additionalProperties: false,
         },
       ],

@@ -99,12 +99,14 @@ export function trimMemories(memories: UserMemory[], max: number = CHAT_LIMITS.M
 export function memoriesForModel(memories: UserMemory[]) {
   return [...memories]
     .sort((a, b) => IMPORTANCE_RANK[b.importance] - IMPORTANCE_RANK[a.importance] || b.updatedAt - a.updatedAt)
-    .map(({ id, content, category, importance, updatedAt }) => ({
+    .map(({ id, content, category, importance, updatedAt, fact }) => ({
       id,
       content,
       category,
       importance,
       fecha: new Date(updatedAt).toISOString().slice(0, 10),
+      // El hecho estructurado, si lo tiene: el modelo lo necesita para actualizarlo con «replacesId».
+      ...(fact ? { hecho: fact } : {}),
     }))
 }
 

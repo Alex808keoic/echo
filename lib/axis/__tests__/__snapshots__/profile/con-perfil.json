@@ -1,0 +1,488 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 355000,
+      "liquidCents": 355000,
+      "investedCents": 0,
+      "reservedForObjectivesCents": 150000,
+      "initialBalanceCents": 100000
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 200000,
+        "expenseCents": 70000,
+        "savingsCents": 130000,
+        "savingsRatePct": 65,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 42000,
+            "pct": 60
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 18000,
+            "pct": 26
+          },
+          {
+            "label": "Salidas",
+            "cents": 10000,
+            "pct": 14
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Paga",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 200000,
+        "expenseCents": 75000,
+        "savingsCents": 125000,
+        "savingsRatePct": 62.5,
+        "movementCount": 4,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 40000,
+            "pct": 53
+          },
+          {
+            "label": "Restaurantes",
+            "cents": 20000,
+            "pct": 27
+          },
+          {
+            "label": "Ropa",
+            "cents": 15000,
+            "pct": 20
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Paga",
+            "cents": 200000,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": -6.666666666666667,
+      "history": [
+        {
+          "date": "2026-08-01",
+          "cents": 300000
+        },
+        {
+          "date": "2026-08-05",
+          "cents": 260000
+        },
+        {
+          "date": "2026-08-12",
+          "cents": 240000
+        },
+        {
+          "date": "2026-08-20",
+          "cents": 225000
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 425000
+        },
+        {
+          "date": "2026-09-04",
+          "cents": 383000
+        },
+        {
+          "date": "2026-09-10",
+          "cents": 365000
+        },
+        {
+          "date": "2026-09-12",
+          "cents": 355000
+        }
+      ]
+    },
+    "objectives": [
+      {
+        "id": "obj-viaje",
+        "name": "Viaje",
+        "targetCents": 500000,
+        "currentCents": 100000,
+        "remainingCents": 400000,
+        "progressPct": 20,
+        "completed": false,
+        "ageDays": 106
+      },
+      {
+        "id": "obj-moto",
+        "name": "Moto",
+        "targetCents": 300000,
+        "currentCents": 50000,
+        "remainingCents": 250000,
+        "progressPct": 17,
+        "completed": false,
+        "ageDays": 106
+      }
+    ],
+    "investments": {
+      "positions": [],
+      "totalInvestedCents": 0,
+      "totalValueCents": 0,
+      "shareOfWealthPct": 0
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 8,
+      "historyDays": 8,
+      "monthsWithData": 2,
+      "hasPreviousPeriod": true,
+      "hasObjectives": true,
+      "hasInvestments": false,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "liquidity.below-min",
+      "domain": "savings",
+      "priority": "high",
+      "fact": "Quieres mantener al menos 4.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 450,00 €.",
+      "interpretation": "Estás por debajo del colchón que tú mismo has fijado: un gasto imprevisto tendría que salir de otros planes.",
+      "recommendation": {
+        "what": "Completa tu colchón hasta 4.000,00 € antes de destinar ahorro a otros fines.",
+        "why": "Es el mínimo que has decidido mantener; mientras no esté cubierto, cualquier otro destino del ahorro se financia con menos margen del que quieres.",
+        "nextStep": {
+          "label": "Ver Mi Dinero",
+          "to": "dinero"
+        },
+        "action": {
+          "verb": "complete-cushion",
+          "target": "cushion"
+        }
+      },
+      "alternative": {
+        "name": "Aportar al objetivo antes que al colchón",
+        "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      },
+      "profileInfluence": [
+        {
+          "field": "minLiquidityCents",
+          "sourceMemoryId": "mem-liq",
+          "signalId": "liquidity.below-min",
+          "effect": "added-signal"
+        }
+      ]
+    },
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Destina parte del excedente a «Moto».",
+        "why": "Te faltan 2.500,00 € y el balance del mes lo permite sin forzar.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "allocate",
+          "target": "objective",
+          "targetId": "obj-moto"
+        }
+      },
+      "profileInfluence": [
+        {
+          "field": "minLiquidityCents",
+          "sourceMemoryId": "mem-liq",
+          "signalId": "savings.healthy",
+          "effect": "alternative-removed"
+        },
+        {
+          "field": "priorities",
+          "sourceMemoryId": "mem-prio",
+          "signalId": "savings.healthy",
+          "effect": "target-selected",
+          "from": "obj-viaje",
+          "to": "obj-moto"
+        }
+      ]
+    },
+    {
+      "id": "objectives.no-date:obj-moto",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Moto» va por el 17% y le faltan 2.500,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Moto»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      },
+      "profileInfluence": [
+        {
+          "field": "priorities",
+          "sourceMemoryId": "mem-prio",
+          "signalId": "objectives.no-date:obj-moto",
+          "effect": "target-selected",
+          "from": "obj-viaje",
+          "to": "obj-moto"
+        }
+      ]
+    },
+    {
+      "id": "objectives.no-date:obj-viaje",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Viaje» va por el 20% y le faltan 4.000,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Viaje»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      }
+    },
+    {
+      "id": "investments.none",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "No hay inversiones registradas: todo el patrimonio es líquido.",
+      "interpretation": "Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.",
+      "uncertainty": {
+        "title": "Sin posiciones registradas",
+        "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+      }
+    }
+  ],
+  "lead": {
+    "id": "liquidity.below-min",
+    "domain": "savings",
+    "priority": "high",
+    "fact": "Quieres mantener al menos 4.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 450,00 €.",
+    "interpretation": "Estás por debajo del colchón que tú mismo has fijado: un gasto imprevisto tendría que salir de otros planes.",
+    "recommendation": {
+      "what": "Completa tu colchón hasta 4.000,00 € antes de destinar ahorro a otros fines.",
+      "why": "Es el mínimo que has decidido mantener; mientras no esté cubierto, cualquier otro destino del ahorro se financia con menos margen del que quieres.",
+      "nextStep": {
+        "label": "Ver Mi Dinero",
+        "to": "dinero"
+      },
+      "action": {
+        "verb": "complete-cushion",
+        "target": "cushion"
+      }
+    },
+    "alternative": {
+      "name": "Aportar al objetivo antes que al colchón",
+      "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+    },
+    "profileInfluence": [
+      {
+        "field": "minLiquidityCents",
+        "sourceMemoryId": "mem-liq",
+        "signalId": "liquidity.below-min",
+        "effect": "added-signal"
+      }
+    ]
+  },
+  "relevant": [
+    {
+      "id": "liquidity.below-min",
+      "domain": "savings",
+      "priority": "high",
+      "fact": "Quieres mantener al menos 4.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 450,00 €.",
+      "interpretation": "Estás por debajo del colchón que tú mismo has fijado: un gasto imprevisto tendría que salir de otros planes.",
+      "recommendation": {
+        "what": "Completa tu colchón hasta 4.000,00 € antes de destinar ahorro a otros fines.",
+        "why": "Es el mínimo que has decidido mantener; mientras no esté cubierto, cualquier otro destino del ahorro se financia con menos margen del que quieres.",
+        "nextStep": {
+          "label": "Ver Mi Dinero",
+          "to": "dinero"
+        },
+        "action": {
+          "verb": "complete-cushion",
+          "target": "cushion"
+        }
+      },
+      "alternative": {
+        "name": "Aportar al objetivo antes que al colchón",
+        "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      },
+      "profileInfluence": [
+        {
+          "field": "minLiquidityCents",
+          "sourceMemoryId": "mem-liq",
+          "signalId": "liquidity.below-min",
+          "effect": "added-signal"
+        }
+      ]
+    },
+    {
+      "id": "savings.healthy",
+      "domain": "savings",
+      "priority": "low",
+      "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+      "interpretation": "Cubres el gasto con margen y queda excedente real.",
+      "recommendation": {
+        "what": "Destina parte del excedente a «Moto».",
+        "why": "Te faltan 2.500,00 € y el balance del mes lo permite sin forzar.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "allocate",
+          "target": "objective",
+          "targetId": "obj-moto"
+        }
+      },
+      "profileInfluence": [
+        {
+          "field": "minLiquidityCents",
+          "sourceMemoryId": "mem-liq",
+          "signalId": "savings.healthy",
+          "effect": "alternative-removed"
+        },
+        {
+          "field": "priorities",
+          "sourceMemoryId": "mem-prio",
+          "signalId": "savings.healthy",
+          "effect": "target-selected",
+          "from": "obj-viaje",
+          "to": "obj-moto"
+        }
+      ]
+    },
+    {
+      "id": "objectives.no-date:obj-moto",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Moto» va por el 17% y le faltan 2.500,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Moto»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      },
+      "profileInfluence": [
+        {
+          "field": "priorities",
+          "sourceMemoryId": "mem-prio",
+          "signalId": "objectives.no-date:obj-moto",
+          "effect": "target-selected",
+          "from": "obj-viaje",
+          "to": "obj-moto"
+        }
+      ]
+    },
+    {
+      "id": "objectives.no-date:obj-viaje",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Viaje» va por el 20% y le faltan 4.000,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Viaje»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 3.550,00 € (líquido 3.550,00 €).",
+    "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
+    "Quieres mantener al menos 4.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 450,00 €.",
+    "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
+    "«Moto» va por el 17% y le faltan 2.500,00 €."
+  ],
+  "recommendation": {
+    "what": "Completa tu colchón hasta 4.000,00 € antes de destinar ahorro a otros fines.",
+    "why": "Es el mínimo que has decidido mantener; mientras no esté cubierto, cualquier otro destino del ahorro se financia con menos margen del que quieres.",
+    "nextStep": {
+      "label": "Ver Mi Dinero",
+      "to": "dinero"
+    },
+    "action": {
+      "verb": "complete-cushion",
+      "target": "cushion"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "Aportar al objetivo antes que al colchón",
+      "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Sin fecha en «Moto»",
+      "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+    },
+    {
+      "title": "Sin fecha en «Viaje»",
+      "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+    },
+    {
+      "title": "Sin posiciones registradas",
+      "detail": "No puedo evaluar tu reparto entre liquidez e inversión. Si tienes inversiones fuera de Finax, registrarlas completaría la lectura."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Ver Mi Dinero",
+    "to": "dinero"
+  },
+  "profile": {
+    "fields": {
+      "minLiquidityCents": 400000,
+      "sources": {
+        "minLiquidityCents": "mem-liq",
+        "priorities": "mem-prio"
+      },
+      "conflicts": [],
+      "droppedPriorities": [],
+      "priorities": [
+        "obj-moto"
+      ]
+    },
+    "influence": [
+      {
+        "field": "minLiquidityCents",
+        "sourceMemoryId": "mem-liq",
+        "signalId": "liquidity.below-min",
+        "effect": "added-signal"
+      },
+      {
+        "field": "minLiquidityCents",
+        "sourceMemoryId": "mem-liq",
+        "signalId": "savings.healthy",
+        "effect": "alternative-removed"
+      },
+      {
+        "field": "priorities",
+        "sourceMemoryId": "mem-prio",
+        "signalId": "savings.healthy",
+        "effect": "target-selected",
+        "from": "obj-viaje",
+        "to": "obj-moto"
+      },
+      {
+        "field": "priorities",
+        "sourceMemoryId": "mem-prio",
+        "signalId": "objectives.no-date:obj-moto",
+        "effect": "target-selected",
+        "from": "obj-viaje",
+        "to": "obj-moto"
+      }
+    ]
+  }
+}
