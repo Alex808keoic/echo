@@ -22,7 +22,9 @@ import { buildAIRequest } from '../ai/prompt'
 import { buildChatRequest } from '../chat/prompt'
 import { composeLocalReply } from '../chat/local-reply'
 import { AXIS_CHAT_SCHEMA } from '../chat/schema'
-import { parseChatReply } from '../chat/validate'
+import { diagnoseProposal, parseChatReply } from '../chat/validate'
+import { chatWithProvider } from '../ai/server/analyze'
+import { createGroqProvider } from '../../ai/providers/groq'
 import { AI_ENGINE_INFO } from '../ai-engine'
 import { deriveProfile, profileFactsOf, profileFromMemory } from '../profile/derive'
 import { describeFact } from '../profile/describe'
@@ -176,6 +178,73 @@ describe('AXIS · perfil de extremo a extremo · propuesta del modelo', () => {
       assert.ok(proposal, 'la propuesta debe sobrevivir')
       assert.equal(proposal?.fact, undefined)
     }
+  })
+})
+
+describe('AXIS · perfil de extremo a extremo · diagnóstico de la propuesta', () => {
+  const CONTENT = 'Quiere tener siempre 4.000 € disponibles.'
+  const proposal = (extra: Record<string, unknown> = {}) => ({ content: CONTENT, category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, ...extra })
+  const output = (memoryProposal?: unknown) => ({ reply: 'Entendido.', confidence: 'media', nextStep: null, ...(memoryProposal === undefined ? {} : { memoryProposal }) })
+  const parsedFact = (memoryProposal: unknown) =>
+    parseChatReply({ ...output(memoryProposal), engine: AI_ENGINE_INFO, generatedAt: NOW.toISOString() }).memoryProposal?.fact
+
+  const CASES: Array<[string, Record<string, unknown>, ReturnType<typeof diagnoseProposal>]> = [
+    ['sin clave memoryProposal', output(), { proposal: 'absent', kept: false }],
+    ['memoryProposal null', output(null), { proposal: 'null', kept: false }],
+    ['propuesta sin texto', output({ category: 'constraint' }), { proposal: 'invalid', kept: false }],
+    ['propiedad fact ausente', output(proposal()), { proposal: 'present', fact: 'none:absent', kept: true }],
+    ['fact: null explícito', output(proposal({ fact: null })), { proposal: 'present', fact: 'none:null', kept: true }],
+    ['hecho válido', output(proposal({ fact: { kind: 'minLiquidity', cents: 400_000 } })), { proposal: 'present', fact: 'valid:minLiquidity', kept: true }],
+    ['hecho mal formado (céntimos no enteros)', output(proposal({ fact: { kind: 'minLiquidity', cents: 12.5 } })), { proposal: 'present', fact: 'invalid:minLiquidity', kept: true }],
+    ['hecho mal formado (campo con otro nombre)', output(proposal({ fact: { kind: 'minLiquidity', value: 5000 } })), { proposal: 'present', fact: 'invalid:minLiquidity', kept: true }],
+    ['tipo de hecho no permitido', output(proposal({ fact: { kind: 'invest', value: true } })), { proposal: 'present', fact: 'invalid:unknown-kind', kept: true }],
+    ['hecho que no es un objeto', output(proposal({ fact: 'minLiquidity' })), { proposal: 'present', fact: 'invalid:not-object', kept: true }],
+    ['propuesta descartada por el filtro (texto corto) con hecho válido', output(proposal({ content: 'corto', fact: { kind: 'horizon', value: 'long' } })), { proposal: 'present', fact: 'valid:horizon', kept: false }],
+  ]
+
+  for (const [name, raw, expected] of CASES) {
+    it(name, () => {
+      assert.deepEqual(diagnoseProposal(raw), expected)
+    })
+  }
+
+  it('el diagnóstico no cambia lo que acepta el parser: el hecho sobrevive si y solo si es «valid» y la propuesta se conserva', () => {
+    for (const [, raw, expected] of CASES) {
+      if (expected.proposal !== 'present') continue
+      const fact = parsedFact(raw.memoryProposal)
+      if (expected.kept && expected.fact?.startsWith('valid:')) assert.deepEqual(fact, (raw.memoryProposal as { fact: unknown }).fact)
+      else assert.equal(fact, undefined)
+    }
+  })
+
+  it('una propuesta con texto pero sin hecho válido se conserva solo con el texto', () => {
+    const reply = parseChatReply({ ...output(proposal({ fact: { kind: 'priorities', objectiveIds: [] } })), engine: AI_ENGINE_INFO, generatedAt: NOW.toISOString() })
+    assert.equal(diagnoseProposal(output(proposal({ fact: { kind: 'priorities', objectiveIds: [] } }))).fact, 'invalid:priorities')
+    assert.equal(reply.memoryProposal?.content, CONTENT)
+    assert.equal(reply.memoryProposal?.fact, undefined)
+  })
+
+  it('el servidor deja una línea de diagnóstico sin texto ni valores', async () => {
+    const raw = output(proposal({ fact: { kind: 'minLiquidity', cents: 123_456 } }))
+    const fetchImpl = (async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(raw) }, finish_reason: 'stop' }], usage: {} }), { status: 200 })) as typeof fetch
+    const real = console.info
+    const lines: string[] = []
+    console.info = (...args: unknown[]) => void lines.push(args.map(String).join(' '))
+    try {
+      const reply = await chatWithProvider(createGroqProvider({ apiKey: 'test-key-not-real', fetchImpl }), {
+        context: context(),
+        conversation: { summary: null, recent: [] },
+        message: 'Quiero tener siempre 1.234,56 € disponibles.',
+      })
+      assert.deepEqual(reply.memoryProposal?.fact, { kind: 'minLiquidity', cents: 123_456 })
+    } finally {
+      console.info = real
+    }
+    const line = lines.find((l) => l.startsWith('[axis] chat: propuesta: '))
+    assert.ok(line, 'falta la línea de diagnóstico')
+    assert.deepEqual(JSON.parse(line.slice(line.indexOf('{'))), { proposal: 'present', fact: 'valid:minLiquidity', kept: true })
+    for (const forbidden of ['123456', '1.234,56', '4.000', 'disponibles', 'Entendido']) assert.ok(!line.includes(forbidden), `la línea contiene «${forbidden}»`)
   })
 })
 

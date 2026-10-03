@@ -104,9 +104,11 @@ describe('AXIS · registro de llamadas · proveedores', () => {
 describe('AXIS · registro de llamadas · servidor', () => {
   it('cada llamada deja UNA línea con tipo, modelo, resultado, tamaño y uso de tokens', async () => {
     const model = createGroqProvider({ apiKey: KEY, model: 'openai/gpt-oss-20b', fetchImpl: groqOk() })
-    const lines = await captureInfo(() => chatWithProvider(model, chatInput()))
+    const all = await captureInfo(() => chatWithProvider(model, chatInput()))
+    // El chat añade además su línea de diagnóstico de la propuesta (`[axis] chat: propuesta:`).
+    const lines = all.filter((l) => l.startsWith('[axis] llamada: '))
     assert.equal(lines.length, 1)
-    assert.match(lines[0], /^\[axis\] llamada: /)
+    assert.equal(all.length, 2)
     const entry = JSON.parse(lines[0].slice(lines[0].indexOf('{')))
     assert.equal(entry.kind, 'chat')
     assert.equal(entry.model, 'groq:openai/gpt-oss-20b')
@@ -175,7 +177,7 @@ describe('AXIS · registro de llamadas · cadena Cloudflare → Groq', () => {
     globalThis.fetch = (async (url: string | URL | Request) => (String(url).includes('api.cloudflare.com') ? cloudflare() : groqOk()(url))) as typeof fetch
     try {
       const lines = await captureInfo(() => chatWithProvider(languageModelFromConfig(readAIServerConfig(ENV)), chatInput()))
-      return lines.map((l) => ({ line: l, entry: JSON.parse(l.slice(l.indexOf('{'))) }))
+      return lines.filter((l) => l.startsWith('[axis] llamada: ')).map((l) => ({ line: l, entry: JSON.parse(l.slice(l.indexOf('{'))) }))
     } finally {
       globalThis.fetch = real
     }

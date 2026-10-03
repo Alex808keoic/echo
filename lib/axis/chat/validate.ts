@@ -11,7 +11,7 @@
  */
 import { AxisValidationError } from '../validate'
 import { isSavableProposal, normalizeMemoryContent } from './memory'
-import { isValidMemoryFact } from '../profile/types'
+import { isValidMemoryFact, MEMORY_FACT_KINDS } from '../profile/types'
 import type { AxisDestination, AxisEngineInfo, AxisNextStep, Confidence } from '../types'
 import { CHAT_LIMITS, MEMORY_CATEGORIES, MEMORY_IMPORTANCES, type ChatInput, type ChatReply, type ConversationWindow, type MemoryProposal } from './types'
 
@@ -55,6 +55,38 @@ function memoryProposal(v: unknown): MemoryProposal | null {
   // Un hecho inválido no tumba la propuesta: se guarda solo el texto, que no cambia ninguna decisión.
   if (isValidMemoryFact(v.fact)) proposal.fact = v.fact
   return isSavableProposal(proposal) ? proposal : null
+}
+
+/**
+ * Diagnóstico de la propuesta cruda del modelo, para los logs: qué llegó y
+ * qué pasó con su `fact`. Solo etiquetas cerradas (presencia, tipo de hecho,
+ * categoría de error): nunca el texto ni los valores. Usa el mismo
+ * `isValidMemoryFact` que `memoryProposal` y no cambia lo que se acepta.
+ *
+ *   proposal  absent (sin clave) · null · invalid (no es un objeto con «content») · present
+ *   fact      none:absent · none:null · valid:<kind> · invalid:not-object · invalid:unknown-kind · invalid:<kind>
+ *   kept      si la propuesta sobrevive al parser (`parseChatReply`)
+ */
+export interface ProposalDiagnosis {
+  proposal: 'absent' | 'null' | 'invalid' | 'present'
+  fact?: string
+  kept: boolean
+}
+
+const FACT_KINDS: readonly string[] = MEMORY_FACT_KINDS
+
+export function diagnoseProposal(output: Record<string, unknown>): ProposalDiagnosis {
+  if (!('memoryProposal' in output) || output.memoryProposal === undefined) return { proposal: 'absent', kept: false }
+  const v = output.memoryProposal
+  if (v === null) return { proposal: 'null', kept: false }
+  if (!isRecord(v) || typeof v.content !== 'string') return { proposal: 'invalid', kept: false }
+  const kept = memoryProposal(v) !== null
+  if (!('fact' in v) || v.fact === undefined) return { proposal: 'present', fact: 'none:absent', kept }
+  if (v.fact === null) return { proposal: 'present', fact: 'none:null', kept }
+  if (!isRecord(v.fact)) return { proposal: 'present', fact: 'invalid:not-object', kept }
+  const kind = v.fact.kind
+  if (typeof kind !== 'string' || !FACT_KINDS.includes(kind)) return { proposal: 'present', fact: 'invalid:unknown-kind', kept }
+  return { proposal: 'present', fact: `${isValidMemoryFact(v.fact) ? 'valid' : 'invalid'}:${kind}`, kept }
 }
 
 /** Convierte la salida cruda del modelo en un `ChatReply` seguro o lanza `AxisValidationError`. */

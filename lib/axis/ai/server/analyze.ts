@@ -40,7 +40,7 @@ import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { redactChatInput, redactMemory } from '../../chat/secrets'
 import { validateChatReply } from '../../chat/semantic'
-import { parseChatReply } from '../../chat/validate'
+import { diagnoseProposal, parseChatReply } from '../../chat/validate'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
 
@@ -294,6 +294,8 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   const input = redactChatInput(rawInput)
   const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input), 'chat', signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
+  // Qué propuso el modelo y si su hecho de perfil pasó la validación: solo etiquetas, nunca valores.
+  console.info('[axis] chat: propuesta:', JSON.stringify(diagnoseProposal(raw)))
   const reply = parseChatReply({
     ...raw,
     engine: aiEngine(answeredBy),
