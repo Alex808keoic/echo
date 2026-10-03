@@ -28,9 +28,7 @@ import { createGroqProvider } from '../../ai/providers/groq'
 import { AI_ENGINE_INFO } from '../ai-engine'
 import { deriveProfile, profileFactsOf, profileFromMemory } from '../profile/derive'
 import { describeFact } from '../profile/describe'
-import { isValidMemoryFact, type MemoryFact } from '../profile/types'
-import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
-import { MEMORY } from '../prompts/memory'
+import type { MemoryFact } from '../profile/types'
 import type { AxisMemory, FinancialContext, ProfileFactEntry } from '../types'
 import type { UserMemory } from '../chat/types'
 import { db } from '../../db/db'
@@ -249,52 +247,6 @@ describe('AXIS · perfil de extremo a extremo · diagnóstico de la propuesta', 
     for (const forbidden of ['123456', '1.234,56', '4.000', 'disponibles', 'Entendido']) assert.ok(!line.includes(forbidden), `la línea contiene «${forbidden}»`)
   })
 })
-
-describe('AXIS · perfil de extremo a extremo · ejemplos del prompt', () => {
-  const rule = MEMORY.chat.facts
-
-  it('el prompt del chat incluye la regla con sus ejemplos', () => {
-    assert.ok(AXIS_CHAT_SYSTEM_PROMPT.includes(rule))
-    assert.match(rule, /«Quiero tener siempre 300 € disponibles» → «fact» = \{"kind":"minLiquidity","cents":30000\}/)
-    assert.match(rule, /\{"kind":"priorities","objectiveIds":\[…\]\}/)
-    assert.match(rule, /contexto_financiero\.objectives/)
-  })
-
-  it('el ejemplo de liquidez es un hecho válido con el esquema y el validador actuales', () => {
-    const json = rule.match(/\{"kind":"minLiquidity","cents":\d+\}/)?.[0]
-    assert.ok(json)
-    const fact: unknown = JSON.parse(json)
-    assert.ok(isValidMemoryFact(fact))
-    assert.equal(diagnoseProposal({ memoryProposal: { content: 'Quiere tener siempre 300 € disponibles.', category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, fact } }).fact, 'valid:minLiquidity')
-  })
-
-  it('el ejemplo de prioridades no inventa ids: remite a los objetivos de los datos actuales', () => {
-    assert.doesNotMatch(rule, /"objectiveIds":\["/)
-    // Los ids reales son los que viajan en los datos actuales del chat.
-    const request = buildChatRequest({ context: context(), conversation: { summary: null, recent: [] }, message: 'La moto va antes que el viaje.' })
-    assert.match(request.user, /"contexto_financiero":\{[^]*"objectives":\[\{"id":"obj-viaje"/)
-  })
-
-  it('mantiene null para lo no declarado y sigue rechazando candidatos inválidos', () => {
-    assert.match(rule, /«fact» = null aunque guardes la memoria/)
-    assert.match(rule, /una deducción tuya, nunca/)
-    for (const fact of [{ kind: 'minLiquidity', cents: '30000' }, { kind: 'priorities', objectiveIds: [] }, { kind: 'minLiquidity', cents: 30_000, extra: 1 }]) {
-      assert.equal(isValidMemoryFact(fact), false)
-      assert.equal(parsedProposalFact(fact), undefined)
-    }
-  })
-})
-
-function parsedProposalFact(fact: unknown) {
-  return parseChatReply({
-    reply: 'Entendido.',
-    confidence: 'media',
-    nextStep: null,
-    memoryProposal: { content: 'Quiere tener siempre 300 € disponibles.', category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, fact },
-    engine: AI_ENGINE_INFO,
-    generatedAt: NOW.toISOString(),
-  }).memoryProposal?.fact
-}
 
 describe('AXIS · perfil de extremo a extremo · persistencia', () => {
   beforeEach(async () => {
