@@ -113,3 +113,44 @@ describe('AXIS · persistencia local', () => {
     assert.doesNotMatch(backup, /liquidez mínima|secreto de conversación/)
   })
 })
+
+describe('AXIS · persistencia local · sustitución de datos (fase 0)', () => {
+  beforeEach(async () => {
+    if (!db.isOpen()) await db.open()
+    await clearAllData()
+  })
+
+  const fact = (content: string, f: MemoryProposal['fact']): MemoryProposal => ({ content, category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, fact: f })
+
+  it('un dato del mismo tipo sustituye al anterior en Dexie y sobrevive a la recarga', async () => {
+    await saveAcceptedProposal(fact('Quiere tener siempre 300 € disponibles.', { kind: 'minLiquidity', cents: 30_000 }), 1_000)
+    await saveAcceptedProposal(fact('Piensa su dinero a largo plazo.', { kind: 'horizon', value: 'long' }), 2_000)
+    const out = await saveAcceptedProposal(fact('Prefiere un colchón de 500 € como mínimo.', { kind: 'minLiquidity', cents: 50_000 }), 3_000)
+    assert.equal(out.action, 'updated')
+    await reload()
+    const memories = await listUserMemories()
+    assert.equal(memories.length, 2, 'la de otro tipo se conserva; la sustituida no se duplica')
+    assert.deepEqual(memories.filter((m) => m.fact?.kind === 'minLiquidity').map((m) => m.fact), [{ kind: 'minLiquidity', cents: 50_000 }])
+    const mem = await getAxisMemory()
+    assert.equal(mem?.profileFacts?.length, 2)
+  })
+
+  it('olvidar el dato lo quita del perfil que se envía', async () => {
+    await saveAcceptedProposal(fact('Quiere tener siempre 300 € disponibles.', { kind: 'minLiquidity', cents: 30_000 }), 1_000)
+    const [m] = await listUserMemories()
+    await deleteUserMemory(m.id)
+    await reload()
+    assert.equal((await getAxisMemory())?.profileFacts, undefined)
+  })
+
+  it('guardar una conclusión no altera los hechos del perfil', async () => {
+    await saveAcceptedProposal(fact('Quiere tener siempre 300 € disponibles.', { kind: 'minLiquidity', cents: 30_000 }), 1_000)
+    const before = (await getAxisMemory())?.profileFacts
+    const result = analyzeLocally({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements() }), TODAY) }, NOW)
+    assert.equal(result.status, 'analysis')
+    if (result.status === 'analysis') await rememberConclusion(result.analysis)
+    const after = await getAxisMemory()
+    assert.deepEqual(after?.profileFacts, before)
+    assert.equal(after?.previousConclusions?.length, 1)
+  })
+})

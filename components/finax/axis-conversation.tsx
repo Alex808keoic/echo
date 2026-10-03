@@ -13,6 +13,8 @@ import type { ChatMessage, UserMemory } from '@/lib/axis/chat/types'
 import { CHAT_LIMITS } from '@/lib/axis/chat/types'
 import type { AxisNextStep } from '@/lib/axis/types'
 import { describeFact } from '@/lib/axis/profile/describe'
+import { replacementFor } from '@/lib/axis/chat/memory'
+import type { MemoryFact } from '@/lib/axis/profile/types'
 import { listObjectives } from '@/lib/db/objectives'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { ChatStatus } from '@/hooks/use-axis-chat'
@@ -77,11 +79,14 @@ function NextStepLink({ step, onNavigate }: { step: AxisNextStep; onNavigate: Na
   )
 }
 
-function ProposalCard({ message, onResolve }: { message: ChatMessage; onResolve: (accept: boolean) => Promise<void> }) {
+function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean) => Promise<void> }) {
   const proposal = message.memoryProposal
   const [busy, setBusy] = useState(false)
   const objectives = useLiveQuery(listObjectives, [])
   if (!proposal) return null
+  const describe = (fact: MemoryFact) => describeFact(fact, (id) => objectives?.find((o) => o.id === id)?.name)
+  // Lo mismo que hará `applyProposal` al aceptar: si sustituye un dato, se enseña antes de confirmar.
+  const replaces = proposal.status === 'pending' ? replacementFor(proposal, memories).replacedFacts : []
   if (proposal.status !== 'pending') {
     return (
       <p className="mt-2 text-[11.5px] font-semibold text-muted-foreground">
@@ -103,13 +108,24 @@ function ProposalCard({ message, onResolve }: { message: ChatMessage; onResolve:
       <p className="mt-1 text-[13px] font-medium leading-snug text-grafito/85 text-pretty">
         He entendido que {lowerFirst(proposal.content)} ¿Quieres que lo recuerde para futuras conversaciones?
       </p>
-      {proposal.fact && (
-        <p className="mt-2 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
-          <span className="font-bold text-axis-indigo">
-            {describeFact(proposal.fact, (id) => objectives?.find((o) => o.id === id)?.name)}
-          </span>
-          {' · '}Lo tendré en cuenta al decidir qué te recomiendo.
-        </p>
+      {replaces.length > 0 ? (
+        <div className="mt-2 space-y-1 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
+          {replaces.map((previous, i) => (
+            <p key={i}>
+              Antes: <span className="font-semibold text-grafito/70 line-through decoration-grafito/30">{describe(previous)}</span>
+            </p>
+          ))}
+          <p>
+            Ahora: <span className="font-bold text-axis-indigo">{proposal.fact ? describe(proposal.fact) : 'sin dato estructurado'}</span>
+          </p>
+        </div>
+      ) : (
+        proposal.fact && (
+          <p className="mt-2 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
+            <span className="font-bold text-axis-indigo">{describe(proposal.fact)}</span>
+            {' · '}Lo tendré en cuenta al decidir qué te recomiendo.
+          </p>
+        )
       )}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
@@ -126,7 +142,7 @@ function ProposalCard({ message, onResolve }: { message: ChatMessage; onResolve:
           onClick={() => resolve(true)}
           className="rounded-full bg-gradient-to-r from-axis-indigo via-axis-violet to-axis-blue px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:brightness-[1.05] disabled:opacity-50"
         >
-          Recordar
+          {replaces.length > 0 ? 'Recordar y sustituir' : 'Recordar'}
         </button>
       </div>
     </div>
@@ -138,7 +154,7 @@ function lowerFirst(text: string): string {
   return t ? `${t.charAt(0).toLowerCase()}${t.slice(1)}.` : t
 }
 
-function Message({ message, onResolve, onNavigate }: { message: ChatMessage; onResolve: (accept: boolean) => Promise<void>; onNavigate: Navigate }) {
+function Message({ message, memories, onResolve, onNavigate }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean) => Promise<void>; onNavigate: Navigate }) {
   if (message.role === 'user') {
     return (
       <li className="flex justify-end">
@@ -157,7 +173,7 @@ function Message({ message, onResolve, onNavigate }: { message: ChatMessage; onR
       <div className="min-w-0 flex-1">
         <Paragraphs text={message.text} />
         {message.nextStep && <NextStepLink step={message.nextStep} onNavigate={onNavigate} />}
-        <ProposalCard message={message} onResolve={onResolve} />
+        <ProposalCard message={message} memories={memories} onResolve={onResolve} />
         <p className="mt-1.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground/80">
           <span className={cn('rounded-full px-1.5 py-0.5', ai ? 'bg-axis-soft text-axis-indigo' : 'bg-muted')}>{ai ? 'IA' : 'Motor local'}</span>
           {message.fallbackReason && <span className="normal-case tracking-normal">· {FALLBACK_LABEL[message.fallbackReason]}</span>}
@@ -278,7 +294,7 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
         ) : (
           <ul className="space-y-4">
             {messages.map((m) => (
-              <Message key={m.id} message={m} onResolve={(accept) => onResolveProposal(m.id, accept)} onNavigate={onNavigate} />
+              <Message key={m.id} message={m} memories={memories} onResolve={(accept) => onResolveProposal(m.id, accept)} onNavigate={onNavigate} />
             ))}
           </ul>
         )}

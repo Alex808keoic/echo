@@ -5,7 +5,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { applyProposal, isSavableProposal } from '../chat/memory'
+import { applyProposal, isSavableProposal, replacementFor } from '../chat/memory'
 import type { MemoryProposal, UserMemory } from '../chat/types'
 import { buildFinancialContext } from '../context'
 import { deriveProfile, EMPTY_RECONCILED_PROFILE, reconcileProfile } from '../profile/derive'
@@ -237,4 +237,127 @@ describe('AXIS · perfil · memorias con hecho (applyProposal)', () => {
     assert.equal(dup.action, 'unchanged')
     assert.deepEqual(dup.memories[0].fact, { kind: 'horizon', value: 'long' })
   })
+})
+
+describe('AXIS · memoria · fase 0 · texto repetido con hecho (fallo 2)', () => {
+  const proposal = (overrides: Partial<MemoryProposal> = {}): MemoryProposal => ({ content: 'Quiere tener siempre 300 € disponibles.', category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, ...overrides })
+
+  it('mismo texto, ahora con hecho → se guarda el hecho en la misma memoria', () => {
+    const textOnly = applyProposal([], proposal(), T0, () => 'id-1')
+    const out = applyProposal(textOnly.memories, proposal({ fact: { kind: 'minLiquidity', cents: 30_000 } }), T0 + 1, () => 'id-2')
+    assert.equal(out.action, 'updated')
+    assert.equal(out.memories.length, 1)
+    assert.equal(out.memories[0].id, 'id-1')
+    assert.deepEqual(out.memories[0].fact, { kind: 'minLiquidity', cents: 30_000 })
+    assert.equal(deriveProfile(out.memories).minLiquidityCents, 30_000)
+  })
+
+  it('mismo texto y mismo hecho → sin cambios (solo se refresca la fecha)', () => {
+    const created = applyProposal([], proposal({ fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, () => 'id-1')
+    const out = applyProposal(created.memories, proposal({ fact: { kind: 'minLiquidity', cents: 30_000 } }), T0 + 1, () => 'id-2')
+    assert.equal(out.action, 'unchanged')
+    assert.equal(out.memories[0].updatedAt, T0 + 1)
+  })
+
+  it('mismo texto con otro valor → se sustituye el valor', () => {
+    const created = applyProposal([], proposal({ fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, () => 'id-1')
+    const out = applyProposal(created.memories, proposal({ fact: { kind: 'minLiquidity', cents: 40_000 } }), T0 + 1, () => 'id-2')
+    assert.equal(out.action, 'updated')
+    assert.equal(out.memories.length, 1)
+    assert.equal(deriveProfile(out.memories).minLiquidityCents, 40_000)
+  })
+})
+
+describe('AXIS · memoria · fase 0 · un hecho por hueco (fallo 3)', () => {
+  const p = (content: string, overrides: Partial<MemoryProposal> = {}): MemoryProposal => ({ content, category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, ...overrides })
+  const ids = () => {
+    let n = 0
+    return () => `id-${++n}`
+  }
+
+  it('dos hechos del mismo tipo con textos distintos → una sola memoria, con el valor nuevo y sin conflictos', () => {
+    const newId = ids()
+    const first = applyProposal([], p('Quiere tener siempre 300 € disponibles.', { fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, newId)
+    const out = applyProposal(first.memories, p('Prefiere un colchón de 500 € como mínimo.', { fact: { kind: 'minLiquidity', cents: 50_000 } }), T0 + 1, newId)
+    assert.equal(out.action, 'updated')
+    assert.equal(out.memories.length, 1)
+    assert.equal(out.memories[0].id, 'id-1', 'se reescribe en su sitio')
+    assert.match(out.memories[0].content, /500 €/)
+    const profile = deriveProfile(out.memories)
+    assert.equal(profile.minLiquidityCents, 50_000)
+    assert.deepEqual(profile.conflicts, [])
+  })
+
+  it('tipos distintos conviven', () => {
+    const newId = ids()
+    const first = applyProposal([], p('Quiere tener siempre 300 € disponibles.', { fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, newId)
+    const out = applyProposal(first.memories, p('Piensa su dinero a largo plazo.', { fact: { kind: 'horizon', value: 'long' } }), T0 + 1, newId)
+    assert.equal(out.action, 'created')
+    assert.equal(out.memories.length, 2)
+  })
+
+  it('replacesId a una memoria mientras otra ocupa el hueco → se actualiza la indicada y se elimina solo la que sustituye', () => {
+    const newId = ids()
+    let mems = applyProposal([], p('Quiere tener siempre 300 € disponibles.', { fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, newId).memories // id-1
+    mems = applyProposal(mems, p('Piensa su dinero a largo plazo.', { fact: { kind: 'horizon', value: 'long' } }), T0 + 1, newId).memories // id-2
+    mems = applyProposal(mems, p('Le preocupa quedarse sin margen.'), T0 + 2, newId).memories // id-3, solo texto
+    const out = applyProposal(mems, p('Quiere un colchón de 600 €.', { replacesId: 'id-3', fact: { kind: 'minLiquidity', cents: 60_000 } }), T0 + 3, newId)
+    assert.equal(out.action, 'updated')
+    assert.deepEqual(out.action === 'updated' && out.removed.map((m) => m.id), ['id-1'])
+    assert.deepEqual(out.memories.map((m) => m.id).sort(), ['id-2', 'id-3'])
+    assert.equal(deriveProfile(out.memories).minLiquidityCents, 60_000)
+    assert.equal(deriveProfile(out.memories).horizon, 'long', 'el hecho de otro tipo se conserva')
+  })
+
+  it('una memoria de texto idéntico con hecho de otro tipo nunca se elimina', () => {
+    const newId = ids()
+    let mems = applyProposal([], p('Quiere tener siempre 300 € disponibles.', { fact: { kind: 'minLiquidity', cents: 30_000 } }), T0, newId).memories // id-1
+    mems = applyProposal(mems, p('Lo tiene claro.', { fact: { kind: 'horizon', value: 'long' } }), T0 + 1, newId).memories // id-2
+    const out = applyProposal(mems, p('Lo tiene claro.', { fact: { kind: 'minLiquidity', cents: 70_000 } }), T0 + 2, newId)
+    assert.equal(out.action, 'updated')
+    assert.deepEqual(out.action === 'updated' && out.removed, [])
+    assert.equal(out.memories.length, 2)
+    assert.equal(deriveProfile(out.memories).horizon, 'long')
+    assert.equal(deriveProfile(out.memories).minLiquidityCents, 70_000)
+  })
+})
+
+describe('AXIS · memoria · fase 0 · la tarjeta y la persistencia coinciden (replacementFor)', () => {
+  const p = (content: string, overrides: Partial<MemoryProposal> = {}): MemoryProposal => ({ content, category: 'constraint', importance: 'high', confidence: 0.9, replacesId: null, ...overrides })
+  const mem = (id: string, content: string, fact?: MemoryFact): UserMemory => ({ id, content, category: 'constraint', importance: 'high', confidence: 0.9, source: 'conversation', createdAt: T0, updatedAt: T0, ...(fact ? { fact } : {}) })
+  const LIQ = (cents: number): MemoryFact => ({ kind: 'minLiquidity', cents })
+
+  const existing = [mem('a', 'Quiere tener siempre 300 € disponibles.', LIQ(30_000)), mem('b', 'Piensa a largo plazo.', { kind: 'horizon', value: 'long' }), mem('c', 'Le preocupa el margen.')]
+  const CASES: Array<[string, MemoryProposal, { mode: string; target?: string; removed: string[]; replaced: MemoryFact[] }]> = [
+    ['nueva sin hecho', p('Prefiere no complicarse.'), { mode: 'create', removed: [], replaced: [] }],
+    ['nuevo hecho de otro tipo', p('Sus ingresos varían.', { fact: { kind: 'irregularIncome', value: true } }), { mode: 'create', removed: [], replaced: [] }],
+    ['mismo tipo, texto distinto', p('Colchón de 500 €.', { fact: LIQ(50_000) }), { mode: 'update', target: 'a', removed: [], replaced: [LIQ(30_000)] }],
+    ['texto repetido sin hecho', p('Le preocupa el margen.'), { mode: 'unchanged', target: 'c', removed: [], replaced: [] }],
+    ['texto y hecho idénticos', p('Quiere tener siempre 300 € disponibles.', { fact: LIQ(30_000) }), { mode: 'unchanged', target: 'a', removed: [], replaced: [] }],
+    ['texto repetido con hecho nuevo', p('Le preocupa el margen.', { fact: { kind: 'riskAttitude', value: 'conservative' } }), { mode: 'update', target: 'c', removed: [], replaced: [] }],
+    ['replacesId solo texto (pierde su hecho)', p('Ya no necesita colchón.', { replacesId: 'a' }), { mode: 'update', target: 'a', removed: [], replaced: [LIQ(30_000)] }],
+    ['replacesId a otra con hueco ocupado', p('Colchón de 600 €.', { replacesId: 'c', fact: LIQ(60_000) }), { mode: 'update', target: 'c', removed: ['a'], replaced: [LIQ(30_000)] }],
+  ]
+
+  for (const [name, proposal, expected] of CASES) {
+    it(name, () => {
+      const plan = replacementFor(proposal, existing)
+      assert.equal(plan.mode, expected.mode)
+      assert.equal(plan.target?.id, expected.target)
+      assert.deepEqual(plan.removed.map((m) => m.id), expected.removed)
+      assert.deepEqual(plan.replacedFacts, expected.replaced)
+
+      // Lo que la tarjeta anuncia es lo que guarda applyProposal.
+      const out = applyProposal(existing, proposal, T0 + 10, () => 'nuevo')
+      const action = { create: 'created', update: 'updated', unchanged: 'unchanged' }[plan.mode]
+      assert.equal(out.action, action)
+      const remaining = new Set(out.memories.map((m) => m.id))
+      for (const id of expected.removed) assert.ok(!remaining.has(id), `debía eliminarse ${id}`)
+      for (const m of existing) if (!expected.removed.includes(m.id)) assert.ok(remaining.has(m.id), `no debía eliminarse ${m.id}`)
+      if (expected.target) {
+        const saved = out.memories.find((m) => m.id === expected.target)
+        if (plan.mode === 'update') assert.deepEqual(saved?.fact, proposal.fact ?? undefined)
+      }
+    })
+  }
 })

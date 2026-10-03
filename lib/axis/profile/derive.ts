@@ -30,6 +30,25 @@ export function profileFactsOf(memories: UserMemory[]): ProfileFactEntry[] {
 }
 
 /**
+ * Firma determinista de los hechos de perfil de la memoria: cambia si y solo
+ * si cambia lo que `profileFromMemory` puede derivar (alta, edición u olvido
+ * de un hecho). No incluye conclusiones ni el texto de las memorias, así que
+ * guardar la conclusión de un análisis no la altera y no relanza el análisis.
+ * Independiente del orden de entrada.
+ */
+export function profileSignature(memory: AxisMemory | null | undefined): string {
+  const raw: unknown = memory?.profileFacts
+  if (!Array.isArray(raw) || raw.length === 0) return ''
+  return raw
+    .map((e: unknown) => {
+      const { id, updatedAt, fact } = (typeof e === 'object' && e !== null ? e : {}) as Record<string, unknown>
+      return JSON.stringify([id, updatedAt, fact])
+    })
+    .sort()
+    .join('|')
+}
+
+/**
  * Perfil a partir de `memory.profileFacts`. La memoria puede venir del
  * cliente: se descarta cualquier entrada sin id, sin fecha entera o con un
  * hecho inválido, y se acota el número de entradas. Sin hechos → perfil vacío.

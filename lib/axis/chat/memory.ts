@@ -9,13 +9,16 @@
  * - Contenido equivalente a uno existente → se refresca `updatedAt`, no se duplica.
  * - Nada que parezca un secreto entra en la memoria.
  * - Un hecho estructurado (`fact`) solo entra si es válido; al actualizar una
- *   memoria (`replacesId`) el hecho anterior NO sobrevive salvo que la
- *   propuesta traiga uno: el hecho debe corresponder al texto aceptado.
+ *   memoria el hecho anterior NO sobrevive salvo que la propuesta traiga uno:
+ *   el hecho debe corresponder al texto aceptado.
+ * - Un hecho por hueco del perfil (`factSlot`): un hecho nuevo sustituye a la
+ *   memoria que ya ocupaba su hueco, aunque el modelo no indique `replacesId`.
+ *   La tarjeta enseña antes y después (`replacementFor`) y pide confirmación.
  * - Al superar el máximo, salen primero las menos importantes y, a igual
  *   importancia, las más antiguas; la memoria recién aceptada nunca sale, y
  *   las expulsadas se devuelven en `evicted` (nunca desaparecen en silencio).
  */
-import { isValidMemoryFact } from '../profile/types'
+import { isValidMemoryFact, type MemoryFact } from '../profile/types'
 import { looksLikeSecret } from './secrets'
 import { CHAT_LIMITS, MEMORY_CATEGORIES, MEMORY_IMPORTANCES, type MemoryImportance, type MemoryProposal, type UserMemory } from './types'
 
@@ -45,27 +48,108 @@ export function isSavableProposal(p: MemoryProposal): boolean {
 
 export type ApplyOutcome =
   | { action: 'created'; memories: UserMemory[]; evicted: UserMemory[] }
-  | { action: 'updated' | 'unchanged'; memories: UserMemory[] }
+  | { action: 'updated'; memories: UserMemory[]; removed: UserMemory[] }
+  | { action: 'unchanged'; memories: UserMemory[] }
   | { action: 'rejected'; reason: string; memories: UserMemory[] }
+
+/**
+ * Hueco que ocupa un hecho en el perfil: como mucho una memoria por hueco.
+ * Hoy, uno por clase de hecho.
+ */
+export function factSlot(fact: MemoryFact): string {
+  return fact.kind
+}
+
+/** Igualdad de hechos por significado (independiente del orden de las claves). */
+export function factEquals(a: MemoryFact | undefined, b: MemoryFact | undefined): boolean {
+  if (!a || !b) return a === b
+  if (a.kind !== b.kind) return false
+  switch (a.kind) {
+    case 'minLiquidity':
+      return a.cents === (b as typeof a).cents
+    case 'priorities':
+      return a.objectiveIds.join('\n') === (b as typeof a).objectiveIds.join('\n')
+    default:
+      return a.value === (b as typeof a).value
+  }
+}
+
+/**
+ * Qué haría aceptar `proposal` sobre `memories`. Lo usan la tarjeta (para
+ * enseñar «antes → ahora» y pedir confirmación) y `applyProposal` (para
+ * guardarlo), así que lo que se ve es exactamente lo que se guarda.
+ *
+ *   update     se reescribe `target` en su sitio (misma id): la indicada en
+ *              `replacesId`; si no, la que ocupa el mismo hueco del perfil; si
+ *              no, la del mismo texto cuando la propuesta trae un hecho nuevo.
+ *   unchanged  mismo texto y nada nuevo que guardar (se refresca la fecha).
+ *   create     memoria nueva.
+ *
+ * `removed`: memorias que la operación sustituye y desaparecen (la que ocupaba
+ * el mismo hueco si no es `target`, o una de texto idéntico sin hecho propio).
+ * `replacedFacts`: hechos que dejan de estar en el perfil. Las memorias con
+ * hechos de otros huecos nunca se eliminan.
+ */
+export interface Replacement {
+  mode: 'create' | 'update' | 'unchanged'
+  target?: UserMemory
+  removed: UserMemory[]
+  replacedFacts: MemoryFact[]
+}
+
+export function replacementFor(proposal: MemoryProposal, memories: UserMemory[]): Replacement {
+  const fact = proposal.fact ?? undefined
+  const content = normalizeMemoryContent(proposal.content)
+  const explicit = proposal.replacesId ? memories.find((m) => m.id === proposal.replacesId) : undefined
+  const slotHolder = fact ? memories.find((m) => m.fact !== undefined && factSlot(m.fact) === factSlot(fact)) : undefined
+  const duplicate = memories.find((m) => comparable(m.content) === comparable(content))
+
+  let target: UserMemory | undefined = explicit ?? slotHolder
+  // La misma memoria ya dice exactamente esto (texto y hecho): nada que guardar.
+  if (!explicit && target && target === duplicate && factEquals(target.fact, fact)) return { mode: 'unchanged', target, removed: [], replacedFacts: [] }
+  if (!target && duplicate) {
+    // Mismo texto: solo hay algo que guardar si trae un hecho distinto del que ya tiene.
+    if (!fact || factEquals(duplicate.fact, fact)) return { mode: 'unchanged', target: duplicate, removed: [], replacedFacts: [] }
+    target = duplicate
+  }
+  if (!target) return { mode: 'create', removed: [], replacedFacts: [] }
+
+  const removed: UserMemory[] = []
+  if (slotHolder && slotHolder.id !== target.id) removed.push(slotHolder)
+  // Un texto idéntico sin hecho propio quedaría duplicado: se sustituye. Con un hecho de otro hueco, se conserva.
+  if (duplicate && duplicate.id !== target.id && duplicate.fact === undefined && !removed.some((m) => m.id === duplicate.id)) removed.push(duplicate)
+
+  const replacedFacts = [
+    ...(target.fact && !factEquals(target.fact, fact) ? [target.fact] : []),
+    ...removed.flatMap((m) => (m.fact ? [m.fact] : [])),
+  ]
+  return { mode: 'update', target, removed, replacedFacts }
+}
 
 /** Aplica una propuesta aceptada por el usuario a la lista actual. No muta. */
 export function applyProposal(memories: UserMemory[], proposal: MemoryProposal, now: number, newId: () => string): ApplyOutcome {
   if (!isSavableProposal(proposal)) return { action: 'rejected', reason: 'propuesta no válida o con datos sensibles', memories }
   const content = normalizeMemoryContent(proposal.content)
   const confidence = clamp01(proposal.confidence)
-
   const fact = proposal.fact ?? undefined
-  const target = proposal.replacesId ? memories.find((m) => m.id === proposal.replacesId) : undefined
-  if (target) {
-    const { fact: _previous, ...rest } = target
-    void _previous
-    const updated: UserMemory = { ...rest, content, category: proposal.category, importance: proposal.importance, confidence, updatedAt: now, ...(fact ? { fact } : {}) }
-    return { action: 'updated', memories: memories.map((m) => (m.id === target.id ? updated : m)) }
+  const plan = replacementFor(proposal, memories)
+
+  if (plan.mode === 'unchanged' && plan.target) {
+    const id = plan.target.id
+    return { action: 'unchanged', memories: memories.map((m) => (m.id === id ? { ...m, updatedAt: now } : m)) }
   }
 
-  const duplicate = memories.find((m) => comparable(m.content) === comparable(content))
-  if (duplicate) {
-    return { action: 'unchanged', memories: memories.map((m) => (m.id === duplicate.id ? { ...m, updatedAt: now } : m)) }
+  if (plan.mode === 'update' && plan.target) {
+    // El hecho anterior no sobrevive salvo que la propuesta traiga uno: el hecho debe corresponder al texto aceptado.
+    const { fact: _previous, ...rest } = plan.target
+    void _previous
+    const updated: UserMemory = { ...rest, content, category: proposal.category, importance: proposal.importance, confidence, updatedAt: now, ...(fact ? { fact } : {}) }
+    const gone = new Set(plan.removed.map((m) => m.id))
+    return {
+      action: 'updated',
+      memories: memories.filter((m) => !gone.has(m.id)).map((m) => (m.id === updated.id ? updated : m)),
+      removed: plan.removed,
+    }
   }
 
   const created: UserMemory = {
