@@ -106,11 +106,14 @@ describe('AXIS · persistencia local', () => {
     assert.equal(await db.config.count(), 0)
   })
 
-  it('el backup no incluye memoria ni conversación de AXIS', async () => {
+  // Fase 4: la copia (v2) incluye las memorias aceptadas, y solo eso de AXIS. Sustituye al test anterior
+  // («el backup no incluye memoria…»), cuya especificación ya no es válida.
+  it('el backup incluye las memorias de AXIS, pero no la conversación ni las conclusiones', async () => {
     await saveAcceptedProposal(proposal)
     await putConversation({ summary: null, messages: [message('user', 'secreto de conversación')] })
     const backup = JSON.stringify(await exportBackup())
-    assert.doesNotMatch(backup, /liquidez mínima|secreto de conversación/)
+    assert.match(backup, /liquidez mínima/, 'la memoria aceptada sí está')
+    assert.doesNotMatch(backup, /secreto de conversación/, 'la conversación no')
   })
 })
 

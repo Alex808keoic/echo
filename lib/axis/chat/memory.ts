@@ -187,6 +187,70 @@ export function trimMemories(memories: UserMemory[], max: number = CHAT_LIMITS.M
   return { kept: memories.filter((m) => ids.has(m.id)), evicted: memories.filter((m) => !ids.has(m.id)) }
 }
 
+/* ---------------------- importación (copia de seguridad) ---------------------- */
+
+const MEMORY_KEYS = new Set(['id', 'content', 'category', 'importance', 'confidence', 'source', 'createdAt', 'updatedAt', 'fact'])
+const MAX_MEMORY_ID_CHARS = 64
+
+/**
+ * Valida las memorias de una copia de seguridad. Todo o nada: si una sola no
+ * es válida, se rechaza la lista entera (nunca se importa en parte, ni se
+ * corrige, ni se recorta). Cada memoria debe tener exactamente los campos de
+ * `UserMemory` (sin `source`, se toma como `conversation`), un texto que la
+ * memoria aceptaría hoy (sin secretos), un dato válido si lo trae (los tipos
+ * antiguos válidos se conservan) y fechas enteras. La lista: como mucho el
+ * tope de memorias, ids únicos y un solo dato por hueco del perfil, como
+ * garantiza `applyProposal`. Devuelve copias con solo esos campos.
+ */
+export function validateImportedMemories(list: unknown): { ok: true; memories: UserMemory[] } | { ok: false; error: string } {
+  if (!Array.isArray(list)) return { ok: false, error: 'La copia contiene memorias de AXIS no válidas.' }
+  if (list.length > CHAT_LIMITS.MAX_MEMORIES) return { ok: false, error: `La copia contiene más de ${CHAT_LIMITS.MAX_MEMORIES} memorias de AXIS.` }
+  const memories: UserMemory[] = []
+  const ids = new Set<string>()
+  const slots = new Set<string>()
+  for (const v of list) {
+    const m = importedMemory(v)
+    if (!m) return { ok: false, error: 'La copia contiene memorias de AXIS no válidas.' }
+    if (ids.has(m.id)) return { ok: false, error: 'La copia contiene memorias de AXIS repetidas.' }
+    ids.add(m.id)
+    if (m.fact) {
+      const slot = factSlot(m.fact)
+      if (slots.has(slot)) return { ok: false, error: 'La copia contiene memorias de AXIS contradictorias (dos datos del mismo tipo).' }
+      slots.add(slot)
+    }
+    memories.push(m)
+  }
+  return { ok: true, memories }
+}
+
+function importedMemory(v: unknown): UserMemory | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null
+  const r = v as Record<string, unknown>
+  if (Object.keys(r).some((k) => !MEMORY_KEYS.has(k))) return null
+  const { id, content, category, importance, confidence, createdAt, updatedAt, fact } = r
+  const source = r.source === undefined ? 'conversation' : r.source
+  if (typeof id !== 'string' || id.trim().length === 0 || id.length > MAX_MEMORY_ID_CHARS) return null
+  if (typeof content !== 'string') return null
+  const normalized = normalizeMemoryContent(content)
+  if (normalized.length < 8 || content.length > CHAT_LIMITS.MAX_MEMORY_CHARS || looksLikeSecret(normalized)) return null
+  if (!MEMORY_CATEGORIES.includes(category as never) || !MEMORY_IMPORTANCES.includes(importance as never)) return null
+  if (typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null
+  if (source !== 'conversation' && source !== 'manual') return null
+  if (!Number.isSafeInteger(createdAt) || !Number.isSafeInteger(updatedAt) || (createdAt as number) < 0 || (updatedAt as number) < 0) return null
+  if (fact !== undefined && !isValidMemoryFact(fact)) return null
+  return {
+    id,
+    content,
+    category: category as UserMemory['category'],
+    importance: importance as UserMemory['importance'],
+    confidence,
+    source,
+    createdAt: createdAt as number,
+    updatedAt: updatedAt as number,
+    ...(fact !== undefined ? { fact: fact as MemoryFact } : {}),
+  }
+}
+
 /** Vista de la memoria para el modelo: solo lo necesario para razonar y para poder actualizarla (id). */
 export function memoriesForModel(memories: UserMemory[]) {
   return [...memories]

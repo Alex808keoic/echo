@@ -1,9 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { clearAllData, exportBackup, parseBackup, restoreBackup } from '@/lib/db/backup'
 import { loadDemoData } from '@/lib/db/demo-seed'
-import { getAxisEngine } from '@/lib/axis/engine'
+import { browserTransport } from '@/lib/axis/ai/browser-transport'
+import { listUserMemories } from '@/lib/db/axis-memories'
 import { useMarket } from '@/hooks/use-market'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
@@ -63,12 +65,25 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const market = useMarket()
+  const memoryCount = useLiveQuery(async () => (await listUserMemories()).length, [], 0)
+  const [aiStatus, setAiStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
+  useEffect(() => {
+    let cancelled = false
+    browserTransport
+      .isAvailable()
+      .then((ok) => !cancelled && setAiStatus(ok ? 'available' : 'unavailable'))
+      .catch(() => !cancelled && setAiStatus('unavailable'))
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   if (!overview) return <ScreenLoading />
 
   const isEmpty = overview.movements.length === 0 && overview.objectives.length === 0 &&
     overview.positions.length === 0 && overview.config === null
-  const engine = getAxisEngine().info
+  // Las memorias también son datos: con ellas hay algo que exportar o borrar.
+  const nothingStored = isEmpty && memoryCount === 0
 
   async function handleExport() {
     const backup = await exportBackup()
@@ -79,17 +94,23 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
     a.download = `finax-backup-${backup.exportedAt.slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    setMessage({ text: 'Copia exportada.' })
+    setMessage({ text: `Copia exportada. Incluye ${backup.memories?.length ?? 0} memoria${backup.memories?.length === 1 ? '' : 's'} de AXIS: guárdala como información personal.` })
   }
 
   async function handleImportFile(file: File) {
     try {
       const backup = parseBackup(await file.text())
       const count = backup.movements.length
+      const incoming = backup.memories?.length
+      // v2: las memorias de la copia sustituyen a las actuales. v1: no trae memorias y las actuales se conservan.
+      const memoriesNote =
+        incoming === undefined
+          ? ' Es una copia antigua sin memorias de AXIS: las que tienes ahora se conservan.'
+          : ` Esta copia contiene ${incoming} memoria${incoming === 1 ? '' : 's'} de AXIS. Al restaurarla, sustituirá ${memoryCount === 1 ? 'la memoria' : `las ${memoryCount} memorias`} que tienes actualmente.`
       open(
         'Restaurar copia',
         <Confirm
-          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos y ${backup.positions.length} inversiones. Restaurarla sustituirá TODOS los datos actuales de este dispositivo.`}
+          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos y ${backup.positions.length} inversiones. Restaurarla sustituirá tus movimientos, objetivos, inversiones y saldo inicial de este dispositivo.${memoriesNote}`}
           confirmLabel="Restaurar"
           destructive
           onCancel={close}
@@ -162,13 +183,13 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       <Group title="Tus datos">
         <Row
           title="Exportar copia de seguridad"
-          description="Descarga un archivo JSON con todos tus datos."
+          description="Descarga un archivo JSON con tus datos y las memorias que AXIS tiene guardadas sobre ti. Puede contener información personal."
           onClick={handleExport}
-          disabled={isEmpty}
+          disabled={nothingStored}
         />
         <Row
           title="Importar / restaurar"
-          description="Sustituye los datos actuales por los de una copia."
+          description="Sustituye los datos actuales por los de una copia. Si la copia trae memorias de AXIS, también sustituye las actuales."
           onClick={() => fileInput.current?.click()}
         />
         <Row
@@ -191,14 +212,18 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
           description="Elimina de forma definitiva todo lo guardado en este dispositivo."
           onClick={handleClear}
           tone="danger"
-          disabled={isEmpty}
+          disabled={nothingStored}
         />
       </Group>
 
       <Group title="Privacidad">
         <Row
-          title="Todo se guarda en tu dispositivo"
-          description="Finax funciona sin cuenta ni servidor. Tus datos viven en el almacenamiento local del navegador y no se envían a ningún sitio."
+          title="Tus datos se guardan en este dispositivo"
+          description="Finax funciona sin cuenta: movimientos, objetivos, inversiones y memorias de AXIS viven en el almacenamiento local del navegador, y la app funciona sin conexión con el motor local de AXIS."
+        />
+        <Row
+          title="Qué sale del dispositivo al usar AXIS con IA"
+          description="Cuando AXIS responde con IA, el contexto necesario (tus cifras, tus memorias y la conversación) se envía al servidor de Finax y a un proveedor de IA para elaborar la respuesta. Con el motor local no se envía nada. El contexto de mercado se descarga de una fuente pública y no lleva datos tuyos."
         />
       </Group>
 
@@ -209,11 +234,13 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
           onClick={() => onNavigate('memoria')}
         />
         <Row
-          title={engine.label}
+          title={aiStatus === 'available' ? 'IA de AXIS disponible' : aiStatus === 'checking' ? 'Comprobando la IA de AXIS…' : 'IA de AXIS no disponible ahora'}
           description={
-            engine.isAI
-              ? 'Análisis producido por un modelo de IA.'
-              : 'Lógica determinista sobre tus datos locales. No hay ningún modelo de IA conectado todavía.'
+            aiStatus === 'available'
+              ? 'AXIS responde con IA cuando puede y, si la IA falla o no hay conexión, con su motor local de reglas, que siempre está disponible.'
+              : aiStatus === 'checking'
+                ? 'El motor local de reglas siempre está disponible.'
+                : 'Sin conexión o sin IA configurada: AXIS responde con su motor local de reglas, que siempre está disponible.'
           }
         />
         {market.status !== 'disabled' && (

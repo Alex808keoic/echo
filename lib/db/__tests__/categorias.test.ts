@@ -7,7 +7,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseBackup, BACKUP_FORMAT, BACKUP_VERSION } from '../backup'
+import { parseBackup, BACKUP_FORMAT } from '../backup'
 import { categoriesFor, currentCategory, INCOME_CATEGORIES, LEGACY_CATEGORIES } from '../../types'
 
 const movimiento = (category: string) => ({
@@ -21,7 +21,8 @@ const movimiento = (category: string) => ({
 })
 
 const copia = (category: string) =>
-  JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: '2026-09-01T00:00:00.000Z', config: null, movements: [movimiento(category)], objectives: [], positions: [] })
+  // Copia v1 (anterior al renombrado y a la v2): sin memorias de AXIS.
+  JSON.stringify({ format: BACKUP_FORMAT, version: 1, exportedAt: '2026-09-01T00:00:00.000Z', config: null, movements: [movimiento(category)], objectives: [], positions: [] })
 
 describe('categorías de ingreso · «Paga» sustituye a «Trabajo»', () => {
   it('la lista que se ofrece al usuario tiene «Paga» y ya no «Trabajo»', () => {

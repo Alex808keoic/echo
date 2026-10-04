@@ -1,6 +1,14 @@
 /**
  * Copia de seguridad: exportar e importar todos los datos locales en JSON.
  * Formato versionado para que futuras versiones puedan migrarlo.
+ *
+ *   v1  configuración, movimientos, objetivos e inversiones.
+ *   v2  lo mismo + las memorias de AXIS (`axisMemories`). Nada más de AXIS:
+ *       ni conversación, ni conclusiones, ni mercado, ni estado derivado.
+ *
+ * Se importan las dos. Restaurar una v1 conserva las memorias del dispositivo;
+ * restaurar una v2 las sustituye. Todo o nada: una copia con algo no válido se
+ * rechaza entera y restaurar es una única transacción.
  */
 import { CONFIG_KEY, db } from './db'
 import {
@@ -13,9 +21,13 @@ import {
   type Position,
 } from '../types'
 import { isValidISODate } from '../dates'
+import { validateImportedMemories } from '../axis/chat/memory'
+import type { UserMemory } from '../axis/chat/types'
 
 export const BACKUP_FORMAT = 'finax-backup'
-export const BACKUP_VERSION = 1
+export const BACKUP_VERSION = 2
+/** Versiones que se pueden importar. */
+export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2]
 
 export interface Backup {
   format: typeof BACKUP_FORMAT
@@ -25,14 +37,17 @@ export interface Backup {
   movements: Movement[]
   objectives: Objective[]
   positions: Position[]
+  /** Memorias de AXIS (solo v2). Ausente en una copia v1: al restaurarla se conservan las del dispositivo. */
+  memories?: UserMemory[]
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [config, movements, objectives, positions] = await Promise.all([
+  const [config, movements, objectives, positions, memories] = await Promise.all([
     db.config.get(CONFIG_KEY),
     db.movements.toArray(),
     db.objectives.toArray(),
     db.positions.toArray(),
+    db.axisMemories.toArray(),
   ])
   return {
     format: BACKUP_FORMAT,
@@ -42,6 +57,7 @@ export async function exportBackup(): Promise<Backup> {
     movements,
     objectives,
     positions,
+    memories,
   }
 }
 
@@ -132,7 +148,7 @@ export function parseBackup(text: string): Backup {
   if (!isRecord(raw) || raw.format !== BACKUP_FORMAT) {
     throw new Error('El archivo no es una copia de seguridad de Finax.')
   }
-  if (raw.version !== BACKUP_VERSION) {
+  if (typeof raw.version !== 'number' || !SUPPORTED_BACKUP_VERSIONS.includes(raw.version)) {
     throw new Error(`Versión de copia no compatible (${String(raw.version)}).`)
   }
   const { movements, objectives, positions, config } = raw
@@ -148,30 +164,49 @@ export function parseBackup(text: string): Backup {
   if (config !== null && !isConfig(config)) {
     throw new Error('La copia contiene una configuración no válida.')
   }
+  // v2: las memorias son obligatorias (puede ser una lista vacía) y se validan todas o ninguna.
+  let memories: UserMemory[] | undefined
+  if (raw.version >= 2) {
+    const checked = validateImportedMemories(raw.memories)
+    if (!checked.ok) throw new Error(checked.error)
+    memories = checked.memories
+  }
   return {
     format: BACKUP_FORMAT,
-    version: BACKUP_VERSION,
+    version: raw.version,
     exportedAt: isStr(raw.exportedAt) ? raw.exportedAt : '',
     config,
     movements: withCurrentCategories(movements),
     objectives,
     positions,
+    ...(memories !== undefined ? { memories } : {}),
   }
 }
 
-/** Sustituye TODOS los datos locales por los de la copia (operación atómica). */
+/**
+ * Sustituye los datos locales por los de la copia, en una sola transacción: si
+ * algo falla, no cambia ninguna tabla. Las memorias de AXIS se sustituyen solo
+ * si la copia las trae (v2); con una v1 se conservan las del dispositivo.
+ */
 export async function restoreBackup(backup: Backup): Promise<void> {
-  await db.transaction('rw', db.config, db.movements, db.objectives, db.positions, async () => {
+  // Defensa: aunque `parseBackup` ya las validó, nunca se escriben memorias sin validar.
+  if (backup.memories !== undefined) {
+    const checked = validateImportedMemories(backup.memories)
+    if (!checked.ok) throw new Error(checked.error)
+  }
+  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories], async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
       db.objectives.clear(),
       db.positions.clear(),
+      ...(backup.memories !== undefined ? [db.axisMemories.clear()] : []),
     ])
     if (backup.config) await db.config.put(backup.config)
     await db.movements.bulkAdd(backup.movements)
     await db.objectives.bulkAdd(backup.objectives)
     await db.positions.bulkAdd(backup.positions)
+    if (backup.memories !== undefined) await db.axisMemories.bulkAdd(backup.memories)
   })
 }
 
