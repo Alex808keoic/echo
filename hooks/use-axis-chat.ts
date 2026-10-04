@@ -116,7 +116,7 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
   )
 
   const resolveProposal = useCallback(
-    async (messageId: string, accept: boolean, edited?: MemoryProposal) => {
+    async (messageId: string, accept: boolean, edited?: MemoryProposal, confirmedEvictions: readonly string[] = []) => {
       if (!conversation) return
       const message = conversation.messages.find((m) => m.id === messageId)
       const pending = message?.memoryProposal
@@ -125,8 +125,11 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
       const { status: _pending, ...original } = pending
       void _pending
       const proposal = accept && edited ? edited : original
-      const status = await resolveMemoryProposal(proposal, accept)
+      const status = await resolveMemoryProposal(proposal, accept, Date.now(), confirmedEvictions)
+      // Guardar habría olvidado una memoria sin confirmar (p. ej. cambió la lista): no se escribe y la propuesta sigue pendiente.
+      if (status === 'needs-confirmation') return status
       await persist(updateMessage(conversation, messageId, (m) => ({ ...m, memoryProposal: { ...proposal, status } })))
+      return status
     },
     [conversation, persist],
   )

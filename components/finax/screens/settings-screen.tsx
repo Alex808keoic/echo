@@ -58,7 +58,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-export function SettingsScreen({ overview, onBack }: ScreenProps) {
+export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { open, close } = useSheet()
   const fileInput = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
@@ -203,6 +203,11 @@ export function SettingsScreen({ overview, onBack }: ScreenProps) {
       </Group>
 
       <Group title="AXIS">
+        <Row
+          title="Lo que AXIS sabe de ti"
+          description="Lo que recuerda de tus conversaciones o de lo que añadas tú, y para qué lo usa. Puedes añadir, editar y eliminar."
+          onClick={() => onNavigate('memoria')}
+        />
         <Row
           title={engine.label}
           description={

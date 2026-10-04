@@ -26,6 +26,8 @@ export type MemoryImportance = (typeof MEMORY_IMPORTANCES)[number]
  * Es contexto (preferencias, decisiones, planes); nunca sustituye a los
  * datos de Finax. Se guarda en el dispositivo y se borra con «Borrar todos los datos».
  */
+export type MemorySource = 'conversation' | 'manual'
+
 export interface UserMemory {
   id: string
   /** Frase breve, en tercera persona, sin datos sensibles. */
@@ -34,7 +36,8 @@ export interface UserMemory {
   importance: MemoryImportance
   /** 0–1: seguridad con la que AXIS entendió la información. */
   confidence: number
-  source: 'conversation'
+  /** Origen: aceptada en una conversación o añadida a mano en «Lo que AXIS sabe de ti». No se envía al modelo. */
+  source: MemorySource
   createdAt: number
   updatedAt: number
   /**
@@ -61,6 +64,8 @@ export interface MemoryProposal {
    * campo nunca es guardable tal cual (`isSavableProposal`).
    */
   incompleteFact?: IncompleteRecurringIncome
+  /** Creada a mano por el usuario: al crearse se guarda con `source: 'manual'`. No se envía al modelo. */
+  origin?: 'manual'
 }
 
 export type ProposalStatus = 'pending' | 'accepted' | 'rejected'

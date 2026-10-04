@@ -14,14 +14,18 @@ import { CHAT_LIMITS } from '@/lib/axis/chat/types'
 import type { AxisNextStep } from '@/lib/axis/types'
 import { describeFact } from '@/lib/axis/profile/describe'
 import { replacementFor } from '@/lib/axis/chat/memory'
+import { evictionPreview } from '@/lib/axis/chat/memory-editor'
 import { RECURRING_INCOME_CATEGORIES, type MemoryFact } from '@/lib/axis/profile/types'
 import { buildEditedProposal, draftFor, validationMessage, type ProposalDraft } from '@/lib/axis/chat/profile-proposal'
 import { listObjectives } from '@/lib/db/objectives'
+import { listUserMemories } from '@/lib/db/axis-memories'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { ChatStatus } from '@/hooks/use-axis-chat'
 import type { ScreenKey } from './bottom-navigation'
 import { FinancialCard } from './card'
 import { AmountInput, ChipGroup } from './field'
+import { Confirm } from './confirm'
+import { useSheet } from './sheet'
 import { ArrowUpRight, ChevronRight, CloseIcon, LeafLogo, TrashIcon } from './icons'
 import { cn } from '@/lib/utils'
 
@@ -33,7 +37,7 @@ interface AxisConversationProps {
   messages: ChatMessage[]
   memories: UserMemory[]
   onSend: (text: string) => Promise<void>
-  onResolveProposal: (messageId: string, accept: boolean, edited?: MemoryProposal) => Promise<void>
+  onResolveProposal: (messageId: string, accept: boolean, edited?: MemoryProposal, confirmedEvictions?: readonly string[]) => Promise<unknown>
   onClear: () => Promise<void>
   onForget: (id: string) => Promise<void>
   onNavigate: Navigate
@@ -81,7 +85,9 @@ function NextStepLink({ step, onNavigate }: { step: AxisNextStep; onNavigate: Na
   )
 }
 
-function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean, edited?: MemoryProposal) => Promise<void> }) {
+type ResolveProposal = (accept: boolean, edited?: MemoryProposal, confirmedEvictions?: readonly string[]) => Promise<unknown>
+
+function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; memories: UserMemory[]; onResolve: ResolveProposal }) {
   const proposal = message.memoryProposal
   const [busy, setBusy] = useState(false)
   const objectives = useLiveQuery(listObjectives, [])
@@ -92,6 +98,8 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
   const [editing, setEditing] = useState(Boolean(proposal?.incompleteFact))
   // Los avisos de validación solo aparecen cuando el usuario ya ha tocado importe o categoría.
   const [touched, setTouched] = useState(false)
+  // Memorias que AXIS olvidaría al llegar al tope: se enseñan y se confirman antes de guardar.
+  const [evicting, setEvicting] = useState<UserMemory[] | null>(null)
   if (!proposal) return null
   if (proposal.status !== 'pending') {
     return (
@@ -113,10 +121,19 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
   }
   // Lo mismo que hará `applyProposal` al aceptar: si sustituye un dato, se enseña antes de confirmar.
   const replaces = final ? replacementFor(final, memories).replacedFacts : []
-  const resolve = async (accept: boolean) => {
+  const resolve = async (accept: boolean, confirmed: readonly string[] = []) => {
+    const toSave = accept && final ? final : original
     setBusy(true)
     try {
-      await onResolve(accept, accept && final && draft ? final : undefined)
+      // Llegar al tope olvidaría alguna memoria: primero se pregunta, con las memorias guardadas AHORA.
+      const evicted = accept ? evictionPreview(await listUserMemories(), toSave) : []
+      if (accept && evicted.some((m) => !confirmed.includes(m.id))) {
+        setEvicting(evicted)
+        return
+      }
+      const result = await onResolve(accept, accept && final && draft ? final : undefined, confirmed)
+      // La lista cambió entre la confirmación y el guardado: se vuelve a preguntar con los datos actuales.
+      setEvicting(result === 'needs-confirmation' ? evictionPreview(await listUserMemories(), toSave) : null)
     } finally {
       setBusy(false)
     }
@@ -171,6 +188,26 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
           Corregir el dato
         </button>
       )}
+      {evicting && evicting.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-negative/20 bg-white/80 px-3 py-2.5">
+          <p className="text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+            AXIS guarda como máximo {CHAT_LIMITS.MAX_MEMORIES} memorias. Para recordar esto, olvidaré:
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {evicting.map((m) => (
+              <li key={m.id} className="text-[12px] font-semibold text-grafito">«{m.fact ? describe(m.fact) : m.content}»</li>
+            ))}
+          </ul>
+          <div className="mt-2.5 grid grid-cols-2 gap-2">
+            <button type="button" disabled={busy} onClick={() => setEvicting(null)} className="rounded-full border border-border bg-white px-3 py-2 text-[12.5px] font-semibold text-grafito transition-all hover:bg-muted disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="button" disabled={busy} onClick={() => resolve(true, evicting.map((m) => m.id))} className="rounded-full bg-negative px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:bg-negative/90 disabled:opacity-50">
+              Recordar y olvidar
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -189,6 +226,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
           {replaces.length > 0 ? 'Recordar y sustituir' : 'Recordar'}
         </button>
       </div>
+      )}
     </div>
   )
 }
@@ -198,7 +236,7 @@ function lowerFirst(text: string): string {
   return t ? `${t.charAt(0).toLowerCase()}${t.slice(1)}.` : t
 }
 
-function Message({ message, memories, onResolve, onNavigate }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean, edited?: MemoryProposal) => Promise<void>; onNavigate: Navigate }) {
+function Message({ message, memories, onResolve, onNavigate }: { message: ChatMessage; memories: UserMemory[]; onResolve: ResolveProposal; onNavigate: Navigate }) {
   if (message.role === 'user') {
     return (
       <li className="flex justify-end">
@@ -227,10 +265,18 @@ function Message({ message, memories, onResolve, onNavigate }: { message: ChatMe
   )
 }
 
-function MemoriesList({ memories, onForget }: { memories: UserMemory[]; onForget: (id: string) => Promise<void> }) {
+function MemoriesList({ memories, onForget, onNavigate }: { memories: UserMemory[]; onForget: (id: string) => Promise<void>; onNavigate: Navigate }) {
   const [open, setOpen] = useState(false)
   const objectives = useLiveQuery(listObjectives, [])
-  if (memories.length === 0) return null
+  const { open: openSheet, close } = useSheet()
+  const seeAll = (
+    <button type="button" onClick={() => onNavigate('memoria')} className="mt-2 px-1 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+      Ver todo · Lo que AXIS sabe de ti
+    </button>
+  )
+  if (memories.length === 0) return <div>{seeAll}</div>
+  const confirmForget = (m: UserMemory) =>
+    openSheet('¿Eliminar esta memoria?', <Confirm message={`AXIS dejará de usar este dato como memoria: «${m.content}».`} confirmLabel="Eliminar" destructive onCancel={close} onConfirm={async () => { await onForget(m.id); close() }} />)
   return (
     <div>
       <button
@@ -259,7 +305,7 @@ function MemoriesList({ memories, onForget }: { memories: UserMemory[]; onForget
               <button
                 type="button"
                 aria-label="Olvidar"
-                onClick={() => onForget(m.id)}
+                onClick={() => confirmForget(m)}
                 className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-negative"
               >
                 <CloseIcon className="h-3.5 w-3.5" />
@@ -268,6 +314,7 @@ function MemoriesList({ memories, onForget }: { memories: UserMemory[]; onForget
           ))}
         </ul>
       )}
+      {seeAll}
     </div>
   )
 }
@@ -338,7 +385,7 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
         ) : (
           <ul className="space-y-4">
             {messages.map((m) => (
-              <Message key={m.id} message={m} memories={memories} onResolve={(accept, edited) => onResolveProposal(m.id, accept, edited)} onNavigate={onNavigate} />
+              <Message key={m.id} message={m} memories={memories} onResolve={(accept, edited, confirmed) => onResolveProposal(m.id, accept, edited, confirmed)} onNavigate={onNavigate} />
             ))}
           </ul>
         )}
@@ -380,7 +427,7 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
         </button>
       </form>
 
-      <MemoriesList memories={memories} onForget={onForget} />
+      <MemoriesList memories={memories} onForget={onForget} onNavigate={onNavigate} />
     </section>
   )
 }

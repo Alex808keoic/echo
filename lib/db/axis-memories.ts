@@ -14,12 +14,24 @@ export function listUserMemories(): Promise<UserMemory[]> {
   return db.axisMemories.orderBy('updatedAt').reverse().toArray()
 }
 
-/** Guarda una propuesta aceptada: crea, actualiza o deja igual según la lógica de memoria. */
-export async function saveAcceptedProposal(proposal: MemoryProposal, now: number = Date.now()): Promise<ApplyOutcome> {
+/** Guardar habría expulsado memorias que el usuario no ha confirmado: no se escribe nada. */
+export type SaveOutcome = ApplyOutcome | { action: 'needs-confirmation'; evicted: UserMemory[] }
+
+/**
+ * Guarda una propuesta aceptada: crea, actualiza o deja igual según la lógica
+ * de memoria. Nunca expulsa en silencio: si llegar al tope de memorias obliga a
+ * olvidar alguna que no esté en `confirmedEvictions` (ids que el usuario ya
+ * aceptó perder, ver `evictionPreview`), no escribe y devuelve
+ * `needs-confirmation`. Todo ocurre en una transacción: lo confirmado es lo que pasa.
+ */
+export async function saveAcceptedProposal(proposal: MemoryProposal, now: number = Date.now(), confirmedEvictions: readonly string[] = []): Promise<SaveOutcome> {
   return db.transaction('rw', db.axisMemories, async () => {
     const current = await db.axisMemories.toArray()
     const outcome = applyProposal(current, proposal, now, newId)
     if (outcome.action === 'rejected') return outcome
+    if (outcome.action === 'created' && outcome.evicted.some((m) => !confirmedEvictions.includes(m.id))) {
+      return { action: 'needs-confirmation', evicted: outcome.evicted }
+    }
     const keep = new Set(outcome.memories.map((m) => m.id))
     await Promise.all(current.filter((m) => !keep.has(m.id)).map((m) => db.axisMemories.delete(m.id)))
     await db.axisMemories.bulkPut(outcome.memories)
@@ -30,11 +42,19 @@ export async function saveAcceptedProposal(proposal: MemoryProposal, now: number
 /**
  * Respuesta del usuario a una propuesta de memoria («Recordar» / «No recordar»).
  * Solo aceptar escribe en Dexie; rechazar no toca nada. Devuelve el estado con
- * el que queda la propuesta: también «rejected» si se aceptó pero no era guardable.
+ * el que queda la propuesta: también «rejected» si se aceptó pero no era guardable,
+ * y «needs-confirmation» (sin escribir) si expulsaría una memoria no confirmada.
+ * Es la única vía de escritura de memorias, desde el chat y desde la pantalla de memoria.
  */
-export async function resolveMemoryProposal(proposal: MemoryProposal, accept: boolean, now: number = Date.now()): Promise<'accepted' | 'rejected'> {
+export async function resolveMemoryProposal(
+  proposal: MemoryProposal,
+  accept: boolean,
+  now: number = Date.now(),
+  confirmedEvictions: readonly string[] = [],
+): Promise<'accepted' | 'rejected' | 'needs-confirmation'> {
   if (!accept) return 'rejected'
-  const outcome = await saveAcceptedProposal(proposal, now)
+  const outcome = await saveAcceptedProposal(proposal, now, confirmedEvictions)
+  if (outcome.action === 'needs-confirmation') return 'needs-confirmation'
   return outcome.action === 'rejected' ? 'rejected' : 'accepted'
 }
 
