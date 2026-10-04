@@ -10,6 +10,7 @@
  * El perfil es contexto para decidir (umbrales y preferencias), no fuente
  * de verdad financiera: no contiene ni sustituye cifras del FinancialContext.
  */
+import { INCOME_CATEGORIES, type IncomeCategory } from '../../types'
 
 export const HORIZONS = ['short', 'medium', 'long'] as const
 /** < 2 años · 2–5 años · > 5 años. */
@@ -18,8 +19,17 @@ export type Horizon = (typeof HORIZONS)[number]
 export const RISK_ATTITUDES = ['conservative', 'balanced', 'dynamic'] as const
 export type RiskAttitude = (typeof RISK_ATTITUDES)[number]
 
-export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities'] as const
+export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities', 'recurringIncome'] as const
 export type MemoryFactKind = (typeof MEMORY_FACT_KINDS)[number]
+
+/**
+ * Ingreso recurrente declarado: por ahora solo mensual y solo en las
+ * categorías de ingreso de Finax (las mismas que un movimiento de ingreso).
+ */
+export const RECURRING_INCOME_FREQUENCIES = ['monthly'] as const
+export type RecurringIncomeFrequency = (typeof RECURRING_INCOME_FREQUENCIES)[number]
+export const RECURRING_INCOME_CATEGORIES = INCOME_CATEGORIES
+export type RecurringIncomeCategory = IncomeCategory
 
 export const PROFILE_LIMITS = Object.freeze({
   /** Liquidez mínima deseada: entero en céntimos, de 1 céntimo a 1 M€. */
@@ -27,6 +37,9 @@ export const PROFILE_LIMITS = Object.freeze({
   MIN_LIQUIDITY_MAX_CENTS: 100_000_000,
   /** Objetivos priorizados como máximo. */
   MAX_PRIORITIES: 5,
+  /** Ingreso recurrente: entero en céntimos, de 1 céntimo a 1 M€ por periodo. */
+  RECURRING_INCOME_MIN_CENTS: 1,
+  RECURRING_INCOME_MAX_CENTS: 100_000_000,
 })
 
 /** Exactamente una clase por hecho; cada clase, con su forma. */
@@ -36,6 +49,20 @@ export type MemoryFact =
   | { kind: 'minLiquidity'; cents: number }
   | { kind: 'irregularIncome'; value: boolean }
   | { kind: 'priorities'; objectiveIds: string[] }
+  | { kind: 'recurringIncome'; cents: number; frequency: RecurringIncomeFrequency; category: RecurringIncomeCategory }
+
+/**
+ * Un ingreso recurrente del perfil. Es una PREVISIÓN declarada por el usuario:
+ * nunca es un movimiento, no suma al líquido ni al patrimonio y no toca los
+ * objetivos. Registrar el dinero recibido es una operación aparte (Movimientos).
+ */
+export interface RecurringIncome {
+  category: RecurringIncomeCategory
+  cents: number
+  frequency: RecurringIncomeFrequency
+  /** Memoria que lo aporta (trazabilidad, como `sources` en el resto de campos). */
+  sourceMemoryId: string
+}
 
 export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities'
 
@@ -54,7 +81,9 @@ export interface UserProfile {
   irregularIncome?: boolean
   /** Ids de objetivos, por orden de prioridad. */
   priorities?: string[]
-  /** Trazabilidad: id de la memoria que aporta cada campo. */
+  /** Ingresos recurrentes declarados: como mucho uno por categoría, en el orden de `RECURRING_INCOME_CATEGORIES`. */
+  recurringIncomes?: RecurringIncome[]
+  /** Trazabilidad: id de la memoria que aporta cada campo (los ingresos recurrentes la llevan en cada elemento). */
   sources: Partial<Record<ProfileField, string>>
   conflicts: ProfileConflict[]
 }
@@ -128,11 +157,20 @@ export function isValidMemoryFact(v: unknown): v is MemoryFact {
       const ids = v.objectiveIds
       return ids.length >= 1 && ids.length <= PROFILE_LIMITS.MAX_PRIORITIES && ids.every((id) => typeof id === 'string' && id.trim().length > 0) && new Set(ids).size === ids.length
     }
+    case 'recurringIncome':
+      return (
+        keys.join() === 'category,cents,frequency,kind' &&
+        Number.isInteger(v.cents) &&
+        (v.cents as number) >= PROFILE_LIMITS.RECURRING_INCOME_MIN_CENTS &&
+        (v.cents as number) <= PROFILE_LIMITS.RECURRING_INCOME_MAX_CENTS &&
+        RECURRING_INCOME_FREQUENCIES.includes(v.frequency as RecurringIncomeFrequency) &&
+        RECURRING_INCOME_CATEGORIES.includes(v.category as RecurringIncomeCategory)
+      )
     default:
       return false
   }
 }
 
 export function isEmptyProfile(p: UserProfile): boolean {
-  return p.horizon === undefined && p.riskAttitude === undefined && p.minLiquidityCents === undefined && p.irregularIncome === undefined && p.priorities === undefined && Object.keys(p.sources).length === 0 && p.conflicts.length === 0
+  return p.horizon === undefined && p.riskAttitude === undefined && p.minLiquidityCents === undefined && p.irregularIncome === undefined && p.priorities === undefined && p.recurringIncomes === undefined && Object.keys(p.sources).length === 0 && p.conflicts.length === 0
 }

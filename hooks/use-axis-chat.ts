@@ -23,7 +23,7 @@ import { redactSecrets } from '@/lib/axis/chat/secrets'
 import { CHAT_LIMITS, type ChatMessage, type ConversationState, type UserMemory } from '@/lib/axis/chat/types'
 import type { MarketContext } from '@/lib/axis/types'
 import { clearConversation, getConversation, putConversation } from '@/lib/db/axis-conversation'
-import { deleteUserMemory, listUserMemories, saveAcceptedProposal } from '@/lib/db/axis-memories'
+import { deleteUserMemory, listUserMemories, resolveMemoryProposal } from '@/lib/db/axis-memories'
 import { getAxisMemory } from '@/lib/db/axis-memory'
 import { newId } from '@/lib/db/db'
 import type { FinancialOverview } from './use-financial-overview'
@@ -121,11 +121,7 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
       const message = conversation.messages.find((m) => m.id === messageId)
       const proposal = message?.memoryProposal
       if (!proposal || proposal.status !== 'pending') return
-      let status: 'accepted' | 'rejected' = 'rejected'
-      if (accept) {
-        const outcome = await saveAcceptedProposal(proposal)
-        status = outcome.action === 'rejected' ? 'rejected' : 'accepted'
-      }
+      const status = await resolveMemoryProposal(proposal, accept)
       await persist(updateMessage(conversation, messageId, (m) => ({ ...m, memoryProposal: { ...proposal, status } })))
     },
     [conversation, persist],

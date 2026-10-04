@@ -15,7 +15,7 @@
  */
 import type { AxisMemory, FinancialContext, ProfileFactEntry } from '../types'
 import type { UserMemory } from '../chat/types'
-import { EMPTY_PROFILE, isValidMemoryFact, MEMORY_FACT_KINDS, type DroppedPriority, type MemoryFact, type MemoryFactKind, type ProfileConflict, type ReconciledProfile, type UserProfile } from './types'
+import { EMPTY_PROFILE, isValidMemoryFact, MEMORY_FACT_KINDS, RECURRING_INCOME_CATEGORIES, type DroppedPriority, type MemoryFact, type MemoryFactKind, type ProfileConflict, type ReconciledProfile, type UserProfile } from './types'
 
 /** Lo único que la derivación lee de una memoria. */
 type FactSource = Pick<UserMemory, 'id' | 'updatedAt' | 'fact'>
@@ -72,22 +72,33 @@ const byRecency = (a: Candidate, b: Candidate) => b.memory.updatedAt - a.memory.
  * Perfil a partir de las memorias aceptadas. Solo cuentan las memorias con un
  * hecho estructurado válido (`fact`); el texto libre no aporta nada. Por clase
  * gana la memoria actualizada más recientemente (empate: id); el resto queda
- * en `conflicts`. Sin hechos → perfil vacío.
+ * en `conflicts`. Los ingresos recurrentes se resuelven igual, pero por
+ * categoría: la paga y los regalos conviven. Sin hechos → perfil vacío.
  */
 export function deriveProfile(memories: readonly FactSource[]): UserProfile {
   const candidates: Candidate[] = memories.flatMap((memory) => (isValidMemoryFact(memory.fact) ? [{ memory, fact: memory.fact }] : []))
   if (candidates.length === 0) return { sources: {}, conflicts: [] }
 
   const profile: UserProfile = { sources: {}, conflicts: [] }
-  for (const kind of MEMORY_FACT_KINDS) {
-    const ofKind = candidates.filter((c) => c.fact.kind === kind).sort(byRecency)
-    const winner = ofKind[0]
-    if (!winner) continue
-    if (ofKind.length > 1) {
-      const conflict: ProfileConflict = { kind, winnerId: winner.memory.id, loserIds: ofKind.slice(1).map((c) => c.memory.id) }
+  const resolve = (kind: MemoryFactKind, group: Candidate[]) => {
+    const ranked = [...group].sort(byRecency)
+    const winner = ranked[0]
+    if (!winner) return
+    if (ranked.length > 1) {
+      const conflict: ProfileConflict = { kind, winnerId: winner.memory.id, loserIds: ranked.slice(1).map((c) => c.memory.id) }
       profile.conflicts.push(conflict)
     }
     apply(profile, winner.fact, winner.memory.id)
+  }
+  for (const kind of MEMORY_FACT_KINDS) {
+    const ofKind = candidates.filter((c) => c.fact.kind === kind)
+    if (kind !== 'recurringIncome') {
+      resolve(kind, ofKind)
+      continue
+    }
+    for (const category of RECURRING_INCOME_CATEGORIES) {
+      resolve(kind, ofKind.filter((c) => c.fact.kind === 'recurringIncome' && c.fact.category === category))
+    }
   }
   return profile
 }
@@ -113,6 +124,9 @@ function apply(profile: UserProfile, fact: MemoryFact, sourceId: string): void {
     case 'priorities':
       profile.priorities = [...fact.objectiveIds]
       profile.sources.priorities = sourceId
+      return
+    case 'recurringIncome':
+      profile.recurringIncomes = [...(profile.recurringIncomes ?? []), { category: fact.category, cents: fact.cents, frequency: fact.frequency, sourceMemoryId: sourceId }]
       return
   }
 }
@@ -141,6 +155,8 @@ export function reconcileProfile(profile: UserProfile | ReconciledProfile, ctx: 
     ...(profile.riskAttitude !== undefined ? { riskAttitude: profile.riskAttitude } : {}),
     ...(profile.minLiquidityCents !== undefined ? { minLiquidityCents: profile.minLiquidityCents } : {}),
     ...(profile.irregularIncome !== undefined ? { irregularIncome: profile.irregularIncome } : {}),
+    // Un ingreso previsto no depende de los datos actuales: se conserva tal cual (copiado).
+    ...(profile.recurringIncomes !== undefined ? { recurringIncomes: profile.recurringIncomes.map((r) => ({ ...r })) } : {}),
     sources,
     conflicts: profile.conflicts.map((c) => ({ ...c, loserIds: [...c.loserIds] })),
     droppedPriorities: [...previouslyDropped, ...dropped],

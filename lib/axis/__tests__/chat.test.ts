@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto'
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildFinancialContext } from '../context'
@@ -17,6 +18,8 @@ import { isChatPayload, isChatReply, parseChatReply } from '../chat/validate'
 import { isFinancialContext } from '../ai/server/analyze'
 import type { MarketAIProvider } from '../../ai/providers/types'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
+import { db } from '../../db/db'
+import { listUserMemories, resolveMemoryProposal, saveAcceptedProposal } from '../../db/axis-memories'
 
 /* --------------------------------- helpers -------------------------------- */
 
@@ -167,15 +170,22 @@ describe('AXIS conversación · memoria', () => {
     assert.ok(m.id)
   })
 
-  it('rechazada → la lista no cambia (nada se guarda sin aceptación)', () => {
-    // La aceptación es la única vía de entrada: sin llamar a applyProposal no hay memoria.
-    const before: UserMemory[] = [memory('a', 'Prefiere no invertir dinero que pueda necesitar este año.')]
-    const after = before
-    assert.deepEqual(after, before)
+  it('rechazada → la lista no cambia (nada se guarda sin aceptación)', async () => {
+    if (!db.isOpen()) await db.open()
+    await db.axisMemories.clear()
+    await saveAcceptedProposal({ ...proposal, content: 'Prefiere no invertir dinero que pueda necesitar este año.' }, 1_000)
+    const before = await listUserMemories()
     // Una propuesta que el modelo devuelve queda en la respuesta, no en la memoria.
     const reply = parseChatReply({ ...validAIOutput({ memoryProposal: proposal }), engine: AI_ENGINE_INFO, generatedAt: NOW.toISOString() })
     assert.ok(reply.memoryProposal)
-    assert.equal(before.length, 1)
+    assert.deepEqual(await listUserMemories(), before, 'recibir la propuesta no guarda nada')
+    // «No recordar» es el mismo camino que usa la conversación: tampoco guarda nada.
+    assert.equal(await resolveMemoryProposal(reply.memoryProposal, false, 2_000), 'rejected')
+    assert.deepEqual(await listUserMemories(), before, 'rechazarla no guarda nada')
+    // Control: aceptarla sí la guarda (la prueba distingue los dos caminos).
+    assert.equal(await resolveMemoryProposal(reply.memoryProposal, true, 3_000), 'accepted')
+    assert.equal((await listUserMemories()).length, before.length + 1)
+    await db.axisMemories.clear()
   })
 
   it('actualización → replacesId sustituye la memoria anterior sin duplicar', () => {

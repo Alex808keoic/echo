@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { db } from '../db'
 import { clearAllData, exportBackup } from '../backup'
 import { clearConversation, getConversation, putConversation } from '../axis-conversation'
-import { deleteUserMemory, listUserMemories, saveAcceptedProposal } from '../axis-memories'
+import { deleteUserMemory, listUserMemories, resolveMemoryProposal, saveAcceptedProposal } from '../axis-memories'
 import { getAxisMemory, rememberConclusion } from '../axis-memory'
 import { setInitialBalance } from '../config'
 import { appendMessage, EMPTY_CONVERSATION } from '../../axis/chat/history'
@@ -152,5 +152,57 @@ describe('AXIS · persistencia local · sustitución de datos (fase 0)', () => {
     const after = await getAxisMemory()
     assert.deepEqual(after?.profileFacts, before)
     assert.equal(after?.previousConclusions?.length, 1)
+  })
+})
+
+describe('AXIS · persistencia local · ingreso recurrente (fase 1)', () => {
+  beforeEach(async () => {
+    if (!db.isOpen()) await db.open()
+    await clearAllData()
+  })
+
+  const income = (content: string, cents: number, category: 'Paga' | 'Regalos' | 'Otros' = 'Paga'): MemoryProposal => ({
+    content,
+    category: 'financial_plan',
+    importance: 'high',
+    confidence: 0.9,
+    replacesId: null,
+    fact: { kind: 'recurringIncome', cents, frequency: 'monthly', category },
+  })
+  const incomes = async () => (await getAxisMemory())?.profileFacts?.map((f) => f.fact).filter((f) => f.kind === 'recurringIncome')
+
+  it('T1 · paga de 20 € → se acepta la de 35 € → persiste tras reabrir → regalos de 10 € no quitan la paga', async () => {
+    assert.equal(await resolveMemoryProposal(income('Cada mes le dan 20 € de paga.', 2_000), true, 1_000), 'accepted')
+    const [original] = await listUserMemories()
+
+    assert.equal(await resolveMemoryProposal(income('Ahora le dan 35 € de paga al mes.', 3_500), true, 2_000), 'accepted')
+    await reload()
+    const afterReplace = await listUserMemories()
+    assert.equal(afterReplace.length, 1, 'la paga anterior no queda duplicada')
+    assert.equal(afterReplace[0].id, original.id, 'se sustituye en su sitio')
+    assert.match(afterReplace[0].content, /35 €/)
+    assert.deepEqual(await incomes(), [{ kind: 'recurringIncome', cents: 3_500, frequency: 'monthly', category: 'Paga' }])
+
+    assert.equal(await resolveMemoryProposal(income('Cada mes recibe 10 € de regalos.', 1_000, 'Regalos'), true, 3_000), 'accepted')
+    await reload()
+    assert.equal((await listUserMemories()).length, 2)
+    assert.deepEqual(
+      (await incomes())?.map((f) => (f.kind === 'recurringIncome' ? [f.category, f.cents] : null)).sort(),
+      [['Paga', 3_500], ['Regalos', 1_000]],
+    )
+  })
+
+  it('T2 · rechazar una sustitución conserva exactamente la memoria anterior, no guarda el dato nuevo y no borra otras', async () => {
+    await resolveMemoryProposal(income('Cada mes le dan 20 € de paga.', 2_000), true, 1_000)
+    await resolveMemoryProposal({ content: 'Piensa su dinero a largo plazo.', category: 'preference', importance: 'medium', confidence: 0.8, replacesId: null, fact: { kind: 'horizon', value: 'long' } }, true, 2_000)
+    await resolveMemoryProposal({ content: 'Prefiere no complicarse.', category: 'preference', importance: 'low', confidence: 0.8, replacesId: null }, true, 3_000)
+    const before = await listUserMemories()
+    const factsBefore = (await getAxisMemory())?.profileFacts
+
+    assert.equal(await resolveMemoryProposal(income('Ahora le dan 35 € de paga al mes.', 3_500), false, 4_000), 'rejected')
+    await reload()
+    assert.deepEqual(await listUserMemories(), before, 'mismas memorias, mismos campos y mismas fechas')
+    assert.deepEqual((await getAxisMemory())?.profileFacts, factsBefore)
+    assert.deepEqual(await incomes(), [{ kind: 'recurringIncome', cents: 2_000, frequency: 'monthly', category: 'Paga' }])
   })
 })

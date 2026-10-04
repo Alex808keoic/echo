@@ -3,7 +3,9 @@
  * al aceptar una memoria con `fact`, porque es lo que cambiará las decisiones.
  */
 import { formatCents } from '../../money'
-import type { Horizon, MemoryFact, RiskAttitude } from './types'
+import type { Horizon, MemoryFact, RecurringIncomeFrequency, RiskAttitude } from './types'
+
+const FREQUENCY_LABEL: Record<RecurringIncomeFrequency, string> = { monthly: 'al mes' }
 
 const HORIZON_LABEL: Record<Horizon, string> = {
   short: 'corto plazo (menos de 2 años)',
@@ -34,5 +36,7 @@ export function describeFact(fact: MemoryFact, objectiveName: (id: string) => st
       const n = fact.objectiveIds.length
       return `Prioridad entre ${n} objetivo${n === 1 ? '' : 's'}`
     }
+    case 'recurringIncome':
+      return `Ingreso recurrente: ${formatCents(fact.cents)} ${FREQUENCY_LABEL[fact.frequency]} · ${fact.category}`
   }
 }

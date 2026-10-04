@@ -94,6 +94,23 @@ describe('AXIS · caché de análisis', () => {
     assert.equal(calls.length, 2)
   })
 
+  it('T4 · un ingreso recurrente cambia la firma: se vuelve a analizar, pero con los mismos datos la decisión es idéntica', async () => {
+    const { calls, cache } = counting()
+    const s = snap()
+    const paga: ProfileFactEntry = { id: 'mem-paga', updatedAt: 3, fact: { kind: 'recurringIncome', cents: 3_500, frequency: 'monthly', category: 'Paga' } }
+    assert.notEqual(profileSignature({ profileFacts: [paga] }), profileSignature(null))
+    const before = await cache.resultFor(s, false, null, null)
+    const after = await cache.resultFor(s, false, null, { profileFacts: [paga] })
+    // Coste documentado: aceptar u olvidar un ingreso provoca un análisis más (en la pantalla AXIS, una llamada de IA).
+    assert.equal(calls.length, 2)
+    assert.notEqual(after, before, 'resultado nuevo, no el de la caché')
+    const withoutDate = (r: AxisResult) => JSON.parse(JSON.stringify(r, (k, v) => (k === 'generatedAt' ? undefined : v))) as unknown
+    assert.deepEqual(withoutDate(after), withoutDate(before), 'mismo contenido (salvo la hora): el ingreso recordado no cambia la decisión en esta fase')
+    // Y queda en caché con su firma: repetir no vuelve a analizar.
+    assert.equal(await cache.resultFor(s, false, null, { profileFacts: [paga] }), after)
+    assert.equal(calls.length, 2)
+  })
+
   it('otra instantánea (datos editados) → otro análisis', async () => {
     const { calls, cache } = counting()
     await cache.resultFor(snap(), false, null, null)

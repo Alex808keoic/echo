@@ -27,6 +27,17 @@ export async function saveAcceptedProposal(proposal: MemoryProposal, now: number
   })
 }
 
+/**
+ * Respuesta del usuario a una propuesta de memoria («Recordar» / «No recordar»).
+ * Solo aceptar escribe en Dexie; rechazar no toca nada. Devuelve el estado con
+ * el que queda la propuesta: también «rejected» si se aceptó pero no era guardable.
+ */
+export async function resolveMemoryProposal(proposal: MemoryProposal, accept: boolean, now: number = Date.now()): Promise<'accepted' | 'rejected'> {
+  if (!accept) return 'rejected'
+  const outcome = await saveAcceptedProposal(proposal, now)
+  return outcome.action === 'rejected' ? 'rejected' : 'accepted'
+}
+
 export async function deleteUserMemory(id: string): Promise<void> {
   await db.axisMemories.delete(id)
 }

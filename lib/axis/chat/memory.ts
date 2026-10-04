@@ -54,10 +54,11 @@ export type ApplyOutcome =
 
 /**
  * Hueco que ocupa un hecho en el perfil: como mucho una memoria por hueco.
- * Hoy, uno por clase de hecho.
+ * Uno por clase de hecho, salvo los ingresos recurrentes: uno por categoría
+ * (la paga y los regalos conviven; dos «paga» se sustituyen).
  */
 export function factSlot(fact: MemoryFact): string {
-  return fact.kind
+  return fact.kind === 'recurringIncome' ? `recurringIncome:${fact.category}` : fact.kind
 }
 
 /** Igualdad de hechos por significado (independiente del orden de las claves). */
@@ -69,6 +70,10 @@ export function factEquals(a: MemoryFact | undefined, b: MemoryFact | undefined)
       return a.cents === (b as typeof a).cents
     case 'priorities':
       return a.objectiveIds.join('\n') === (b as typeof a).objectiveIds.join('\n')
+    case 'recurringIncome': {
+      const o = b as typeof a
+      return a.cents === o.cents && a.frequency === o.frequency && a.category === o.category
+    }
     default:
       return a.value === (b as typeof a).value
   }
