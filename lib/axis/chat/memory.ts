@@ -42,7 +42,9 @@ export function isSavableProposal(p: MemoryProposal): boolean {
     MEMORY_CATEGORIES.includes(p.category) &&
     MEMORY_IMPORTANCES.includes(p.importance) &&
     !looksLikeSecret(content) &&
-    (p.fact === undefined || p.fact === null || isValidMemoryFact(p.fact))
+    (p.fact === undefined || p.fact === null || isValidMemoryFact(p.fact)) &&
+    // Una propuesta incompleta (falta la categoría) no se guarda hasta que el usuario la completa.
+    p.incompleteFact === undefined
   )
 }
 

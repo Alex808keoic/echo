@@ -20,7 +20,7 @@ import { browserChatTransport } from '@/lib/axis/chat/browser-transport'
 import { createChatEngine, type ChatPhase } from '@/lib/axis/chat/engine'
 import { appendMessage, updateMessage, windowForModel } from '@/lib/axis/chat/history'
 import { redactSecrets } from '@/lib/axis/chat/secrets'
-import { CHAT_LIMITS, type ChatMessage, type ConversationState, type UserMemory } from '@/lib/axis/chat/types'
+import { CHAT_LIMITS, type ChatMessage, type ConversationState, type MemoryProposal, type UserMemory } from '@/lib/axis/chat/types'
 import type { MarketContext } from '@/lib/axis/types'
 import { clearConversation, getConversation, putConversation } from '@/lib/db/axis-conversation'
 import { deleteUserMemory, listUserMemories, resolveMemoryProposal } from '@/lib/db/axis-memories'
@@ -116,11 +116,15 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
   )
 
   const resolveProposal = useCallback(
-    async (messageId: string, accept: boolean) => {
+    async (messageId: string, accept: boolean, edited?: MemoryProposal) => {
       if (!conversation) return
       const message = conversation.messages.find((m) => m.id === messageId)
-      const proposal = message?.memoryProposal
-      if (!proposal || proposal.status !== 'pending') return
+      const pending = message?.memoryProposal
+      if (!pending || pending.status !== 'pending') return
+      // Lo que el usuario revisó en la tarjeta (importe o categoría corregidos) es lo que se guarda y lo que queda en el mensaje.
+      const { status: _pending, ...original } = pending
+      void _pending
+      const proposal = accept && edited ? edited : original
       const status = await resolveMemoryProposal(proposal, accept)
       await persist(updateMessage(conversation, messageId, (m) => ({ ...m, memoryProposal: { ...proposal, status } })))
     },

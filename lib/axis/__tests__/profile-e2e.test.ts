@@ -243,7 +243,7 @@ describe('AXIS · perfil de extremo a extremo · diagnóstico de la propuesta', 
     }
     const line = lines.find((l) => l.startsWith('[axis] chat: propuesta: '))
     assert.ok(line, 'falta la línea de diagnóstico')
-    assert.deepEqual(JSON.parse(line.slice(line.indexOf('{'))), { proposal: 'present', fact: 'valid:minLiquidity', kept: true })
+    assert.deepEqual(JSON.parse(line.slice(line.indexOf('{'))), { proposal: 'present', fact: 'valid:minLiquidity', kept: true, extractor: 'minLiquidity', gate: 'kept-model' })
     for (const forbidden of ['123456', '1.234,56', '4.000', 'disponibles', 'Entendido']) assert.ok(!line.includes(forbidden), `la línea contiene «${forbidden}»`)
   })
 })

@@ -41,6 +41,8 @@ import type { ChatInput, ChatReply } from '../../chat/types'
 import { redactChatInput, redactMemory } from '../../chat/secrets'
 import { validateChatReply } from '../../chat/semantic'
 import { diagnoseProposal, parseChatReply } from '../../chat/validate'
+import { withProfileProposal } from '../../chat/profile-proposal'
+import { extractionLabel } from '../../profile/extract'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
 
@@ -294,13 +296,23 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   const input = redactChatInput(rawInput)
   const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input), 'chat', signal)
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
-  // Qué propuso el modelo y si su hecho de perfil pasó la validación: solo etiquetas, nunca valores.
-  console.info('[axis] chat: propuesta:', JSON.stringify(diagnoseProposal(raw)))
-  const reply = parseChatReply({
-    ...raw,
-    engine: aiEngine(answeredBy),
-    generatedAt: new Date().toISOString(),
-  })
+  // Qué propuso el modelo, qué reconoció el extractor y qué hizo la puerta: solo etiquetas, nunca valores.
+  const diagnosis = diagnoseProposal(raw)
+  const logProposal = (extractor: string, gate: string) => console.info('[axis] chat: propuesta:', JSON.stringify({ ...diagnosis, extractor, gate }))
+  let parsed: ChatReply
+  try {
+    parsed = parseChatReply({
+      ...raw,
+      engine: aiEngine(answeredBy),
+      generatedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    logProposal('not-reached', 'not-reached')
+    throw error
+  }
+  // El dato estructurado sale del mensaje del usuario, no del modelo (misma puerta que las respuestas locales).
+  const { reply, outcome, extraction } = withProfileProposal(parsed, input.message)
+  logProposal(extractionLabel(extraction), outcome)
   const verdict = validateChatReply(reply)
   if (!verdict.ok) {
     console.warn('[axis] chat: respuesta rechazada:', verdict.violations.map((v) => `${v.invariant}@${v.field}: ${v.detail}`).join(' | '))

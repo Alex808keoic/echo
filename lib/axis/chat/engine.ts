@@ -18,6 +18,7 @@
 import { AI_ENGINE_INFO } from '../ai-engine'
 import { rememberAvailability, withFallback } from '../core/fallback'
 import { composeLocalReply } from './local-reply'
+import { withProfileProposal } from './profile-proposal'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 export type ChatPhase = 'analyzing' | 'responding'
@@ -56,6 +57,8 @@ export interface ChatEngine {
 
 export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_MS, isOffline, onPhase, onFallback }: ChatEngineOptions): ChatEngine {
   const isAvailable = rememberAvailability(() => transport.isAvailable())
+  // Respuesta local: misma puerta de datos de perfil que el servidor aplica a las respuestas con IA.
+  const local = (input: ChatInput, reason: FallbackReason) => withProfileProposal(composeLocalReply(input, reason), input.message).reply
 
   async function askAI(input: ChatInput, signal: AbortSignal): Promise<ChatReply> {
     onPhase?.('responding')
@@ -75,10 +78,10 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
     async ask(input) {
       onPhase?.('analyzing')
       // Sin datos no hay nada que interpretar: el motor local explica qué falta (0 llamadas).
-      if (input.context.quality.level === 'none') return composeLocalReply(input, 'no-data')
+      if (input.context.quality.level === 'none') return local(input, 'no-data')
       if (isOffline?.()) {
         onFallback?.('offline', 'sin conexión')
-        return composeLocalReply(input, 'offline')
+        return local(input, 'offline')
       }
       return withFallback<ChatReply>({
         isAvailable,
@@ -86,12 +89,12 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
         attempt: (signal) => askAI(input, signal),
         whenUnavailable: () => {
           onFallback?.('unavailable', 'IA no configurada')
-          return composeLocalReply(input, 'unavailable')
+          return local(input, 'unavailable')
         },
         whenFailed: (error) => {
           const reason: FallbackReason = error instanceof ChatTransportError ? error.reason : 'error'
           onFallback?.(reason, error instanceof Error ? error.message : 'error desconocido')
-          return composeLocalReply(input, reason)
+          return local(input, reason)
         },
       })
     },

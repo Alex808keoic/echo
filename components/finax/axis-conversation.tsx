@@ -9,17 +9,19 @@
  * IA o el motor local, y las propuestas de memoria (Recordar / No recordar).
  */
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { ChatMessage, UserMemory } from '@/lib/axis/chat/types'
+import type { ChatMessage, MemoryProposal, UserMemory } from '@/lib/axis/chat/types'
 import { CHAT_LIMITS } from '@/lib/axis/chat/types'
 import type { AxisNextStep } from '@/lib/axis/types'
 import { describeFact } from '@/lib/axis/profile/describe'
 import { replacementFor } from '@/lib/axis/chat/memory'
-import type { MemoryFact } from '@/lib/axis/profile/types'
+import { RECURRING_INCOME_CATEGORIES, type MemoryFact } from '@/lib/axis/profile/types'
+import { buildEditedProposal, draftFor, validationMessage, type ProposalDraft } from '@/lib/axis/chat/profile-proposal'
 import { listObjectives } from '@/lib/db/objectives'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { ChatStatus } from '@/hooks/use-axis-chat'
 import type { ScreenKey } from './bottom-navigation'
 import { FinancialCard } from './card'
+import { AmountInput, ChipGroup } from './field'
 import { ArrowUpRight, ChevronRight, CloseIcon, LeafLogo, TrashIcon } from './icons'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +33,7 @@ interface AxisConversationProps {
   messages: ChatMessage[]
   memories: UserMemory[]
   onSend: (text: string) => Promise<void>
-  onResolveProposal: (messageId: string, accept: boolean) => Promise<void>
+  onResolveProposal: (messageId: string, accept: boolean, edited?: MemoryProposal) => Promise<void>
   onClear: () => Promise<void>
   onForget: (id: string) => Promise<void>
   onNavigate: Navigate
@@ -79,14 +81,18 @@ function NextStepLink({ step, onNavigate }: { step: AxisNextStep; onNavigate: Na
   )
 }
 
-function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean) => Promise<void> }) {
+function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean, edited?: MemoryProposal) => Promise<void> }) {
   const proposal = message.memoryProposal
   const [busy, setBusy] = useState(false)
   const objectives = useLiveQuery(listObjectives, [])
+  // Dato editable (ingreso recurrente o liquidez mínima): importe y, en ingresos, categoría.
+  const editable = proposal ? draftFor(proposal) : null
+  const [draft, setDraft] = useState<ProposalDraft | null>(editable?.draft ?? null)
+  // Sin categoría hay que elegirla: la tarjeta abre directamente los controles.
+  const [editing, setEditing] = useState(Boolean(proposal?.incompleteFact))
+  // Los avisos de validación solo aparecen cuando el usuario ya ha tocado importe o categoría.
+  const [touched, setTouched] = useState(false)
   if (!proposal) return null
-  const describe = (fact: MemoryFact) => describeFact(fact, (id) => objectives?.find((o) => o.id === id)?.name)
-  // Lo mismo que hará `applyProposal` al aceptar: si sustituye un dato, se enseña antes de confirmar.
-  const replaces = proposal.status === 'pending' ? replacementFor(proposal, memories).replacedFacts : []
   if (proposal.status !== 'pending') {
     return (
       <p className="mt-2 text-[11.5px] font-semibold text-muted-foreground">
@@ -94,10 +100,23 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
       </p>
     )
   }
+  const { status: _status, ...original } = proposal
+  void _status
+  const describe = (fact: MemoryFact) => describeFact(fact, (id) => objectives?.find((o) => o.id === id)?.name)
+  // Lo que se guardaría: la propuesta con lo revisado en la tarjeta, validado con las reglas del perfil.
+  const built = draft ? buildEditedProposal(original, draft) : ({ ok: true, proposal: original } as const)
+  const final = built.ok ? built.proposal : null
+  const error = validationMessage(built, touched)
+  const edit = (next: ProposalDraft) => {
+    setDraft(next)
+    setTouched(true)
+  }
+  // Lo mismo que hará `applyProposal` al aceptar: si sustituye un dato, se enseña antes de confirmar.
+  const replaces = final ? replacementFor(final, memories).replacedFacts : []
   const resolve = async (accept: boolean) => {
     setBusy(true)
     try {
-      await onResolve(accept)
+      await onResolve(accept, accept && final && draft ? final : undefined)
     } finally {
       setBusy(false)
     }
@@ -106,8 +125,27 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
     <div className="mt-3 rounded-2xl border border-axis-violet/15 bg-axis-soft p-3.5">
       <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-axis-indigo/70">Memoria</p>
       <p className="mt-1 text-[13px] font-medium leading-snug text-grafito/85 text-pretty">
-        He entendido que {lowerFirst(proposal.content)} ¿Quieres que lo recuerde para futuras conversaciones?
+        He entendido que {lowerFirst((final ?? original).content)} ¿Quieres que lo recuerde para futuras conversaciones?
       </p>
+      {editable && draft && editing && (
+        <div className="mt-2 space-y-2 rounded-xl bg-white/70 px-3 py-2.5">
+          {editable.kind === 'recurringIncome' && (
+            <div>
+              <p className="mb-1.5 text-[12px] font-semibold text-grafito/80">
+                {draft.category ? 'Tipo de ingreso' : '¿Qué tipo de ingreso es?'}
+              </p>
+              <ChipGroup options={RECURRING_INCOME_CATEGORIES} value={draft.category} onChange={(category) => edit({ ...draft, category })} />
+            </div>
+          )}
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-semibold text-grafito/80">
+              {editable.kind === 'recurringIncome' ? 'Importe al mes' : 'Mínimo disponible'}
+            </span>
+            <AmountInput value={draft.amount} onChange={(e) => edit({ ...draft, amount: e.target.value })} className="py-2 text-[16px]" />
+          </label>
+          {error && <p className="text-[12px] font-medium text-negative">{error}</p>}
+        </div>
+      )}
       {replaces.length > 0 ? (
         <div className="mt-2 space-y-1 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
           {replaces.map((previous, i) => (
@@ -116,16 +154,22 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
             </p>
           ))}
           <p>
-            Ahora: <span className="font-bold text-axis-indigo">{proposal.fact ? describe(proposal.fact) : 'sin dato estructurado'}</span>
+            Ahora: <span className="font-bold text-axis-indigo">{final?.fact ? describe(final.fact) : 'sin dato estructurado'}</span>
           </p>
         </div>
       ) : (
-        proposal.fact && (
+        final?.fact &&
+        !editing && (
           <p className="mt-2 rounded-xl bg-white/70 px-3 py-2 text-[12px] font-medium leading-snug text-grafito/80">
-            <span className="font-bold text-axis-indigo">{describe(proposal.fact)}</span>
+            <span className="font-bold text-axis-indigo">{describe(final.fact)}</span>
             {' · '}Lo tendré en cuenta al decidir qué te recomiendo.
           </p>
         )
+      )}
+      {editable && !editing && (
+        <button type="button" onClick={() => setEditing(true)} className="mt-2 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+          Corregir el dato
+        </button>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
@@ -138,7 +182,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || !final}
           onClick={() => resolve(true)}
           className="rounded-full bg-gradient-to-r from-axis-indigo via-axis-violet to-axis-blue px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:brightness-[1.05] disabled:opacity-50"
         >
@@ -154,7 +198,7 @@ function lowerFirst(text: string): string {
   return t ? `${t.charAt(0).toLowerCase()}${t.slice(1)}.` : t
 }
 
-function Message({ message, memories, onResolve, onNavigate }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean) => Promise<void>; onNavigate: Navigate }) {
+function Message({ message, memories, onResolve, onNavigate }: { message: ChatMessage; memories: UserMemory[]; onResolve: (accept: boolean, edited?: MemoryProposal) => Promise<void>; onNavigate: Navigate }) {
   if (message.role === 'user') {
     return (
       <li className="flex justify-end">
@@ -294,7 +338,7 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
         ) : (
           <ul className="space-y-4">
             {messages.map((m) => (
-              <Message key={m.id} message={m} memories={memories} onResolve={(accept) => onResolveProposal(m.id, accept)} onNavigate={onNavigate} />
+              <Message key={m.id} message={m} memories={memories} onResolve={(accept, edited) => onResolveProposal(m.id, accept, edited)} onNavigate={onNavigate} />
             ))}
           </ul>
         )}

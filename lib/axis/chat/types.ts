@@ -10,6 +10,7 @@
  *   DATOS ACTUALES → MEMORIA → CONVERSACIÓN ACTUAL → CONSULTA ACTUAL
  */
 import type { MemoryFact } from '../profile/types'
+import type { IncompleteRecurringIncome } from '../profile/extract'
 import type { AxisEngineInfo, AxisMemory, AxisNextStep, Confidence, FinancialContext, MarketContext } from '../types'
 
 /* ================================ MEMORIA =============================== */
@@ -54,6 +55,12 @@ export interface MemoryProposal {
   replacesId: string | null
   /** Hecho estructurado propuesto (fase 2). Ausente o null = solo texto. Al actualizar una memoria, sustituye al anterior. */
   fact?: MemoryFact | null
+  /**
+   * Ingreso mensual reconocido por el extractor SIN categoría: la tarjeta
+   * pide Paga / Regalos / Otros antes de poder guardar. Una propuesta con este
+   * campo nunca es guardable tal cual (`isSavableProposal`).
+   */
+  incompleteFact?: IncompleteRecurringIncome
 }
 
 export type ProposalStatus = 'pending' | 'accepted' | 'rejected'
