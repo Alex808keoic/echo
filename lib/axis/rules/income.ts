@@ -8,38 +8,50 @@
  * lectura. Ninguna señal desaparece ni gana recomendación.
  */
 import type { Signal } from '../types'
-import { eur, irregularIncomeOf, pct, THRESHOLDS, type Rule } from './shared'
+import { describeRecurringIncomes, eur, irregularIncomeOf, pct, recurringIncomesOf, THRESHOLDS, type Rule } from './shared'
 
 export const incomeRules: Rule = (ctx, _market, profile) => {
   const { current, previous, incomeChangePct } = ctx.flows
   const signals: Signal[] = []
   const irregular = irregularIncomeOf(profile)
+  const declared = recurringIncomesOf(profile)
 
   if (current.incomeCents === 0 && current.expenseCents > 0) {
     // Solo hay algo que rebajar cuando el mes pasado sí hubo ingresos (la señal era high).
     const lowered = irregular !== null && previous.incomeCents > 0
+    const usual =
+      previous.incomeCents > 0
+        ? lowered
+          ? 'Con ingresos irregulares, un mes sin ingresos puede ser normal; aun así conviene comprobar si falta registrar alguno.'
+          : 'El mes pasado sí hubo ingresos, así que o todavía no han llegado o falta registrarlos.'
+        : 'Sin ingresos registrados, todo el gasto sale del patrimonio acumulado.'
+    // Con ingresos previstos (fase 5) solo cambia la interpretación: se dice que hay previsión y que no
+    // hay nada registrado, sin afirmar retraso ni que el ingreso esté pendiente o haya llegado.
+    const interpretation = declared
+      ? `Tienes previstos ${describeRecurringIncomes(declared.incomes)}; en lo que va de mes no hay ningún ingreso registrado.${lowered ? ' Con ingresos irregulares, un mes sin ingresos puede ser normal; aun así conviene comprobar si falta registrar alguno.' : ''}`
+      : usual
     signals.push({
       id: 'income.none',
       domain: 'income' as const,
       priority: lowered ? ('medium' as const) : previous.incomeCents > 0 ? ('high' as const) : ('medium' as const),
       fact: `Este mes no hay ingresos registrados y sí ${eur(current.expenseCents)} de gastos.`,
-      interpretation:
-        previous.incomeCents > 0
-          ? lowered
-            ? 'Con ingresos irregulares, un mes sin ingresos puede ser normal; aun así conviene comprobar si falta registrar alguno.'
-            : 'El mes pasado sí hubo ingresos, así que o todavía no han llegado o falta registrarlos.'
-          : 'Sin ingresos registrados, todo el gasto sale del patrimonio acumulado.',
+      interpretation,
       recommendation: {
         what: 'Comprueba si falta registrar algún ingreso de este mes.',
         why: 'Sin ingresos en el registro, la lectura del ahorro y del ritmo de gasto queda incompleta.',
         nextStep: { label: 'Registrar un movimiento', to: 'movimientos' as const },
         action: { verb: 'register' as const, target: 'data' as const },
       },
-      ...(lowered
+      ...(lowered || declared
         ? {
             profileInfluence: [
-              { field: 'irregularIncome' as const, sourceMemoryId: irregular.sourceMemoryId, signalId: 'income.none', effect: 'priority-lowered' as const, from: 'high', to: 'medium' },
-              { field: 'irregularIncome' as const, sourceMemoryId: irregular.sourceMemoryId, signalId: 'income.none', effect: 'interpretation' as const },
+              ...(lowered
+                ? [
+                    { field: 'irregularIncome' as const, sourceMemoryId: irregular.sourceMemoryId, signalId: 'income.none', effect: 'priority-lowered' as const, from: 'high', to: 'medium' },
+                    { field: 'irregularIncome' as const, sourceMemoryId: irregular.sourceMemoryId, signalId: 'income.none', effect: 'interpretation' as const },
+                  ]
+                : []),
+              ...(declared ? declared.incomes.map((r) => ({ field: 'recurringIncomes' as const, sourceMemoryId: r.sourceMemoryId, signalId: 'income.none', effect: 'interpretation' as const })) : []),
             ],
           }
         : {}),

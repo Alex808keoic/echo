@@ -24,7 +24,7 @@ export const RULES: Rule[] = [incomeRules, expenseRules, savingsRules, liquidity
 export const PRIORITY_ORDER: Record<Priority, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 
 /** A igual prioridad, qué dominio lidera la lectura (el ahorro resume mejor la situación). */
-const DOMAIN_ORDER: Record<SignalDomain, number> = { savings: 0, objectives: 1, expenses: 2, income: 3, investments: 4, market: 5 }
+const DOMAIN_ORDER: Record<SignalDomain, number> = { savings: 0, objectives: 1, expenses: 2, income: 3, investments: 4, market: 5, forecast: 6 }
 
 /**
  * Ejecuta todas las reglas y devuelve las señales ordenadas por relevancia.

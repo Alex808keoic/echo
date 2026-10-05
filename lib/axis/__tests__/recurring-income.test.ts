@@ -162,7 +162,12 @@ describe('recurringIncome · un hecho por categoría al guardar', () => {
   })
 })
 
-describe('recurringIncome · no toca ninguna cifra ni decisión (fase 1)', () => {
+// Fase 5: el ingreso recurrente entra en PREVISIONES (señales `objectives.forecast`, dominio `forecast`),
+// pero nunca en cifras reales ni en las decisiones existentes. Estos tests sustituyen a los de la fase 1,
+// que exigían que no tuviera ningún efecto.
+const isForecast = (s: { domain: string }) => s.domain === 'forecast'
+
+describe('recurringIncome · no toca ninguna cifra real ni decisión existente (fase 5)', () => {
   const snap = () =>
     snapshot({
       config: config(100_000),
@@ -172,14 +177,19 @@ describe('recurringIncome · no toca ninguna cifra ni decisión (fase 1)', () =>
     })
   const memory = { profileFacts: [{ id: 'p', updatedAt: 1, fact: PAGA }] }
 
-  it('la decisión es idéntica con y sin ingreso recordado (salvo el perfil aplicado)', () => {
+  it('las señales y decisiones existentes son idénticas; solo se añade la previsión, al final', () => {
     const ctx = buildFinancialContext(snap(), TODAY)
-    const { profile: withProfile, ...withIncome } = decide({ context: ctx, memory })
-    const { profile: _none, ...without } = decide({ context: ctx })
-    void _none
-    assert.deepEqual(withIncome, without)
-    assert.deepEqual(withProfile.influence, [])
-    assert.equal(withProfile.fields.recurringIncomes?.[0].cents, 3_500)
+    const withIncome = decide({ context: ctx, memory })
+    const without = decide({ context: ctx })
+    assert.deepEqual(withIncome.signals.filter((s) => !isForecast(s)), without.signals, 'ninguna señal existente cambia')
+    assert.deepEqual(withIncome.signals.filter(isForecast).map((s) => s.id), ['objectives.forecast:obj-viaje'])
+    assert.ok(withIncome.signals.slice(without.signals.length).every(isForecast), 'la previsión va detrás de todo')
+    for (const k of ['lead', 'recommendation', 'alternatives', 'uncertainties', 'confidence', 'nextStep', 'level', 'context'] as const) {
+      assert.deepEqual(withIncome[k], without[k], k)
+    }
+    assert.deepEqual(withIncome.relevant.filter((s) => !isForecast(s)), without.relevant)
+    assert.deepEqual(withIncome.profile.influence.map((i) => [i.field, i.effect, i.signalId]), [['recurringIncomes', 'added-signal', 'objectives.forecast:obj-viaje']])
+    assert.equal(withIncome.profile.fields.recurringIncomes?.[0].cents, 3_500)
   })
 
   it('saldo, patrimonio, movimientos y objetivos salen solo de los datos de Finax', () => {
@@ -258,33 +268,39 @@ describe('recurringIncome · neutralidad en las rutas del servidor (modelos simu
     }
   }
 
-  it('Decision First: misma decisión, mismas cifras permitidas y mismo análisis; solo cambian las notas del usuario', async () => {
-    const context = ctx()
-    const decision = decide({ context, memory: without })
-    assert.deepEqual(
-      (({ profile: _p, ...rest }) => rest)(decide({ context, memory: withIncome })),
-      (({ profile: _p, ...rest }) => rest)(decision),
-    )
-    const expression = {
-      headline: `Lectura de AXIS: ${decision.lead?.fact ?? 'situación estable'}`,
-      interpretation: { summary: `Con los datos disponibles, ${decision.lead?.interpretation ?? 'no hay nada que requiera atención'}`, signals: decision.relevant.map((s) => ({ id: s.id, text: `Dicho de otro modo: ${s.interpretation}` })) },
-      recommendation_why: decision.recommendation ? `Tiene sentido porque ${decision.recommendation.why}` : null,
-      alternatives: decision.alternatives.map((a) => ({ name: a.name, summary: `Otra opción: ${a.summary}` })),
-      uncertainties: decision.uncertainties.map((u) => ({ title: u.title, detail: `Conviene tenerlo presente: ${u.detail}` })),
-      conclusion: 'Con esto, la lectura queda clara; sigue registrando movimientos.',
-    }
-    const seen: string[] = []
-    const a = await analyzeWithProvider(model(expression, seen), context, without, undefined, null, 'decision-first')
-    const b = await analyzeWithProvider(model(expression, seen), context, withIncome, undefined, null, 'decision-first')
-    const [pa, pb] = seen.map(payloadOf)
-    assert.deepEqual(pb.decision_de_axis, pa.decision_de_axis, 'la decisión que expresa el modelo no cambia')
-    assert.deepEqual(pb.cifras_permitidas, pa.cifras_permitidas, 'ninguna cifra nueva licenciada')
-    assert.deepEqual(pb.memoria_relevante.notas_del_usuario, [PAGA_NOTE.content, NOTE.content], 'solo cambia el texto de las notas')
-    assert.doesNotMatch(seen[1], /profileFacts|recurringIncome|"cents"/)
-    assert.deepEqual(withoutDate(b), withoutDate(a))
+  /** Expresión correcta de una decisión: reformula sus propios textos (cifras permitidas por construcción). */
+  const expressionOf = (decision: ReturnType<typeof decide>) => ({
+    headline: `Lectura de AXIS: ${decision.lead?.fact ?? 'situación estable'}`,
+    interpretation: {
+      summary: `Con los datos disponibles, ${decision.lead?.interpretation ?? 'no hay nada que requiera atención'}`,
+      signals: decision.relevant.map((s) => ({ id: s.id, text: `Dicho de otro modo: ${s.interpretation}` })),
+    },
+    recommendation_why: decision.recommendation ? `Tiene sentido porque ${decision.recommendation.why}` : null,
+    alternatives: decision.alternatives.map((a) => ({ name: a.name, summary: `Otra opción: ${a.summary}` })),
+    uncertainties: decision.uncertainties.map((u) => ({ title: u.title, detail: `Conviene tenerlo presente: ${u.detail}` })),
+    conclusion: 'Con esto, la lectura queda clara; sigue registrando movimientos.',
   })
 
-  it('legacy: mismas señales y mismo contexto financiero; profileFacts no viaja al modelo', async () => {
+  it('Decision First: decisión existente igual; la previsión se añade con cifras etiquetadas como previsión', async () => {
+    const context = ctx()
+    const seen: string[] = []
+    const a = await analyzeWithProvider(model(expressionOf(decide({ context, memory: without })), seen), context, without, undefined, null, 'decision-first')
+    const b = await analyzeWithProvider(model(expressionOf(decide({ context, memory: withIncome })), seen), context, withIncome, undefined, null, 'decision-first')
+    const [pa, pb] = seen.map(payloadOf)
+    const notForecast = (list: Array<{ id: string }>) => list.filter((x) => !x.id.startsWith('objectives.forecast:'))
+    assert.deepEqual(notForecast(pb.decision_de_axis.senales), pa.decision_de_axis.senales, 'las señales existentes no cambian')
+    assert.deepEqual(pb.decision_de_axis.recomendacion, pa.decision_de_axis.recomendacion)
+    assert.deepEqual(pb.decision_de_axis.senal_principal, pa.decision_de_axis.senal_principal)
+    assert.deepEqual(pb.cifras_permitidas.slice(0, pa.cifras_permitidas.length), pa.cifras_permitidas, 'las cifras reales no cambian')
+    const extra = pb.cifras_permitidas.slice(pa.cifras_permitidas.length)
+    assert.ok(extra.length > 0 && extra.every((f: { etiqueta: string }) => f.etiqueta.startsWith('Previsión: ')), 'solo se añaden cifras etiquetadas como previsión')
+    assert.deepEqual(pb.memoria_relevante.notas_del_usuario, [PAGA_NOTE.content, NOTE.content])
+    assert.doesNotMatch(seen[1], /profileFacts|recurringIncome|closedMonths/)
+    assert.equal(b.recommendation?.what, a.recommendation?.what)
+    assert.equal(b.headline, a.headline)
+  })
+
+  it('legacy: señales existentes y contexto financiero iguales; profileFacts y closedMonths no viajan al modelo', async () => {
     const context = ctx()
     const local = analyzeLocally({ context }, new Date('2026-09-15T10:00:00Z'))
     if (local.status !== 'analysis') throw new Error('unreachable')
@@ -293,14 +309,15 @@ describe('recurringIncome · neutralidad en las rutas del servidor (modelos simu
     await analyzeWithProvider(model(output, seen), context, without, undefined, null, 'legacy')
     await analyzeWithProvider(model(output, seen), context, withIncome, undefined, null, 'legacy')
     const [pa, pb] = seen.map(payloadOf)
-    assert.deepEqual(pb.senales_detectadas_por_finax, pa.senales_detectadas_por_finax)
+    assert.deepEqual(pb.senales_detectadas_por_finax.filter((x: { id: string }) => !x.id.startsWith('objectives.forecast:')), pa.senales_detectadas_por_finax, 'señales existentes iguales')
     assert.deepEqual(pb.contexto_financiero, pa.contexto_financiero)
+    assert.equal('closedMonths' in pb.contexto_financiero.flows, false, 'los meses cerrados no van al modelo')
     assert.equal('profileFacts' in pb.memoria, false)
     // El contrato legacy sí envía la memoria del usuario, ahora con la nota de la paga y su hecho.
     assert.deepEqual(pb.memoria.userMemories[0].hecho, PAGA)
   })
 
-  it('chat: mismos datos actuales y señales; la memoria del usuario incluye el hecho; respuesta local idéntica', async () => {
+  it('chat: contexto y señales existentes iguales; la memoria incluye el hecho; respuesta local idéntica', async () => {
     const context = ctx()
     const reply = { reply: 'Con tus datos, yo iría poco a poco.', confidence: 'media', nextStep: null, memoryProposal: null }
     const seen: string[] = []
@@ -308,7 +325,13 @@ describe('recurringIncome · neutralidad en las rutas del servidor (modelos simu
     const a = await chatWithProvider(model(reply, seen), { context, memory: without, conversation, message: '¿Cómo voy?' })
     const b = await chatWithProvider(model(reply, seen), { context, memory: withIncome, conversation, message: '¿Cómo voy?' })
     const [pa, pb] = seen.map(payloadOf)
-    assert.deepEqual(pb.datos_actuales, pa.datos_actuales, 'contexto, señales y mercado sin cambios')
+    assert.deepEqual(pb.datos_actuales.contexto_financiero, pa.datos_actuales.contexto_financiero, 'contexto sin cambios')
+    assert.equal('closedMonths' in pb.datos_actuales.contexto_financiero.flows, false, 'los meses cerrados no van al modelo')
+    assert.deepEqual(
+      pb.datos_actuales.senales_detectadas_por_finax.filter((x: { id: string }) => !x.id.startsWith('objectives.forecast:')),
+      pa.datos_actuales.senales_detectadas_por_finax,
+      'señales existentes sin cambios',
+    )
     assert.deepEqual(pb.memoria.memorias_del_usuario[0].hecho, PAGA, 'el contrato del chat sí muestra el hecho al modelo')
     assert.doesNotMatch(seen[1], /profileFacts/)
     assert.deepEqual(withoutDate(b), withoutDate(a))
@@ -316,8 +339,12 @@ describe('recurringIncome · neutralidad en las rutas del servidor (modelos simu
     assert.deepEqual(offline(withIncome), offline(without), 'el motor local responde igual')
   })
 
-  it('motor local: el análisis es idéntico con y sin ingreso recordado', () => {
+  it('motor local: titular, recomendación, alternativas, incertidumbres y datos iguales; se añade la previsión', () => {
     const now = new Date('2026-09-15T10:00:00Z')
-    assert.deepEqual(analyzeLocally({ context: ctx(), memory: withIncome }, now), analyzeLocally({ context: ctx(), memory: without }, now))
+    const a = analyzeLocally({ context: ctx(), memory: without }, now)
+    const b = analyzeLocally({ context: ctx(), memory: withIncome }, now)
+    if (a.status !== 'analysis' || b.status !== 'analysis') throw new Error('unreachable')
+    for (const k of ['headline', 'recommendation', 'alternatives', 'uncertainty', 'data'] as const) assert.deepEqual(b.analysis[k], a.analysis[k], k)
+    assert.match(JSON.stringify(b.analysis), /Previsión \(no es dinero disponible\)/)
   })
 })

@@ -29,8 +29,10 @@ export { AXIS_CHAT_SYSTEM_PROMPT }
  * valor real aunque el transporte ya no envíe `flows.history`.
  */
 function minimalContext(ctx: FinancialContext) {
-  const { history: _history, ...flows } = ctx.flows
+  // `closedMonths` es dato interno de las previsiones: el modelo no lo recibe como cifra.
+  const { history: _history, closedMonths: _closed, ...flows } = ctx.flows
   void _history
+  void _closed
   return { ...ctx, flows: { ...flows, historyDays: ctx.quality.historyDays } }
 }
 

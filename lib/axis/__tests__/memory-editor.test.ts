@@ -226,8 +226,10 @@ describe('memoria · agrupación y explicaciones', () => {
 
   it('las explicaciones son honestas con lo que hace AXIS hoy', () => {
     const income = memoryUsage(PAGA(3_500))
-    assert.match(income, /no se suma a tu saldo/i)
-    assert.match(income, /todavía no se usa en los cálculos/)
+    assert.match(income, /no se suma a tu saldo ni a tus ingresos registrados/i)
+    // Fase 5: se usa como previsión (objetivos y aviso de ingresos no registrados), y solo eso.
+    assert.match(income, /lo usa como previsión: estima cuánto tardarías en alcanzar tus objetivos/)
+    assert.doesNotMatch(income, /meses anteriores|compara/, 'no promete comparar con meses pasados (fase 6)')
     assert.match(income, /regístralo en Movimientos/)
     assert.match(memoryUsage(LIQ(50_000)), /recomendarte/)
     assert.match(memoryUsage(undefined), /contexto cuando conversa contigo/)

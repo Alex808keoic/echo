@@ -9,6 +9,9 @@
  *   message        escritas por el usuario en su mensaje (puede citárselas)
  *   derived        operaciones de una lista cerrada (`DerivedOp`) sobre cifras
  *                  permitidas, calculadas por AXIS; nunca por el modelo
+ *   forecast       previsiones (fase 5) calculadas por AXIS con los ingresos
+ *                  recurrentes declarados: etiquetadas «Previsión: …», nunca
+ *                  dentro de `contextFigures` ni bajo una etiqueta de dato real
  *
  * Nada procede de la memoria en texto libre (`UserMemory.content`).
  *
@@ -20,9 +23,10 @@
 import { formatPct } from '../../format'
 import { formatCents } from '../../money'
 import type { AxisDecision, FinancialContext } from '../types'
+import { recurringForecasts, recurringIncomesOf, usualExpenseMonthCount, usualMonthlyExpense } from '../rules/shared'
 
 export type FigureKind = 'money' | 'percent' | 'count'
-export type FigureSource = 'context' | 'decision-text' | 'message' | 'derived'
+export type FigureSource = 'context' | 'decision-text' | 'message' | 'derived' | 'forecast'
 /** Operaciones derivadas admitidas. La lista es cerrada: añadir una exige un commit revisado. */
 export type DerivedOp = 'liquid-minus' | 'free-liquid-minus' | 'savings-minus' | 'amount-over-income'
 
@@ -242,9 +246,57 @@ function dedupe(figures: AllowedFigure[]): AllowedFigure[] {
 }
 
 /** Conjunto cerrado de cifras permitidas para una decisión (y, en el chat, para el mensaje del usuario). */
+/**
+ * Cifras de previsión de una decisión, recalculadas con las mismas funciones
+ * que la señal `objectives.forecast` (contexto + perfil aplicado): ingresos
+ * previstos, gasto habitual estimado y meses de cada escenario. Sin ingresos
+ * recurrentes declarados, ninguna. Siempre con fuente `forecast` y etiqueta
+ * «Previsión: …».
+ */
+export function forecastFigures(decision: AxisDecision): AllowedFigure[] {
+  const declared = recurringIncomesOf(decision.profile?.fields)
+  if (!declared) return []
+  const eur = (label: string, cents: number) => money(`Previsión: ${label}`, cents, 'forecast')
+  const num = (label: string, n: number) => count(`Previsión: ${label}`, n, 'forecast')
+  const figures: AllowedFigure[] = [eur('ingresos mensuales', declared.monthlyCents)]
+  if (declared.incomes.length > 1) for (const r of declared.incomes) figures.push(eur(`ingreso mensual (${r.category})`, r.cents))
+  const usual = usualMonthlyExpense(decision.context.flows.closedMonths)
+  if (usual !== null) figures.push(eur(`gasto habitual (mediana de ${usualExpenseMonthCount(decision.context.flows.closedMonths)} meses)`, usual))
+  for (const f of recurringForecasts(decision.context, decision.profile?.fields)) {
+    if (f.allMonths !== 'over-10-years') figures.push(num(`meses hasta «${f.objectiveName}» con toda la previsión`, f.allMonths))
+    const b = f.afterExpenses
+    if (b.status === 'ok') {
+      figures.push(eur(`margen al mes para «${f.objectiveName}» tras el gasto habitual`, b.marginCents))
+      if (b.result !== 'over-10-years') figures.push(num(`meses hasta «${f.objectiveName}» tras el gasto habitual`, b.result))
+    }
+  }
+  return dedupe(figures)
+}
+
+/** Lo que indica que una frase habla de una previsión y no de dinero que ya existe. */
+const FORECAST_MARKER = /previs|previst|estimad|equival|\bser[ií]an\b|\bquedar[ií]an?\b|supone|si recib/i
+
+/**
+ * Una cifra que SOLO existe como previsión (no coincide con ninguna cifra real
+ * del contexto) debe ir en una frase que la presente como previsión. «Tus
+ * ingresos previstos son 35,00 € al mes» pasa; «Tienes 35,00 € disponibles», no.
+ */
+export function checkForecastPresentation(text: string, decision: AxisDecision): string[] {
+  const real = new Set(contextFigures(decision.context).map((f) => f.key))
+  const forecastOnly = new Set(forecastFigures(decision).filter((f) => f.kind === 'money' && !real.has(f.key)).map((f) => f.key))
+  if (forecastOnly.size === 0) return []
+  const violations: string[] = []
+  for (const sentence of text.split(/(?<=[.!?\n])/)) {
+    if (FORECAST_MARKER.test(sentence)) continue
+    for (const f of extractFigures(sentence)) if (f.kind === 'money' && forecastOnly.has(f.key)) violations.push(f.raw.trim())
+  }
+  return violations
+}
+
 export function buildAllowedFigures(decision: AxisDecision, extra: { message?: string } = {}): AllowedFigureSet {
   const figures = [
     ...contextFigures(decision.context),
+    ...forecastFigures(decision),
     ...decisionTextFigures(decision),
     ...(extra.message ? [...messageFigures(extra.message), ...deriveFigures(decision.context, extra.message)] : []),
   ]
@@ -278,7 +330,7 @@ export function checkFigures(text: string, set: AllowedFigureSet): FigureViolati
 
 /** Cifras con etiqueta que se envían al modelo en la expresión (contexto; sin duplicados de etiqueta+valor). */
 export function figuresOf(decision: AxisDecision): Figure[] {
-  return contextFigures(decision.context).map((f) => ({ label: f.label, value: f.text }))
+  return [...contextFigures(decision.context), ...forecastFigures(decision)].map((f) => ({ label: f.label, value: f.text }))
 }
 
 /** Conjunto normalizado contra el que se valida lo que escribe el modelo (contexto + textos de la decisión). */

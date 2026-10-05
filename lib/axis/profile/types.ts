@@ -64,7 +64,7 @@ export interface RecurringIncome {
   sourceMemoryId: string
 }
 
-export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities'
+export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities' | 'recurringIncomes'
 
 export interface ProfileConflict {
   kind: MemoryFactKind

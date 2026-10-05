@@ -12,6 +12,7 @@ import { todayISO } from '../dates'
 import type { AppConfig, Movement, Objective, Position } from '../types'
 import type {
   CategoryShare,
+  ClosedMonth,
   ContextLevel,
   FinancialContext,
   ObjectiveContext,
@@ -59,6 +60,24 @@ function periodStats(movements: Movement[], key: string): PeriodStats {
     expensesByCategory: toShares(totalsByCategory(inPeriod, 'gasto')),
     incomeByCategory: toShares(totalsByCategory(inPeriod, 'ingreso')),
   }
+}
+
+/** Meses cerrados que se conservan en `flows.closedMonths`. */
+export const MAX_CLOSED_MONTHS = 6
+
+/**
+ * Totales de los meses CERRADOS con datos: meses naturales anteriores al de
+ * `asOf` con al menos un movimiento (un mes sin movimientos no es «gasto 0»:
+ * es falta de datos). Los más recientes primero, como mucho `MAX_CLOSED_MONTHS`.
+ * Misma agregación que `flows.current`/`previous` (`summarize` sobre `inMonth`).
+ */
+export function closedMonthsOf(movements: Movement[], asOf: string): ClosedMonth[] {
+  const currentKey = monthKeyOf(asOf)
+  const keys = [...new Set(movements.map((m) => m.date.slice(0, 7)))].filter((k) => k < currentKey).sort().reverse().slice(0, MAX_CLOSED_MONTHS)
+  return keys.map((key) => {
+    const s = summarize(inMonth(movements, key))
+    return { key, incomeCents: s.incomeCents, expenseCents: s.expenseCents, movementCount: s.movementCount }
+  })
 }
 
 function objectiveContext(o: Objective, asOf: string): ObjectiveContext {
@@ -144,6 +163,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       incomeChangePct: pctChange(current.incomeCents, previous.incomeCents),
       expenseChangePct: pctChange(current.expenseCents, previous.expenseCents),
       history,
+      closedMonths: closedMonthsOf(movements, asOf),
     },
     objectives: objectiveCtxs,
     investments: {

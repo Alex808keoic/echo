@@ -23,7 +23,7 @@ import { checkAdvice, type KnownEntities } from '../../text/advice'
 import { findCertainty } from '../../text/certainty'
 import type { AxisDecision } from '../types'
 import type { Expression } from './expression'
-import { buildAllowedFigures, checkFigures } from './figures'
+import { buildAllowedFigures, checkFigures, checkForecastPresentation } from './figures'
 
 export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage' | 'advice'
 
@@ -89,6 +89,10 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
   for (const [field, text] of writtenFields(expression)) {
     for (const f of checkFigures(text, allowed)) {
       violations.push({ invariant: 'figures', field, detail: `${f.reason === 'bare-number' ? 'número sin unidad no permitido' : 'cifra no permitida'} «${f.raw}»` })
+    }
+    // Una cifra que solo existe como previsión no puede presentarse como dinero real.
+    for (const raw of checkForecastPresentation(text, decision)) {
+      violations.push({ invariant: 'figures', field, detail: `cifra prevista presentada como real «${raw}»` })
     }
     const execution = EXECUTION_PATTERNS.find((re) => re.test(text))
     if (execution) violations.push({ invariant: 'execution', field, detail: `«${text.match(execution)?.[0]}»` })

@@ -81,6 +81,14 @@
           "date": "2026-09-08",
           "cents": 290000
         }
+      ],
+      "closedMonths": [
+        {
+          "key": "2026-08",
+          "incomeCents": 200000,
+          "expenseCents": 50000,
+          "movementCount": 2
+        }
       ]
     },
     "objectives": [],

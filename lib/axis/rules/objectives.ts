@@ -13,12 +13,28 @@
  *     de prioridad; un objetivo vencido sigue vencido esté o no priorizado.
  */
 import type { Signal } from '../types'
-import { eur, irregularIncomeOf, pct, prioritiesOf, rankByPriorities, THRESHOLDS, type Rule } from './shared'
+import {
+  describeRecurringIncomes,
+  eur,
+  forecastMonthsText,
+  irregularIncomeOf,
+  pct,
+  prioritiesOf,
+  rankByPriorities,
+  recurringForecast,
+  recurringIncomesOf,
+  THRESHOLDS,
+  usualExpenseMonthCount,
+  usualMonthlyExpense,
+  type RecurringForecast,
+  type Rule,
+} from './shared'
 
 /** Objetivo al que pertenece una señal `objectives.<tipo>:<id>`. */
 const objectiveIdOf = (s: Signal) => s.id.slice(s.id.indexOf(':') + 1)
 
-export const objectiveRules: Rule = (ctx, _market, profile) => {
+/** Señales de objetivos de siempre (sin previsiones): idénticas con o sin ingresos recurrentes. */
+const baseObjectiveRules: Rule = (ctx, _market, profile) => {
   const signals: Signal[] = []
   const monthlySavings = ctx.flows.current.savingsCents
   const irregular = irregularIncomeOf(profile)
@@ -166,3 +182,51 @@ export const objectiveRules: Rule = (ctx, _market, profile) => {
     return { ...s, profileInfluence: [...(s.profileInfluence ?? []), { field: 'priorities', sourceMemoryId: priorities.sourceMemoryId, signalId: s.id, effect: 'target-selected', from: objectiveIdOf(overtaken), to: objectiveId }] }
   })
 }
+
+/**
+ * Previsiones (fase 5): una señal `objectives.forecast:<id>` por objetivo no
+ * completado cuando hay ingresos recurrentes declarados. Baja prioridad, sin
+ * recomendación y en el dominio `forecast` (detrás de todo): no cambia ninguna
+ * señal, prioridad, recomendación ni incertidumbre existente. Describe un
+ * escenario sin verbos de consejo (nada de «aparta», «ahorra», «destina»…).
+ */
+const forecastRules: Rule = (ctx, _market, profile) => {
+  const declared = recurringIncomesOf(profile)
+  if (!declared) return []
+  const priorities = prioritiesOf(profile)
+  const usual = usualMonthlyExpense(ctx.flows.closedMonths)
+  const usualMonths = usualExpenseMonthCount(ctx.flows.closedMonths)
+  return (priorities ? rankByPriorities(ctx.objectives, priorities.ids) : ctx.objectives).flatMap((o): Signal[] => {
+    const f = recurringForecast(o, declared.incomes, usual, usualMonths)
+    if (!f) return []
+    const id = `objectives.forecast:${o.id}`
+    return [
+      {
+        id,
+        domain: 'forecast',
+        priority: 'low',
+        fact: `Previsión (no es dinero disponible): ${forecastAllText(f)}`,
+        // La interpretación es lo que se muestra de cada señal: lleva la etiqueta y los dos escenarios completos.
+        interpretation: `Previsión (no es dinero disponible): ${forecastAllText(f)} ${forecastAfterExpensesText(f)}`,
+        profileInfluence: declared.incomes.map((r) => ({ field: 'recurringIncomes' as const, sourceMemoryId: r.sourceMemoryId, signalId: id, effect: 'added-signal' as const })),
+      },
+    ]
+  })
+}
+
+/** Escenario A: toda la previsión. */
+function forecastAllText(f: RecurringForecast): string {
+  return `lo que falta para «${f.objectiveName}» (${eur(f.remainingCents)}) equivale a ${forecastMonthsText(f.allMonths)} de tus ingresos previstos (${describeRecurringIncomes(f.incomes)}).`
+}
+
+/** Escenario B (previsión menos gasto habitual) y supuestos. */
+function forecastAfterExpensesText(f: RecurringForecast): string {
+  const b = f.afterExpenses
+  if (b.status === 'no-history') return 'Aún no tengo meses suficientes para estimar tu gasto habitual. Supone que recibes la previsión cada mes. No es una promesa.'
+  if (b.status === 'no-margin') {
+    return `Con tu gasto habitual estimado (${eur(b.usualExpenseCents)} al mes, mediana de ${b.basedOnMonths} meses) no quedaría margen de esa previsión. Supone que ese gasto se paga con la previsión. No es una promesa.`
+  }
+  return `Con un gasto habitual estimado de ${eur(b.usualExpenseCents)} al mes (mediana de ${b.basedOnMonths} meses), quedarían ${eur(b.marginCents)} al mes de esa previsión: serían ${forecastMonthsText(b.result)}. Supone que recibes la previsión cada mes, que tu gasto se mantiene y que se paga con esa previsión. No es una promesa.`
+}
+
+export const objectiveRules: Rule = (ctx, market, profile) => [...baseObjectiveRules(ctx, market, profile), ...forecastRules(ctx, market, profile)]

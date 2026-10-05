@@ -1,0 +1,503 @@
+{
+  "context": {
+    "asOf": "2026-09-15",
+    "wealth": {
+      "totalCents": 29000,
+      "liquidCents": 9000,
+      "investedCents": 20000,
+      "reservedForObjectivesCents": 9000,
+      "initialBalanceCents": 100000
+    },
+    "flows": {
+      "current": {
+        "key": "2026-09",
+        "incomeCents": 4700,
+        "expenseCents": 99000,
+        "savingsCents": -94300,
+        "savingsRatePct": -2006.3829787234042,
+        "movementCount": 2,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 99000,
+            "pct": 100
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Paga",
+            "cents": 4700,
+            "pct": 100
+          }
+        ]
+      },
+      "previous": {
+        "key": "2026-08",
+        "incomeCents": 4700,
+        "expenseCents": 2200,
+        "savingsCents": 2500,
+        "savingsRatePct": 53.191489361702125,
+        "movementCount": 2,
+        "expensesByCategory": [
+          {
+            "label": "Comida",
+            "cents": 2200,
+            "pct": 100
+          }
+        ],
+        "incomeByCategory": [
+          {
+            "label": "Paga",
+            "cents": 4700,
+            "pct": 100
+          }
+        ]
+      },
+      "incomeChangePct": 0,
+      "expenseChangePct": 4400,
+      "history": [
+        {
+          "date": "2026-04-01",
+          "cents": 104700
+        },
+        {
+          "date": "2026-04-10",
+          "cents": 102700
+        },
+        {
+          "date": "2026-05-01",
+          "cents": 107400
+        },
+        {
+          "date": "2026-05-10",
+          "cents": 105300
+        },
+        {
+          "date": "2026-06-01",
+          "cents": 110000
+        },
+        {
+          "date": "2026-06-10",
+          "cents": 108100
+        },
+        {
+          "date": "2026-07-01",
+          "cents": 112800
+        },
+        {
+          "date": "2026-07-10",
+          "cents": 100800
+        },
+        {
+          "date": "2026-08-01",
+          "cents": 105500
+        },
+        {
+          "date": "2026-08-10",
+          "cents": 103300
+        },
+        {
+          "date": "2026-09-01",
+          "cents": 108000
+        },
+        {
+          "date": "2026-09-05",
+          "cents": 9000
+        }
+      ],
+      "closedMonths": [
+        {
+          "key": "2026-08",
+          "incomeCents": 4700,
+          "expenseCents": 2200,
+          "movementCount": 2
+        },
+        {
+          "key": "2026-07",
+          "incomeCents": 4700,
+          "expenseCents": 12000,
+          "movementCount": 2
+        },
+        {
+          "key": "2026-06",
+          "incomeCents": 4700,
+          "expenseCents": 1900,
+          "movementCount": 2
+        },
+        {
+          "key": "2026-05",
+          "incomeCents": 4700,
+          "expenseCents": 2100,
+          "movementCount": 2
+        },
+        {
+          "key": "2026-04",
+          "incomeCents": 4700,
+          "expenseCents": 2000,
+          "movementCount": 2
+        }
+      ]
+    },
+    "objectives": [
+      {
+        "id": "obj-viaje",
+        "name": "Viaje",
+        "targetCents": 50000,
+        "currentCents": 10000,
+        "remainingCents": 40000,
+        "progressPct": 20,
+        "completed": false,
+        "ageDays": 106
+      },
+      {
+        "id": "obj-moto",
+        "name": "Moto",
+        "targetCents": 30000,
+        "currentCents": 30000,
+        "remainingCents": 0,
+        "progressPct": 100,
+        "completed": true,
+        "ageDays": 106
+      }
+    ],
+    "investments": {
+      "positions": [
+        {
+          "id": "pos-fondo",
+          "name": "Fondo",
+          "investedCents": 15000,
+          "valueCents": 20000,
+          "weightPct": 100
+        }
+      ],
+      "totalInvestedCents": 15000,
+      "totalValueCents": 20000,
+      "shareOfWealthPct": 69
+    },
+    "quality": {
+      "level": "sufficient",
+      "hasInitialBalance": true,
+      "movementCount": 12,
+      "historyDays": 12,
+      "monthsWithData": 6,
+      "hasPreviousPeriod": true,
+      "hasObjectives": true,
+      "hasInvestments": true,
+      "isDemo": false
+    }
+  },
+  "level": "sufficient",
+  "basedOnDemoData": false,
+  "signals": [
+    {
+      "id": "expenses.over-income",
+      "domain": "expenses",
+      "priority": "critical",
+      "fact": "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
+      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 990,00 € (100% del gasto).",
+      "recommendation": {
+        "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+        "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
+        "action": {
+          "verb": "adjust",
+          "target": "category",
+          "targetId": "Comida"
+        },
+        "nextStep": {
+          "label": "Ver gastos por categoría",
+          "to": "estadisticas"
+        }
+      },
+      "alternative": {
+        "name": "No cambiar nada todavía",
+        "summary": "Si el mes tiene un gasto excepcional que no se repetirá, puede bastar con vigilar el mes siguiente."
+      }
+    },
+    {
+      "id": "savings.falling",
+      "domain": "savings",
+      "priority": "high",
+      "fact": "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+      "interpretation": "Los ingresos se mantienen; la caída viene del gasto.",
+      "uncertainty": {
+        "title": "Puede ser un mes atípico",
+        "detail": "Un solo mes con menos ahorro no marca tendencia; dos seguidos, sí."
+      }
+    },
+    {
+      "id": "expenses.increase",
+      "domain": "expenses",
+      "priority": "high",
+      "fact": "Los gastos han subido un 4.400% respecto al mes anterior: 22,00 € → 990,00 €.",
+      "interpretation": "El aumento viene sobre todo de «Comida» (990,00 € este mes).",
+      "recommendation": {
+        "what": "Revisa «Comida» antes de asumir nuevos compromisos.",
+        "why": "Si la subida se consolida, el margen de ahorro del mes que viene será menor.",
+        "nextStep": {
+          "label": "Ver gastos por categoría",
+          "to": "estadisticas"
+        },
+        "action": {
+          "verb": "review",
+          "target": "category",
+          "targetId": "Comida"
+        }
+      },
+      "alternative": {
+        "name": "Mantener el gasto y ajustar el objetivo",
+        "summary": "Aceptar el nuevo nivel de gasto y reducir temporalmente el esfuerzo destinado a objetivos."
+      },
+      "uncertainty": {
+        "title": "Un mes no es una tendencia",
+        "detail": "Con dos meses comparados no se puede saber si la subida se mantiene; el mes que viene lo confirmará."
+      }
+    },
+    {
+      "id": "objectives.no-date:obj-viaje",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Viaje» va por el 20% y le faltan 400,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Viaje»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      }
+    },
+    {
+      "id": "objectives.completed:obj-moto",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Moto» está conseguido: 300,00 € de 300,00 €.",
+      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "recommendation": {
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Moto» está cubierto.",
+        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "nextStep": {
+          "label": "Ver objetivos",
+          "to": "objetivos"
+        },
+        "action": {
+          "verb": "decide",
+          "target": "none"
+        }
+      }
+    },
+    {
+      "id": "investments.manual-values",
+      "domain": "investments",
+      "priority": "low",
+      "fact": "Valor invertido: 200,00 € en 1 posición (69% del patrimonio).",
+      "interpretation": "El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.",
+      "uncertainty": {
+        "title": "Valores manuales, sin mercado",
+        "detail": "No hay cotizaciones conectadas: no puedo valorar rentabilidad futura ni riesgo de mercado de estas posiciones."
+      }
+    },
+    {
+      "id": "objectives.forecast:obj-viaje",
+      "domain": "forecast",
+      "priority": "low",
+      "fact": "Previsión (no es dinero disponible): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos).",
+      "interpretation": "Previsión (no es dinero disponible): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos). Con un gasto habitual estimado de 21,00 € al mes (mediana de 5 meses), quedarían 24,00 € al mes de esa previsión: serían 17 meses. Supone que recibes la previsión cada mes, que tu gasto se mantiene y que se paga con esa previsión. No es una promesa.",
+      "profileInfluence": [
+        {
+          "field": "recurringIncomes",
+          "sourceMemoryId": "mem-0",
+          "signalId": "objectives.forecast:obj-viaje",
+          "effect": "added-signal"
+        },
+        {
+          "field": "recurringIncomes",
+          "sourceMemoryId": "mem-1",
+          "signalId": "objectives.forecast:obj-viaje",
+          "effect": "added-signal"
+        }
+      ]
+    }
+  ],
+  "lead": {
+    "id": "expenses.over-income",
+    "domain": "expenses",
+    "priority": "critical",
+    "fact": "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
+    "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 990,00 € (100% del gasto).",
+    "recommendation": {
+      "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+      "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
+      "action": {
+        "verb": "adjust",
+        "target": "category",
+        "targetId": "Comida"
+      },
+      "nextStep": {
+        "label": "Ver gastos por categoría",
+        "to": "estadisticas"
+      }
+    },
+    "alternative": {
+      "name": "No cambiar nada todavía",
+      "summary": "Si el mes tiene un gasto excepcional que no se repetirá, puede bastar con vigilar el mes siguiente."
+    }
+  },
+  "relevant": [
+    {
+      "id": "expenses.over-income",
+      "domain": "expenses",
+      "priority": "critical",
+      "fact": "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
+      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 990,00 € (100% del gasto).",
+      "recommendation": {
+        "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+        "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
+        "action": {
+          "verb": "adjust",
+          "target": "category",
+          "targetId": "Comida"
+        },
+        "nextStep": {
+          "label": "Ver gastos por categoría",
+          "to": "estadisticas"
+        }
+      },
+      "alternative": {
+        "name": "No cambiar nada todavía",
+        "summary": "Si el mes tiene un gasto excepcional que no se repetirá, puede bastar con vigilar el mes siguiente."
+      }
+    },
+    {
+      "id": "savings.falling",
+      "domain": "savings",
+      "priority": "high",
+      "fact": "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+      "interpretation": "Los ingresos se mantienen; la caída viene del gasto.",
+      "uncertainty": {
+        "title": "Puede ser un mes atípico",
+        "detail": "Un solo mes con menos ahorro no marca tendencia; dos seguidos, sí."
+      }
+    },
+    {
+      "id": "expenses.increase",
+      "domain": "expenses",
+      "priority": "high",
+      "fact": "Los gastos han subido un 4.400% respecto al mes anterior: 22,00 € → 990,00 €.",
+      "interpretation": "El aumento viene sobre todo de «Comida» (990,00 € este mes).",
+      "recommendation": {
+        "what": "Revisa «Comida» antes de asumir nuevos compromisos.",
+        "why": "Si la subida se consolida, el margen de ahorro del mes que viene será menor.",
+        "nextStep": {
+          "label": "Ver gastos por categoría",
+          "to": "estadisticas"
+        },
+        "action": {
+          "verb": "review",
+          "target": "category",
+          "targetId": "Comida"
+        }
+      },
+      "alternative": {
+        "name": "Mantener el gasto y ajustar el objetivo",
+        "summary": "Aceptar el nuevo nivel de gasto y reducir temporalmente el esfuerzo destinado a objetivos."
+      },
+      "uncertainty": {
+        "title": "Un mes no es una tendencia",
+        "detail": "Con dos meses comparados no se puede saber si la subida se mantiene; el mes que viene lo confirmará."
+      }
+    },
+    {
+      "id": "objectives.no-date:obj-viaje",
+      "domain": "objectives",
+      "priority": "low",
+      "fact": "«Viaje» va por el 20% y le faltan 400,00 €.",
+      "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
+      "uncertainty": {
+        "title": "Sin fecha en «Viaje»",
+        "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+      }
+    }
+  ],
+  "facts": [
+    "Patrimonio: 290,00 € (líquido 90,00 €, invertido 200,00 €).",
+    "Este mes: ingresos 47,00 €, gastos 990,00 €, balance -943,00 €.",
+    "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
+    "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+    "Los gastos han subido un 4.400% respecto al mes anterior: 22,00 € → 990,00 €."
+  ],
+  "recommendation": {
+    "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+    "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
+    "action": {
+      "verb": "adjust",
+      "target": "category",
+      "targetId": "Comida"
+    },
+    "nextStep": {
+      "label": "Ver gastos por categoría",
+      "to": "estadisticas"
+    }
+  },
+  "alternatives": [
+    {
+      "name": "No cambiar nada todavía",
+      "summary": "Si el mes tiene un gasto excepcional que no se repetirá, puede bastar con vigilar el mes siguiente."
+    },
+    {
+      "name": "Mantener el gasto y ajustar el objetivo",
+      "summary": "Aceptar el nuevo nivel de gasto y reducir temporalmente el esfuerzo destinado a objetivos."
+    }
+  ],
+  "uncertainties": [
+    {
+      "title": "Puede ser un mes atípico",
+      "detail": "Un solo mes con menos ahorro no marca tendencia; dos seguidos, sí."
+    },
+    {
+      "title": "Un mes no es una tendencia",
+      "detail": "Con dos meses comparados no se puede saber si la subida se mantiene; el mes que viene lo confirmará."
+    },
+    {
+      "title": "Sin fecha en «Viaje»",
+      "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
+    }
+  ],
+  "confidence": "media",
+  "missing": [],
+  "nextStep": {
+    "label": "Ver gastos por categoría",
+    "to": "estadisticas"
+  },
+  "profile": {
+    "fields": {
+      "recurringIncomes": [
+        {
+          "category": "Paga",
+          "cents": 3500,
+          "frequency": "monthly",
+          "sourceMemoryId": "mem-0"
+        },
+        {
+          "category": "Regalos",
+          "cents": 1000,
+          "frequency": "monthly",
+          "sourceMemoryId": "mem-1"
+        }
+      ],
+      "sources": {},
+      "conflicts": [],
+      "droppedPriorities": []
+    },
+    "influence": [
+      {
+        "field": "recurringIncomes",
+        "sourceMemoryId": "mem-0",
+        "signalId": "objectives.forecast:obj-viaje",
+        "effect": "added-signal"
+      },
+      {
+        "field": "recurringIncomes",
+        "sourceMemoryId": "mem-1",
+        "signalId": "objectives.forecast:obj-viaje",
+        "effect": "added-signal"
+      }
+    ]
+  }
+}

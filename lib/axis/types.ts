@@ -39,6 +39,18 @@ export interface CategoryShare {
   pct: number
 }
 
+/**
+ * Totales de un mes CERRADO (anterior al mes de `asOf`) con al menos un
+ * movimiento. Dato interno para reglas y previsiones: no va a ningún prompt.
+ */
+export interface ClosedMonth {
+  /** `YYYY-MM` */
+  key: string
+  incomeCents: number
+  expenseCents: number
+  movementCount: number
+}
+
 export interface WealthPoint {
   /** `YYYY-MM-DD` */
   date: string
@@ -112,6 +124,12 @@ export interface FinancialContext {
     expenseChangePct: number | null
     /** Evolución real del patrimonio líquido (un punto por día con movimientos). */
     history: WealthPoint[]
+    /**
+     * Últimos meses cerrados con datos (como mucho 6, del más reciente al más
+     * antiguo). Solo para cálculos internos (gasto habitual de las previsiones):
+     * `minimalContext` lo quita antes de enviar el contexto al modelo.
+     */
+    closedMonths: ClosedMonth[]
   }
   objectives: ObjectiveContext[]
   investments: {
@@ -184,7 +202,8 @@ export interface AxisInput {
 
 export type Priority = 'critical' | 'high' | 'medium' | 'low'
 
-export type SignalDomain = 'income' | 'expenses' | 'savings' | 'objectives' | 'investments' | 'market'
+/** `forecast`: previsiones (fase 5). Siempre detrás de todo lo demás, para no desplazar ninguna señal existente. */
+export type SignalDomain = 'income' | 'expenses' | 'savings' | 'objectives' | 'investments' | 'market' | 'forecast'
 
 /** Pantalla de Finax donde continuar. AXIS solo propone; nunca ejecuta. */
 export type AxisDestination = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'objetivos' | 'inversiones'

@@ -141,14 +141,15 @@ export const SOURCE_LABEL: Record<MemorySource, string> = { conversation: 'De un
 
 /**
  * Qué hace AXIS con cada tipo de memoria. Solo lo que es cierto en el código
- * actual: el ingreso recurrente se recuerda, pero todavía no entra en ningún cálculo.
+ * actual: el ingreso recurrente solo entra en previsiones (fase 5), nunca en
+ * cifras reales.
  */
 export function memoryUsage(fact: MemoryFact | undefined): string {
   switch (fact?.kind) {
     case undefined:
       return 'AXIS puede usar esta información como contexto cuando conversa contigo.'
     case 'recurringIncome':
-      return 'AXIS lo recuerda como una previsión de ingresos. No se suma a tu saldo y todavía no se usa en los cálculos. Cuando recibas el dinero, regístralo en Movimientos.'
+      return 'AXIS lo usa como previsión: estima cuánto tardarías en alcanzar tus objetivos y te avisa si en el mes no hay ingresos registrados. No se suma a tu saldo ni a tus ingresos registrados; cuando recibas el dinero, regístralo en Movimientos.'
     case 'minLiquidity':
       return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero disponible baja de esta cifra, te propone completar ese colchón antes que otros fines.'
     case 'irregularIncome':

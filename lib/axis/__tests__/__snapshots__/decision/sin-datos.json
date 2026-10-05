@@ -31,7 +31,8 @@
       },
       "incomeChangePct": null,
       "expenseChangePct": null,
-      "history": []
+      "history": [],
+      "closedMonths": []
     },
     "objectives": [],
     "investments": {
