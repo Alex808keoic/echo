@@ -11,10 +11,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.303,
+      "value": 3.323,
       "unit": "%",
-      "asOf": "2026-10-01",
-      "changePct": -0.026,
+      "asOf": "2026-10-02",
+      "changePct": 0.02,
       "source": "Banco de España"
     },
     {
@@ -41,10 +41,10 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19005.3,
+      "value": 19085.3,
       "unit": "pts",
-      "asOf": "2026-10-01",
-      "changePct": -2.9,
+      "asOf": "2026-10-02",
+      "changePct": -3.12,
       "source": "Banco de España"
     },
     {
@@ -55,6 +55,16 @@
       "unit": "pts",
       "asOf": "2026-09",
       "changePct": -2.58,
+      "source": "BCE"
+    },
+    {
+      "key": "ecb-dfr",
+      "label": "BCE · facilidad de depósito",
+      "group": "rate",
+      "value": 2.5,
+      "unit": "%",
+      "asOf": "2026-09-16",
+      "changePct": 0.25,
       "source": "BCE"
     }
   ],
