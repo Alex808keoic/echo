@@ -60,11 +60,10 @@ export async function loadDemoData(): Promise<void> {
   }
   await addObjective({
     name: 'Viaje a Japón',
-    currentCents: 246000,
     targetCents: 500000,
     targetDate: shiftedISO(today, 240),
   })
-  await addObjective({ name: 'Fondo de emergencia', currentCents: 90000, targetCents: 300000 })
+  await addObjective({ name: 'Fondo de emergencia', targetCents: 300000 })
   await addPosition({
     name: 'Fondo indexado global',
     investedCents: 150000,

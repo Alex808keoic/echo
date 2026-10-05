@@ -3,7 +3,6 @@
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { pctChange, roundedShares } from '@/lib/finance/summary'
-import { objectivesCoverage } from '@/lib/finance/objectives'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
@@ -16,7 +15,6 @@ import { ArrowUp, ArrowDown, TargetIcon, TrendUpIcon, ChevronRight, MoneyIcon } 
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
-import { CoverageWarning } from '../coverage-warning'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -41,14 +39,13 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
 
   if (!overview) return <ScreenLoading />
 
-  const { month, previousMonth, liquidCents, investedCents, patrimonioCents, objectivesTotals } = overview
-  // Una sola cifra de «Objetivos» en toda la pantalla: lo apartado que el líquido cubre.
-  const coverage = objectivesCoverage(overview.objectives, liquidCents)
-  const reserved = coverage.coveredCents
-  const available = Math.max(0, liquidCents - reserved)
+  const { month, previousMonth, liquidCents, investedCents, patrimonioCents, objectivesAllocation: allocation } = overview
+  // Patrimonio = líquido + inversiones; líquido = destinado a objetivos (reparto automático) + disponible.
+  const destined = allocation.allocatedCents
+  const available = allocation.availableCents
   const parts = [
     { key: 'disponible', label: 'Disponible', amount: available },
-    { key: 'objetivos', label: 'Objetivos', amount: reserved },
+    { key: 'objetivos', label: 'Destinado a objetivos', amount: destined },
     { key: 'inversiones', label: 'Inversiones', amount: investedCents },
   ].filter((b) => b.amount > 0)
   const shares = roundedShares(parts.map((b) => b.amount))
@@ -150,9 +147,21 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
             </ul>
           </div>
         )}
+        <dl className="mt-5 space-y-1.5 border-t border-border pt-4 text-[12.5px]">
+          <div className="flex justify-between gap-3">
+            <dt className="font-medium text-muted-foreground">Líquido</dt>
+            <dd className="font-bold text-grafito tabular-nums">{formatCents(liquidCents)}</dd>
+          </div>
+          <div className="flex justify-between gap-3 pl-3">
+            <dt className="font-medium text-muted-foreground">Destinado a objetivos</dt>
+            <dd className="font-semibold text-grafito tabular-nums">{formatCents(destined)}</dd>
+          </div>
+          <div className="flex justify-between gap-3 pl-3">
+            <dt className="font-medium text-muted-foreground">Disponible</dt>
+            <dd className="font-semibold text-grafito tabular-nums">{formatCents(available)}</dd>
+          </div>
+        </dl>
       </FinancialCard>
-
-      <CoverageWarning coverage={coverage} />
 
       <AxisCard
         tone="green"
@@ -174,13 +183,13 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-bold text-grafito">Objetivos</p>
               <p className="truncate text-[12px] font-medium text-muted-foreground">
-                {objectivesTotals.count === 0
+                {allocation.items.length === 0
                   ? 'Sin objetivos'
-                  : `${objectivesTotals.activeCount} activo${objectivesTotals.activeCount === 1 ? '' : 's'} · ${formatPct(objectivesTotals.pct)}`}
+                  : `${allocation.activeCount} activo${allocation.activeCount === 1 ? '' : 's'} · ${formatPct(allocation.activePct)}`}
               </p>
             </div>
             <span className="text-[15px] font-bold text-grafito tabular-nums">
-              {formatCents(reserved)}
+              {formatCents(destined)}
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </button>

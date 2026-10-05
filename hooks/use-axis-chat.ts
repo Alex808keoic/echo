@@ -90,8 +90,8 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
       await persist(withUser)
       setStatus('analyzing')
       try {
-        const { config, movements, objectives, positions } = overview
-        const context = buildFinancialContext({ config, movements, objectives, positions })
+        // Objetivos con el progreso calculado (`axisSnapshot`), no el `currentCents` guardado.
+        const context = buildFinancialContext(overview.axisSnapshot)
         const memory = (await getAxisMemory()) ?? undefined
         const reply = await engine.ask({ context, market, memory, conversation: windowForModel(withUser), message: text })
         const axisMessage: ChatMessage = {

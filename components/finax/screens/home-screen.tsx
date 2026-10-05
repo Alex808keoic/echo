@@ -20,7 +20,6 @@ import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
 import { ObjectiveForm } from '../forms/objective-form'
-import { ContributeForm } from '../forms/contribute-form'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -33,7 +32,9 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   if (!overview) return <ScreenLoading />
 
   const delta = seriesDelta(seriesForRange(overview.series, range))
-  const firstGoal = overview.objectives.find((o) => o.currentCents < o.targetCents) ?? overview.objectives[0]
+  // El primero del reparto que aún no está cubierto; si no, el primero de la lista.
+  const items = overview.objectivesAllocation.items
+  const firstGoal = items.find((i) => i.status === 'in-progress') ?? items[0]
 
   return (
     <div className="space-y-6 px-5 pb-8 pt-3">
@@ -124,19 +125,8 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         <FinancialCard>
           {firstGoal ? (
             <GoalCard
-              goal={firstGoal}
-              onClick={() => open('Editar objetivo', <ObjectiveForm objective={firstGoal} onDone={close} />)}
-              onContribute={() =>
-                open(
-                  'Aportar al objetivo',
-                  <ContributeForm
-                    objective={firstGoal}
-                    objectives={overview.objectives}
-                    liquidCents={overview.liquidCents}
-                    onDone={close}
-                  />,
-                )
-              }
+              item={firstGoal}
+              onClick={() => open('Editar objetivo', <ObjectiveForm objective={firstGoal.objective} onDone={close} />)}
             />
           ) : (
             <div className="flex items-center justify-between gap-3">

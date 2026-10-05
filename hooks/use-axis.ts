@@ -44,7 +44,7 @@ export function useAxis(overview: FinancialOverview | undefined, { ai = false, m
   useEffect(() => {
     if (!overview || memory === undefined) return
     let cancelled = false
-    void analysisCache.resultFor(overview, ai, market, memory).then((result) => {
+    void analysisCache.resultFor(overview.axisSnapshot, ai, market, memory).then((result) => {
       if (cancelled) return
       setState(result)
       if (remember && result.status === 'analysis') void rememberConclusion(result.analysis)
@@ -58,7 +58,7 @@ export function useAxis(overview: FinancialOverview | undefined, { ai = false, m
   /** Vuelve a analizar la instantánea actual (a petición del usuario). */
   const refresh = useCallback(() => {
     if (!overview) return
-    analysisCache.invalidate(overview)
+    analysisCache.invalidate(overview.axisSnapshot)
     setState({ status: 'loading' })
     setGeneration((g) => g + 1)
   }, [overview])

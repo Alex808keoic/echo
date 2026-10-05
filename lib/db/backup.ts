@@ -6,6 +6,11 @@
  *   v2  lo mismo + las memorias de AXIS (`axisMemories`). Nada más de AXIS:
  *       ni conversación, ni conclusiones, ni mercado, ni estado derivado.
  *
+ * Objetivos: `priority` y `achievedAt` son opcionales (las copias anteriores
+ * no los tienen). `currentCents` sigue siendo obligatorio por compatibilidad,
+ * pero ya no es fuente de verdad: al exportar lleva el progreso calculado en
+ * ese momento (`withDerivedCurrentCents`), y al importar se ignora.
+ *
  * Se importan las dos. Restaurar una v1 conserva las memorias del dispositivo;
  * restaurar una v2 las sustituye. Todo o nada: una copia con algo no válido se
  * rechaza entera y restaurar es una única transacción.
@@ -21,6 +26,8 @@ import {
   type Position,
 } from '../types'
 import { isValidISODate } from '../dates'
+import { computeLiquidCents } from '../finance/patrimonio'
+import { withDerivedCurrentCents } from '../finance/objectives'
 import { validateImportedMemories } from '../axis/chat/memory'
 import type { UserMemory } from '../axis/chat/types'
 
@@ -55,7 +62,7 @@ export async function exportBackup(): Promise<Backup> {
     exportedAt: new Date().toISOString(),
     config: config ?? null,
     movements,
-    objectives,
+    objectives: withDerivedCurrentCents(objectives, computeLiquidCents(config?.initialBalanceCents ?? 0, movements, positions)),
     positions,
     memories,
   }
@@ -107,6 +114,8 @@ function isObjective(v: unknown): v is Objective {
     isInt(v.currentCents) &&
     isInt(v.targetCents) &&
     (v.targetDate === undefined || (isStr(v.targetDate) && isValidISODate(v.targetDate))) &&
+    (v.priority === undefined || (isInt(v.priority) && v.priority > 0)) &&
+    (v.achievedAt === undefined || isInt(v.achievedAt)) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

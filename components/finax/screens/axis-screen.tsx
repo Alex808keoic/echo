@@ -84,7 +84,7 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 function SituationCard({ overview, onNavigate }: { overview: FinancialOverview; onNavigate: Navigate }) {
-  const active = overview.objectivesTotals.activeCount
+  const active = overview.objectivesAllocation.activeCount
   const rows: Array<{ key: string; label: string; value: string; icon: ReactNode; to: ScreenKey }> = [
     { key: 'patrimonio', label: 'Patrimonio', value: formatCents(overview.patrimonioCents), icon: <MoneyIcon className="h-[18px] w-[18px]" />, to: 'dinero' },
     { key: 'ingresos', label: 'Ingresos (mes)', value: formatCents(overview.month.incomeCents), icon: <ArrowUp className="h-[18px] w-[18px]" />, to: 'movimientos' },

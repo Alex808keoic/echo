@@ -43,7 +43,7 @@ const v1 = () => JSON.stringify({ format: BACKUP_FORMAT, version: 1, exportedAt:
 async function seedDevice() {
   await setInitialBalance(100_000)
   await addMovement({ type: 'ingreso', amountCents: 200_000, date: '2026-09-01', category: 'Paga' })
-  await addObjective({ name: 'Viaje', currentCents: 10_000, targetCents: 50_000 })
+  await addObjective({ name: 'Viaje', targetCents: 50_000 })
   const note = manualProposal({ kind: 'note', text: 'Prefiere no tocar los ahorros del viaje.' })
   assert.ok(note.ok)
   if (note.ok) await resolveMemoryProposal(note.proposal, true, 3_000)
@@ -109,7 +109,8 @@ describe('copia v2 · ida y vuelta', () => {
     // Los datos financieros viajan en JSON (las claves con valor undefined desaparecen, como en la v1).
     const asJson = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T
     assert.deepEqual(after.movements, asJson(before.movements))
-    assert.deepEqual(after.objectives, asJson(before.objectives))
+    // currentCents ya no es fuente de verdad: la copia lleva el progreso calculado (líquido 3.000 € ≥ meta 500 €).
+    assert.deepEqual(after.objectives, asJson(before.objectives.map((o) => ({ ...o, currentCents: 50_000 }))))
     assert.deepEqual(after.config, asJson(before.config))
     assert.deepEqual(profileFromMemory(await getAxisMemory()), profileBefore)
   })

@@ -80,20 +80,40 @@ export function signedAmountCents(movement: Movement): number {
 
 /* -------------------------------- Objetivos ------------------------------- */
 
+/**
+ * Objetivo de ahorro. Su progreso NO se guarda: lo calcula `allocateObjectives`
+ * repartiendo el líquido real entre los objetivos activos por prioridad.
+ */
 export interface Objective {
   id: string
   name: string
-  /** Importe alcanzado en céntimos. */
+  /**
+   * Solo compatibilidad (datos y copias anteriores): antes era lo apartado a
+   * mano. Ya no es fuente de verdad ni se escribe al cambiar movimientos; al
+   * exportar una copia lleva el valor calculado en ese momento.
+   */
   currentCents: number
   /** Meta en céntimos. */
   targetCents: number
   /** Fecha objetivo `YYYY-MM-DD`, cuando exista. */
   targetDate?: string
+  /**
+   * Orden en el reparto (1 = el primero en recibir dinero). Ausente en
+   * objetivos que nunca se han reordenado: van detrás, por `createdAt` e `id`.
+   */
+  priority?: number
+  /** Marcado a mano como «Conseguido»: sale del reparto. Nunca se pone solo. */
+  achievedAt?: number
   createdAt: number
   updatedAt: number
 }
 
-export type ObjectiveInput = Omit<Objective, 'id' | 'createdAt' | 'updatedAt'>
+/** Lo que el usuario introduce en el formulario: sin cantidad actual. */
+export interface ObjectiveInput {
+  name: string
+  targetCents: number
+  targetDate?: string
+}
 
 /* ------------------------------- Inversiones ------------------------------ */
 

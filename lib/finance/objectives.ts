@@ -1,123 +1,130 @@
 /**
  * Derivaciones de objetivos e inversiones. Sin persistencia ni UI.
+ *
+ * Objetivos: el progreso es automático. El líquido real (saldo inicial +
+ * movimientos − inversiones pagadas con el líquido) se reparte en cascada
+ * entre los objetivos activos, por prioridad: cada uno recibe lo que le falta
+ * mientras quede dinero. Un mismo euro nunca cuenta para dos objetivos.
+ * `allocateObjectives` es la única fuente del progreso que muestran las pantallas.
  */
 import type { Objective, Position } from '../types'
 
-/** Progreso 0–100, nunca por encima de la meta. */
-export function objectiveProgressPct(o: Objective): number {
+/** Progreso 0–100 de un `currentCents` dado, nunca por encima de la meta (lo usa AXIS). */
+export function objectiveProgressPct(o: Pick<Objective, 'currentCents' | 'targetCents'>): number {
   if (o.targetCents <= 0) return 0
   return Math.min(100, Math.max(0, Math.round((o.currentCents / o.targetCents) * 100)))
 }
 
-export function isObjectiveCompleted(o: Objective): boolean {
+/** `currentCents` llega a la meta (lo usa AXIS; en Finax: «Cubierto»). */
+export function isObjectiveCompleted(o: Pick<Objective, 'currentCents' | 'targetCents'>): boolean {
   return o.targetCents > 0 && o.currentCents >= o.targetCents
 }
 
-export interface ObjectivesTotals {
-  count: number
-  activeCount: number
-  savedCents: number
-  targetCents: number
-  pct: number
+/* ------------------------------ Orden y reparto ------------------------------ */
+
+export const isAchieved = (o: Pick<Objective, 'achievedAt'>): boolean => o.achievedAt !== undefined
+
+/**
+ * Orden del reparto, determinista: primero los que tienen `priority` (de menor
+ * a mayor), después los que nunca se han reordenado; empates por `createdAt`
+ * y después por `id`.
+ */
+export function compareObjectives(a: Objective, b: Objective): number {
+  const pa = a.priority ?? Number.POSITIVE_INFINITY
+  const pb = b.priority ?? Number.POSITIVE_INFINITY
+  if (pa !== pb) return pa < pb ? -1 : 1
+  if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 }
 
-export function summarizeObjectives(objectives: Objective[]): ObjectivesTotals {
-  const savedCents = objectives.reduce((t, o) => t + Math.min(o.currentCents, o.targetCents), 0)
-  const targetCents = objectives.reduce((t, o) => t + o.targetCents, 0)
+/** Objetivos activos (sin «Conseguido») en el orden en que reciben dinero. */
+export function activeInOrder(objectives: Objective[]): Objective[] {
+  return objectives.filter((o) => !isAchieved(o)).sort(compareObjectives)
+}
+
+export type ObjectiveStatus = 'in-progress' | 'covered' | 'achieved'
+
+export interface ObjectiveAllocation {
+  objective: Objective
+  /** Posición en el reparto (1 = el primero); `null` si está conseguido. */
+  rank: number | null
+  /** Parte del líquido que le corresponde ahora. 0 si está conseguido. */
+  allocatedCents: number
+  /** Lo que le falta para la meta con ese reparto. 0 si está conseguido. */
+  remainingCents: number
+  /** Progreso 0–100 del reparto; 100 si está conseguido. */
+  pct: number
+  /** «Cubierto»: el reparto llega a la meta. «Conseguido»: marcado a mano. */
+  status: ObjectiveStatus
+}
+
+export interface ObjectivesAllocation {
+  liquidCents: number
+  /** Activos en orden de reparto y, detrás, los conseguidos (el más reciente primero). */
+  items: ObjectiveAllocation[]
+  /** Suma de lo repartido: «Destinado a objetivos». */
+  allocatedCents: number
+  /** Líquido − destinado. Negativo si el líquido lo es. */
+  availableCents: number
+  /** Suma de las metas activas y su porcentaje cubierto. */
+  activeTargetCents: number
+  activePct: number
+  activeCount: number
+  coveredCount: number
+  achievedCount: number
+}
+
+/**
+ * Reparte el líquido en cascada. Invariantes: Σ asignado ≤ max(0, líquido);
+ * asignado ≤ meta; disponible = líquido − destinado. Los conseguidos no
+ * reciben nada. Pura y determinista.
+ */
+export function allocateObjectives(objectives: Objective[], liquidCents: number): ObjectivesAllocation {
+  let pool = Math.max(0, liquidCents)
+  const active = activeInOrder(objectives).map((objective, i): ObjectiveAllocation => {
+    const target = Math.max(0, objective.targetCents)
+    const allocatedCents = Math.min(target, pool)
+    pool -= allocatedCents
+    const covered = target > 0 && allocatedCents >= target
+    return {
+      objective,
+      rank: i + 1,
+      allocatedCents,
+      remainingCents: target - allocatedCents,
+      pct: objectiveProgressPct({ currentCents: allocatedCents, targetCents: target }),
+      status: covered ? 'covered' : 'in-progress',
+    }
+  })
+  const achieved = objectives
+    .filter(isAchieved)
+    .sort((a, b) => (b.achievedAt ?? 0) - (a.achievedAt ?? 0) || compareObjectives(a, b))
+    .map((objective): ObjectiveAllocation => ({ objective, rank: null, allocatedCents: 0, remainingCents: 0, pct: 100, status: 'achieved' }))
+  const allocatedCents = active.reduce((t, a) => t + a.allocatedCents, 0)
+  const activeTargetCents = active.reduce((t, a) => t + Math.max(0, a.objective.targetCents), 0)
   return {
-    count: objectives.length,
-    activeCount: objectives.filter((o) => !isObjectiveCompleted(o)).length,
-    savedCents,
-    targetCents,
-    pct: targetCents > 0 ? Math.min(100, Math.round((savedCents / targetCents) * 100)) : 0,
+    liquidCents,
+    items: [...active, ...achieved],
+    allocatedCents,
+    availableCents: liquidCents - allocatedCents,
+    activeTargetCents,
+    activePct: activeTargetCents > 0 ? Math.min(100, Math.round((allocatedCents / activeTargetCents) * 100)) : 0,
+    activeCount: active.length,
+    coveredCount: active.filter((a) => a.status === 'covered').length,
+    achievedCount: achieved.length,
   }
 }
 
-/* -------------------------------- Aportar --------------------------------- */
-
-export interface ContributionLimit {
-  /** Lo que le falta al objetivo para llegar a la meta. */
-  remainingCents: number
-  /** Líquido que aún no está apartado en ningún objetivo. */
-  freeCents: number
-  /** Máximo aportable ahora: lo menor de los dos, nunca negativo. */
-  maxCents: number
-}
-
 /**
- * Aportar a un objetivo no mueve dinero ni crea movimientos: aparta parte del
- * líquido. Por eso no se puede apartar más líquido del que hay sin apartar.
+ * Objetivos con `currentCents` = el valor calculado: lo repartido a cada activo
+ * y la meta a cada conseguido. Es lo que reciben AXIS (que aún lee
+ * `currentCents`, Fase B) y las copias de seguridad (compatibilidad).
  */
-export function contributionLimit(
-  objective: Objective,
-  objectives: Objective[],
-  liquidCents: number,
-): ContributionLimit {
-  const remainingCents = Math.max(0, objective.targetCents - objective.currentCents)
-  const freeCents = freeLiquidCents(objectives, liquidCents)
-  return { remainingCents, freeCents, maxCents: Math.min(remainingCents, freeCents) }
-}
-
-/** Líquido que no está apartado en ninguno de `objectives`; nunca negativo. */
-export function freeLiquidCents(objectives: Objective[], liquidCents: number): number {
-  return Math.max(0, liquidCents - summarizeObjectives(objectives).savedCents)
-}
-
-/* --------------------------- Crear y editar --------------------------- */
-
-/**
- * Lo máximo que puede quedar apartado en un objetivo al crearlo o editarlo:
- * el líquido que no está apartado en OTROS objetivos. Al editar, lo que ya
- * tenía ese mismo objetivo vuelve a contar como libre (misma regla que «Aportar»).
- */
-export function reservationLimitCents(objectives: Objective[], liquidCents: number, editingId?: string): number {
-  return freeLiquidCents(editingId === undefined ? objectives : objectives.filter((o) => o.id !== editingId), liquidCents)
-}
-
-/**
- * Error del campo «Ya apartado», o `null` si es válido. Mantener o reducir lo
- * que ya tenía un objetivo siempre se permite, aunque el líquido haya bajado
- * después: corregir un objetivo antiguo nunca debe quedar bloqueado.
- */
-export function reservationError(currentCents: number, limitCents: number, previousCents?: number): string | null {
-  if (!Number.isSafeInteger(currentCents) || currentCents < 0) return 'Cantidad no válida.'
-  if (previousCents !== undefined && currentCents <= previousCents) return null
-  if (currentCents > limitCents) return 'Es más del dinero disponible que tienes sin apartar.'
-  return null
-}
-
-/* ------------------------------ Cobertura ------------------------------ */
-
-export interface ObjectivesCoverage {
-  /** Lo apartado en objetivos (sin pasar de cada meta), como `summarizeObjectives`. */
-  reservedCents: number
-  /** La parte de lo apartado que el líquido actual cubre de verdad. */
-  coveredCents: number
-  /** Lo apartado que el líquido ya no cubre (0 si lo cubre todo). */
-  shortfallCents: number
-  covered: boolean
-}
-
-/**
- * ¿Cubre el líquido actual todo lo apartado? Un gasto posterior puede dejar el
- * líquido por debajo de lo apartado: se informa, pero ningún objetivo cambia.
- * Mismo cálculo que `reservedForObjectivesCents` de AXIS.
- */
-export function objectivesCoverage(objectives: Objective[], liquidCents: number): ObjectivesCoverage {
-  const reservedCents = summarizeObjectives(objectives).savedCents
-  const coveredCents = Math.max(0, Math.min(reservedCents, liquidCents))
-  const shortfallCents = reservedCents - coveredCents
-  return { reservedCents, coveredCents, shortfallCents, covered: shortfallCents === 0 }
-}
-
-/** Mensaje de error para una aportación, o `null` si es válida. */
-export function contributionError(amountCents: number | null, limit: ContributionLimit): string | null {
-  if (amountCents === null) return 'Introduce un importe mayor que cero.'
-  if (limit.remainingCents === 0) return 'Este objetivo ya está conseguido.'
-  if (limit.freeCents === 0) return 'No te queda líquido sin apartar en otros objetivos.'
-  if (amountCents > limit.remainingCents) return 'Es más de lo que le falta al objetivo.'
-  if (amountCents > limit.freeCents) return 'Es más del líquido que tienes sin apartar.'
-  return null
+export function withDerivedCurrentCents(objectives: Objective[], liquidCents: number): Objective[] {
+  const byId = new Map(allocateObjectives(objectives, liquidCents).items.map((a) => [a.objective.id, a]))
+  return objectives.map((o) => {
+    const a = byId.get(o.id)!
+    return { ...o, currentCents: a.status === 'achieved' ? Math.max(0, o.targetCents) : a.allocatedCents }
+  })
 }
 
 /* ------------------------------- Inversiones ------------------------------ */
