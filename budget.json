@@ -1,12 +1,12 @@
 {
   "version": 1,
   "month": "2026-10",
-  "monthCalls": 3,
+  "monthCalls": 4,
   "monthTokens": 6298,
-  "deepResearchThisMonth": 2,
-  "day": "2026-10-03",
-  "dayCalls": 2,
-  "week": "2026-W40",
+  "deepResearchThisMonth": 3,
+  "day": "2026-10-05",
+  "dayCalls": 1,
+  "week": "2026-W41",
   "eventResearchThisWeek": 1,
   "attempts": [
     {
@@ -78,6 +78,13 @@
       "reason": "scheduled",
       "ok": true,
       "tokens": 6298
+    },
+    {
+      "at": "2026-10-05T16:18:15.409Z",
+      "provider": "gemini:gemini-3.5-flash-lite",
+      "reason": "event",
+      "ok": false,
+      "tokens": 0
     }
   ]
 }
