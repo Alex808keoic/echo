@@ -118,8 +118,8 @@ causa en `warnings`.
 |---|---|---|
 | BCE Data Portal | tipo de depósito (DFR, diario), Euríbor 12M (media mensual), EURO STOXX 50 (media mensual) | `data-api.ecb.europa.eu` (SDMX-JSON) |
 | Banco de España | Euríbor 12M (diario, tabla `ti_1_7`), IBEX 35 (diario, tabla `ti_1_6`) | CSV público (latin1) |
-| INE | IPC general, variación anual (serie `IPC251856`) | API Tempus (JSON) |
-| Eurostat | HICP eurozona, variación anual | API dissemination (JSON-stat) |
+| INE | IPC general, variación anual, base 2025 (serie `IPC290750`, respuesta `tip=A` con el tipo de dato: «Avance» → `status: advance`) | API Tempus (JSON) |
+| Eurostat | HICP eurozona, variación anual (`prc_hicp_minr`, `coicop18=TOTAL`, `RCH_A`; marca `e` → `status: estimated`) | API dissemination (JSON-stat) |
 | FRED | Fed funds, S&P 500, Nasdaq 100 | API JSON (clave gratuita opcional; sin ella se omite) |
 | RSS oficiales | BCE prensa, Fed prensa, Banco de España noticias | RSS |
 
@@ -226,8 +226,17 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
 3. El cron puede retrasarse: la frescura se mide por `generatedAt`.
 4. Groq 8K TPM: el material se compacta a ≤ 20 000 caracteres (~7K tokens) antes de llamar.
 5. Endpoints de fuentes que cambian: cada fuente aislada; se anota en `failedSources`.
-   INE y Eurostat publican con retraso (hoy, datos hasta 2025-12); el EURO STOXX 50 del
-   BCE es media mensual; S&P 500 / Nasdaq 100 solo con `FRED_API_KEY`.
+   El EURO STOXX 50 del BCE es media mensual; S&P 500 / Nasdaq 100 solo con `FRED_API_KEY`.
+   En enero de 2026 INE (base 2025) y Eurostat (ECOICOP ver.2) cambiaron de serie y las
+   antiguas (`IPC251856`, `prc_hicp_manr`) quedaron congeladas en 2025-12 sin dar error.
+   Desde entonces, una serie de inflación cuyo último dato tiene más de 3 meses se rechaza
+   (`assertCurrentMonthly`) y queda en `failedSources` en lugar de publicarse como actual.
+   **Pendiente (siguiente fase):** la comprobación ligera conserva en `latest.json` el último
+   valor conocido de una fuente caída, y la síntesis IA puede describir su «tendencia»
+   aunque el dato sea antiguo (en 2026-W40 describió una desaceleración de la inflación
+   con datos de 2025-12). Protección propuesta, sin implementar: en `compactMaterial`,
+   marcar o excluir los indicadores con `asOf` demasiado antiguo y prohibir en el prompt
+   describir tendencias de indicadores marcados; y frescura por indicador.
 6. Contenido enviado al free tier de Gemini se usa para mejorar productos (solo datos públicos).
 7. La lectura raw exige repo/rama pública; alternativa: repo de datos público separado.
 8. En repos públicos el cron se desactiva tras 60 días sin actividad: los commits de la investigación cuentan como actividad.

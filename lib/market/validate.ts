@@ -86,6 +86,7 @@ export function parseIndicator(v: unknown, i = 0): MarketIndicator {
     asOf: text(v.asOf, `indicators[${i}].asOf`, { max: 16 }),
     changePct: numberOrNull(v.changePct, `indicators[${i}].changePct`),
     source: text(v.source, `indicators[${i}].source`, { max: 80 }),
+    ...(v.status === undefined ? {} : { status: oneOf(v.status, ['advance', 'estimated', 'provisional'] as const, `indicators[${i}].status`) }),
   }
 }
 

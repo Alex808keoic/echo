@@ -22,7 +22,15 @@ export interface MarketIndicator {
   /** Variación % respecto a la observación anterior disponible, cuando se conoce. */
   changePct: number | null
   source: string
+  /**
+   * Estado del dato cuando la fuente lo marca como no definitivo: `advance`
+   * (INE «Avance»), `estimated` (Eurostat `e`, estimación flash) o
+   * `provisional`. Ausente: la fuente no lo marca (no afirma que sea definitivo).
+   */
+  status?: IndicatorStatus
 }
+
+export type IndicatorStatus = 'advance' | 'estimated' | 'provisional'
 
 export interface MarketEvent {
   date: string
