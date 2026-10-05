@@ -54,8 +54,60 @@ export function contributionLimit(
   liquidCents: number,
 ): ContributionLimit {
   const remainingCents = Math.max(0, objective.targetCents - objective.currentCents)
-  const freeCents = Math.max(0, liquidCents - summarizeObjectives(objectives).savedCents)
+  const freeCents = freeLiquidCents(objectives, liquidCents)
   return { remainingCents, freeCents, maxCents: Math.min(remainingCents, freeCents) }
+}
+
+/** Líquido que no está apartado en ninguno de `objectives`; nunca negativo. */
+export function freeLiquidCents(objectives: Objective[], liquidCents: number): number {
+  return Math.max(0, liquidCents - summarizeObjectives(objectives).savedCents)
+}
+
+/* --------------------------- Crear y editar --------------------------- */
+
+/**
+ * Lo máximo que puede quedar apartado en un objetivo al crearlo o editarlo:
+ * el líquido que no está apartado en OTROS objetivos. Al editar, lo que ya
+ * tenía ese mismo objetivo vuelve a contar como libre (misma regla que «Aportar»).
+ */
+export function reservationLimitCents(objectives: Objective[], liquidCents: number, editingId?: string): number {
+  return freeLiquidCents(editingId === undefined ? objectives : objectives.filter((o) => o.id !== editingId), liquidCents)
+}
+
+/**
+ * Error del campo «Ya apartado», o `null` si es válido. Mantener o reducir lo
+ * que ya tenía un objetivo siempre se permite, aunque el líquido haya bajado
+ * después: corregir un objetivo antiguo nunca debe quedar bloqueado.
+ */
+export function reservationError(currentCents: number, limitCents: number, previousCents?: number): string | null {
+  if (!Number.isSafeInteger(currentCents) || currentCents < 0) return 'Cantidad no válida.'
+  if (previousCents !== undefined && currentCents <= previousCents) return null
+  if (currentCents > limitCents) return 'Es más del dinero disponible que tienes sin apartar.'
+  return null
+}
+
+/* ------------------------------ Cobertura ------------------------------ */
+
+export interface ObjectivesCoverage {
+  /** Lo apartado en objetivos (sin pasar de cada meta), como `summarizeObjectives`. */
+  reservedCents: number
+  /** La parte de lo apartado que el líquido actual cubre de verdad. */
+  coveredCents: number
+  /** Lo apartado que el líquido ya no cubre (0 si lo cubre todo). */
+  shortfallCents: number
+  covered: boolean
+}
+
+/**
+ * ¿Cubre el líquido actual todo lo apartado? Un gasto posterior puede dejar el
+ * líquido por debajo de lo apartado: se informa, pero ningún objetivo cambia.
+ * Mismo cálculo que `reservedForObjectivesCents` de AXIS.
+ */
+export function objectivesCoverage(objectives: Objective[], liquidCents: number): ObjectivesCoverage {
+  const reservedCents = summarizeObjectives(objectives).savedCents
+  const coveredCents = Math.max(0, Math.min(reservedCents, liquidCents))
+  const shortfallCents = reservedCents - coveredCents
+  return { reservedCents, coveredCents, shortfallCents, covered: shortfallCents === 0 }
 }
 
 /** Mensaje de error para una aportación, o `null` si es válida. */

@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from 'react'
 import type { Objective, ObjectiveInput } from '@/lib/types'
-import { centsToInputValue, parseAmountToCents, parseBalanceToCents } from '@/lib/money'
+import { centsToInputValue, formatCents, parseAmountToCents, parseBalanceToCents } from '@/lib/money'
 import { isValidISODate } from '@/lib/dates'
-import { addObjective, deleteObjective, updateObjective } from '@/lib/db/objectives'
+import { deleteObjective, saveObjectiveChecked } from '@/lib/db/objectives'
 import { Button } from '../button'
 import { AmountInput, Field, TextInput } from '../field'
 import { Confirm } from '../confirm'
@@ -22,7 +22,11 @@ interface Errors {
   date?: string
 }
 
-/** Alta y edición de objetivos de ahorro. */
+/**
+ * Alta y edición de objetivos de ahorro. «Ya apartado» (`currentCents`) sigue
+ * la regla de «Aportar»: no puede superar el líquido sin apartar en otros
+ * objetivos, comprobado al guardar con los datos actuales.
+ */
 export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
   const [name, setName] = useState(objective?.name ?? '')
   const [target, setTarget] = useState(objective ? centsToInputValue(objective.targetCents) : '')
@@ -47,8 +51,11 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
     const input: ObjectiveInput = { name, targetCents, currentCents, targetDate: date || undefined }
     setBusy(true)
     try {
-      if (objective) await updateObjective(objective.id, input)
-      else await addObjective(input)
+      const result = await saveObjectiveChecked(input, objective?.id)
+      if (!result.ok) {
+        setErrors({ current: `${result.error} Como máximo, ${formatCents(result.limitCents)}.` })
+        return
+      }
       onDone()
     } finally {
       setBusy(false)
@@ -84,7 +91,11 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
       <Field label="Cantidad objetivo" error={errors.target}>
         <AmountInput value={target} onChange={(e) => setTarget(e.target.value)} />
       </Field>
-      <Field label="Cantidad actual" error={errors.current} hint="Lo que ya tienes reservado para este objetivo.">
+      <Field
+        label="Ya apartado para este objetivo"
+        error={errors.current}
+        hint="Parte de tu dinero disponible que reservas para este objetivo. Los ingresos y gastos normales no cambian esta cantidad; usa «Aportar» para modificarla."
+      >
         <AmountInput value={current} onChange={(e) => setCurrent(e.target.value)} />
       </Field>
       <Field label="Fecha objetivo (opcional)" error={errors.date}>

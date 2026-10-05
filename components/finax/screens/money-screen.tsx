@@ -3,6 +3,7 @@
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { pctChange, roundedShares } from '@/lib/finance/summary'
+import { objectivesCoverage } from '@/lib/finance/objectives'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
@@ -15,6 +16,7 @@ import { ArrowUp, ArrowDown, TargetIcon, TrendUpIcon, ChevronRight, MoneyIcon } 
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
+import { CoverageWarning } from '../coverage-warning'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -40,7 +42,9 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
   if (!overview) return <ScreenLoading />
 
   const { month, previousMonth, liquidCents, investedCents, patrimonioCents, objectivesTotals } = overview
-  const reserved = Math.max(0, Math.min(objectivesTotals.savedCents, liquidCents))
+  // Una sola cifra de «Objetivos» en toda la pantalla: lo apartado que el líquido cubre.
+  const coverage = objectivesCoverage(overview.objectives, liquidCents)
+  const reserved = coverage.coveredCents
   const available = Math.max(0, liquidCents - reserved)
   const parts = [
     { key: 'disponible', label: 'Disponible', amount: available },
@@ -148,6 +152,8 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
         )}
       </FinancialCard>
 
+      <CoverageWarning coverage={coverage} />
+
       <AxisCard
         tone="green"
         text={axisHeadline(axis)}
@@ -174,7 +180,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
               </p>
             </div>
             <span className="text-[15px] font-bold text-grafito tabular-nums">
-              {formatCents(objectivesTotals.savedCents)}
+              {formatCents(reserved)}
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </button>

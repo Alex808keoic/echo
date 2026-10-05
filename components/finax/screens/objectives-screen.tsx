@@ -2,7 +2,7 @@
 
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { isObjectiveCompleted } from '@/lib/finance/objectives'
+import { isObjectiveCompleted, objectivesCoverage } from '@/lib/finance/objectives'
 import { SubPageHeader, IconButton } from '../page-header'
 import { FinancialCard } from '../card'
 import { GoalCard } from '../goal-card'
@@ -12,6 +12,7 @@ import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { ObjectiveForm } from '../forms/objective-form'
 import { ContributeForm } from '../forms/contribute-form'
+import { CoverageWarning } from '../coverage-warning'
 import { PlusIcon, TargetIcon } from '../icons'
 import type { ScreenProps } from './types'
 
@@ -58,6 +59,7 @@ export function ObjectivesScreen({ overview, onNavigate, onBack }: ScreenProps) 
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-finax" style={{ width: `${totals.pct}%` }} />
             </div>
+            <CoverageWarning coverage={objectivesCoverage(objectives, overview.liquidCents)} className="mt-4" />
           </FinancialCard>
 
           {active.length > 0 && (

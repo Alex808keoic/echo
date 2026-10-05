@@ -1,7 +1,9 @@
 /**
  * Acceso a datos de objetivos de ahorro.
  */
-import { db, newId } from './db'
+import { CONFIG_KEY, db, newId } from './db'
+import { computeLiquidCents } from '../finance/patrimonio'
+import { reservationError, reservationLimitCents } from '../finance/objectives'
 import type { Objective, ObjectiveInput } from '../types'
 
 function normalize(input: ObjectiveInput): ObjectiveInput {
@@ -33,6 +35,34 @@ export async function updateObjective(id: string, input: ObjectiveInput): Promis
     targetCents: n.targetCents,
     targetDate: n.targetDate,
     updatedAt: Date.now(),
+  })
+}
+
+export type SaveObjectiveResult = { ok: true; id: string } | { ok: false; error: string; limitCents: number }
+
+/**
+ * Crea (`id` ausente) o edita un objetivo validando lo apartado con los datos
+ * actuales, leídos en la misma transacción: no puede superar el líquido sin
+ * apartar en otros objetivos (`reservationLimitCents`). Mantener o reducir lo
+ * que ya tenía siempre se permite. No toca movimientos ni otros objetivos.
+ */
+export async function saveObjectiveChecked(input: ObjectiveInput, id?: string): Promise<SaveObjectiveResult> {
+  return db.transaction('rw', [db.config, db.movements, db.objectives, db.positions], async () => {
+    const [config, movements, objectives, positions] = await Promise.all([
+      db.config.get(CONFIG_KEY),
+      db.movements.toArray(),
+      db.objectives.toArray(),
+      db.positions.toArray(),
+    ])
+    const previous = id === undefined ? undefined : objectives.find((o) => o.id === id)
+    if (id !== undefined && !previous) throw new Error('Objetivo no encontrado')
+    const liquidCents = computeLiquidCents(config?.initialBalanceCents ?? 0, movements, positions)
+    const limitCents = reservationLimitCents(objectives, liquidCents, id)
+    const error = reservationError(input.currentCents, limitCents, previous?.currentCents)
+    if (error) return { ok: false, error, limitCents }
+    if (id === undefined) return { ok: true, id: (await addObjective(input)).id }
+    await updateObjective(id, input)
+    return { ok: true, id }
   })
 }
 
