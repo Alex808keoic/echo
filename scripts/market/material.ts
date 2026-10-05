@@ -4,8 +4,14 @@
  * `compactMaterial` convierte indicadores y titulares en un texto acotado
  * que cabe en MAX_INPUT_TOKENS (y en el TPM del fallback). `detectEvents`
  * compara la recopilación con la última investigación publicada.
+ *
+ * Solo los indicadores frescos (`indicatorFreshness`, a la fecha de la
+ * recopilación) se envían como situación actual, con valor y variación. Los
+ * antiguos o sin fecha fiable se listan aparte, sin valor ni variación, para
+ * que la síntesis no pueda describir su nivel ni su tendencia como actuales.
  */
-import type { MarketIndicator, MarketResearch } from '../../lib/market/types'
+import { partitionByFreshness } from '../../lib/market/freshness'
+import type { IndicatorStatus, MarketIndicator, MarketResearch } from '../../lib/market/types'
 import type { CollectedMaterial } from './sources'
 import type { Headline } from './sources/shared'
 
@@ -71,9 +77,18 @@ export function detectEvents(material: CollectedMaterial, latest: MarketResearch
   return events
 }
 
+const STATUS_TEXT: Record<IndicatorStatus, string> = { advance: 'avance, provisional', estimated: 'estimación provisional', provisional: 'provisional' }
+
 function fmtIndicator(i: MarketIndicator): string {
   const change = i.changePct === null ? '' : ` (${i.changePct >= 0 ? '+' : ''}${i.changePct}${i.group === 'rate' ? ' p.p.' : ' %'} vs. anterior)`
-  return `- ${i.label}: ${i.value ?? 'n/d'} ${i.unit}${change}, dato de ${i.asOf} [${i.source}]`
+  const status = i.status ? ` (${STATUS_TEXT[i.status]})` : ''
+  return `- ${i.label}: ${i.value ?? 'n/d'} ${i.unit}${change}, dato de ${i.asOf}${status} [${i.source}]`
+}
+
+/** Indicador no interpretable: sin valor ni variación, solo qué es y de cuándo es el último dato. */
+function fmtNotCurrent(i: MarketIndicator & { freshness: 'stale' | 'unknown' }): string {
+  const when = i.freshness === 'stale' ? `último dato de ${i.asOf}, antiguo` : 'sin fecha fiable'
+  return `- ${i.label}: ${when} [${i.source}]`
 }
 
 function fmtHeadline(h: Headline): string {
@@ -85,12 +100,16 @@ function fmtHeadline(h: Headline): string {
  * más antiguos se descartan primero.
  */
 export function compactMaterial(material: CollectedMaterial, opts: { maxChars: number; coversFrom: string; coversTo: string }): string {
+  const { current, notCurrent } = partitionByFreshness(material.indicators, new Date(material.retrievedAt))
   const header = [
     `Periodo analizado: ${opts.coversFrom} a ${opts.coversTo}. Recopilado el ${material.retrievedAt.slice(0, 16)} UTC.`,
     material.failed.length > 0 ? `Fuentes no disponibles en esta recopilación: ${material.failed.join(', ')}.` : '',
     '',
-    'INDICADORES (datos oficiales, no modificar):',
-    ...material.indicators.map(fmtIndicator),
+    'INDICADORES VIGENTES (datos oficiales recientes, no modificar):',
+    ...(current.length > 0 ? current.map(fmtIndicator) : ['- (ninguno)']),
+    ...(notCurrent.length > 0
+      ? ['', 'INDICADORES NO INTERPRETABLES (dato antiguo o sin fecha fiable; NO describas su nivel actual ni su evolución):', ...notCurrent.map(fmtNotCurrent)]
+      : []),
     '',
     'TITULARES OFICIALES RECIENTES (solo síntesis; no inventar detalles no presentes):',
   ].join('\n')
@@ -112,7 +131,10 @@ export const MARKET_SYSTEM_PROMPT = `Eres el Market Research Engine de Finax, un
 
 REGLAS
 - No inventes datos, cifras, fechas ni acontecimientos que no estén en el material. Si algo no aparece, no lo menciones o dilo como desconocido.
-- Los indicadores numéricos ya vienen calculados: no los recalcules ni los contradigas; cítalos con su fuente.
+- Los indicadores numéricos ya vienen calculados: no los recalcules ni los contradigas; cítalos con su fuente y la fecha de su dato.
+- Solo los «INDICADORES VIGENTES» describen la situación actual. De los «INDICADORES NO INTERPRETABLES» no afirmes su nivel actual ni su tendencia (nada de «la inflación baja/sube» si su dato es antiguo); como mucho, recoge en «uncertainties» que ese dato no está actualizado.
+- No rellenes fechas, valores ni periodos que falten, y no inventes la evolución entre observaciones: solo la variación indicada respecto al dato anterior.
+- Distingue el dato observado («el IPC de septiembre fue del X %», con su fecha) de la interpretación («podría reflejar…»). Un dato marcado como avance o estimación es provisional: dilo así.
 - Describe lo ocurrido en el periodo y lo que es incierto. Nunca presentes predicciones como certezas: prohibido «va a subir», «subirá», «caerá», «garantizado», «seguro que», «sin duda». Usa «ha subido X % en el periodo», «podría», «según los datos disponibles».
 - No des recomendaciones de inversión ni menciones productos, brokers o activos concretos para comprar o vender. Las notas por clase de activo describen contexto (stance: neutral | caution | watch), no acciones.
 - No uses conocimiento externo sobre el mercado más allá del material; no tienes acceso a Internet.

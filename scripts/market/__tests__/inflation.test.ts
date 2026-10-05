@@ -99,7 +99,8 @@ describe('inflación · INE (IPC290750)', () => {
 describe('inflación · Eurostat (prc_hicp_minr)', () => {
   it('septiembre 3,8 % como estimación (`e`), variación frente a agosto', async () => {
     const [sep] = (await eurostatHicp(ctx(eurostat([['2026-08', 3.2], ['2026-09', 3.8, 'e']]), '2026-10-05T07:30:00Z'))).indicators
-    assert.deepEqual(sep, { key: 'ea-hicp', label: 'Inflación eurozona (HICP interanual)', group: 'inflation', value: 3.8, unit: '%', asOf: '2026-09', changePct: 0.6, source: 'Eurostat', status: 'estimated' })
+    // `publishedAt`: el `updated` que declara Eurostat («2026-10-02T11:00:00+0200»), normalizado.
+    assert.deepEqual(sep, { key: 'ea-hicp', label: 'Inflación eurozona (HICP interanual)', group: 'inflation', value: 3.8, unit: '%', asOf: '2026-09', changePct: 0.6, source: 'Eurostat', status: 'estimated', publishedAt: '2026-10-02T09:00:00.000Z' })
   })
 
   it('sin marca de estado: sin `status`; `p` → provisional', async () => {

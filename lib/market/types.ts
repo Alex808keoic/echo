@@ -17,7 +17,10 @@ export interface MarketIndicator {
   group: IndicatorGroup
   value: number | null
   unit: '%' | 'pts'
-  /** Fecha del dato `YYYY-MM-DD` (o periodo `YYYY-MM`). */
+  /**
+   * Fecha de observación del dato: día `YYYY-MM-DD` o periodo `YYYY-MM`. En
+   * tipos oficiales, la fecha desde la que el tipo está en vigor.
+   */
   asOf: string
   /** Variación % respecto a la observación anterior disponible, cuando se conoce. */
   changePct: number | null
@@ -28,9 +31,20 @@ export interface MarketIndicator {
    * `provisional`. Ausente: la fuente no lo marca (no afirma que sea definitivo).
    */
   status?: IndicatorStatus
+  /** Cuándo lo descargó el job (ISO). Ausente en datos anteriores a este campo. */
+  fetchedAt?: string
+  /** Cuándo lo publicó o actualizó la fuente (ISO), solo si la fuente lo declara. */
+  publishedAt?: string
 }
 
 export type IndicatorStatus = 'advance' | 'estimated' | 'provisional'
+
+/**
+ * Frescura de un indicador concreto (no de la investigación): `fresh` se
+ * puede interpretar como situación actual; `stale` es antiguo; `unknown` no
+ * tiene fecha o valor suficientes para saberlo. Ver `indicatorFreshness`.
+ */
+export type IndicatorFreshness = 'fresh' | 'stale' | 'unknown'
 
 export interface MarketEvent {
   date: string

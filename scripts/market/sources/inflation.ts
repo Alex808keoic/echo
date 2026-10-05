@@ -72,7 +72,16 @@ export const ineIpc: Source = async (ctx) => {
   return { source: source('INE · IPC', INE_URL, 'official', ctx.now), indicators: [indicator], headlines: [] }
 }
 
+/** Fecha ISO de Eurostat («2026-10-02T11:00:00+0200») normalizada; `undefined` si no es interpretable. */
+export function eurostatUpdated(updated: unknown): string | undefined {
+  if (typeof updated !== 'string') return undefined
+  const iso = updated.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+  const t = Date.parse(iso)
+  return Number.isNaN(t) ? undefined : new Date(t).toISOString()
+}
+
 interface JsonStat {
+  updated?: string
   value: Record<string, number>
   status?: Record<string, string>
   dimension: { time: { category: { index: Record<string, number> } } }
@@ -99,6 +108,8 @@ export const eurostatHicp: Source = async (ctx) => {
     changePct: prev ? round(last.value - prev.value, 2) : null,
     source: 'Eurostat',
     ...(status ? { status } : {}),
+    // Fecha de actualización del conjunto de datos que declara Eurostat.
+    ...(eurostatUpdated(data.updated) ? { publishedAt: eurostatUpdated(data.updated) } : {}),
   }
   return { source: source('Eurostat · HICP', EUROSTAT_URL, 'official', ctx.now), indicators: [indicator], headlines: [] }
 }

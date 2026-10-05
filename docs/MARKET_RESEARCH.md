@@ -223,7 +223,8 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
 
 1. Las cuotas free de Gemini no se publican y cambian; el diseño usa ≤ 2/día.
 2. Posible restricción regional del free tier: verificar el tier del proyecto desde España.
-3. El cron puede retrasarse: la frescura se mide por `generatedAt`.
+3. El cron puede retrasarse: la frescura de la investigación se mide por `generatedAt`; la de cada
+   indicador, por la fecha de su dato (`indicatorFreshness`, `lib/market/freshness.ts`).
 4. Groq 8K TPM: el material se compacta a ≤ 20 000 caracteres (~7K tokens) antes de llamar.
 5. Endpoints de fuentes que cambian: cada fuente aislada; se anota en `failedSources`.
    El EURO STOXX 50 del BCE es media mensual; S&P 500 / Nasdaq 100 solo con `FRED_API_KEY`.
@@ -231,12 +232,15 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
    antiguas (`IPC251856`, `prc_hicp_manr`) quedaron congeladas en 2025-12 sin dar error.
    Desde entonces, una serie de inflación cuyo último dato tiene más de 3 meses se rechaza
    (`assertCurrentMonthly`) y queda en `failedSources` en lugar de publicarse como actual.
-   **Pendiente (siguiente fase):** la comprobación ligera conserva en `latest.json` el último
-   valor conocido de una fuente caída, y la síntesis IA puede describir su «tendencia»
-   aunque el dato sea antiguo (en 2026-W40 describió una desaceleración de la inflación
-   con datos de 2025-12). Protección propuesta, sin implementar: en `compactMaterial`,
-   marcar o excluir los indicadores con `asOf` demasiado antiguo y prohibir en el prompt
-   describir tendencias de indicadores marcados; y frescura por indicador.
+   La comprobación ligera conserva en `latest.json` el último valor conocido de una fuente
+   caída (no se borra histórico). Frescura por indicador (`fresh` | `stale` | `unknown`,
+   reglas en `INDICATOR_FRESHNESS`): mensual, 45 días tras el fin del periodo; diario,
+   5 laborables; tipos oficiales, 60 días desde su entrada en vigor; sin fecha, `unknown`.
+   La síntesis IA solo recibe como «INDICADORES VIGENTES» los frescos (con valor); los demás
+   van como «NO INTERPRETABLES», sin valor ni variación, y el prompt prohíbe describir su
+   nivel o tendencia (en 2026-W40 describió una desaceleración con datos de 2025-12).
+   **Pendiente:** AXIS (`buildMarketContext` → `keyIndicators`) aún no filtra por esta
+   frescura; la línea de mercado de la UI sigue usando la frescura de la investigación.
 6. Contenido enviado al free tier de Gemini se usa para mejorar productos (solo datos públicos).
 7. La lectura raw exige repo/rama pública; alternativa: repo de datos público separado.
 8. En repos públicos el cron se desactiva tras 60 días sin actividad: los commits de la investigación cuentan como actividad.

@@ -1,6 +1,7 @@
 /**
  * Recopilación de todas las fuentes con `Promise.allSettled`: una fuente
- * caída no rompe la investigación; queda en `failed`.
+ * caída no rompe la investigación; queda en `failed`. Cada indicador lleva
+ * `fetchedAt` (momento de la recopilación) para poder juzgar su frescura.
  */
 import type { MarketIndicator, MarketSource } from '../../../lib/market/types'
 import { bdeEuribor12m, bdeIbex35 } from './bde'
@@ -51,7 +52,7 @@ export async function collectSources(
       for (const ind of r.value.indicators) {
         if (seen.has(ind.key)) continue
         seen.add(ind.key)
-        material.indicators.push(ind)
+        material.indicators.push({ ...ind, fetchedAt: ind.fetchedAt ?? material.retrievedAt })
       }
       material.headlines.push(...r.value.headlines)
       material.sources.push(r.value.source)
