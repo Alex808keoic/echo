@@ -9,11 +9,23 @@
  *
  * Nunca presenta tendencias como certezas: reproduce lo que la investigación
  * describe del periodo y remite a sus fuentes.
+ *
+ * Frescura por indicador (`ContextIndicator.freshness`): solo los indicadores
+ * `fresh` aparecen con su valor como situación actual. Los `stale` o
+ * `unknown` (o sin frescura, de un cliente antiguo) se nombran como «sin dato
+ * actual», sin valor: nunca sustentan una lectura de mercado.
  */
 import { FRESHNESS_LABEL } from '../../market/freshness'
-import type { MarketIndicator } from '../../market/types'
+import type { ContextIndicator, MarketIndicator } from '../../market/types'
 import type { Signal } from '../types'
 import { type Rule } from './shared'
+
+/** Solo un indicador marcado `fresh` es situación actual; sin marca, no se da por actual. */
+const isCurrent = (i: ContextIndicator) => i.freshness === 'fresh'
+
+function fmtNotCurrent(i: ContextIndicator): string {
+  return i.freshness === 'stale' ? `${i.label} (último dato de ${i.asOf})` : `${i.label} (sin fecha fiable)`
+}
 
 function fmtIndicator(i: MarketIndicator): string {
   if (i.value === null) return `${i.label}: sin dato`
@@ -41,12 +53,14 @@ export const marketRules: Rule = (_ctx, market, _profile) => {
     return signals
   }
 
-  const indicators = market.keyIndicators.slice(0, 4).map(fmtIndicator).join(' · ')
+  const indicators = market.keyIndicators.filter(isCurrent).slice(0, 4).map(fmtIndicator).join(' · ')
+  const notCurrent = market.keyIndicators.filter((i) => !isCurrent(i)).map(fmtNotCurrent)
+  const withoutCurrent = notCurrent.length > 0 ? ` Sin dato actual: ${notCurrent.join(', ')}.` : ''
   signals.push({
     id: 'market.snapshot',
     domain: 'market',
     priority: 'low',
-    fact: `Mercado (${FRESHNESS_LABEL[market.freshness]}, ${market.coversFrom} → ${market.coversTo}): ${indicators || 'sin indicadores'}.`,
+    fact: `Mercado (${FRESHNESS_LABEL[market.freshness]}, ${market.coversFrom} → ${market.coversTo}): ${indicators || 'sin indicadores'}.${withoutCurrent}`,
     interpretation: market.overview,
     uncertainty: {
       title: `Contexto de mercado de hace ${age}`,

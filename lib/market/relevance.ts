@@ -5,7 +5,7 @@
  * únicamente para decidir qué clases de activo y qué eventos son relevantes;
  * no se copian al contexto ni salen de la app.
  */
-import { ageInDays, freshnessOf } from './freshness'
+import { ageInDays, freshnessOf, indicatorFreshness } from './freshness'
 import {
   MARKET_CONTEXT_LIMITS,
   type AssetClassNote,
@@ -71,7 +71,8 @@ export function buildMarketContext(
     coversFrom: research.coversFrom,
     coversTo: research.coversTo,
     overview: research.overview,
-    keyIndicators: pickIndicators(research.indicators),
+    // Cada indicador con su propia frescura; los antiguos se conservan, marcados.
+    keyIndicators: pickIndicators(research.indicators).map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })),
     relevantEvents: pickEvents(research.events, relevantKeys),
     relevantAssetClasses: relevant,
     uncertainties: research.uncertainties.slice(0, 3),

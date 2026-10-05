@@ -110,6 +110,15 @@ export interface MarketHistoryEntry {
   overview: string
 }
 
+/**
+ * Indicador tal como llega a AXIS: con su frescura calculada al construir el
+ * contexto (`indicatorFreshness`). Solo `fresh` puede describirse como
+ * situación actual; `stale` y `unknown` se conservan, pero no se interpretan.
+ */
+export interface ContextIndicator extends MarketIndicator {
+  freshness: IndicatorFreshness
+}
+
 /** Vista reducida para AXIS. Personalizada en el dispositivo; nunca sale de él como tal. */
 export interface MarketContext {
   researchId: string
@@ -119,7 +128,7 @@ export interface MarketContext {
   coversFrom: string
   coversTo: string
   overview: string
-  keyIndicators: MarketIndicator[]
+  keyIndicators: ContextIndicator[]
   relevantEvents: MarketEvent[]
   relevantAssetClasses: AssetClassNote[]
   uncertainties: string[]
