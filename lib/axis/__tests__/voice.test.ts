@@ -25,7 +25,7 @@ import type { MarketAIProvider } from '../../ai/providers/types'
 import { findCertainty } from '../../text/certainty'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
-const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY) })
+const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 1_200_000, targetDate: '2027-03-15' })] }), TODAY) })
 
 /** Expresión con la voz nueva: primera persona, natural, sin cifras nuevas ni certezas. */
 function naturalExpression(d: AxisDecision): Expression {
@@ -35,7 +35,7 @@ function naturalExpression(d: AxisDecision): Expression {
       summary: `Con lo que sabemos ahora, ${d.lead?.interpretation.toLowerCase() ?? 'la situación está tranquila'} Ojo con una cosa: aún no hay mucho histórico para saber si esto se repite.`,
       signals: d.relevant.map((s) => ({ id: s.id, text: `Aquí lo veo así: ${s.interpretation}` })),
     },
-    recommendationWhy: d.recommendation ? `Yo destinaría parte de ese margen ahí porque ${d.recommendation.why}` : null,
+    recommendationWhy: d.recommendation ? `Yo revisaría el plan porque ${d.recommendation.why}` : null,
     alternatives: d.alternatives.map((a) => ({ name: a.name, summary: `Si prefieres ir con más calma: ${a.summary}` })),
     uncertainties: d.uncertainties.map((u) => ({ title: u.title, detail: `No tenemos suficiente información para estar seguros: ${u.detail}` })),
     conclusion: 'Yo vigilaría el gasto un par de meses más y, si se mantiene así, seguiría con el plan.',
@@ -162,7 +162,7 @@ describe('AXIS · voz natural (fase 1)', () => {
     assert.deepEqual(analysis.uncertainty.items.map((u) => u.title), d.uncertainties.map((u) => u.title))
     // Solo cambia la forma.
     assert.equal(analysis.headline, e.headline)
-    assert.match(analysis.recommendation?.why ?? '', /^Yo destinaría/)
+    assert.match(analysis.recommendation?.why ?? '', /^Yo revisaría el plan/)
     assert.equal(analysis.conclusion.summary, e.conclusion)
     // Y la fusión directa es idéntica con o sin campos colados.
     const merged = mergeExpression(d, parseExpression(raw), AI_ENGINE_INFO, NOW)

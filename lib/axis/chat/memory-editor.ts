@@ -155,7 +155,7 @@ export function memoryUsage(fact: MemoryFact | undefined): string {
     case 'irregularIncome':
       return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. Es una memoria antigua: se puede borrar, pero no editar.'
     case 'priorities':
-      return 'AXIS lo usa para elegir a qué objetivo dar prioridad cuando hay varios. Es una memoria antigua: se puede borrar, pero no editar.'
+      return 'Ya no cambia el orden de tus objetivos: AXIS sigue el orden que tienen en Finax, que es el que usa el reparto automático. Es una memoria antigua: se puede borrar, pero no editar.'
     case 'horizon':
     case 'riskAttitude':
       return 'AXIS solo lo usa para matizar cómo te explica algunas lecturas de inversión; no cambia sus recomendaciones. Es una memoria antigua: se puede borrar, pero no editar.'

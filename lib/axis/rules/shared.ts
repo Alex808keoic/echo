@@ -5,6 +5,8 @@ import { formatCents } from '../../money'
 import { formatPct } from '../../format'
 import type { Horizon, ReconciledProfile, RecurringIncome, RiskAttitude } from '../profile/types'
 import type { ClosedMonth, FinancialContext, MarketContext, ObjectiveContext, Signal } from '../types'
+import { forecastObjectiveAllocation, type ProjectedMonths } from '../../finance/objectives'
+import type { Objective } from '../../types'
 
 /**
  * Una regla recibe el contexto financiero, si existe el de mercado y el
@@ -187,24 +189,77 @@ export interface RecurringForecast {
   /** F: suma de los ingresos previstos al mes. */
   monthlyCents: number
   incomes: ReadonlyArray<Pick<RecurringIncome, 'category' | 'cents'>>
-  /** Escenario A: toda la previsión. */
+  /** Escenario A: toda la previsión, en cascada (tras los objetivos anteriores). */
   allMonths: ForecastMonths
   /** Escenario B: previsión menos gasto habitual (supone que el gasto se paga con la previsión). */
   afterExpenses:
     | { status: 'no-history' }
     | { status: 'no-margin'; usualExpenseCents: number; basedOnMonths: number }
     | { status: 'ok'; usualExpenseCents: number; basedOnMonths: number; marginCents: number; result: ForecastMonths }
+  /** Objetivos en curso que van antes en la cascada (la previsión les llega primero). */
+  after: string[]
 }
 
-function capped(months: number): ForecastMonths {
-  return months > FORECAST_MAX_MONTHS ? 'over-10-years' : months
-}
 
 /**
- * Previsión de un objetivo con los ingresos recurrentes declarados. `null`
- * para objetivos completados, sin nada que falte o sin previsión positiva.
- * Escenario A: ⌈restante / F⌉. Escenario B: ⌈restante / (F − G)⌉ solo si hay
- * gasto habitual G y queda margen; si no, se dice por qué. Nunca negativos.
+ * Objetivos del contexto tal como los ve el reparto: mismo orden (`rank`, o el
+ * del contexto en uno antiguo) y mismo estado. Con el líquido del contexto,
+ * `allocateObjectives` reproduce exactamente su reparto.
+ */
+export function objectivesForAllocation(objectives: readonly ObjectiveContext[]): Objective[] {
+  return objectives.map((o, i) => ({
+    id: o.id,
+    name: o.name,
+    targetCents: o.targetCents,
+    currentCents: 0,
+    createdAt: 0,
+    updatedAt: 0,
+    ...(o.status === 'achieved' ? { achievedAt: 1 } : { priority: o.rank ?? i + 1 }),
+  }))
+}
+
+const toForecastMonths = (m: ProjectedMonths | undefined): ForecastMonths => (m === undefined || m === 'beyond' ? 'over-10-years' : m)
+
+/** Meses por objetivo de la simulación en cascada (`forecastObjectiveAllocation`), o `null` sin capacidad. */
+function projectedMonths(objectives: Objective[], liquidCents: number, monthlyCents: number): Map<string, ForecastMonths> | null {
+  const projection = forecastObjectiveAllocation(objectives, liquidCents, monthlyCents, FORECAST_MAX_MONTHS)
+  return projection ? new Map(projection.map((p) => [p.objective.id, toForecastMonths(p.months)])) : null
+}
+
+function forecastEntry(
+  objective: Pick<ObjectiveContext, 'id' | 'name' | 'remainingCents'>,
+  valid: readonly RecurringIncome[],
+  monthlyCents: number,
+  usualExpenseCents: number | null,
+  usualMonths: number,
+  allMonths: ForecastMonths,
+  marginMonths: ForecastMonths | null,
+  after: string[],
+): RecurringForecast {
+  let afterExpenses: RecurringForecast['afterExpenses']
+  if (usualExpenseCents === null || !isCount(usualExpenseCents)) afterExpenses = { status: 'no-history' }
+  else if (usualExpenseCents >= monthlyCents || marginMonths === null) afterExpenses = { status: 'no-margin', usualExpenseCents, basedOnMonths: usualMonths }
+  else afterExpenses = { status: 'ok', usualExpenseCents, basedOnMonths: usualMonths, marginCents: monthlyCents - usualExpenseCents, result: marginMonths }
+  return {
+    objectiveId: objective.id,
+    objectiveName: objective.name,
+    remainingCents: objective.remainingCents,
+    monthlyCents,
+    incomes: valid.map(({ category, cents }) => ({ category, cents })),
+    allMonths,
+    afterExpenses,
+    after,
+  }
+}
+
+const validIncomes = (incomes: readonly RecurringIncome[]) => incomes.filter((r) => isCount(r.cents) && r.cents > 0)
+
+/**
+ * Previsión de un objetivo aislado (sin otros por delante). `null` para
+ * objetivos completados, sin nada que falte o sin previsión positiva. Usa la
+ * misma simulación que la cascada: un único objetivo por lo que falta, sin
+ * líquido. Escenario A con toda la previsión F; B con F − G solo si hay gasto
+ * habitual G y queda margen; si no, se dice por qué. Nunca negativos.
  */
 export function recurringForecast(
   objective: Pick<ObjectiveContext, 'id' | 'name' | 'remainingCents' | 'completed'>,
@@ -213,35 +268,47 @@ export function recurringForecast(
   usualMonths = 0,
 ): RecurringForecast | null {
   if (objective.completed || !isCount(objective.remainingCents) || objective.remainingCents <= 0) return null
-  const valid = incomes.filter((r) => isCount(r.cents) && r.cents > 0)
+  const valid = validIncomes(incomes)
   const monthlyCents = valid.reduce((t, r) => t + r.cents, 0)
   if (monthlyCents <= 0) return null
-  const R = objective.remainingCents
-  let afterExpenses: RecurringForecast['afterExpenses']
-  if (usualExpenseCents === null || !isCount(usualExpenseCents)) afterExpenses = { status: 'no-history' }
-  else if (usualExpenseCents >= monthlyCents) afterExpenses = { status: 'no-margin', usualExpenseCents, basedOnMonths: usualMonths }
-  else {
-    const marginCents = monthlyCents - usualExpenseCents
-    afterExpenses = { status: 'ok', usualExpenseCents, basedOnMonths: usualMonths, marginCents, result: capped(Math.ceil(R / marginCents)) }
-  }
-  return {
-    objectiveId: objective.id,
-    objectiveName: objective.name,
-    remainingCents: R,
-    monthlyCents,
-    incomes: valid.map(({ category, cents }) => ({ category, cents })),
-    allMonths: capped(Math.ceil(R / monthlyCents)),
-    afterExpenses,
-  }
+  const alone: Objective[] = [{ id: objective.id, name: objective.name, targetCents: objective.remainingCents, currentCents: 0, createdAt: 0, updatedAt: 0 }]
+  const all = projectedMonths(alone, 0, monthlyCents)?.get(objective.id) ?? 'over-10-years'
+  const margin = usualExpenseCents !== null && isCount(usualExpenseCents) && usualExpenseCents < monthlyCents ? monthlyCents - usualExpenseCents : 0
+  const afterMonths = margin > 0 ? (projectedMonths(alone, 0, margin)?.get(objective.id) ?? 'over-10-years') : null
+  return forecastEntry(objective, valid, monthlyCents, usualExpenseCents, usualMonths, all, afterMonths, [])
 }
 
-/** Previsiones de todos los objetivos a partir del contexto y del perfil. Misma entrada → misma salida. */
+/**
+ * Previsiones encadenadas de todos los objetivos en curso: la misma cascada
+ * que `allocateObjectives` simulada sobre el líquido actual más la previsión
+ * mensual. Un objetivo empieza a recibirla cuando los anteriores están
+ * cubiertos; los cubiertos y conseguidos no la consumen. Misma entrada → misma salida.
+ */
 export function recurringForecasts(ctx: FinancialContext, profile?: ReconciledProfile): RecurringForecast[] {
   const declared = recurringIncomesOf(profile)
   if (!declared) return []
+  const valid = validIncomes(declared.incomes)
+  const monthlyCents = valid.reduce((t, r) => t + r.cents, 0)
+  if (monthlyCents <= 0) return []
   const usual = usualMonthlyExpense(ctx.flows.closedMonths)
-  const months = usualExpenseMonthCount(ctx.flows.closedMonths)
-  return ctx.objectives.flatMap((o) => recurringForecast(o, declared.incomes, usual, months) ?? [])
+  const usualMonths = usualExpenseMonthCount(ctx.flows.closedMonths)
+  const pool = objectivesForAllocation(ctx.objectives)
+  const all = projectedMonths(pool, ctx.wealth.liquidCents, monthlyCents)
+  const margin = usual !== null && usual < monthlyCents ? monthlyCents - usual : 0
+  const afterExpenses = margin > 0 ? projectedMonths(pool, ctx.wealth.liquidCents, margin) : null
+  const pending = ctx.objectives.filter((o) => !o.completed && isCount(o.remainingCents) && o.remainingCents > 0)
+  return pending.map((o, i) =>
+    forecastEntry(
+      o,
+      valid,
+      monthlyCents,
+      usual,
+      usualMonths,
+      all?.get(o.id) ?? 'over-10-years',
+      afterExpenses ? (afterExpenses.get(o.id) ?? 'over-10-years') : null,
+      pending.slice(0, i).map((p) => p.name),
+    ),
+  )
 }
 
 const INCOME_WORDS: Record<RecurringIncome['category'], string> = { Paga: 'de paga', Regalos: 'en regalos', Otros: 'de otros ingresos' }

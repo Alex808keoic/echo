@@ -190,20 +190,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Coche».",
-        "why": "Te faltan 9.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "t-65"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Coche», al que le faltan 9.450,00 €.",
       "alternative": {
         "name": "Mantener liquidez",
         "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
@@ -283,20 +270,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Coche».",
-        "why": "Te faltan 9.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "t-65"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Coche», al que le faltan 9.450,00 €.",
       "alternative": {
         "name": "Mantener liquidez",
         "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."

@@ -27,7 +27,7 @@ import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fix
 const TEST_KEY = 'test-groq-key-not-real'
 const ENV = { AXIS_AI_PROVIDER: 'groq', GROQ_API_KEY: TEST_KEY, AXIS_AI_MODEL: 'openai/gpt-oss-20b', AXIS_DECISION_FIRST: 'true' }
 
-const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY) })
+const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 1_200_000, targetDate: '2027-03-15' })] }), TODAY) })
 
 /** Expresión válida construida desde la decisión (cifras permitidas por construcción), como la devolvería el modelo. */
 function expressionJSON(d: AxisDecision): string {

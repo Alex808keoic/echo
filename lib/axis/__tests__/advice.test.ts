@@ -31,7 +31,9 @@ const allocateViaje = { stance: 'recommend' as const, action: { verb: 'allocate'
 const reserveCushion = { stance: 'recommend' as const, action: { verb: 'complete-cushion', target: 'cushion' } as AxisAction, alternatives: [] }
 const inform = { stance: 'inform' as const, alternatives: [] }
 
-const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY) })
+// Escenario con recomendación de AXIS: el reparto asigna 355.000 a «Viaje» y el ritmo hasta su fecha no cabe en el ahorro del mes (adjust).
+// Con el reparto automático ya no hay recomendación «allocate»: el excedente se asigna solo.
+const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 1_200_000, targetDate: '2027-03-15' })] }), TODAY) })
 
 function goodExpression(d: AxisDecision, conclusion = 'Con esto, la lectura queda clara; sigue registrando movimientos.'): Expression {
   return {
@@ -172,8 +174,8 @@ describe('AXIS · consejos · Decision First', () => {
   it('validateExpression: un consejo no decidido provoca la violación «advice» (→ fallback local)', async () => {
     const i = input()
     const d = decide(i)
-    assert.deepEqual(d.recommendation?.action, { verb: 'allocate', target: 'objective', targetId: 'obj-viaje' })
-    assert.deepEqual(validateExpression(d, goodExpression(d, 'Yo destinaría parte de ese margen al Viaje y vigilaría el gasto.')), { ok: true })
+    assert.deepEqual(d.recommendation?.action, { verb: 'adjust', target: 'objective', targetId: 'obj-viaje' })
+    assert.deepEqual(validateExpression(d, goodExpression(d, 'Yo aplazaría la fecha del Viaje y vigilaría el gasto.')), { ok: true })
     for (const bad of ['Yo compraría acciones de Tesla con ese margen.', 'Deberías invertir ese dinero en un fondo indexado.', 'Aporta a Coche, que es más urgente.']) {
       const verdict = validateExpression(d, goodExpression(d, bad))
       assert.equal(verdict.ok, false, bad)

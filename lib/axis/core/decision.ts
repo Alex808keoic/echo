@@ -182,7 +182,8 @@ export function decide(input: AxisInput): AxisDecision {
     uncertainties,
     confidence: confidenceFor(ctx),
     missing: [],
-    nextStep: recommendation?.nextStep ?? (lead ? undefined : { label: 'Registrar un movimiento', to: 'movimientos' }),
+    // Sin clave `undefined`: sin recomendación y con señal líder no hay siguiente paso.
+    ...(recommendation?.nextStep ? { nextStep: recommendation.nextStep } : lead ? {} : { nextStep: { label: 'Registrar un movimiento', to: 'movimientos' } }),
     profile: { fields: profile, influence: collectInfluence(signals) },
   }
 }

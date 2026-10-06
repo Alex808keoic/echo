@@ -114,6 +114,42 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number)
   }
 }
 
+/** Meses hasta quedar cubierto, o `beyond` si no se cubre dentro del horizonte simulado. */
+export type ProjectedMonths = number | 'beyond'
+
+export interface ObjectiveProjection {
+  objective: Objective
+  /** Posición en el reparto actual (1 = el primero). */
+  rank: number
+  /** 0 si ya está cubierto; si no, el primer mes en que el reparto lo cubre. */
+  months: ProjectedMonths
+}
+
+/**
+ * Previsión del reparto: aplica `allocateObjectives` (la misma cascada, sin
+ * reglas nuevas) al líquido actual más k meses de capacidad, k = 0…maxMonths,
+ * y devuelve para cada objetivo activo con meta el primer k en que queda
+ * cubierto. Así un objetivo empieza a recibir capacidad solo cuando los
+ * anteriores están cubiertos, y la misma capacidad nunca cuenta dos veces.
+ * `null` sin capacidad positiva: no hay previsión que hacer.
+ */
+export function forecastObjectiveAllocation(
+  objectives: Objective[],
+  liquidCents: number,
+  monthlyCents: number,
+  maxMonths: number,
+): ObjectiveProjection[] | null {
+  if (!Number.isSafeInteger(monthlyCents) || monthlyCents <= 0) return null
+  const current = allocateObjectives(objectives, liquidCents).items.filter((i) => i.status !== 'achieved' && i.objective.targetCents > 0)
+  const coveredAt = new Map<string, number>()
+  for (let k = 0; k <= maxMonths && coveredAt.size < current.length; k++) {
+    for (const item of allocateObjectives(objectives, liquidCents + k * monthlyCents).items) {
+      if (item.status === 'covered' && !coveredAt.has(item.objective.id)) coveredAt.set(item.objective.id, k)
+    }
+  }
+  return current.map((i) => ({ objective: i.objective, rank: i.rank ?? 0, months: coveredAt.get(i.objective.id) ?? 'beyond' }))
+}
+
 /**
  * Objetivos con `currentCents` = el valor calculado: lo repartido a cada activo
  * y la meta a cada conseguido. Es lo que reciben AXIS (que aún lee

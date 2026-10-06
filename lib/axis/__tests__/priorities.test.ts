@@ -1,13 +1,12 @@
 /**
- * Perfil · `priorities` (fase 2 · bloque 4 · paso 4).
+ * Perfil · `priorities` (memoria antigua de AXIS).
  *
- * Las prioridades declaradas son un mecanismo de SELECCIÓN entre objetivos
- * equivalentes: `savings.healthy` recomienda aportar al primer objetivo
- * pendiente según las prioridades, y las señales de objetivos se emiten con
- * los priorizados primero (a igual prioridad de señal, la del objetivo
- * priorizado lidera). Nunca crean, eliminan ni cambian de prioridad ninguna
- * señal: un objetivo vencido sigue vencido, un ritmo insuficiente sigue
- * siéndolo, critical sigue siendo critical.
+ * Desde la fase B2 de objetivos automáticos, el orden lo decide la prioridad
+ * del objetivo en Finax, que es el que usa el reparto (`allocateObjectives`).
+ * La memoria `priorities` se sigue leyendo y reconciliando (descarta
+ * objetivos que no existen o ya no tienen nada pendiente), pero ya no reordena
+ * señales ni elige el destino de `savings.healthy`: AXIS nunca pone por
+ * delante un objetivo distinto del que Finax alimenta primero.
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -98,67 +97,37 @@ describe('AXIS · perfil · priorities · sin efecto cuando no procede', () => {
   })
 })
 
-describe('AXIS · perfil · priorities · selección entre equivalentes', () => {
-  it('una prioridad válida → savings.healthy aporta a ese objetivo y su señal de objetivo lidera entre las equivalentes', () => {
+describe('AXIS · perfil · priorities · no contradice el orden del reparto', () => {
+  it('una prioridad de memoria distinta del orden real no reordena ni cambia el destino del excedente', () => {
     const ctx = three()
     const plain = decide({ context: ctx })
     const d = decide({ context: ctx, profile: prio(['obj-b']) })
-
-    // savings.healthy: mismo verbo, distinto destino.
-    assert.equal(plain.recommendation?.action.targetId, 'obj-a')
-    assert.deepEqual(d.recommendation?.action, { verb: 'allocate', target: 'objective', targetId: 'obj-b' })
-    assert.equal(d.recommendation?.what, 'Destina parte del excedente a «Beta».')
-    const sh = byId(d.signals).get('savings.healthy')!
-    assert.deepEqual(sh.profileInfluence, [{ field: 'priorities', sourceMemoryId: 'mem-prio', signalId: 'savings.healthy', effect: 'target-selected', from: 'obj-a', to: 'obj-b' }])
-    // El resto de savings.healthy es idéntico.
-    const { recommendation: _r1, profileInfluence: _p, ...rest } = sh
-    const { recommendation: _r2, ...plainRest } = byId(plain.signals).get('savings.healthy')!
-    void _r1
-    void _p
-    void _r2
-    assert.deepEqual(rest, plainRest)
-
-    // Señales de objetivos: mismas tres, Beta primero.
-    const objs = d.signals.filter((s) => s.domain === 'objectives')
-    assert.deepEqual(objs.map((s) => s.id), ['objectives.no-date:obj-b', 'objectives.no-date:obj-a', 'objectives.no-date:obj-c'])
-    assert.deepEqual(objs[0].profileInfluence, [{ field: 'priorities', sourceMemoryId: 'mem-prio', signalId: 'objectives.no-date:obj-b', effect: 'target-selected', from: 'obj-a', to: 'obj-b' }])
-    assert.equal('profileInfluence' in objs[1], false)
-    assert.equal('profileInfluence' in objs[2], false)
-    assert.deepEqual(d.profile.influence.map((i) => [i.signalId, i.from, i.to]), [['savings.healthy', 'obj-a', 'obj-b'], ['objectives.no-date:obj-b', 'obj-a', 'obj-b']])
+    assert.deepEqual(withoutProfile(d), withoutProfile(plain))
+    assert.deepEqual(d.profile.influence, [])
+    // El orden es el del reparto: Alfa recibe primero; el excedente se asigna solo, sin «destinar» a mano.
+    assert.deepEqual(d.signals.filter((s) => s.domain === 'objectives').map(objectiveIdOf), ['obj-a', 'obj-b', 'obj-c'])
+    assert.equal(d.recommendation, null)
+    assert.match(byId(d.signals).get('savings.healthy')!.interpretation, /ahora va a «Alfa»/)
   })
 
-  it('varias prioridades → se respeta su orden; los no priorizados conservan el suyo', () => {
+  it('varias prioridades → mismo resultado que sin ellas; el helper de orden sigue disponible pero no se aplica', () => {
     const ctx = three()
     const d = decide({ context: ctx, profile: prio(['obj-c', 'obj-b']) })
-    assert.equal(d.recommendation?.action.targetId, 'obj-c')
-    const objs = d.signals.filter((s) => s.domain === 'objectives')
-    assert.deepEqual(objs.map(objectiveIdOf), ['obj-c', 'obj-b', 'obj-a'])
-    // Gamma adelanta a Alfa (que iba primera). Beta sigue en la segunda posición entre sus iguales y Alfa
-    // simplemente cede sitio: ninguna de las dos ha sido «elegida», así que no llevan influencia.
-    assert.deepEqual(objs[0].profileInfluence?.map((i) => [i.from, i.to]), [['obj-a', 'obj-c']])
-    assert.equal('profileInfluence' in objs[1], false)
-    assert.equal('profileInfluence' in objs[2], false)
-    assert.deepEqual(d.profile.influence.map((i) => [i.signalId, i.from, i.to]), [['savings.healthy', 'obj-a', 'obj-c'], ['objectives.no-date:obj-c', 'obj-a', 'obj-c']])
+    assert.deepEqual(withoutProfile(d), withoutProfile(decide({ context: ctx })))
+    assert.deepEqual(d.profile.influence, [])
     assert.deepEqual(rankByPriorities(ctx.objectives, ['obj-c', 'obj-b']).map((o) => o.id), ['obj-c', 'obj-b', 'obj-a'])
   })
 
-  it('con dos objetivos con ritmo insuficiente (ambos high), la prioridad elige cuál lidera y cuál se recomienda ajustar; ninguno desaparece', () => {
+  it('con dos ritmos insuficientes, lidera y se recomienda ajustar el primero del reparto aunque la memoria priorice el otro', () => {
     const ctx = ctxWith([PACE_E(), PACE_F()])
     const plain = decide({ context: ctx })
     assert.equal(plain.lead?.id, 'objectives.pace:obj-e')
     assert.equal(plain.recommendation?.action.targetId, 'obj-e')
     const d = decide({ context: ctx, profile: prio(['obj-f']) })
-    assert.equal(d.lead?.id, 'objectives.pace:obj-f')
-    assert.deepEqual(d.recommendation?.action, { verb: 'adjust', target: 'objective', targetId: 'obj-f' })
-    for (const id of ['objectives.pace:obj-e', 'objectives.pace:obj-f']) {
-      assert.equal(byId(d.signals).get(id)?.priority, 'high', id)
-      const { profileInfluence: _p, ...rest } = byId(d.signals).get(id)!
-      void _p
-      assert.deepEqual(rest, byId(plain.signals).get(id), `${id}: la señal es la misma`)
-    }
-    assert.deepEqual(byId(d.signals).get('objectives.pace:obj-f')?.profileInfluence, [{ field: 'priorities', sourceMemoryId: 'mem-prio', signalId: 'objectives.pace:obj-f', effect: 'target-selected', from: 'obj-e', to: 'obj-f' }])
-    // savings.healthy sigue recomendando (en su propia señal) el primer pendiente según prioridades: Fi.
-    assert.equal(byId(d.signals).get('savings.healthy')?.recommendation?.action.targetId, 'obj-f')
+    assert.deepEqual(withoutProfile(d), withoutProfile(plain))
+    assert.equal(d.lead?.id, 'objectives.pace:obj-e')
+    assert.deepEqual(d.recommendation?.action, { verb: 'adjust', target: 'objective', targetId: 'obj-e' })
+    assert.deepEqual(d.profile.influence, [])
   })
 })
 
@@ -200,9 +169,8 @@ describe('AXIS · perfil · priorities · lo que nunca cambia', () => {
     assert.equal(d.lead?.id, 'expenses.over-income')
     assert.deepEqual(byId(d.signals).get('expenses.over-income'), byId(plain.signals).get('expenses.over-income'))
     assert.deepEqual(d.recommendation, plain.recommendation)
-    // Sin savings.healthy (balance negativo) no hay selección de destino que cambiar en el ahorro.
     assert.equal(byId(d.signals).has('savings.healthy'), false)
-    assert.deepEqual(d.profile.influence.map((i) => i.signalId), ['objectives.no-date:obj-b'])
+    assert.deepEqual(d.profile.influence, [], 'la memoria de prioridades ya no reordena nada')
   })
 
   it('priorities no modifica minLiquidityCents ni su señal', () => {
@@ -214,10 +182,9 @@ describe('AXIS · perfil · priorities · lo que nunca cambia', () => {
     assert.deepEqual(byId(d.signals).get('liquidity.below-min'), byId(onlyMin.signals).get('liquidity.below-min'), 'la señal de liquidez es idéntica (su alternativa sigue nombrando el primer pendiente del contexto)')
     assert.equal(d.lead?.id, 'liquidity.below-min')
     assert.deepEqual(d.recommendation, onlyMin.recommendation)
-    // savings.healthy acumula ambas influencias, cada una con su origen.
+    // savings.healthy solo lleva la influencia de la liquidez mínima; priorities ya no elige destino.
     assert.deepEqual(byId(d.signals).get('savings.healthy')?.profileInfluence, [
       { field: 'minLiquidityCents', sourceMemoryId: 'mem-liq', signalId: 'savings.healthy', effect: 'alternative-removed' },
-      { field: 'priorities', sourceMemoryId: 'mem-prio', signalId: 'savings.healthy', effect: 'target-selected', from: 'obj-a', to: 'obj-b' },
     ])
   })
 

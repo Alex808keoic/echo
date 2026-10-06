@@ -229,8 +229,8 @@ describe('AXIS · perfil · minLiquidityCents · interacciones aprobadas', () =>
     assert.equal(s.alternative?.name, 'Aportar al objetivo antes que al colchón')
     assert.match(s.alternative!.summary, /«Viaje»/)
     assert.deepEqual(d.alternatives.map((a) => a.name), ['Aportar al objetivo antes que al colchón'])
-    // savings.healthy sigue recomendando el objetivo en su propia señal, pero la decisión recomienda el colchón.
-    assert.equal(d.signals.find((x) => x.id === 'savings.healthy')?.recommendation?.action.verb, 'allocate')
+    // savings.healthy ya no recomienda «destinar» a mano (el reparto es automático); la decisión recomienda el colchón.
+    assert.equal(d.signals.find((x) => x.id === 'savings.healthy')?.recommendation, undefined)
     assert.equal(d.recommendation?.action.verb, 'complete-cushion')
   })
 

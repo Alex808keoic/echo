@@ -24,7 +24,7 @@ import { config, gasto, healthyMovements, ingreso, NOW, objective, position, sna
 
 /* --------------------------------- helpers -------------------------------- */
 
-function input(partial: Parameters<typeof snapshot>[0] = { config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }): AxisInput {
+function input(partial: Parameters<typeof snapshot>[0] = { config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 1_200_000, targetDate: '2027-03-15' })] }): AxisInput {
   return { context: buildFinancialContext(snapshot(partial), TODAY) }
 }
 

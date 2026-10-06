@@ -203,20 +203,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Moto».",
-        "why": "Te faltan 2.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "obj-moto"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Moto», al que le faltan 2.450,00 €.",
       "profileInfluence": [
         {
           "field": "minLiquidityCents",
@@ -328,20 +315,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Moto».",
-        "why": "Te faltan 2.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "obj-moto"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Moto», al que le faltan 2.450,00 €.",
       "profileInfluence": [
         {
           "field": "minLiquidityCents",

@@ -89,9 +89,9 @@ describe('AxisEngine (motor local de reglas)', () => {
     assert.equal(o.targetDate, undefined)
 
     const analysis = analysisOf(analyzeLocally({ context: ctx }, NOW))
-    assert.ok(analysis.recommendation, 'hay recomendación')
-    assert.match(analysis.recommendation.what, /Viaje/)
-    assert.match(analysis.recommendation.why, /4\.450,00 €/)
+    // Sin acción manual: el excedente se asigna solo a «Viaje», y AXIS lo explica en vez de recomendar «destinar».
+    assert.equal(analysis.recommendation, null)
+    assert.ok(analysis.interpretation.signals.some((s) => /se asigna solo a tus objetivos.*«Viaje», al que le faltan 4\.450,00 €/.test(s.text)))
     assert.ok(analysis.uncertainty.items.some((u) => /Sin fecha/.test(u.title)), 'sin fecha no puede valorar el ritmo')
   })
 

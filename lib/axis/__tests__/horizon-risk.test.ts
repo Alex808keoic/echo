@@ -296,7 +296,7 @@ describe('AXIS · perfil · horizon × riskAttitude × minLiquidityCents × irre
     assert.ok(combos >= 500, `combinaciones probadas: ${combos}`)
   })
 
-  it('minLiquidityCents, irregularIncome y priorities mantienen exactamente su comportamiento con y sin preferencias de texto', () => {
+  it('minLiquidityCents e irregularIncome mantienen exactamente su comportamiento con y sin preferencias de texto; priorities ya no reordena', () => {
     const ctx = critical()
     const min = ctx.wealth.liquidCents + 100_000
     const only = build(undefined, undefined, min, true, ['obj-b'])
@@ -310,7 +310,8 @@ describe('AXIS · perfil · horizon × riskAttitude × minLiquidityCents × irre
       assert.equal(byId(d.signals).get('income.drop')?.priority, 'medium')
       assert.equal(byId(d.signals).get('expenses.over-income')?.priority, 'critical')
       assert.equal(d.lead?.id, 'expenses.over-income')
-      assert.ok(byId(d.signals).get('objectives.no-date:obj-b')?.profileInfluence?.some((i) => i.field === 'priorities'))
+      // Fase B2: la memoria de prioridades ya no reordena; manda el orden del reparto de Finax.
+      assert.ok(!d.profile.influence.some((i) => i.field === 'priorities'))
     }
     // Las influencias de los otros campos son idénticas; las de texto se añaden sin reordenar las demás.
     const others = (d: AxisDecision) => d.profile.influence.filter((i) => !TEXT_FIELDS.has(i.field))

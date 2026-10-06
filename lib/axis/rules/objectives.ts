@@ -10,17 +10,20 @@
  *   - ritmo (`pace`): `requiredMonthlyCents` ya incluye lo que falta a los
  *     objetivos anteriores en la cascada (el ahorro llega antes a ellos);
  *   - sin dinero (`stale`): solo el objetivo que debería recibir dinero ahora
- *     (nada pendiente por delante) y no recibe nada; esperar turno no lo es.
+ *     (nada pendiente por delante) y no recibe nada; esperar turno no lo es;
+ *   - cerca (`near`): describe lo que falta y su lugar en el orden; no hay
+ *     acción manual (el dinero se asigna solo);
+ *   - previsión (`forecast`): encadenada con la misma cascada
+ *     (`forecastObjectiveAllocation`).
+ *
+ * Orden: siempre el del reparto (`ctx.objectives`, por prioridad del objetivo
+ * en Finax). La memoria `priorities` de AXIS ya no reordena nada: AXIS nunca
+ * pone por delante un objetivo distinto del que Finax alimenta primero.
  *
  * Perfil:
  *   - `irregularIncome`: `objectives.pace` compara el ritmo necesario con el
  *     ahorro de un solo mes; con ingresos irregulares, su incertidumbre lo
  *     dice. Solo cambia ese texto: ni prioridad, ni recomendación, ni alternativa.
- *   - `priorities`: los objetivos se recorren con los priorizados primero, en
- *     su orden; así, a igual prioridad de señal, la del objetivo priorizado
- *     lidera (y su recomendación es la elegida). Cada objetivo produce la
- *     misma señal que sin prioridades: ninguna aparece, desaparece ni cambia
- *     de prioridad; un objetivo vencido sigue vencido esté o no priorizado.
  */
 import type { ObjectiveContext, ObjectiveStatus, Signal } from '../types'
 import {
@@ -29,19 +32,12 @@ import {
   forecastMonthsText,
   irregularIncomeOf,
   pct,
-  prioritiesOf,
-  rankByPriorities,
-  recurringForecast,
+  recurringForecasts,
   recurringIncomesOf,
   THRESHOLDS,
-  usualExpenseMonthCount,
-  usualMonthlyExpense,
   type RecurringForecast,
   type Rule,
 } from './shared'
-
-/** Objetivo al que pertenece una señal `objectives.<tipo>:<id>`. */
-const objectiveIdOf = (s: Signal) => s.id.slice(s.id.indexOf(':') + 1)
 
 /** Estado en el reparto; un contexto anterior a la fase B1 no lo trae y `completed` no distingue: se trata como cubierto. */
 const statusOf = (o: ObjectiveContext): ObjectiveStatus => o.status ?? (o.completed ? 'covered' : 'in-progress')
@@ -51,9 +47,9 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
   const signals: Signal[] = []
   const monthlySavings = ctx.flows.current.savingsCents
   const irregular = irregularIncomeOf(profile)
-  const priorities = prioritiesOf(profile)
 
-  for (const o of priorities ? rankByPriorities(ctx.objectives, priorities.ids) : ctx.objectives) {
+  // El orden del reparto: el mismo en que Finax asigna el dinero.
+  for (const o of ctx.objectives) {
     const status = statusOf(o)
     if (status === 'achieved') {
       signals.push({
@@ -152,13 +148,11 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         domain: 'objectives',
         priority: 'medium',
         fact: `«${o.name}» está al ${pct(o.progressPct)}: faltan ${eur(o.remainingCents)}.`,
-        interpretation: 'Está a un paso; un último esfuerzo lo cierra.',
-        recommendation: {
-          what: `Reserva los ${eur(o.remainingCents)} que faltan para cerrar «${o.name}».`,
-          why: 'Cerrar un objetivo libera el ahorro siguiente para otra cosa.',
-          nextStep: { label: 'Ver objetivos', to: 'objetivos' },
-          action: { verb: 'reserve', target: 'objective', targetId: o.id },
-        },
+        // Sin acción manual: el reparto le asigna dinero solo, en el orden de tus objetivos.
+        interpretation:
+          (o.aheadRemainingCents ?? 0) > 0
+            ? `Está cerca, pero va detrás de otros objetivos en el orden: tu dinero disponible se asigna solo y le llegará cuando estén cubiertos los anteriores.`
+            : `Está a un paso y es el siguiente en recibir dinero: lo próximo que entre en tu líquido se le asigna automáticamente${o.rank ? ` (va ${o.rank}.º en el orden de tus objetivos)` : ''}.`,
       })
       continue
     }
@@ -198,23 +192,7 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
     }
   }
 
-  if (!priorities) return signals
-
-  // Influencia solo donde las prioridades han cambiado algo de verdad: una señal de un objetivo
-  // priorizado que, entre las de su misma prioridad, ahora va por delante de otra que sin
-  // prioridades la precedía (el orden original es el del contexto).
-  const originalIndex = new Map(ctx.objectives.map((o, i) => [o.id, i]))
-  const originalOrder = [...signals].sort((a, b) => (originalIndex.get(objectiveIdOf(a)) ?? 0) - (originalIndex.get(objectiveIdOf(b)) ?? 0))
-  const samePriority = (list: Signal[], s: Signal) => list.filter((t) => t.priority === s.priority)
-  return signals.map((s) => {
-    const objectiveId = objectiveIdOf(s)
-    if (!priorities.ids.includes(objectiveId)) return s
-    const ranked = samePriority(signals, s).findIndex((t) => t.id === s.id)
-    const original = samePriority(originalOrder, s).findIndex((t) => t.id === s.id)
-    if (ranked >= original) return s
-    const overtaken = samePriority(originalOrder, s)[ranked]
-    return { ...s, profileInfluence: [...(s.profileInfluence ?? []), { field: 'priorities', sourceMemoryId: priorities.sourceMemoryId, signalId: s.id, effect: 'target-selected', from: objectiveIdOf(overtaken), to: objectiveId }] }
-  })
+  return signals
 }
 
 /**
@@ -227,13 +205,9 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
 const forecastRules: Rule = (ctx, _market, profile) => {
   const declared = recurringIncomesOf(profile)
   if (!declared) return []
-  const priorities = prioritiesOf(profile)
-  const usual = usualMonthlyExpense(ctx.flows.closedMonths)
-  const usualMonths = usualExpenseMonthCount(ctx.flows.closedMonths)
-  return (priorities ? rankByPriorities(ctx.objectives, priorities.ids) : ctx.objectives).flatMap((o): Signal[] => {
-    const f = recurringForecast(o, declared.incomes, usual, usualMonths)
-    if (!f) return []
-    const id = `objectives.forecast:${o.id}`
+  // Encadenadas: la misma cascada del reparto, en su orden; los cubiertos y conseguidos no tienen previsión.
+  return recurringForecasts(ctx, profile).flatMap((f): Signal[] => {
+    const id = `objectives.forecast:${f.objectiveId}`
     return [
       {
         id,
@@ -248,9 +222,16 @@ const forecastRules: Rule = (ctx, _market, profile) => {
   })
 }
 
-/** Escenario A: toda la previsión. */
+/** Objetivos que van antes en la cascada: «después de cubrir «A»» / «después de cubrir «A» y «B»». */
+function afterText(f: RecurringForecast): string {
+  if (f.after.length === 0) return ''
+  const names = f.after.map((n) => `«${n}»`)
+  return `, después de cubrir ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`}`
+}
+
+/** Escenario A: toda la previsión, en cascada. */
 function forecastAllText(f: RecurringForecast): string {
-  return `lo que falta para «${f.objectiveName}» (${eur(f.remainingCents)}) equivale a ${forecastMonthsText(f.allMonths)} de tus ingresos previstos (${describeRecurringIncomes(f.incomes)}).`
+  return `lo que falta para «${f.objectiveName}» (${eur(f.remainingCents)}) equivale a ${forecastMonthsText(f.allMonths)} de tus ingresos previstos (${describeRecurringIncomes(f.incomes)})${afterText(f)}.`
 }
 
 /** Escenario B (previsión menos gasto habitual) y supuestos. */

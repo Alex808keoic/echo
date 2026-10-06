@@ -25,7 +25,7 @@ const GEMMA = '@cf/google/gemma-4-26b-a4b-it'
 const ENV = { AXIS_AI_PROVIDER: 'cloudflare', CF_ACCOUNT_ID: ACCOUNT, CF_API_TOKEN: TOKEN, AXIS_DECISION_FIRST: 'true' }
 const req: AIRequest = { system: 's', user: 'u', schema: { type: 'object' } }
 
-const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY) })
+const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 1_200_000, targetDate: '2027-03-15' })] }), TODAY) })
 
 function expressionJSON(d: AxisDecision): string {
   return JSON.stringify({

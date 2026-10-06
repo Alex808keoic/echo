@@ -218,20 +218,7 @@
       "domain": "objectives",
       "priority": "medium",
       "fact": "«Viaje» está al 94%: faltan 100,00 €.",
-      "interpretation": "Está a un paso; un último esfuerzo lo cierra.",
-      "recommendation": {
-        "what": "Reserva los 100,00 € que faltan para cerrar «Viaje».",
-        "why": "Cerrar un objetivo libera el ahorro siguiente para otra cosa.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "reserve",
-          "target": "objective",
-          "targetId": "t-56"
-        }
-      }
+      "interpretation": "Está a un paso y es el siguiente en recibir dinero: lo próximo que entre en tu líquido se le asigna automáticamente (va 1.º en el orden de tus objetivos)."
     },
     {
       "id": "investments.none",

@@ -9,20 +9,22 @@
  *     recomendación de `liquidity.below-min`.
  *   - `irregularIncome`: `savings.falling` baja de high a medium SOLO cuando la
  *     caída viene de unos ingresos menores, y su incertidumbre lo explica.
- *   - `priorities`: cuando `savings.healthy` recomienda aportar a un objetivo
- *     pendiente, elige el primero según las prioridades declaradas (sin ellas,
- *     el primero del contexto). Solo cambia el destino; nunca el verbo.
+ *
+ * Objetivos: el excedente no se «destina» a mano. Queda en el líquido y el
+ * reparto automático lo asigna a los objetivos en su orden (el de Finax): con
+ * objetivos pendientes, `savings.healthy` lo explica sin recomendar nada; sin
+ * objetivos, recomienda definir uno. La memoria `priorities` ya no elige el
+ * destino: AXIS sigue el orden real del reparto.
  * Nada más cambia (`savings.tight` y `savings.no-period-data` no leen el perfil).
  */
 import type { Signal } from '../types'
-import { eur, irregularIncomeOf, liquidityShortfall, pct, prioritiesOf, rankByPriorities, THRESHOLDS, type Rule } from './shared'
+import { eur, irregularIncomeOf, liquidityShortfall, pct, THRESHOLDS, type Rule } from './shared'
 
 export const savingsRules: Rule = (ctx, _market, profile) => {
   const { current, previous } = ctx.flows
   const signals: Signal[] = []
   const shortfall = liquidityShortfall(ctx, profile)
   const irregular = irregularIncomeOf(profile)
-  const priorities = prioritiesOf(profile)
 
   if (current.movementCount === 0) {
     signals.push({
@@ -44,13 +46,10 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
   const rate = current.savingsRatePct
   if (rate !== null && current.savingsCents >= 0) {
     const healthy = rate >= THRESHOLDS.healthySavingsRatePct
-    // Destino de la recomendación: el primer objetivo pendiente; con prioridades declaradas, el primero de ellas.
-    const defaultPending = ctx.objectives.find((o) => !o.completed)
-    const pendingObjective = priorities ? rankByPriorities(ctx.objectives, priorities.ids).find((o) => !o.completed) : defaultPending
-    const targetSelected = healthy && priorities !== null && pendingObjective !== undefined && defaultPending !== undefined && pendingObjective.id !== defaultPending.id
+    // El primer objetivo pendiente en el orden del reparto: el que recibe primero el excedente.
+    const pendingObjective = ctx.objectives.find((o) => !o.completed)
     const influence: Signal['profileInfluence'] = [
       ...(healthy && shortfall ? [{ field: 'minLiquidityCents' as const, sourceMemoryId: shortfall.sourceMemoryId, signalId: 'savings.healthy', effect: 'alternative-removed' as const }] : []),
-      ...(targetSelected ? [{ field: 'priorities' as const, sourceMemoryId: priorities.sourceMemoryId, signalId: 'savings.healthy', effect: 'target-selected' as const, from: defaultPending.id, to: pendingObjective.id }] : []),
     ]
     signals.push({
       id: healthy ? 'savings.healthy' : 'savings.tight',
@@ -58,32 +57,30 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
       priority: healthy ? 'low' : 'medium',
       fact: `Este mes ahorras ${eur(current.savingsCents)}: un ${pct(rate)} de tus ingresos (${eur(current.incomeCents)}).`,
       interpretation: healthy
-        ? 'Cubres el gasto con margen y queda excedente real.'
-        : 'El balance es positivo pero ajustado: un gasto imprevisto lo dejaría en negativo.',
-      recommendation: healthy
         ? pendingObjective
-          ? {
-              what: `Destina parte del excedente a «${pendingObjective.name}».`,
-              why: `Te faltan ${eur(pendingObjective.remainingCents)} y el balance del mes lo permite sin forzar.`,
-              nextStep: { label: 'Ver objetivos', to: 'objetivos' },
-              action: { verb: 'allocate', target: 'objective', targetId: pendingObjective.id },
-            }
-          : ctx.objectives.length === 0
-            ? {
-                what: 'Define un objetivo para dar destino a lo que ahorras.',
-                why: 'Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.',
-                nextStep: { label: 'Crear objetivo', to: 'objetivos' },
-                action: { verb: 'define', target: 'objective' },
-              }
-            : undefined
-        : undefined,
-      alternative:
-        healthy && !shortfall
-          ? {
+          ? `Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «${pendingObjective.name}», al que le faltan ${eur(pendingObjective.remainingCents)}.`
+          : 'Cubres el gasto con margen y queda excedente real.'
+        : 'El balance es positivo pero ajustado: un gasto imprevisto lo dejaría en negativo.',
+      // Con objetivos pendientes no hay nada que hacer a mano: el reparto es automático.
+      // Sin claves `undefined`: solo hay recomendación cuando no existe ningún objetivo.
+      ...(healthy && ctx.objectives.length === 0
+        ? {
+            recommendation: {
+              what: 'Define un objetivo para dar destino a lo que ahorras.',
+              why: 'Sin un objetivo no hay forma de saber si el ahorro es suficiente ni para qué sirve.',
+              nextStep: { label: 'Crear objetivo', to: 'objetivos' },
+              action: { verb: 'define', target: 'objective' },
+            },
+          }
+        : {}),
+      ...(healthy && !shortfall
+        ? {
+            alternative: {
               name: 'Mantener liquidez',
               summary: 'Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro.',
-            }
-          : undefined,
+            },
+          }
+        : {}),
       ...(influence.length > 0 ? { profileInfluence: influence } : {}),
     })
   }

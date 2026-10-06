@@ -159,20 +159,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Viaje».",
-        "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "t-22"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Viaje», al que le faltan 4.450,00 €.",
       "alternative": {
         "name": "Mantener liquidez",
         "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
@@ -206,20 +193,7 @@
     "domain": "savings",
     "priority": "low",
     "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-    "interpretation": "Cubres el gasto con margen y queda excedente real.",
-    "recommendation": {
-      "what": "Destina parte del excedente a «Viaje».",
-      "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
-      "nextStep": {
-        "label": "Ver objetivos",
-        "to": "objetivos"
-      },
-      "action": {
-        "verb": "allocate",
-        "target": "objective",
-        "targetId": "t-22"
-      }
-    },
+    "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Viaje», al que le faltan 4.450,00 €.",
     "alternative": {
       "name": "Mantener liquidez",
       "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
@@ -231,20 +205,7 @@
       "domain": "savings",
       "priority": "low",
       "fact": "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-      "interpretation": "Cubres el gasto con margen y queda excedente real.",
-      "recommendation": {
-        "what": "Destina parte del excedente a «Viaje».",
-        "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
-        "nextStep": {
-          "label": "Ver objetivos",
-          "to": "objetivos"
-        },
-        "action": {
-          "verb": "allocate",
-          "target": "objective",
-          "targetId": "t-22"
-        }
-      },
+      "interpretation": "Cubres el gasto con margen y queda excedente real. Ese excedente queda en tu líquido y se asigna solo a tus objetivos, en su orden: ahora va a «Viaje», al que le faltan 4.450,00 €.",
       "alternative": {
         "name": "Mantener liquidez",
         "summary": "Conservar el excedente como colchón si todavía no tienes un fondo de emergencia claro."
@@ -280,19 +241,7 @@
     "«Viaje» va por el 56% y le faltan 4.450,00 €.",
     "No hay inversiones registradas: todo el patrimonio es líquido."
   ],
-  "recommendation": {
-    "what": "Destina parte del excedente a «Viaje».",
-    "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
-    "nextStep": {
-      "label": "Ver objetivos",
-      "to": "objetivos"
-    },
-    "action": {
-      "verb": "allocate",
-      "target": "objective",
-      "targetId": "t-22"
-    }
-  },
+  "recommendation": null,
   "alternatives": [
     {
       "name": "Mantener liquidez",
@@ -315,10 +264,6 @@
   ],
   "confidence": "media",
   "missing": [],
-  "nextStep": {
-    "label": "Ver objetivos",
-    "to": "objetivos"
-  },
   "profile": {
     "fields": {
       "sources": {},
