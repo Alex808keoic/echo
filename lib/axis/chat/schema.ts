@@ -28,7 +28,7 @@ const FACT_SCHEMA = {
     factOf('riskAttitude', { value: { type: 'string', enum: [...RISK_ATTITUDES] } }),
     factOf('minLiquidity', { cents: { type: 'integer' } }),
     factOf('irregularIncome', { value: { type: 'boolean' } }),
-    factOf('priorities', { objectiveIds: { type: 'array', items: text } }),
+    // Sin «priorities»: el orden de los objetivos se decide en Finax, no desde la conversación.
   ],
 } as const
 

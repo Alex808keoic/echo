@@ -103,7 +103,7 @@ export const incomeRules: Rule = (ctx, _market, profile) => {
         : 'Parte de ese ingreso puede ser extraordinario; conviene no tomarlo como el nivel habitual.',
       alternative: {
         name: 'Tratarlo como excedente',
-        summary: 'Si es un ingreso puntual, destinarlo a un objetivo o al colchón evita que se diluya en gasto corriente.',
+        summary: 'Si es un ingreso puntual, dejarlo en tu líquido evita que se diluya en gasto corriente; si tienes objetivos, el reparto automático lo tendrá en cuenta según su orden.',
       },
       ...(irregular
         ? { profileInfluence: [{ field: 'irregularIncome' as const, sourceMemoryId: irregular.sourceMemoryId, signalId: 'income.extraordinary', effect: 'interpretation' as const }] }

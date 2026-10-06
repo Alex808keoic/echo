@@ -186,8 +186,8 @@
         }
       },
       "alternative": {
-        "name": "Aportar al objetivo antes que al colchón",
-        "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+        "name": "Dejar el reparto como está",
+        "summary": "Tus objetivos siguen recibiendo dinero automáticamente según su orden (ahora «Moto»), pero el reparto no aparta tu colchón: mientras tanto tendrás menos margen del que fijaste. Es válido si lo aceptas durante un tiempo."
       },
       "profileInfluence": [
         {
@@ -266,8 +266,8 @@
       }
     },
     "alternative": {
-      "name": "Aportar al objetivo antes que al colchón",
-      "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      "name": "Dejar el reparto como está",
+      "summary": "Tus objetivos siguen recibiendo dinero automáticamente según su orden (ahora «Moto»), pero el reparto no aparta tu colchón: mientras tanto tendrás menos margen del que fijaste. Es válido si lo aceptas durante un tiempo."
     },
     "profileInfluence": [
       {
@@ -298,8 +298,8 @@
         }
       },
       "alternative": {
-        "name": "Aportar al objetivo antes que al colchón",
-        "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+        "name": "Dejar el reparto como está",
+        "summary": "Tus objetivos siguen recibiendo dinero automáticamente según su orden (ahora «Moto»), pero el reparto no aparta tu colchón: mientras tanto tendrás menos margen del que fijaste. Es válido si lo aceptas durante un tiempo."
       },
       "profileInfluence": [
         {
@@ -369,8 +369,8 @@
   },
   "alternatives": [
     {
-      "name": "Aportar al objetivo antes que al colchón",
-      "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      "name": "Dejar el reparto como está",
+      "summary": "Tus objetivos siguen recibiendo dinero automáticamente según su orden (ahora «Moto»), pero el reparto no aparta tu colchón: mientras tanto tendrás menos margen del que fijaste. Es válido si lo aceptas durante un tiempo."
     }
   ],
   "uncertainties": [

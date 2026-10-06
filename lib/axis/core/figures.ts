@@ -158,7 +158,7 @@ export function contextFigures(ctx: FinancialContext): AllowedFigure[] {
   if (ctx.flows.expenseChangePct !== null) figures.push(pct('Variación de gastos', ctx.flows.expenseChangePct))
   for (const o of ctx.objectives) {
     figures.push(eur(`Objetivo «${o.name}»: meta`, o.targetCents), eur(`Objetivo «${o.name}»: ahorrado`, o.currentCents), eur(`Objetivo «${o.name}»: restante`, o.remainingCents), pct(`Objetivo «${o.name}»: progreso`, o.progressPct))
-    if (o.requiredMonthlyCents !== undefined) figures.push(eur(`Objetivo «${o.name}»: aportación mensual necesaria`, o.requiredMonthlyCents))
+    if (o.requiredMonthlyCents !== undefined) figures.push(eur(`Objetivo «${o.name}»: ahorro mensual necesario`, o.requiredMonthlyCents))
     if (o.monthsLeft !== undefined) {
       for (const n of new Set([Math.floor(o.monthsLeft), Math.round(o.monthsLeft), Math.ceil(o.monthsLeft)])) figures.push(num(`Objetivo «${o.name}»: meses restantes`, n))
     }

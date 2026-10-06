@@ -223,12 +223,13 @@ describe('AXIS · perfil · minLiquidityCents · interacciones aprobadas', () =>
     assert.deepEqual(d.profile.influence.map((i) => [i.signalId, i.effect]), [['liquidity.below-min', 'added-signal'], ['savings.healthy', 'alternative-removed']])
   })
 
-  it('con un objetivo pendiente, la señal ofrece «Aportar al objetivo antes que al colchón» como alternativa visible', () => {
+  it('con un objetivo pendiente, la alternativa visible explica el reparto automático, sin proponer aportar a mano', () => {
     const d = decide({ context: healthyWithObjective(), profile: minProfile(500_000) })
     const s = d.signals.find((x) => x.id === 'liquidity.below-min')!
-    assert.equal(s.alternative?.name, 'Aportar al objetivo antes que al colchón')
-    assert.match(s.alternative!.summary, /«Viaje»/)
-    assert.deepEqual(d.alternatives.map((a) => a.name), ['Aportar al objetivo antes que al colchón'])
+    assert.equal(s.alternative?.name, 'Dejar el reparto como está')
+    assert.match(s.alternative!.summary, /siguen recibiendo dinero automáticamente según su orden \(ahora «Viaje»\)/)
+    assert.doesNotMatch(JSON.stringify(s), /[Aa]portar|[Aa]porta\b/, 'ninguna aportación manual')
+    assert.deepEqual(d.alternatives.map((a) => a.name), ['Dejar el reparto como está'])
     // savings.healthy ya no recomienda «destinar» a mano (el reparto es automático); la decisión recomienda el colchón.
     assert.equal(d.signals.find((x) => x.id === 'savings.healthy')?.recommendation, undefined)
     assert.equal(d.recommendation?.action.verb, 'complete-cushion')

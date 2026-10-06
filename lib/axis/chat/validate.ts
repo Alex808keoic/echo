@@ -53,7 +53,9 @@ function memoryProposal(v: unknown): MemoryProposal | null {
     replacesId: typeof v.replacesId === 'string' && v.replacesId.trim().length > 0 ? v.replacesId.trim().slice(0, 64) : null,
   }
   // Un hecho inválido no tumba la propuesta: se guarda solo el texto, que no cambia ninguna decisión.
-  if (isValidMemoryFact(v.fact)) proposal.fact = v.fact
+  // Las prioridades ya no se crean desde la conversación: el orden real es el de los objetivos en Finax
+  // (el del reparto). Una propuesta así queda como nota de texto, sin hecho que pueda alterar nada.
+  if (isValidMemoryFact(v.fact) && v.fact.kind !== 'priorities') proposal.fact = v.fact
   return isSavableProposal(proposal) ? proposal : null
 }
 

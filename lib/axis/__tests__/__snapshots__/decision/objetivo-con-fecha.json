@@ -182,7 +182,7 @@
       },
       "uncertainty": {
         "title": "Ritmo basado en un solo mes",
-        "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+        "detail": "El ahorro mensual necesario se compara con el ahorro de este mes, que puede no ser representativo."
       }
     },
     {
@@ -233,7 +233,7 @@
     },
     "uncertainty": {
       "title": "Ritmo basado en un solo mes",
-      "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+      "detail": "El ahorro mensual necesario se compara con el ahorro de este mes, que puede no ser representativo."
     }
   },
   "relevant": [
@@ -262,7 +262,7 @@
       },
       "uncertainty": {
         "title": "Ritmo basado en un solo mes",
-        "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+        "detail": "El ahorro mensual necesario se compara con el ahorro de este mes, que puede no ser representativo."
       }
     },
     {
@@ -321,7 +321,7 @@
   "uncertainties": [
     {
       "title": "Ritmo basado en un solo mes",
-      "detail": "La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo."
+      "detail": "El ahorro mensual necesario se compara con el ahorro de este mes, que puede no ser representativo."
     },
     {
       "title": "Sin posiciones registradas",

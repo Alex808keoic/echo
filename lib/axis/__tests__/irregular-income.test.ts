@@ -243,7 +243,7 @@ describe('AXIS · perfil · irregularIncome · cambios permitidos, señal a señ
     assert.deepEqual(after.alternative, before.alternative)
     assert.equal(after.uncertainty?.title, 'Ritmo basado en un solo mes')
     assert.equal(after.uncertainty?.title, before.uncertainty?.title)
-    assert.equal(after.uncertainty?.detail, 'La aportación mensual necesaria se compara con el ahorro de este mes; con ingresos irregulares, un solo mes es aún menos representativo.')
+    assert.equal(after.uncertainty?.detail, 'El ahorro mensual necesario se compara con el ahorro de este mes; con ingresos irregulares, un solo mes es aún menos representativo.')
     assert.deepEqual(after.profileInfluence, [{ field: 'irregularIncome', sourceMemoryId: 'mem-irr', signalId: 'objectives.pace:obj-coche', effect: 'uncertainty' }])
     assert.deepEqual(irr.recommendation, plain.recommendation)
   })

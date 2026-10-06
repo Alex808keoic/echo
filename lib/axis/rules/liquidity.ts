@@ -39,9 +39,10 @@ export const liquidityRules: Rule = (ctx, _market, profile) => {
     },
     ...(pendingObjective
       ? {
+          // Sin acción manual: los objetivos reciben dinero solos; el reparto no aparta el colchón.
           alternative: {
-            name: 'Aportar al objetivo antes que al colchón',
-            summary: `Seguir con «${pendingObjective.name}» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo.`,
+            name: 'Dejar el reparto como está',
+            summary: `Tus objetivos siguen recibiendo dinero automáticamente según su orden (ahora «${pendingObjective.name}»), pero el reparto no aparta tu colchón: mientras tanto tendrás menos margen del que fijaste. Es válido si lo aceptas durante un tiempo.`,
           },
         }
       : {}),

@@ -132,8 +132,8 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         uncertainty: {
           title: 'Ritmo basado en un solo mes',
           detail: irregular
-            ? 'La aportación mensual necesaria se compara con el ahorro de este mes; con ingresos irregulares, un solo mes es aún menos representativo.'
-            : 'La aportación mensual necesaria se compara con el ahorro de este mes, que puede no ser representativo.',
+            ? 'El ahorro mensual necesario se compara con el ahorro de este mes; con ingresos irregulares, un solo mes es aún menos representativo.'
+            : 'El ahorro mensual necesario se compara con el ahorro de este mes, que puede no ser representativo.',
         },
         ...(irregular
           ? { profileInfluence: [{ field: 'irregularIncome', sourceMemoryId: irregular.sourceMemoryId, signalId: `objectives.pace:${o.id}`, effect: 'uncertainty' }] }
