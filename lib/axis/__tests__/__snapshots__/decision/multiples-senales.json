@@ -5,7 +5,7 @@
       "totalCents": 170000,
       "liquidCents": 170000,
       "investedCents": 0,
-      "reservedForObjectivesCents": 95000,
+      "reservedForObjectivesCents": 170000,
       "initialBalanceCents": 50000
     },
     "flows": {
@@ -95,11 +95,14 @@
       {
         "id": "t-56",
         "name": "Viaje",
-        "targetCents": 100000,
-        "currentCents": 95000,
-        "remainingCents": 5000,
-        "progressPct": 95,
+        "targetCents": 180000,
+        "currentCents": 170000,
+        "remainingCents": 10000,
+        "progressPct": 94,
         "completed": false,
+        "status": "in-progress",
+        "rank": 1,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       }
     ],
@@ -214,10 +217,10 @@
       "id": "objectives.near:t-56",
       "domain": "objectives",
       "priority": "medium",
-      "fact": "«Viaje» está al 95%: faltan 50,00 €.",
+      "fact": "«Viaje» está al 94%: faltan 100,00 €.",
       "interpretation": "Está a un paso; un último esfuerzo lo cierra.",
       "recommendation": {
-        "what": "Reserva los 50,00 € que faltan para cerrar «Viaje».",
+        "what": "Reserva los 100,00 € que faltan para cerrar «Viaje».",
         "why": "Cerrar un objetivo libera el ahorro siguiente para otra cosa.",
         "nextStep": {
           "label": "Ver objetivos",

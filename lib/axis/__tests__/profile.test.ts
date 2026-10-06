@@ -26,7 +26,7 @@ function permutations<T>(items: T[]): T[][] {
 }
 
 const context = (opts: { objectives?: ReturnType<typeof objective>[] } = {}) =>
-  buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: opts.objectives ?? [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY)
+  buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: opts.objectives ?? [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000 })] }), TODAY)
 
 describe('AXIS · perfil · hechos estructurados', () => {
   it('acepta solo hechos con clase conocida, campos exactos, enums y rangos válidos', () => {
@@ -148,7 +148,7 @@ describe('AXIS · perfil · reconcileProfile', () => {
   })
 
   it('prioridad sobre un objetivo completado → eliminada', () => {
-    const ctx = context({ objectives: [objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, currentCents: 100_000 })] })
+    const ctx = context({ objectives: [objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, achievedAt: Date.parse('2026-09-01') })] })
     assert.equal(ctx.objectives[0].completed, true)
     const r = reconcileProfile(deriveProfile([withFact('m1', { kind: 'priorities', objectiveIds: ['obj-done'] })]), ctx)
     assert.equal(r.priorities, undefined)
@@ -158,9 +158,9 @@ describe('AXIS · perfil · reconcileProfile', () => {
   it('objetivo existente y no completado → prioridad conservada, en su orden, junto a las descartadas', () => {
     const ctx = context({
       objectives: [
-        objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000, currentCents: 246_000 }),
-        objective({ id: 'obj-coche', name: 'Coche', targetCents: 800_000, currentCents: 10_000 }),
-        objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, currentCents: 100_000 }),
+        objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000 }),
+        objective({ id: 'obj-coche', name: 'Coche', targetCents: 800_000 }),
+        objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, achievedAt: Date.parse('2026-09-01') }),
       ],
     })
     const p = deriveProfile([withFact('m1', { kind: 'priorities', objectiveIds: ['obj-coche', 'obj-done', 'obj-viaje', 'obj-nada'] }), withFact('m2', { kind: 'minLiquidity', cents: 20_000 })])

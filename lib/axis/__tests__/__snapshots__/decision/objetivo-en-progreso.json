@@ -5,7 +5,7 @@
       "totalCents": 555000,
       "liquidCents": 555000,
       "investedCents": 0,
-      "reservedForObjectivesCents": 246000,
+      "reservedForObjectivesCents": 555000,
       "initialBalanceCents": 300000
     },
     "flows": {
@@ -122,11 +122,14 @@
       {
         "id": "t-22",
         "name": "Viaje",
-        "targetCents": 500000,
-        "currentCents": 246000,
-        "remainingCents": 254000,
-        "progressPct": 49,
+        "targetCents": 1000000,
+        "currentCents": 555000,
+        "remainingCents": 445000,
+        "progressPct": 56,
         "completed": false,
+        "status": "in-progress",
+        "rank": 1,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       }
     ],
@@ -159,7 +162,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Viaje».",
-        "why": "Te faltan 2.540,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -179,7 +182,7 @@
       "id": "objectives.no-date:t-22",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Viaje» va por el 49% y le faltan 2.540,00 €.",
+      "fact": "«Viaje» va por el 56% y le faltan 4.450,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Viaje»",
@@ -206,7 +209,7 @@
     "interpretation": "Cubres el gasto con margen y queda excedente real.",
     "recommendation": {
       "what": "Destina parte del excedente a «Viaje».",
-      "why": "Te faltan 2.540,00 € y el balance del mes lo permite sin forzar.",
+      "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
       "nextStep": {
         "label": "Ver objetivos",
         "to": "objetivos"
@@ -231,7 +234,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Viaje».",
-        "why": "Te faltan 2.540,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -251,7 +254,7 @@
       "id": "objectives.no-date:t-22",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Viaje» va por el 49% y le faltan 2.540,00 €.",
+      "fact": "«Viaje» va por el 56% y le faltan 4.450,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Viaje»",
@@ -274,12 +277,12 @@
     "Patrimonio: 5.550,00 € (líquido 5.550,00 €).",
     "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
     "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-    "«Viaje» va por el 49% y le faltan 2.540,00 €.",
+    "«Viaje» va por el 56% y le faltan 4.450,00 €.",
     "No hay inversiones registradas: todo el patrimonio es líquido."
   ],
   "recommendation": {
     "what": "Destina parte del excedente a «Viaje».",
-    "why": "Te faltan 2.540,00 € y el balance del mes lo permite sin forzar.",
+    "why": "Te faltan 4.450,00 € y el balance del mes lo permite sin forzar.",
     "nextStep": {
       "label": "Ver objetivos",
       "to": "objetivos"

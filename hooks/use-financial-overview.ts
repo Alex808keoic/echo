@@ -20,7 +20,7 @@ import {
   type PatrimonioPoint,
 } from '@/lib/finance/patrimonio'
 import { inMonth, onDate, pctChange, summarize, type PeriodSummary } from '@/lib/finance/summary'
-import { allocateObjectives, totalValueCents, withDerivedCurrentCents, type ObjectivesAllocation } from '@/lib/finance/objectives'
+import { allocateObjectives, totalValueCents, type ObjectivesAllocation } from '@/lib/finance/objectives'
 import type { FinancialSnapshot } from '@/lib/axis/context'
 import { currentMonthKey, shiftedMonthKey, todayISO } from '@/lib/dates'
 import type { AppConfig, Movement, Objective, Position } from '@/lib/types'
@@ -48,9 +48,9 @@ export interface FinancialOverview {
   /** Reparto automático del líquido entre los objetivos: la única fuente del progreso. */
   objectivesAllocation: ObjectivesAllocation
   /**
-   * Instantánea para AXIS (identidad estable con el overview). Sus objetivos
-   * llevan `currentCents` = el reparto (la meta, si están conseguidos): AXIS aún
-   * lee `currentCents` y sus reglas se adaptarán en la Fase B.
+   * Instantánea para AXIS (identidad estable con el overview). Los objetivos van
+   * tal cual: `buildFinancialContext` calcula el reparto con `allocateObjectives`
+   * (la misma fuente que esta pantalla) e ignora el `currentCents` guardado.
    */
   axisSnapshot: FinancialSnapshot
   isEmpty: boolean
@@ -115,7 +115,7 @@ function buildOverview(
     today: summarize(onDate(movements, todayISO())),
     series,
     objectivesAllocation: allocateObjectives(objectives, liquidCents),
-    axisSnapshot: { config, movements, objectives: withDerivedCurrentCents(objectives, liquidCents), positions },
+    axisSnapshot: { config, movements, objectives, positions },
     isEmpty: movements.length === 0 && config === null,
   }
 }

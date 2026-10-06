@@ -58,20 +58,40 @@ export interface WealthPoint {
   cents: number
 }
 
+/**
+ * Estado de un objetivo en el reparto automático (`allocateObjectives`):
+ * - `in-progress`: activo y el líquido aún no llega a su meta;
+ * - `covered`: activo y el reparto actual llega a la meta (puede dejar de
+ *   estarlo si baja el líquido);
+ * - `achieved`: marcado a mano como conseguido; fuera del reparto, al 100 %.
+ */
+export type ObjectiveStatus = 'in-progress' | 'covered' | 'achieved'
+
 export interface ObjectiveContext {
   id: string
   name: string
   targetCents: number
+  /** Lo asignado por el reparto automático (la meta si está conseguido); nunca el `currentCents` guardado. */
   currentCents: number
   remainingCents: number
   /** 0–100, nunca por encima de la meta. */
   progressPct: number
+  /** Sin nada pendiente ahora: cubierto o conseguido. Para distinguirlos, `status`. */
   completed: boolean
+  /** Ausente en contextos de clientes anteriores a la fase B1: se deriva de `completed`. */
+  status?: ObjectiveStatus
+  /** Posición en el reparto (1 = el primero); `null` si está conseguido. */
+  rank?: number | null
+  /** Lo que falta a los objetivos que van antes en el reparto (para el ritmo en cascada). */
+  aheadRemainingCents?: number
   /** `YYYY-MM-DD`, cuando existe. */
   targetDate?: string
   /** Meses (aprox., puede ser fraccionario) hasta la fecha objetivo; negativo si ya pasó. */
   monthsLeft?: number
-  /** Aportación mensual necesaria para llegar a tiempo, cuando hay fecha futura. */
+  /**
+   * Ahorro mensual necesario para llegar a tiempo, en cascada: incluye lo que
+   * falta a los objetivos que van antes (el ahorro llega primero a ellos).
+   */
   requiredMonthlyCents?: number
   /** Días desde su creación. */
   ageDays: number

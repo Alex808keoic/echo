@@ -7,7 +7,7 @@
  */
 import { roundedShares, summarize, totalsByCategory, inMonth, pctChange } from '../finance/summary'
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
-import { objectiveProgressPct, isObjectiveCompleted, totalInvestedCents, totalValueCents } from '../finance/objectives'
+import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
 import type { AppConfig, Movement, Objective, Position } from '../types'
 import type {
@@ -80,18 +80,31 @@ export function closedMonthsOf(movements: Movement[], asOf: string): ClosedMonth
   })
 }
 
-function objectiveContext(o: Objective, asOf: string): ObjectiveContext {
-  const completed = isObjectiveCompleted(o)
-  const remainingCents = Math.max(0, o.targetCents - o.currentCents)
+/**
+ * Contexto de un objetivo a partir del reparto automático (`allocateObjectives`,
+ * la única fuente del progreso): lo asignado, lo que falta y su estado. El
+ * `currentCents` guardado no se usa. `aheadRemainingCents` es lo que falta a
+ * los objetivos que van antes en la cascada.
+ */
+function objectiveContext(item: ObjectiveAllocation, aheadRemainingCents: number, asOf: string): ObjectiveContext {
+  const o = item.objective
+  const achieved = item.status === 'achieved'
+  const target = Math.max(0, o.targetCents)
+  const currentCents = achieved ? target : item.allocatedCents
+  const remainingCents = item.remainingCents
+  const completed = item.status !== 'in-progress'
   const createdISO = new Date(o.createdAt).toISOString().slice(0, 10)
   const ctx: ObjectiveContext = {
     id: o.id,
     name: o.name,
     targetCents: o.targetCents,
-    currentCents: o.currentCents,
+    currentCents,
     remainingCents,
-    progressPct: objectiveProgressPct(o),
+    progressPct: item.pct,
     completed,
+    status: item.status,
+    rank: item.rank,
+    aheadRemainingCents,
     ageDays: Math.max(0, daysBetween(createdISO, asOf)),
   }
   if (o.targetDate) {
@@ -99,8 +112,10 @@ function objectiveContext(o: Objective, asOf: string): ObjectiveContext {
     ctx.targetDate = o.targetDate
     ctx.monthsLeft = monthsLeft
     if (!completed && monthsLeft > 0) {
+      // En cascada: el ahorro cubre antes lo que falta a los objetivos anteriores.
       // Redondeado a euros enteros: una cifra con céntimos sugeriría una precisión que no existe.
-      ctx.requiredMonthlyCents = Math.ceil(remainingCents / Math.max(monthsLeft, 1 / MONTH_DAYS) / 100) * 100
+      const cumulative = aheadRemainingCents + remainingCents
+      ctx.requiredMonthlyCents = Math.ceil(cumulative / Math.max(monthsLeft, 1 / MONTH_DAYS) / 100) * 100
     }
   }
   return ctx
@@ -141,8 +156,15 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
   const current = periodStats(movements, currentKey)
   const previous = periodStats(movements, monthKeyOf(asOf, -1))
 
-  const objectiveCtxs = objectives.map((o) => objectiveContext(o, asOf))
-  const savedForObjectives = objectives.reduce((t, o) => t + Math.min(o.currentCents, o.targetCents), 0)
+  // Reparto automático: única fuente del progreso y del dinero destinado a objetivos.
+  // Orden: activos por prioridad (cascada) y, detrás, los conseguidos.
+  const allocation = allocateObjectives(objectives, liquidCents)
+  let ahead = 0
+  const objectiveCtxs = allocation.items.map((item) => {
+    const ctx = objectiveContext(item, item.status === 'achieved' ? 0 : ahead, asOf)
+    if (item.status !== 'achieved') ahead += item.remainingCents
+    return ctx
+  })
 
   const history = buildPatrimonioSeries(initialBalanceCents, movements, positions)
   const monthsWithData = new Set(movements.map((m) => m.date.slice(0, 7))).size
@@ -154,7 +176,8 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       totalCents,
       liquidCents,
       investedCents,
-      reservedForObjectivesCents: Math.max(0, Math.min(savedForObjectives, liquidCents)),
+      // Lo asignado a los objetivos activos; los conseguidos no reservan nada.
+      reservedForObjectivesCents: allocation.allocatedCents,
       initialBalanceCents,
     },
     flows: {

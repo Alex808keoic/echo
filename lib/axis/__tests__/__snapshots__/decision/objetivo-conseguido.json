@@ -5,7 +5,7 @@
       "totalCents": 555000,
       "liquidCents": 555000,
       "investedCents": 0,
-      "reservedForObjectivesCents": 100000,
+      "reservedForObjectivesCents": 0,
       "initialBalanceCents": 300000
     },
     "flows": {
@@ -127,6 +127,9 @@
         "remainingCents": 0,
         "progressPct": 100,
         "completed": true,
+        "status": "achieved",
+        "rank": null,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       }
     ],
@@ -166,11 +169,11 @@
       "id": "objectives.completed:t-31",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
-      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "fact": "«Colchón» está conseguido (lo marcaste tú): meta de 1.000,00 €.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
       "recommendation": {
-        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
-        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está conseguido.",
+        "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -220,11 +223,11 @@
       "id": "objectives.completed:t-31",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
-      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "fact": "«Colchón» está conseguido (lo marcaste tú): meta de 1.000,00 €.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
       "recommendation": {
-        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
-        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está conseguido.",
+        "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -251,12 +254,12 @@
     "Patrimonio: 5.550,00 € (líquido 5.550,00 €).",
     "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
     "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-    "«Colchón» está conseguido: 1.000,00 € de 1.000,00 €.",
+    "«Colchón» está conseguido (lo marcaste tú): meta de 1.000,00 €.",
     "No hay inversiones registradas: todo el patrimonio es líquido."
   ],
   "recommendation": {
-    "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está cubierto.",
-    "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+    "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está conseguido.",
+    "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
     "nextStep": {
       "label": "Ver objetivos",
       "to": "objetivos"

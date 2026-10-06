@@ -41,11 +41,11 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
   },
   {
     name: 'objetivo-en-progreso',
-    input: { context: ctx({ config: config(300_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }) },
+    input: { context: ctx({ config: config(300_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 1_000_000 })] }) }, // líquido 555.000: en curso (56 %)
   },
   {
     name: 'objetivo-conseguido',
-    input: { context: ctx({ config: config(300_000), movements: healthyMovements(), objectives: [objective({ name: 'Colchón', targetCents: 100_000, currentCents: 100_000 })] }) },
+    input: { context: ctx({ config: config(300_000), movements: healthyMovements(), objectives: [objective({ name: 'Colchón', targetCents: 100_000, achievedAt: Date.parse('2026-09-01') })] }) }, // marcado como conseguido
   },
   {
     name: 'inversion',
@@ -65,13 +65,13 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
           gasto('2026-09-05', 120_000, 'Comida'),
           gasto('2026-09-08', 60_000, 'Salidas'),
         ],
-        objectives: [objective({ name: 'Viaje', targetCents: 100_000, currentCents: 95_000 })],
+        objectives: [objective({ name: 'Viaje', targetCents: 180_000 })], // líquido 170.000: cerca de la meta (94 %)
       }),
     },
   },
   {
     name: 'objetivo-con-fecha',
-    input: { context: ctx({ config: config(0), movements: healthyMovements(), objectives: [objective({ name: 'Coche', targetCents: 1_000_000, currentCents: 100_000, targetDate: '2027-03-15' })] }) },
+    input: { context: ctx({ config: config(0), movements: healthyMovements(), objectives: [objective({ name: 'Coche', targetCents: 1_200_000, targetDate: '2027-03-15' })] }) }, // líquido 255.000: ritmo insuficiente
   },
   {
     name: 'mercado-fresh',

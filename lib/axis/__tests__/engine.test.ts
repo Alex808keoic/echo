@@ -77,25 +77,30 @@ describe('AxisEngine (motor local de reglas)', () => {
   })
 
   it('caso 5 · objetivo con progreso → progreso y cantidad restante correctos', () => {
-    const goal = objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })
+    // El progreso es el reparto del líquido (555.000), no un currentCents guardado.
+    const goal = objective({ name: 'Viaje', targetCents: 1_000_000, currentCents: 999_999 })
     const ctx = buildFinancialContext(snapshot({ config: config(300_000), movements: healthyMovements(), objectives: [goal] }), TODAY)
     const o = ctx.objectives[0]
-    assert.equal(o.progressPct, 49)
-    assert.equal(o.remainingCents, 254_000)
+    assert.equal(o.currentCents, 555_000)
+    assert.equal(o.progressPct, 56)
+    assert.equal(o.remainingCents, 445_000)
     assert.equal(o.completed, false)
+    assert.equal(o.status, 'in-progress')
     assert.equal(o.targetDate, undefined)
 
     const analysis = analysisOf(analyzeLocally({ context: ctx }, NOW))
     assert.ok(analysis.recommendation, 'hay recomendación')
     assert.match(analysis.recommendation.what, /Viaje/)
-    assert.match(analysis.recommendation.why, /2\.540,00 €/)
+    assert.match(analysis.recommendation.why, /4\.450,00 €/)
     assert.ok(analysis.uncertainty.items.some((u) => /Sin fecha/.test(u.title)), 'sin fecha no puede valorar el ritmo')
   })
 
   it('caso 6 · objetivo conseguido → no recomienda seguir aportando al mismo objetivo', () => {
-    const done = objective({ name: 'Colchón', targetCents: 100_000, currentCents: 100_000 })
+    // «Conseguido» es lo que marca el usuario (achievedAt), no el reparto llegando a la meta.
+    const done = objective({ name: 'Colchón', targetCents: 100_000, achievedAt: Date.parse('2026-09-01') })
     const ctx = buildFinancialContext(snapshot({ config: config(300_000), movements: healthyMovements(), objectives: [done] }), TODAY)
     assert.equal(ctx.objectives[0].completed, true)
+    assert.equal(ctx.objectives[0].status, 'achieved')
     const analysis = analysisOf(analyzeLocally({ context: ctx }, NOW))
     assert.ok(analysis.recommendation)
     assert.doesNotMatch(analysis.recommendation.what, /Destina parte del excedente a «Colchón»/)
@@ -147,7 +152,8 @@ describe('AxisEngine (motor local de reglas)', () => {
       gasto('2026-09-05', 120_000, 'Comida'),
       gasto('2026-09-08', 60_000, 'Salidas'),
     ]
-    const goal = objective({ name: 'Viaje', targetCents: 100_000, currentCents: 95_000 })
+    // Líquido 170.000 de una meta de 180.000: cerca de la meta (94 %).
+    const goal = objective({ name: 'Viaje', targetCents: 180_000 })
     const ctx = buildFinancialContext(snapshot({ config: config(50_000), movements, objectives: [goal] }), TODAY)
     const signals = detectSignals(ctx)
     assert.equal(signals[0].id, 'expenses.over-income')
@@ -170,7 +176,8 @@ describe('AxisEngine (motor local de reglas)', () => {
   })
 
   it('objetivo con fecha → calcula el esfuerzo mensual y avisa si el ahorro no llega', () => {
-    const goal = objective({ name: 'Coche', targetCents: 1_000_000, currentCents: 100_000, targetDate: '2027-03-15' })
+    // Líquido 255.000 asignado; faltan 945.000 en ~6 meses.
+    const goal = objective({ name: 'Coche', targetCents: 1_200_000, targetDate: '2027-03-15' })
     const ctx = buildFinancialContext(snapshot({ config: config(0), movements: healthyMovements(), objectives: [goal] }), TODAY)
     const o = ctx.objectives[0]
     assert.ok(o.monthsLeft !== undefined && o.monthsLeft > 5.5 && o.monthsLeft < 6.5)

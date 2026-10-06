@@ -5,7 +5,7 @@
       "totalCents": 355000,
       "liquidCents": 355000,
       "investedCents": 0,
-      "reservedForObjectivesCents": 150000,
+      "reservedForObjectivesCents": 355000,
       "initialBalanceCents": 100000
     },
     "flows": {
@@ -120,23 +120,29 @@
     },
     "objectives": [
       {
-        "id": "obj-viaje",
-        "name": "Viaje",
-        "targetCents": 500000,
-        "currentCents": 100000,
-        "remainingCents": 400000,
-        "progressPct": 20,
+        "id": "obj-moto",
+        "name": "Moto",
+        "targetCents": 600000,
+        "currentCents": 355000,
+        "remainingCents": 245000,
+        "progressPct": 59,
         "completed": false,
+        "status": "in-progress",
+        "rank": 1,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       },
       {
-        "id": "obj-moto",
-        "name": "Moto",
-        "targetCents": 300000,
-        "currentCents": 50000,
-        "remainingCents": 250000,
-        "progressPct": 17,
+        "id": "obj-viaje",
+        "name": "Viaje",
+        "targetCents": 500000,
+        "currentCents": 0,
+        "remainingCents": 500000,
+        "progressPct": 0,
         "completed": false,
+        "status": "in-progress",
+        "rank": 2,
+        "aheadRemainingCents": 245000,
         "ageDays": 106
       }
     ],
@@ -181,7 +187,7 @@
       },
       "alternative": {
         "name": "Aportar al objetivo antes que al colchón",
-        "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+        "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
       },
       "profileInfluence": [
         {
@@ -200,7 +206,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Moto».",
-        "why": "Te faltan 2.500,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 2.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -217,14 +223,6 @@
           "sourceMemoryId": "mem-liq",
           "signalId": "savings.healthy",
           "effect": "alternative-removed"
-        },
-        {
-          "field": "priorities",
-          "sourceMemoryId": "mem-prio",
-          "signalId": "savings.healthy",
-          "effect": "target-selected",
-          "from": "obj-viaje",
-          "to": "obj-moto"
         }
       ]
     },
@@ -232,28 +230,18 @@
       "id": "objectives.no-date:obj-moto",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Moto» va por el 17% y le faltan 2.500,00 €.",
+      "fact": "«Moto» va por el 59% y le faltan 2.450,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Moto»",
         "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
-      },
-      "profileInfluence": [
-        {
-          "field": "priorities",
-          "sourceMemoryId": "mem-prio",
-          "signalId": "objectives.no-date:obj-moto",
-          "effect": "target-selected",
-          "from": "obj-viaje",
-          "to": "obj-moto"
-        }
-      ]
+      }
     },
     {
       "id": "objectives.no-date:obj-viaje",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Viaje» va por el 20% y le faltan 4.000,00 €.",
+      "fact": "«Viaje» va por el 0% y le faltan 5.000,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Viaje»",
@@ -292,7 +280,7 @@
     },
     "alternative": {
       "name": "Aportar al objetivo antes que al colchón",
-      "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
     },
     "profileInfluence": [
       {
@@ -324,7 +312,7 @@
       },
       "alternative": {
         "name": "Aportar al objetivo antes que al colchón",
-        "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+        "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
       },
       "profileInfluence": [
         {
@@ -343,7 +331,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Moto».",
-        "why": "Te faltan 2.500,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 2.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -360,14 +348,6 @@
           "sourceMemoryId": "mem-liq",
           "signalId": "savings.healthy",
           "effect": "alternative-removed"
-        },
-        {
-          "field": "priorities",
-          "sourceMemoryId": "mem-prio",
-          "signalId": "savings.healthy",
-          "effect": "target-selected",
-          "from": "obj-viaje",
-          "to": "obj-moto"
         }
       ]
     },
@@ -375,28 +355,18 @@
       "id": "objectives.no-date:obj-moto",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Moto» va por el 17% y le faltan 2.500,00 €.",
+      "fact": "«Moto» va por el 59% y le faltan 2.450,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Moto»",
         "detail": "No puedo valorar si el ritmo actual permite alcanzarlo a tiempo. Una fecha objetivo lo haría posible."
-      },
-      "profileInfluence": [
-        {
-          "field": "priorities",
-          "sourceMemoryId": "mem-prio",
-          "signalId": "objectives.no-date:obj-moto",
-          "effect": "target-selected",
-          "from": "obj-viaje",
-          "to": "obj-moto"
-        }
-      ]
+      }
     },
     {
       "id": "objectives.no-date:obj-viaje",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Viaje» va por el 20% y le faltan 4.000,00 €.",
+      "fact": "«Viaje» va por el 0% y le faltan 5.000,00 €.",
       "interpretation": "Avanza, pero sin fecha no hay un ritmo con el que compararlo.",
       "uncertainty": {
         "title": "Sin fecha en «Viaje»",
@@ -409,7 +379,7 @@
     "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
     "Quieres mantener al menos 4.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 450,00 €.",
     "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
-    "«Moto» va por el 17% y le faltan 2.500,00 €."
+    "«Moto» va por el 59% y le faltan 2.450,00 €."
   ],
   "recommendation": {
     "what": "Completa tu colchón hasta 4.000,00 € antes de destinar ahorro a otros fines.",
@@ -426,7 +396,7 @@
   "alternatives": [
     {
       "name": "Aportar al objetivo antes que al colchón",
-      "summary": "Seguir con «Viaje» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
+      "summary": "Seguir con «Moto» y completar el colchón después; es válido si aceptas ese margen menor durante un tiempo."
     }
   ],
   "uncertainties": [
@@ -474,22 +444,6 @@
         "sourceMemoryId": "mem-liq",
         "signalId": "savings.healthy",
         "effect": "alternative-removed"
-      },
-      {
-        "field": "priorities",
-        "sourceMemoryId": "mem-prio",
-        "signalId": "savings.healthy",
-        "effect": "target-selected",
-        "from": "obj-viaje",
-        "to": "obj-moto"
-      },
-      {
-        "field": "priorities",
-        "sourceMemoryId": "mem-prio",
-        "signalId": "objectives.no-date:obj-moto",
-        "effect": "target-selected",
-        "from": "obj-viaje",
-        "to": "obj-moto"
       }
     ]
   }

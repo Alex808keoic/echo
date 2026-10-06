@@ -46,8 +46,8 @@ const context = (): FinancialContext =>
       config: config(100_000),
       movements: healthyMovements(),
       objectives: [
-        objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000, currentCents: 100_000 }),
-        objective({ id: 'obj-moto', name: 'Moto', targetCents: 300_000, currentCents: 50_000 }),
+        objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 500_000 }),
+        objective({ id: 'obj-moto', name: 'Moto', targetCents: 600_000 }), // en curso: recibe 355.000 del reparto
       ],
     }),
     TODAY,

@@ -5,7 +5,7 @@
       "totalCents": 255000,
       "liquidCents": 255000,
       "investedCents": 0,
-      "reservedForObjectivesCents": 100000,
+      "reservedForObjectivesCents": 255000,
       "initialBalanceCents": 0
     },
     "flows": {
@@ -122,15 +122,18 @@
       {
         "id": "t-65",
         "name": "Coche",
-        "targetCents": 1000000,
-        "currentCents": 100000,
-        "remainingCents": 900000,
-        "progressPct": 10,
+        "targetCents": 1200000,
+        "currentCents": 255000,
+        "remainingCents": 945000,
+        "progressPct": 21,
         "completed": false,
+        "status": "in-progress",
+        "rank": 1,
+        "aheadRemainingCents": 0,
         "ageDays": 106,
         "targetDate": "2027-03-15",
         "monthsLeft": 5.946123521681997,
-        "requiredMonthlyCents": 151400
+        "requiredMonthlyCents": 159000
       }
     ],
     "investments": {
@@ -158,10 +161,10 @@
       "id": "objectives.pace:t-65",
       "domain": "objectives",
       "priority": "high",
-      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
       "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
       "recommendation": {
-        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
         "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
         "nextStep": {
           "label": "Editar objetivo",
@@ -190,7 +193,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Coche».",
-        "why": "Te faltan 9.000,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 9.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -222,10 +225,10 @@
     "id": "objectives.pace:t-65",
     "domain": "objectives",
     "priority": "high",
-    "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+    "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
     "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
     "recommendation": {
-      "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+      "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
       "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
       "nextStep": {
         "label": "Editar objetivo",
@@ -251,10 +254,10 @@
       "id": "objectives.pace:t-65",
       "domain": "objectives",
       "priority": "high",
-      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+      "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
       "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
       "recommendation": {
-        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+        "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
         "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
         "nextStep": {
           "label": "Editar objetivo",
@@ -283,7 +286,7 @@
       "interpretation": "Cubres el gasto con margen y queda excedente real.",
       "recommendation": {
         "what": "Destina parte del excedente a «Coche».",
-        "why": "Te faltan 9.000,00 € y el balance del mes lo permite sin forzar.",
+        "why": "Te faltan 9.450,00 € y el balance del mes lo permite sin forzar.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -314,12 +317,12 @@
   "facts": [
     "Patrimonio: 2.550,00 € (líquido 2.550,00 €).",
     "Este mes: ingresos 2.000,00 €, gastos 700,00 €, balance +1.300,00 €.",
-    "Para llegar a «Coche» en 6 meses harían falta unos 1.514,00 € al mes (faltan 9.000,00 €).",
+    "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
     "Este mes ahorras 1.300,00 €: un 65% de tus ingresos (2.000,00 €).",
     "No hay inversiones registradas: todo el patrimonio es líquido."
   ],
   "recommendation": {
-    "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar la aportación mensual.",
+    "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
     "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
     "nextStep": {
       "label": "Editar objetivo",

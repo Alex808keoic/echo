@@ -12,7 +12,7 @@ import { allowedFigureKeys, buildAllowedFigures, checkFigures, contextFigures, d
 import type { AxisDecision } from '../types'
 import { config, healthyMovements, objective, snapshot, TODAY } from './fixtures'
 
-const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 246_000 })] }), TODAY) })
+const input = () => ({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 246_000 })] }), TODAY) })
 const decision = (): AxisDecision => decide(input())
 
 describe('AXIS · cifras permitidas · extracción y claves', () => {
@@ -79,7 +79,7 @@ describe('AXIS · cifras permitidas · conjunto cerrado', () => {
   it('cada derivada es reproducible EXCLUSIVAMENTE a partir de las claves que declara', () => {
     // Con reserva en objetivos, para que liquid − reservado − importe difiera de liquid − importe.
     const ctx = buildFinancialContext(
-      snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 500_000, currentCents: 120_000 })] }),
+      snapshot({ config: config(100_000), movements: healthyMovements(), objectives: [objective({ name: 'Viaje', targetCents: 120_000 })] }),
       TODAY,
     )
     assert.ok(ctx.wealth.reservedForObjectivesCents > 0)
@@ -132,7 +132,7 @@ describe('AXIS · cifras permitidas · validación', () => {
 
   it('números desnudos: licenciados solo si coinciden con una cifra permitida; los años y fechas no cuentan', () => {
     const set = buildAllowedFigures(decision())
-    assert.deepEqual(checkFigures('Tu líquido es 3550 y tu meta 5.000', set), [], 'coinciden con 3.550,00 € y 5.000,00 €')
+    assert.deepEqual(checkFigures('Tu líquido es 3550 y tu meta 2.460', set), [], 'coinciden con 3.550,00 € y 2.460,00 €')
     assert.deepEqual(checkFigures('Tu líquido es 3.551', set).map((v) => [v.raw, v.reason]), [['3.551', 'bare-number']])
     assert.deepEqual(checkFigures('En 2027 y desde 2026-09-15 todo cambia', set), [])
     assert.deepEqual(checkFigures('Suma 12345 y verás', set).map((v) => v.reason), ['bare-number'])

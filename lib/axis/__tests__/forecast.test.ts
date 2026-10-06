@@ -46,9 +46,9 @@ function historyMovements() {
 }
 const snap = (partial: Partial<FinancialSnapshot> = {}): FinancialSnapshot =>
   snapshot({
-    config: config(100_000),
+    config: config(101_000), // líquido 10.000: el reparto asigna 10.000 a «Viaje» (faltan 40.000)
     movements: historyMovements(),
-    objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, currentCents: 10_000 }), objective({ id: 'obj-moto', name: 'Moto', targetCents: 30_000, currentCents: 30_000 })],
+    objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000 }), objective({ id: 'obj-moto', name: 'Moto', targetCents: 30_000, achievedAt: Date.parse('2026-09-01') })],
     positions: [position({ id: 'pos-fondo', name: 'Fondo', valueCents: 20_000, investedCents: 15_000 })],
     ...partial,
   })
@@ -183,7 +183,7 @@ describe('previsión · señal objectives.forecast', () => {
 
   it('solo aparece con ingreso recurrente, para objetivos no completados (con y sin fecha)', () => {
     assert.deepEqual(decide({ context: ctx() }).signals.filter(isForecast), [])
-    const withDate = ctx({ objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, currentCents: 10_000, targetDate: '2027-06-30' })] })
+    const withDate = ctx({ objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, targetDate: '2027-06-30' })] })
     const ids = (c: typeof withDate) => decide({ context: c, memory: memoryWith(fact(3_500)) }).signals.filter(isForecast).map((s) => s.id)
     assert.deepEqual(ids(ctx()), ['objectives.forecast:obj-viaje'], 'sin fecha sí; «Moto», completado, no')
     assert.deepEqual(ids(withDate), ['objectives.forecast:obj-viaje'], 'con fecha también')
@@ -201,7 +201,8 @@ describe('previsión · señal objectives.forecast', () => {
   })
 
   it('sin historial: A sí, B dice que faltan meses', () => {
-    const s = decide({ context: ctx({ movements: [ingreso('2026-09-01', 4_700), gasto('2026-09-05', 2_000)] }), memory: memoryWith(fact(3_500)) }).signals.find(isForecast)
+    // Saldo inicial 7.300 + neto 2.700 = líquido 10.000: a «Viaje» le siguen faltando 40.000.
+    const s = decide({ context: ctx({ config: config(7_300), movements: [ingreso('2026-09-01', 4_700), gasto('2026-09-05', 2_000)] }), memory: memoryWith(fact(3_500)) }).signals.find(isForecast)
     assert.match(s?.interpretation ?? '', /equivale a 12 meses .* Aún no tengo meses suficientes para estimar tu gasto habitual\./)
   })
 
@@ -275,7 +276,7 @@ function expressionOf(d: AxisDecision, override: (id: string, text: string) => s
 
 describe('previsión · cifras y Decision First', () => {
   // Un contexto sencillo, con pocas señales, para que la previsión esté entre las relevantes.
-  const simple = () => buildFinancialContext(snapshot({ config: config(100_000), movements: historyMovements().slice(0, 10), objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, currentCents: 10_000 })] }), '2026-08-15')
+  const simple = () => buildFinancialContext(snapshot({ config: config(6_700), movements: historyMovements().slice(0, 10), objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000 })] }), '2026-08-15')
   const decision = () => decide({ context: simple(), memory: memoryWith(fact(3_500)) })
 
   it('figuras con fuente forecast y etiqueta «Previsión: …»; no entran en contextFigures', () => {
@@ -333,7 +334,7 @@ describe('previsión · neutralidad financiera y sin doble contabilización', ()
   })
 
   it('las reglas de ahorro, gasto, liquidez, inversión y objectives.pace dan exactamente lo mismo', () => {
-    const withDate = ctx({ objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, currentCents: 10_000, targetDate: '2027-06-30' })] })
+    const withDate = ctx({ objectives: [objective({ id: 'obj-viaje', name: 'Viaje', targetCents: 50_000, targetDate: '2027-06-30' })] })
     const a = decide({ context: withDate })
     const b = decide({ context: withDate, memory: memoryWith(fact(3_500)) })
     assert.deepEqual(b.signals.filter((s) => !isForecast(s)), a.signals)

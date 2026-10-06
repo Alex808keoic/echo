@@ -2,11 +2,11 @@
   "context": {
     "asOf": "2026-09-15",
     "wealth": {
-      "totalCents": 29000,
-      "liquidCents": 9000,
+      "totalCents": 30000,
+      "liquidCents": 10000,
       "investedCents": 20000,
-      "reservedForObjectivesCents": 9000,
-      "initialBalanceCents": 100000
+      "reservedForObjectivesCents": 10000,
+      "initialBalanceCents": 101000
     },
     "flows": {
       "current": {
@@ -58,51 +58,51 @@
       "history": [
         {
           "date": "2026-04-01",
-          "cents": 104700
+          "cents": 105700
         },
         {
           "date": "2026-04-10",
-          "cents": 102700
+          "cents": 103700
         },
         {
           "date": "2026-05-01",
-          "cents": 107400
+          "cents": 108400
         },
         {
           "date": "2026-05-10",
-          "cents": 105300
+          "cents": 106300
         },
         {
           "date": "2026-06-01",
-          "cents": 110000
+          "cents": 111000
         },
         {
           "date": "2026-06-10",
-          "cents": 108100
+          "cents": 109100
         },
         {
           "date": "2026-07-01",
-          "cents": 112800
+          "cents": 113800
         },
         {
           "date": "2026-07-10",
-          "cents": 100800
+          "cents": 101800
         },
         {
           "date": "2026-08-01",
-          "cents": 105500
+          "cents": 106500
         },
         {
           "date": "2026-08-10",
-          "cents": 103300
+          "cents": 104300
         },
         {
           "date": "2026-09-01",
-          "cents": 108000
+          "cents": 109000
         },
         {
           "date": "2026-09-05",
-          "cents": 9000
+          "cents": 10000
         }
       ],
       "closedMonths": [
@@ -147,6 +147,9 @@
         "remainingCents": 40000,
         "progressPct": 20,
         "completed": false,
+        "status": "in-progress",
+        "rank": 1,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       },
       {
@@ -157,6 +160,9 @@
         "remainingCents": 0,
         "progressPct": 100,
         "completed": true,
+        "status": "achieved",
+        "rank": null,
+        "aheadRemainingCents": 0,
         "ageDays": 106
       }
     ],
@@ -172,7 +178,7 @@
       ],
       "totalInvestedCents": 15000,
       "totalValueCents": 20000,
-      "shareOfWealthPct": 69
+      "shareOfWealthPct": 67
     },
     "quality": {
       "level": "sufficient",
@@ -267,11 +273,11 @@
       "id": "objectives.completed:obj-moto",
       "domain": "objectives",
       "priority": "low",
-      "fact": "«Moto» está conseguido: 300,00 € de 300,00 €.",
-      "interpretation": "Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.",
+      "fact": "«Moto» está conseguido (lo marcaste tú): meta de 300,00 €.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
       "recommendation": {
-        "what": "Decide el siguiente destino de tu ahorro ahora que «Moto» está cubierto.",
-        "why": "Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.",
+        "what": "Decide el siguiente destino de tu ahorro ahora que «Moto» está conseguido.",
+        "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
         "nextStep": {
           "label": "Ver objetivos",
           "to": "objetivos"
@@ -286,7 +292,7 @@
       "id": "investments.manual-values",
       "domain": "investments",
       "priority": "low",
-      "fact": "Valor invertido: 200,00 € en 1 posición (69% del patrimonio).",
+      "fact": "Valor invertido: 200,00 € en 1 posición (67% del patrimonio).",
       "interpretation": "El valor es el que has introducido a mano; la lectura es tan actual como tu última actualización.",
       "uncertainty": {
         "title": "Valores manuales, sin mercado",
@@ -416,7 +422,7 @@
     }
   ],
   "facts": [
-    "Patrimonio: 290,00 € (líquido 90,00 €, invertido 200,00 €).",
+    "Patrimonio: 300,00 € (líquido 100,00 €, invertido 200,00 €).",
     "Este mes: ingresos 47,00 €, gastos 990,00 €, balance -943,00 €.",
     "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
     "El ahorro del mes ha caído de 25,00 € a 943,00 €.",

@@ -33,14 +33,15 @@ const prio = (ids: string[], sourceId = 'mem-prio'): UserProfile => ({ prioritie
 
 /* --------------------------------- contextos -------------------------------- */
 
-const A = () => objective({ id: 'obj-a', name: 'Alfa', targetCents: 500_000, currentCents: 100_000 })
-const B = () => objective({ id: 'obj-b', name: 'Beta', targetCents: 400_000, currentCents: 50_000 })
-const C = () => objective({ id: 'obj-c', name: 'Gamma', targetCents: 300_000, currentCents: 20_000 })
-const DONE = () => objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, currentCents: 100_000 })
-const OVERDUE = () => objective({ id: 'obj-over', name: 'Vencido', targetCents: 800_000, currentCents: 100_000, targetDate: '2026-01-15' })
-/** Ritmo insuficiente: 900.000 € en ~6 meses ≫ ahorro del mes (1.300 €). */
-const PACE_E = () => objective({ id: 'obj-e', name: 'Épsilon', targetCents: 1_000_000, currentCents: 100_000, targetDate: '2027-03-15' })
-const PACE_F = () => objective({ id: 'obj-f', name: 'Fi', targetCents: 1_000_000, currentCents: 100_000, targetDate: '2027-03-15' })
+// Progreso por reparto automático (líquido 355.000, en cascada por fecha de creación e id); «Hecho» marcado como conseguido.
+const A = () => objective({ id: 'obj-a', name: 'Alfa', targetCents: 500_000 })
+const B = () => objective({ id: 'obj-b', name: 'Beta', targetCents: 400_000 })
+const C = () => objective({ id: 'obj-c', name: 'Gamma', targetCents: 300_000 })
+const DONE = () => objective({ id: 'obj-done', name: 'Hecho', targetCents: 100_000, achievedAt: Date.parse('2026-09-01') })
+const OVERDUE = () => objective({ id: 'obj-over', name: 'Vencido', targetCents: 800_000, targetDate: '2026-01-15' })
+/** Ritmo insuficiente para los dos: en cascada, Fi suma lo que le falta a Épsilon; ambos ≫ ahorro del mes (1.300 €). */
+const PACE_E = () => objective({ id: 'obj-e', name: 'Épsilon', targetCents: 1_500_000, targetDate: '2027-03-15' })
+const PACE_F = () => objective({ id: 'obj-f', name: 'Fi', targetCents: 1_500_000, targetDate: '2027-03-15' })
 
 const ctxWith = (objectives: ReturnType<typeof objective>[], movements = healthyMovements()) => buildFinancialContext(snapshot({ config: config(100_000), movements, objectives }), TODAY)
 const criticalMovements = () => [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Comida'), gasto('2026-09-08', 60_000, 'Salidas')]

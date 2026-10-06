@@ -51,7 +51,7 @@ const noneWithoutPrevious = () => ctxOf([gasto('2026-09-03', 20_000)])
 /** Ingresos +100 % respecto al mes anterior. */
 const extraordinary = () => ctxOf([ingreso('2026-08-01', 100_000), gasto('2026-08-10', 20_000), ingreso('2026-09-01', 200_000), gasto('2026-09-10', 20_000)])
 /** Objetivo con fecha cuyo ritmo necesario no lo cubre el ahorro del mes. */
-const pace = () => ctxOf(healthyMovements(), { objectives: [objective({ id: 'obj-coche', name: 'Coche', targetCents: 1_000_000, currentCents: 100_000, targetDate: '2027-03-15' })] })
+const pace = () => ctxOf(healthyMovements(), { objectives: [objective({ id: 'obj-coche', name: 'Coche', targetCents: 1_200_000, targetDate: '2027-03-15' })] })
 /** Contexto sano: ninguna señal de la matriz. */
 const healthy = () => ctxOf(healthyMovements())
 

@@ -1,6 +1,16 @@
 /**
- * Reglas de objetivos: conseguido, cerca, retrasado respecto a su fecha,
- * esfuerzo mensual necesario, sin progreso.
+ * Reglas de objetivos: conseguido, cubierto, cerca, retrasado respecto a su
+ * fecha, esfuerzo mensual necesario, sin dinero disponible.
+ *
+ * El progreso viene del reparto automático (`allocateObjectives`, vía el
+ * contexto); estas reglas no recalculan la cascada:
+ *   - conseguido (`achieved`, marcado a mano): fuera del reparto, al 100 %;
+ *   - cubierto (`covered`): el reparto actual llega a la meta, pero sigue
+ *     activo y puede volver a «en curso» si baja el líquido;
+ *   - ritmo (`pace`): `requiredMonthlyCents` ya incluye lo que falta a los
+ *     objetivos anteriores en la cascada (el ahorro llega antes a ellos);
+ *   - sin dinero (`stale`): solo el objetivo que debería recibir dinero ahora
+ *     (nada pendiente por delante) y no recibe nada; esperar turno no lo es.
  *
  * Perfil:
  *   - `irregularIncome`: `objectives.pace` compara el ritmo necesario con el
@@ -12,7 +22,7 @@
  *     misma señal que sin prioridades: ninguna aparece, desaparece ni cambia
  *     de prioridad; un objetivo vencido sigue vencido esté o no priorizado.
  */
-import type { Signal } from '../types'
+import type { ObjectiveContext, ObjectiveStatus, Signal } from '../types'
 import {
   describeRecurringIncomes,
   eur,
@@ -33,6 +43,9 @@ import {
 /** Objetivo al que pertenece una señal `objectives.<tipo>:<id>`. */
 const objectiveIdOf = (s: Signal) => s.id.slice(s.id.indexOf(':') + 1)
 
+/** Estado en el reparto; un contexto anterior a la fase B1 no lo trae y `completed` no distingue: se trata como cubierto. */
+const statusOf = (o: ObjectiveContext): ObjectiveStatus => o.status ?? (o.completed ? 'covered' : 'in-progress')
+
 /** Señales de objetivos de siempre (sin previsiones): idénticas con o sin ingresos recurrentes. */
 const baseObjectiveRules: Rule = (ctx, _market, profile) => {
   const signals: Signal[] = []
@@ -41,18 +54,35 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
   const priorities = prioritiesOf(profile)
 
   for (const o of priorities ? rankByPriorities(ctx.objectives, priorities.ids) : ctx.objectives) {
-    if (o.completed) {
+    const status = statusOf(o)
+    if (status === 'achieved') {
       signals.push({
         id: `objectives.completed:${o.id}`,
         domain: 'objectives',
         priority: 'low',
-        fact: `«${o.name}» está conseguido: ${eur(o.currentCents)} de ${eur(o.targetCents)}.`,
-        interpretation: 'Ya no necesita más aportaciones; lo que ahorres a partir de ahora puede tener otro destino.',
+        fact: `«${o.name}» está conseguido (lo marcaste tú): meta de ${eur(o.targetCents)}.`,
+        interpretation: 'Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.',
         recommendation: {
-          what: `Decide el siguiente destino de tu ahorro ahora que «${o.name}» está cubierto.`,
-          why: 'Seguir aportando a un objetivo cumplido no añade nada; un objetivo nuevo sí da dirección.',
+          what: `Decide el siguiente destino de tu ahorro ahora que «${o.name}» está conseguido.`,
+          why: 'Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.',
           nextStep: { label: 'Ver objetivos', to: 'objetivos' },
           action: { verb: 'decide', target: 'none' },
+        },
+      })
+      continue
+    }
+    if (status === 'covered') {
+      signals.push({
+        id: `objectives.covered:${o.id}`,
+        domain: 'objectives',
+        priority: 'low',
+        fact: `Tu dinero disponible cubre ahora «${o.name}»: ${eur(o.currentCents)} de ${eur(o.targetCents)}.`,
+        interpretation: 'Está cubierto mientras tu líquido se mantenga: si baja, volverá a estar en curso. No es lo mismo que conseguido.',
+        recommendation: {
+          what: `Cuando hayas conseguido «${o.name}», márcalo como conseguido para que tu dinero vaya a tus demás objetivos.`,
+          why: 'Mientras siga activo, el reparto automático le sigue asignando dinero.',
+          nextStep: { label: 'Ver objetivos', to: 'objetivos' },
+          action: { verb: 'decide', target: 'objective', targetId: o.id },
         },
       })
       continue
@@ -82,26 +112,27 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         id: `objectives.pace:${o.id}`,
         domain: 'objectives',
         priority: feasible ? 'low' : 'high',
-        fact: `Para llegar a «${o.name}» en ${months} ${months === 1 ? 'mes' : 'meses'} harían falta unos ${eur(o.requiredMonthlyCents)} al mes (faltan ${eur(o.remainingCents)}).`,
+        fact: `Para llegar a «${o.name}» en ${months} ${months === 1 ? 'mes' : 'meses'} harían falta unos ${eur(o.requiredMonthlyCents)} al mes (faltan ${eur(o.remainingCents)}${(o.aheadRemainingCents ?? 0) > 0 ? `, y antes ${eur(o.aheadRemainingCents ?? 0)} de los objetivos que van por delante` : ''}).`,
         interpretation: feasible
           ? `Tu ahorro de este mes (${eur(monthlySavings)}) cubre ese ritmo.`
           : monthlySavings > 0
             ? `Tu ahorro de este mes (${eur(monthlySavings)}) no llega a ese ritmo.`
             : 'Este mes no hay ahorro con el que sostener ese ritmo.',
-        recommendation: feasible
-          ? undefined
+        // Sin claves `undefined`: con un ritmo alcanzable no hay recomendación ni alternativa.
+        ...(feasible
+          ? {}
           : {
-              what: `Elige entre aplazar la fecha de «${o.name}», reducir la meta o aumentar la aportación mensual.`,
-              why: 'Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.',
-              nextStep: { label: 'Editar objetivo', to: 'objetivos' },
-              action: { verb: 'adjust', target: 'objective', targetId: o.id },
-            },
-        alternative: feasible
-          ? undefined
-          : {
-              name: 'Mantener la fecha',
-              summary: 'Es posible si el ahorro mensual sube de forma estable, no solo un mes.',
-            },
+              recommendation: {
+                what: `Elige entre aplazar la fecha de «${o.name}», reducir la meta o aumentar tu ahorro mensual.`,
+                why: 'Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.',
+                nextStep: { label: 'Editar objetivo', to: 'objetivos' },
+                action: { verb: 'adjust', target: 'objective', targetId: o.id },
+              },
+              alternative: {
+                name: 'Mantener la fecha',
+                summary: 'Es posible si el ahorro mensual sube de forma estable, no solo un mes.',
+              },
+            }),
         uncertainty: {
           title: 'Ritmo basado en un solo mes',
           detail: irregular
@@ -132,15 +163,18 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
       continue
     }
 
-    if (o.currentCents === 0 && o.ageDays >= THRESHOLDS.objectiveStaleDays) {
+    // Solo el objetivo al que le toca recibir dinero (nada pendiente por delante) y que no recibe nada:
+    // uno con 0 € porque otro va antes está esperando su turno, no estancado. Sin historial del reparto,
+    // solo se afirma la situación actual, no cuánto tiempo lleva así.
+    if (o.currentCents === 0 && (o.aheadRemainingCents ?? 0) === 0 && o.ageDays >= THRESHOLDS.objectiveStaleDays) {
       signals.push({
         id: `objectives.stale:${o.id}`,
         domain: 'objectives',
         priority: 'medium',
-        fact: `«${o.name}» lleva ${o.ageDays} días sin ninguna aportación (meta: ${eur(o.targetCents)}).`,
-        interpretation: 'Un objetivo sin progreso durante semanas suele ser una meta mal dimensionada o sin prioridad real.',
+        fact: `«${o.name}» es el siguiente en recibir dinero, pero ahora mismo no te queda dinero disponible para él (meta: ${eur(o.targetCents)}; creado hace ${o.ageDays} días).`,
+        interpretation: 'El reparto automático le asigna lo que queda tras los objetivos anteriores, y ahora no queda nada. Puede ser una meta mal dimensionada o sin prioridad real.',
         recommendation: {
-          what: `Decide si «${o.name}» sigue siendo prioritario; si lo es, fija una aportación mensual realista.`,
+          what: `Decide si «${o.name}» sigue siendo prioritario; si lo es, revisa su meta o su lugar en el orden de tus objetivos.`,
           why: 'Un objetivo que no avanza no orienta el ahorro.',
           nextStep: { label: 'Editar objetivo', to: 'objetivos' },
           action: { verb: 'decide', target: 'objective', targetId: o.id },
