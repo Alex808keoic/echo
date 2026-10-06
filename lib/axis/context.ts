@@ -160,7 +160,9 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
   // Orden: activos por prioridad (cascada) y, detrás, los conseguidos.
   const allocation = allocateObjectives(objectives, liquidCents)
   let ahead = 0
-  const objectiveCtxs = allocation.items.map((item) => {
+  // Un objetivo sin meta positiva (solo puede llegar de una copia importada: el formulario la exige)
+  // nunca recibe dinero ni se cubre: AXIS no habla de él como pendiente, estancado ni «siguiente».
+  const objectiveCtxs = allocation.items.filter((item) => item.objective.targetCents > 0).map((item) => {
     const ctx = objectiveContext(item, item.status === 'achieved' ? 0 : ahead, asOf)
     if (item.status !== 'achieved') ahead += item.remainingCents
     return ctx

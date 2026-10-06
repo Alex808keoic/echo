@@ -44,6 +44,17 @@ export function activeInOrder(objectives: Objective[]): Objective[] {
 
 export type ObjectiveStatus = 'in-progress' | 'covered' | 'achieved'
 
+/**
+ * Porcentaje que se muestra de `allocated` sobre `target`. El redondeo no puede
+ * contradecir el estado: 100 % solo si llega a la meta y 0 % solo si no tiene
+ * nada (29.990 de 30.000 es 99 %, no 100 %; 1 céntimo de 1.000.000 es 1 %, no 0 %).
+ */
+export function displayPct(allocated: number, target: number): number {
+  if (target <= 0 || allocated <= 0) return 0
+  if (allocated >= target) return 100
+  return Math.min(99, Math.max(1, Math.round((allocated / target) * 100)))
+}
+
 export interface ObjectiveAllocation {
   objective: Objective
   /** Posición en el reparto (1 = el primero); `null` si está conseguido. */
@@ -91,7 +102,7 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number)
       rank: i + 1,
       allocatedCents,
       remainingCents: target - allocatedCents,
-      pct: objectiveProgressPct({ currentCents: allocatedCents, targetCents: target }),
+      pct: displayPct(allocatedCents, target),
       status: covered ? 'covered' : 'in-progress',
     }
   })
@@ -107,7 +118,7 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number)
     allocatedCents,
     availableCents: liquidCents - allocatedCents,
     activeTargetCents,
-    activePct: activeTargetCents > 0 ? Math.min(100, Math.round((allocatedCents / activeTargetCents) * 100)) : 0,
+    activePct: displayPct(allocatedCents, activeTargetCents),
     activeCount: active.length,
     coveredCount: active.filter((a) => a.status === 'covered').length,
     achievedCount: achieved.length,
@@ -152,8 +163,9 @@ export function forecastObjectiveAllocation(
 
 /**
  * Objetivos con `currentCents` = el valor calculado: lo repartido a cada activo
- * y la meta a cada conseguido. Es lo que reciben AXIS (que aún lee
- * `currentCents`, Fase B) y las copias de seguridad (compatibilidad).
+ * y la meta a cada conseguido. Solo lo usan las copias de seguridad al exportar
+ * (compatibilidad con versiones que leían `currentCents`); AXIS calcula el
+ * reparto él mismo en `buildFinancialContext`.
  */
 export function withDerivedCurrentCents(objectives: Objective[], liquidCents: number): Objective[] {
   const byId = new Map(allocateObjectives(objectives, liquidCents).items.map((a) => [a.objective.id, a]))
