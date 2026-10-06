@@ -62,7 +62,7 @@
         "confidence": "baja"
       },
       "conclusion": {
-        "summary": "Situación estable con los datos disponibles. No hace falta actuar; mantén el ritmo.",
+        "summary": "Situación estable con los datos disponibles. No hay nada urgente; el único paso pendiente es el que te recomiendo.",
         "nextStep": {
           "label": "Crear objetivo",
           "to": "objetivos"

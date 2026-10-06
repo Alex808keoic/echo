@@ -11,6 +11,7 @@
  *              exactamente los de la decisión; `recommendation_why` null ⇔ sin recomendación
  *   advice     ningún consejo que AXIS no haya decidido (lib/text/advice.ts): con
  *              recomendación, solo su `action` y sus alternativas; sin ella, ninguno
+ *   stance     con recomendación, ningún campo afirma que no hace falta actuar
  *
  * No intenta juzgar el significado de la prosa. Prioridad, siguiente paso,
  * `recommendation.what`, confianza y hechos no se validan porque no existen
@@ -25,7 +26,7 @@ import type { AxisDecision } from '../types'
 import type { Expression } from './expression'
 import { buildAllowedFigures, checkFigures, checkForecastPresentation } from './figures'
 
-export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage' | 'advice'
+export type Invariant = 'figures' | 'execution' | 'certainty' | 'coverage' | 'advice' | 'stance'
 
 export interface Violation {
   invariant: Invariant
@@ -41,6 +42,14 @@ export const EXECUTION_PATTERNS: RegExp[] = [
   /\bacabo de\s+(crear|mover|transferir|actualizar|guardar|invertir|retirar|aportar|borrar|eliminar|modificar|registrar)\b/i,
   /\b(voy|vamos) a\s+(crear|mover|transferir|actualizar|guardar|invertir|retirar|aportar|borrar|eliminar|modificar|registrar)\b/i,
   /\bya (he|está)\s+(hecho|creado|movido|transferido|actualizado|guardado|invertido)\b/i,
+]
+
+/** Afirmaciones de que no hay nada que hacer: incompatibles con una recomendación de AXIS. */
+export const INACTION_PATTERNS: RegExp[] = [
+  /\bno (?:hace|haría) falta (?:actuar|hacer nada|cambiar nada|tocar nada)\b/i,
+  /\bno (?:necesitas|tienes que|hay que|debes|conviene) (?:actuar|hacer nada|cambiar nada|tocar nada)\b/i,
+  /\bno es (?:necesario|preciso) (?:actuar|hacer nada|cambiar nada)\b/i,
+  /\bnada que (?:hacer|cambiar)\b/i,
 ]
 
 function* writtenFields(e: Expression): Generator<[string, string]> {
@@ -99,6 +108,10 @@ export function validateExpression(decision: AxisDecision, expression: Expressio
     // Certeza (incluida la incertidumbre negada, en cualquier campo): una sola violación por campo.
     const certainty = findCertainty(text)
     if (certainty) violations.push({ invariant: 'certainty', field, detail: `${certainty.kind === 'denied-uncertainty' ? 'incertidumbre negada: ' : ''}«${certainty.match}»` })
+    if (decision.recommendation) {
+      const inaction = INACTION_PATTERNS.find((re) => re.test(text))
+      if (inaction) violations.push({ invariant: 'stance', field, detail: `AXIS recomienda actuar y el texto dice «${text.match(inaction)?.[0]}»` })
+    }
     for (const a of checkAdvice(text, entities, license)) {
       violations.push({ invariant: 'advice', field, detail: `consejo no decidido por AXIS: «${a.verb}» (${a.verbClass} → ${a.target.kind}${'name' in a.target ? ` ${a.target.name}` : 'text' in a.target ? ` ${a.target.text}` : ''})` })
     }
