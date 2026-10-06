@@ -78,7 +78,7 @@ export const investmentRules: Rule = (ctx, _market, profile) => {
       id: 'investments.low-liquidity',
       domain: 'investments',
       priority: 'medium',
-      fact: `Las inversiones son el ${pct(shareOfWealthPct)} de tu patrimonio; el líquido disponible es ${eur(ctx.wealth.liquidCents)}.`,
+      fact: `Las inversiones son el ${pct(shareOfWealthPct)} de tu patrimonio; tu dinero líquido es ${eur(ctx.wealth.liquidCents)}.`,
       interpretation: 'Con poca liquidez, un imprevisto obligaría a deshacer inversiones en un momento que no eliges.',
       recommendation: {
         what: 'Comprueba que el líquido cubre tus gastos de varios meses antes de seguir invirtiendo.',

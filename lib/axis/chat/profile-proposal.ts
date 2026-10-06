@@ -37,7 +37,7 @@ const INCOME_WORDS: Record<RecurringIncomeCategory, string> = { Paga: 'de paga',
 export function contentForFact(fact: EditableFact): string {
   return fact.kind === 'recurringIncome'
     ? `Recibe ${formatCents(fact.cents)} ${INCOME_WORDS[fact.category]} cada mes.`
-    : `Quiere tener siempre al menos ${formatCents(fact.cents)} disponibles.`
+    : `Quiere tener siempre al menos ${formatCents(fact.cents)} líquidos.`
 }
 
 function contentForIncomplete(i: IncompleteRecurringIncome): string {

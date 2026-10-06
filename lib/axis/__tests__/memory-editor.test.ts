@@ -83,9 +83,9 @@ describe('memoria · creación manual', () => {
   it('liquidez mínima: dato válido, texto generado', () => {
     const p = ok(manualProposal({ kind: 'minLiquidity', amount: '1.000' }))
     assert.deepEqual(p.fact, LIQ(100_000))
-    assert.equal(p.content, 'Quiere tener siempre al menos 1.000,00 € disponibles.')
+    assert.equal(p.content, 'Quiere tener siempre al menos 1.000,00 € líquidos.')
     // Incluso con el importe de la semilla interna, el texto se genera: nunca queda vacío.
-    assert.equal(ok(manualProposal({ kind: 'minLiquidity', amount: '0,01' })).content, 'Quiere tener siempre al menos 0,01 € disponibles.')
+    assert.equal(ok(manualProposal({ kind: 'minLiquidity', amount: '0,01' })).content, 'Quiere tener siempre al menos 0,01 € líquidos.')
   })
 })
 

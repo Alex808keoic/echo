@@ -151,7 +151,7 @@ export function memoryUsage(fact: MemoryFact | undefined): string {
     case 'recurringIncome':
       return 'AXIS lo usa como previsión: estima cuánto tardarías en alcanzar tus objetivos y te avisa si en el mes no hay ingresos registrados. No se suma a tu saldo ni a tus ingresos registrados; cuando recibas el dinero, regístralo en Movimientos.'
     case 'minLiquidity':
-      return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero disponible baja de esta cifra, te propone completar ese colchón antes que otros fines.'
+      return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero líquido baja de esta cifra, te propone completar ese colchón antes que otros fines.'
     case 'irregularIncome':
       return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. Es una memoria antigua: se puede borrar, pero no editar.'
     case 'priorities':

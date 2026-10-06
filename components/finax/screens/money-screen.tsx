@@ -72,9 +72,8 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
                 )}
               >
                 {monthUp ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
-                {overview.monthChangePct !== null
-                  ? formatPct(overview.monthChangePct, true)
-                  : formatCents(overview.monthChangeCents, true)}
+                {/* En euros: la variación del patrimonio no es una rentabilidad. */}
+                {formatCents(overview.monthChangeCents, true)}
                 <span className="font-medium text-muted-foreground">este mes</span>
               </p>
             ) : (

@@ -274,7 +274,7 @@
       "domain": "objectives",
       "priority": "low",
       "fact": "«Moto» está conseguido (lo marcaste tú): meta de 300,00 €.",
-      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero líquido va a tus demás objetivos.",
       "recommendation": {
         "what": "Decide el siguiente destino de tu ahorro ahora que «Moto» está conseguido.",
         "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
@@ -303,8 +303,8 @@
       "id": "objectives.forecast:obj-viaje",
       "domain": "forecast",
       "priority": "low",
-      "fact": "Previsión (no es dinero disponible): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos).",
-      "interpretation": "Previsión (no es dinero disponible): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos). Con un gasto habitual estimado de 21,00 € al mes (mediana de 5 meses), quedarían 24,00 € al mes de esa previsión: serían 17 meses. Supone que recibes la previsión cada mes, que tu gasto se mantiene y que se paga con esa previsión. No es una promesa.",
+      "fact": "Previsión (no es dinero que ya tengas): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos).",
+      "interpretation": "Previsión (no es dinero que ya tengas): lo que falta para «Viaje» (400,00 €) equivale a 9 meses de tus ingresos previstos (45,00 € al mes: 35,00 € de paga y 10,00 € en regalos). Con un gasto habitual estimado de 21,00 € al mes (mediana de 5 meses), quedarían 24,00 € al mes de esa previsión: serían 17 meses. Supone que recibes la previsión cada mes, que tu gasto se mantiene y que se paga con esa previsión. No es una promesa.",
       "profileInfluence": [
         {
           "field": "recurringIncomes",

@@ -345,6 +345,6 @@ describe('recurringIncome · neutralidad en las rutas del servidor (modelos simu
     const b = analyzeLocally({ context: ctx(), memory: withIncome }, now)
     if (a.status !== 'analysis' || b.status !== 'analysis') throw new Error('unreachable')
     for (const k of ['headline', 'recommendation', 'alternatives', 'uncertainty', 'data'] as const) assert.deepEqual(b.analysis[k], a.analysis[k], k)
-    assert.match(JSON.stringify(b.analysis), /Previsión \(no es dinero disponible\)/)
+    assert.match(JSON.stringify(b.analysis), /Previsión \(no es dinero que ya tengas\)/)
   })
 })

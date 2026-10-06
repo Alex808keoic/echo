@@ -112,7 +112,7 @@ export function MemoryForm({ memory, memories, onDone }: MemoryFormProps) {
               <ChipGroup options={RECURRING_INCOME_CATEGORIES} value={input.category} onChange={(category) => update({ ...input, category })} />
             </Field>
           )}
-          <Field label={input.kind === 'recurringIncome' ? 'Importe al mes' : 'Mínimo que quieres tener disponible'}>
+          <Field label={input.kind === 'recurringIncome' ? 'Importe al mes' : 'Mínimo de dinero líquido que quieres tener'}>
             <AmountInput value={input.amount} onChange={(e) => update({ ...input, amount: e.target.value })} />
           </Field>
           {proposal && (

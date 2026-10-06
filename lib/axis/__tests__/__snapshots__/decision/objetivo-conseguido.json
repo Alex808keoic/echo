@@ -170,7 +170,7 @@
       "domain": "objectives",
       "priority": "low",
       "fact": "«Colchón» está conseguido (lo marcaste tú): meta de 1.000,00 €.",
-      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero líquido va a tus demás objetivos.",
       "recommendation": {
         "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está conseguido.",
         "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",
@@ -224,7 +224,7 @@
       "domain": "objectives",
       "priority": "low",
       "fact": "«Colchón» está conseguido (lo marcaste tú): meta de 1.000,00 €.",
-      "interpretation": "Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.",
+      "interpretation": "Ya no forma parte del reparto: tu dinero líquido va a tus demás objetivos.",
       "recommendation": {
         "what": "Decide el siguiente destino de tu ahorro ahora que «Colchón» está conseguido.",
         "why": "Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.",

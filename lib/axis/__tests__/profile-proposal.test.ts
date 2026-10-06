@@ -47,7 +47,7 @@ describe('puerta · el extractor manda', () => {
       const { proposal, outcome } = gateProposalFact(modelProposal({ fact: wrong }), extractProfileFacts(LIQ_MSG))
       assert.equal(outcome, 'replaced-model')
       assert.deepEqual(proposal?.fact, LIQ)
-      assert.equal(proposal?.content, 'Quiere tener siempre al menos 5.000,00 € disponibles.')
+      assert.equal(proposal?.content, 'Quiere tener siempre al menos 5.000,00 € líquidos.')
     }
   })
 

@@ -23,7 +23,7 @@ interface Errors {
 
 /**
  * Alta y edición de objetivos de ahorro: nombre, meta y fecha. No hay cantidad
- * actual: el progreso se calcula solo con tu dinero disponible y el orden.
+ * actual: el progreso se calcula solo con tu dinero líquido y el orden.
  */
 export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
   const [name, setName] = useState(objective?.name ?? '')

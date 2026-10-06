@@ -64,7 +64,7 @@ export function MemoryScreen({ onBack }: ScreenProps) {
       {memories.length === 0 ? (
         <EmptyState
           title="AXIS todavía no tiene memorias guardadas"
-          description="Puedes contarle algo en la conversación o añadirlo tú: una nota, un ingreso mensual o el dinero que quieres tener siempre disponible."
+          description="Puedes contarle algo en la conversación o añadirlo tú: una nota, un ingreso mensual o el mínimo de dinero líquido que quieres tener siempre."
           action={<Button onClick={openNew}>Añadir memoria</Button>}
         />
       ) : (

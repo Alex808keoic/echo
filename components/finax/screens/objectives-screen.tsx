@@ -78,7 +78,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
           {noticeVisible && (
             <div role="status" className="flex items-start gap-3 rounded-2xl bg-finax-soft px-4 py-3">
               <p className="flex-1 text-[12.5px] font-medium text-finax-dark text-pretty">
-                Ahora tus objetivos se actualizan automáticamente según tu dinero disponible y su orden de prioridad.
+                Ahora tus objetivos se actualizan automáticamente según tu dinero líquido y su orden de prioridad.
               </p>
               <button type="button" aria-label="Cerrar aviso" onClick={dismissNotice} className="text-finax-dark/70">
                 <CloseIcon className="h-4 w-4" />
@@ -99,7 +99,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
               <div className="h-full rounded-full bg-finax" style={{ width: `${allocation.activePct}%` }} />
             </div>
             <p className="mt-3 text-[12px] font-medium text-muted-foreground text-pretty">
-              Tu dinero disponible se reparte solo, por orden: el primero recibe antes que el segundo.
+              Tu dinero líquido se reparte solo, por orden: el primero recibe antes que el segundo.
             </p>
           </FinancialCard>
 

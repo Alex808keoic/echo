@@ -196,8 +196,8 @@ describe('previsión · señal objectives.forecast', () => {
     assert.equal(s?.priority, 'low')
     assert.equal(s?.recommendation, undefined)
     assert.equal(d.signals.at(-1)?.id, s?.id)
-    assert.match(s?.fact ?? '', /^Previsión \(no es dinero disponible\): /)
-    assert.match(s?.interpretation ?? '', /^Previsión \(no es dinero disponible\): .*Con un gasto habitual estimado de 21,00 € al mes \(mediana de 5 meses\), quedarían 14,00 € al mes de esa previsión: serían 29 meses\. Supone .* No es una promesa\.$/)
+    assert.match(s?.fact ?? '', /^Previsión \(no es dinero que ya tengas\): /)
+    assert.match(s?.interpretation ?? '', /^Previsión \(no es dinero que ya tengas\): .*Con un gasto habitual estimado de 21,00 € al mes \(mediana de 5 meses\), quedarían 14,00 € al mes de esa previsión: serían 29 meses\. Supone .* No es una promesa\.$/)
   })
 
   it('sin historial: A sí, B dice que faltan meses', () => {

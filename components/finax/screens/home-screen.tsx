@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
-import { formatPct } from '@/lib/format'
 import { PERIODS, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
@@ -70,7 +69,8 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
               )}
             >
               {delta.cents >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
-              {delta.pct !== null ? formatPct(delta.pct, true) : formatCents(delta.cents, true)}
+              {/* En euros: un % sobre un saldo inicial pequeño se leería como rentabilidad. */}
+              {formatCents(delta.cents, true)}
               <span className="font-medium text-muted-foreground">en el periodo</span>
             </p>
           ) : (

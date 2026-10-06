@@ -102,7 +102,7 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
             </span>
           )}
           {status === 'in-progress' && `Te faltan ${formatCents(remainingCents)}`}
-          {status === 'covered' && 'Tu dinero disponible ya llega a la meta'}
+          {status === 'covered' && 'Tu dinero líquido ya llega a la meta'}
         </p>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div className="h-full rounded-full bg-finax" style={{ width: `${pct}%` }} />

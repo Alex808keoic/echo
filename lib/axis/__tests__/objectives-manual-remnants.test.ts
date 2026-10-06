@@ -94,3 +94,40 @@ describe('B3 · ninguna acción de objetivo usa el flujo manual', () => {
     assert.equal('contributeToObjective' in objectivesDb, false)
   })
 })
+
+describe('Claridad · «disponible» solo es lo que queda después de los objetivos', () => {
+  // «Disponible» = líquido − destinado a objetivos (Mi Dinero). El dinero que entra en el
+  // reparto es el líquido: llamarlo «disponible» haría pensar que hay dinero libre.
+  const AMBIGUOUS = /\bdinero disponible\b|\blíquido disponible\b|\bdisponibles?\b(?! en)(?<!datos disponibles)/i
+
+  it('ninguna señal de objetivos, ahorro, liquidez o inversiones llama «disponible» al líquido', () => {
+    const covered = buildFinancialContext(
+      snapshot({ config: config(0), movements: healthyMovements(), objectives: [objective({ id: 'obj-a', name: 'Viaje', targetCents: 200_000, createdAt: Date.parse('2025-12-01') }), objective({ id: 'obj-b', name: 'Moto', targetCents: 900_000, createdAt: Date.parse('2026-01-01') })] }),
+      TODAY,
+    ) // líquido 255.000: «Viaje» cubierto y «Moto» en curso
+    const stale = buildFinancialContext(
+      snapshot({ config: config(-255_000), movements: healthyMovements(), objectives: [objective({ name: 'Moto', targetCents: 900_000, createdAt: Date.parse('2026-01-01') })] }),
+      TODAY,
+    ) // líquido 0: el siguiente no recibe nada
+    const inputs: AxisInput[] = [...GOLDEN_SCENARIOS.map((s) => s.input), { context: covered }, { context: stale }, { context: healthy() }]
+    const ids = new Set<string>()
+    for (const input of inputs) {
+      for (const s of decide(input).signals) {
+        if (!/^(objectives|savings|liquidity|investments|income)\./.test(s.id)) continue
+        ids.add(s.id.split(':')[0])
+        const text = [s.fact, s.interpretation, s.recommendation?.what, s.recommendation?.why, s.alternative?.summary].filter(Boolean).join(' ')
+        assert.doesNotMatch(text, AMBIGUOUS, s.id)
+      }
+    }
+    for (const id of ['objectives.covered', 'objectives.stale', 'objectives.completed']) assert.ok(ids.has(id), `cubre ${id}`)
+  })
+
+  it('las pantallas de objetivos hablan de dinero líquido, no de «dinero disponible»', async () => {
+    const { readFile } = await import('node:fs/promises')
+    for (const file of ['components/finax/goal-card.tsx', 'components/finax/screens/objectives-screen.tsx']) {
+      const source = await readFile(file, 'utf8')
+      assert.doesNotMatch(source, /dinero disponible/i, file)
+      assert.match(source, /dinero líquido/, file)
+    }
+  })
+})

@@ -156,7 +156,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
           )}
           <label className="block">
             <span className="mb-1 block text-[12px] font-semibold text-grafito/80">
-              {editable.kind === 'recurringIncome' ? 'Importe al mes' : 'Mínimo disponible'}
+              {editable.kind === 'recurringIncome' ? 'Importe al mes' : 'Mínimo líquido'}
             </span>
             <AmountInput value={draft.amount} onChange={(e) => edit({ ...draft, amount: e.target.value })} className="py-2 text-[16px]" />
           </label>

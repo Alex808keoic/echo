@@ -1,6 +1,6 @@
 /**
  * Reglas de objetivos: conseguido, cubierto, cerca, retrasado respecto a su
- * fecha, esfuerzo mensual necesario, sin dinero disponible.
+ * fecha, esfuerzo mensual necesario, sin líquido que le llegue.
  *
  * El progreso viene del reparto automático (`allocateObjectives`, vía el
  * contexto); estas reglas no recalculan la cascada:
@@ -57,7 +57,7 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         domain: 'objectives',
         priority: 'low',
         fact: `«${o.name}» está conseguido (lo marcaste tú): meta de ${eur(o.targetCents)}.`,
-        interpretation: 'Ya no forma parte del reparto: tu dinero disponible va a tus demás objetivos.',
+        interpretation: 'Ya no forma parte del reparto: tu dinero líquido va a tus demás objetivos.',
         recommendation: {
           what: `Decide el siguiente destino de tu ahorro ahora que «${o.name}» está conseguido.`,
           why: 'Un objetivo cumplido ya no orienta el ahorro; un objetivo nuevo sí da dirección.',
@@ -72,7 +72,7 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         id: `objectives.covered:${o.id}`,
         domain: 'objectives',
         priority: 'low',
-        fact: `Tu dinero disponible cubre ahora «${o.name}»: ${eur(o.currentCents)} de ${eur(o.targetCents)}.`,
+        fact: `Tu dinero líquido cubre ahora «${o.name}»: ${eur(o.currentCents)} de ${eur(o.targetCents)}.`,
         interpretation: 'Está cubierto mientras tu líquido se mantenga: si baja, volverá a estar en curso. No es lo mismo que conseguido.',
         recommendation: {
           what: `Cuando hayas conseguido «${o.name}», márcalo como conseguido para que tu dinero vaya a tus demás objetivos.`,
@@ -151,7 +151,7 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         // Sin acción manual: el reparto le asigna dinero solo, en el orden de tus objetivos.
         interpretation:
           (o.aheadRemainingCents ?? 0) > 0
-            ? `Está cerca, pero va detrás de otros objetivos en el orden: tu dinero disponible se asigna solo y le llegará cuando estén cubiertos los anteriores.`
+            ? `Está cerca, pero va detrás de otros objetivos en el orden: tu dinero líquido se asigna solo y le llegará cuando estén cubiertos los anteriores.`
             : `Está a un paso y es el siguiente en recibir dinero: lo próximo que entre en tu líquido se le asigna automáticamente${o.rank ? ` (va ${o.rank}.º en el orden de tus objetivos)` : ''}.`,
       })
       continue
@@ -165,7 +165,7 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         id: `objectives.stale:${o.id}`,
         domain: 'objectives',
         priority: 'medium',
-        fact: `«${o.name}» es el siguiente en recibir dinero, pero ahora mismo no te queda dinero disponible para él (meta: ${eur(o.targetCents)}; creado hace ${o.ageDays} días).`,
+        fact: `«${o.name}» es el siguiente en recibir dinero, pero ahora mismo tu dinero líquido no llega hasta él (meta: ${eur(o.targetCents)}; creado hace ${o.ageDays} días).`,
         interpretation: 'El reparto automático le asigna lo que queda tras los objetivos anteriores, y ahora no queda nada. Puede ser una meta mal dimensionada o sin prioridad real.',
         recommendation: {
           what: `Decide si «${o.name}» sigue siendo prioritario; si lo es, revisa su meta o su lugar en el orden de tus objetivos.`,
@@ -213,9 +213,9 @@ const forecastRules: Rule = (ctx, _market, profile) => {
         id,
         domain: 'forecast',
         priority: 'low',
-        fact: `Previsión (no es dinero disponible): ${forecastAllText(f)}`,
+        fact: `Previsión (no es dinero que ya tengas): ${forecastAllText(f)}`,
         // La interpretación es lo que se muestra de cada señal: lleva la etiqueta y los dos escenarios completos.
-        interpretation: `Previsión (no es dinero disponible): ${forecastAllText(f)} ${forecastAfterExpensesText(f)}`,
+        interpretation: `Previsión (no es dinero que ya tengas): ${forecastAllText(f)} ${forecastAfterExpensesText(f)}`,
         profileInfluence: declared.incomes.map((r) => ({ field: 'recurringIncomes' as const, sourceMemoryId: r.sourceMemoryId, signalId: id, effect: 'added-signal' as const })),
       },
     ]

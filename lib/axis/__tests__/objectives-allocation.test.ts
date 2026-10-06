@@ -80,7 +80,7 @@ describe('B1 · sin dinero (stale)', () => {
     const ctx = at(0, [objective({ id: 'a', name: 'Viaje', targetCents: 300_000, createdAt: OLD })])
     const stale = detectSignals(ctx).find((s) => s.id === 'objectives.stale:a')
     assert.ok(stale)
-    assert.match(stale.fact, /es el siguiente en recibir dinero, pero ahora mismo no te queda dinero disponible para él/)
+    assert.match(stale.fact, /es el siguiente en recibir dinero, pero ahora mismo tu dinero líquido no llega hasta él/)
     assert.doesNotMatch(stale.fact, /lleva \d+ días sin/, 'sin historial del reparto no se afirma cuánto tiempo lleva así')
     assert.doesNotMatch(stale.recommendation?.what ?? '', /aportación/, 'no hay aportaciones manuales')
   })
