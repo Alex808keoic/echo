@@ -17,6 +17,7 @@ import { languageModelFromConfig } from '@/lib/axis/language/server'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
 import { isChatPayload } from '@/lib/axis/chat/validate'
+import { isChatFinancialHistory } from '@/lib/axis/chat/financial-history'
 import type { AxisMemory, MarketContext } from '@/lib/axis/types'
 
 export const runtime = 'nodejs'
@@ -70,7 +71,9 @@ export async function POST(request: Request) {
 
   try {
     if (chat) {
-      const reply = await chatWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message }, request.signal)
+      // Histórico compacto: solo si tiene la forma y los límites esperados; si no, el chat sigue sin él.
+      const history = isChatFinancialHistory(rec.history) ? rec.history : undefined
+      const reply = await chatWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message, history }, request.signal)
       return NextResponse.json({ reply }, { headers: NO_STORE })
     }
     const analysis = await analyzeWithProvider(model, context, memory, request.signal, market, mode)

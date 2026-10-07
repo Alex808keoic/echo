@@ -31,7 +31,8 @@ export interface FinancialSnapshot {
 const DAY_MS = 86_400_000
 const MONTH_DAYS = 30.44
 
-function monthKeyOf(iso: string, offsetMonths = 0): string {
+/** `YYYY-MM` del mes de `iso`, desplazado `offsetMonths` meses (calendario local). */
+export function monthKeyOf(iso: string, offsetMonths = 0): string {
   const [y, m] = iso.split('-').map(Number)
   const d = new Date(y, m - 1 + offsetMonths, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`

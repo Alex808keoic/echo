@@ -19,6 +19,7 @@ import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
 import type { FinancialContext, Signal } from '../types'
 import { AXIS_CHAT_SCHEMA } from './schema'
+import { historyForPrompt } from './financial-history'
 import type { ChatInput } from './types'
 
 export { AXIS_CHAT_SYSTEM_PROMPT }
@@ -41,13 +42,15 @@ function signalSummary(signals: Signal[]) {
 }
 
 export function buildChatRequest(input: ChatInput): AIRequest {
-  const { context, market, memory, conversation, message } = input
+  const { context, market, memory, conversation, message, history } = input
   const signals = detectSignals(context, market ?? null, reconcileProfile(profileFromMemory(memory), context))
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),
       senales_detectadas_por_finax: signalSummary(signals),
       ...(market ? { contexto_de_mercado: market } : {}),
+      // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.
+      ...(history ? { historico_de_movimientos: historyForPrompt(history) } : {}),
     },
     memoria: {
       memorias_del_usuario: memory?.userMemories ?? [],

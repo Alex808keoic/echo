@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { buildFinancialContext } from '@/lib/axis/context'
+import { buildChatFinancialHistory } from '@/lib/axis/chat/financial-history'
 import { browserChatTransport } from '@/lib/axis/chat/browser-transport'
 import { createChatEngine, type ChatPhase } from '@/lib/axis/chat/engine'
 import { appendMessage, updateMessage, windowForModel } from '@/lib/axis/chat/history'
@@ -93,7 +94,9 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
         // Objetivos con el progreso calculado (`axisSnapshot`), no el `currentCents` guardado.
         const context = buildFinancialContext(overview.axisSnapshot)
         const memory = (await getAxisMemory()) ?? undefined
-        const reply = await engine.ask({ context, market, memory, conversation: windowForModel(withUser), message: text })
+        // Histórico compacto de movimientos reales, calculado aquí (nunca por el modelo).
+        const history = buildChatFinancialHistory(overview.movements, context.asOf)
+        const reply = await engine.ask({ context, market, memory, conversation: windowForModel(withUser), message: text, history })
         const axisMessage: ChatMessage = {
           id: newId(),
           role: 'axis',

@@ -28,6 +28,7 @@ export const browserChatTransport: ChatTransport = {
         memory: input.memory,
         conversation: input.conversation,
         message: input.message,
+        history: input.history,
       }),
       signal,
     })

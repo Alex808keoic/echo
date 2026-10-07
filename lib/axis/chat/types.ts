@@ -10,6 +10,7 @@
  *   DATOS ACTUALES → MEMORIA → CONVERSACIÓN ACTUAL → CONSULTA ACTUAL
  */
 import type { MemoryFact } from '../profile/types'
+import type { ChatFinancialHistory } from './financial-history'
 import type { IncompleteRecurringIncome } from '../profile/extract'
 import type { AxisEngineInfo, AxisMemory, AxisNextStep, Confidence, FinancialContext, MarketContext } from '../types'
 
@@ -111,6 +112,8 @@ export interface ChatInput {
   conversation: ConversationWindow
   /** CONSULTA ACTUAL. */
   message: string
+  /** Histórico compacto de movimientos reales (chat/financial-history.ts). Opcional: sin él, el chat no conoce meses anteriores. */
+  history?: ChatFinancialHistory
 }
 
 /* ================================ SALIDA ================================ */

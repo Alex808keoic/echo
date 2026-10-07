@@ -29,12 +29,15 @@ import { EXECUTION_PATTERNS, knownEntities, type SemanticVerdict, type Violation
 import type { KnownEntities } from '../../text/advice'
 import type { AxisAction, AxisDecision } from '../types'
 import type { ChatInput, ChatReply } from './types'
+import { historyFigures, monthsWithHistory } from './financial-history'
 
 /** Lo que la validación necesita del turno: la decisión de AXIS y las cifras que existen. */
 export interface ChatGuard {
   decision: AxisDecision
   allowed: AllowedFigureSet
   entities: KnownEntities
+  /** Meses (`YYYY-MM`) de los que hay datos de movimientos: el actual, el anterior y los cerrados del histórico. */
+  monthsWithData: ReadonlySet<string>
 }
 
 /**
@@ -42,8 +45,9 @@ export interface ChatGuard {
  * (`decide`), con el mismo contexto, mercado y memoria que recibe el modelo.
  * Cifras permitidas: las del análisis + lo que el usuario escribió en este
  * mensaje y en los anteriores de la conversación + el mínimo de liquidez que
- * declaró (dato de su perfil). Las respuestas anteriores del modelo NO
- * aportan cifras: manda el contexto actual.
+ * declaró (dato de su perfil) + el histórico compacto de movimientos reales
+ * (fuente `history`). Las respuestas anteriores del modelo NO aportan cifras:
+ * manda el contexto actual.
  */
 export function buildChatGuard(input: ChatInput): ChatGuard {
   const decision = decide({ context: input.context, market: input.market ?? null, memory: input.memory })
@@ -52,9 +56,51 @@ export function buildChatGuard(input: ChatInput): ChatGuard {
   const extra = [
     ...earlierUserTexts.flatMap((t) => messageFigures(t)),
     ...(decision.profile.fields.minLiquidityCents !== undefined ? [moneyFigure('Mínimo de liquidez que quieres mantener', decision.profile.fields.minLiquidityCents, 'context')] : []),
+    ...historyFigures(input.history),
   ]
   const figures = [...base.figures, ...extra]
-  return { decision, allowed: { figures, keys: new Set(figures.map((f) => f.key)) }, entities: knownEntities(decision) }
+  return {
+    decision,
+    allowed: { figures, keys: new Set(figures.map((f) => f.key)) },
+    entities: knownEntities(decision),
+    monthsWithData: monthsWithHistory(input.history, input.context.flows.current.key, input.context.flows.previous.key),
+  }
+}
+
+/* ------------------------------ meses del histórico ------------------------------ */
+
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const MONTH_NAME = new RegExp(`\\b(${MONTHS.join('|')}|setiembre)(?:\\s+(?:de\\s+)?(\\d{4}))?\\b`, 'g')
+/** Afirmaciones en pasado sobre lo que ocurrió (gastos, ingresos, ahorro de un mes). */
+const PAST_FACT = /\b(?:gastaste|ingresaste|cobraste|recibiste|pagaste|ahorraste|tuviste|hiciste|ganaste|se fueron|entraron|salieron)\b/
+
+/** `YYYY-MM` de un mes citado sin año: el más reciente que no sea posterior al mes de `asOf`. */
+function monthKeyFor(name: string, year: string | undefined, asOf: string): string {
+  const index = name === 'setiembre' ? 8 : MONTHS.indexOf(name)
+  const nowYear = Number(asOf.slice(0, 4))
+  const nowMonth = Number(asOf.slice(5, 7)) - 1
+  const y = year ? Number(year) : index <= nowMonth ? nowYear : nowYear - 1
+  return `${y}-${String(index + 1).padStart(2, '0')}`
+}
+
+/**
+ * «En marzo gastaste 1.200 €» solo vale si Finax tiene movimientos de marzo:
+ * un mes que no está en el histórico (inventado, demasiado antiguo o futuro,
+ * p. ej. una previsión contada como hecho) no puede llevar cifras como pasado.
+ * Las frases que se presentan como previsión no se juzgan aquí.
+ */
+function monthsWithoutData(text: string, guard: ChatGuard, asOf: string): string[] {
+  const out: string[] = []
+  for (const sentence of splitSentences(text)) {
+    if (FORECAST_MARKER.test(sentence)) continue
+    const normalized = normalizeForMatching(sentence)
+    if (!PAST_FACT.test(normalized) || !extractFigures(sentence).some((f) => f.kind === 'money')) continue
+    for (const m of normalized.matchAll(MONTH_NAME)) {
+      const key = monthKeyFor(m[1], m[2], asOf)
+      if (!guard.monthsWithData.has(key)) out.push(`${m[0]} (${key})`)
+    }
+  }
+  return out
 }
 
 /* -------------------------------- ejecución ------------------------------ */
@@ -157,6 +203,9 @@ export function validateChatReply(reply: ChatReply, guard?: ChatGuard): Semantic
   }
   for (const raw of [...checkForecastPresentation(text, guard.decision), ...forecastCountsAsFact(text, guard.decision)]) {
     violations.push({ invariant: 'figures', field: 'reply', detail: `previsión presentada como hecho «${raw}»` })
+  }
+  for (const month of monthsWithoutData(text, guard, guard.decision.context.asOf)) {
+    violations.push({ invariant: 'figures', field: 'reply', detail: `cifra atribuida a un mes sin datos: ${month}` })
   }
   const execution = CHAT_EXECUTION_PATTERNS.find((re) => re.test(text))
   if (execution) violations.push({ invariant: 'execution', field: 'reply', detail: `«${text.match(execution)?.[0]}»` })

@@ -12,6 +12,9 @@
  *   forecast       previsiones (fase 5) calculadas por AXIS con los ingresos
  *                  recurrentes declarados: etiquetadas «Previsión: …», nunca
  *                  dentro de `contextFigures` ni bajo una etiqueta de dato real
+ *   history        histórico compacto del chat (chat/financial-history.ts):
+ *                  meses cerrados y movimientos más grandes, calculados con los
+ *                  movimientos registrados; solo en el chat, nunca en el análisis
  *
  * Nada procede de la memoria en texto libre (`UserMemory.content`).
  *
@@ -26,7 +29,7 @@ import type { AxisDecision, FinancialContext } from '../types'
 import { recurringForecasts, recurringIncomesOf, usualExpenseMonthCount, usualMonthlyExpense } from '../rules/shared'
 
 export type FigureKind = 'money' | 'percent' | 'count'
-export type FigureSource = 'context' | 'decision-text' | 'message' | 'derived' | 'forecast'
+export type FigureSource = 'context' | 'decision-text' | 'message' | 'derived' | 'forecast' | 'history'
 /** Operaciones derivadas admitidas. La lista es cerrada: añadir una exige un commit revisado. */
 export type DerivedOp = 'liquid-minus' | 'free-liquid-minus' | 'savings-minus' | 'amount-over-income'
 
@@ -132,6 +135,8 @@ const percent = (label: string, v: number, source: FigureSource, derivedFrom?: A
 }
 /** Importe permitido con etiqueta y fuente (p. ej. un dato del perfil que el chat puede citar). */
 export const moneyFigure = (label: string, cents: number, source: FigureSource): AllowedFigure => money(label, cents, source)
+/** Recuento permitido con etiqueta y fuente («18 movimientos»). */
+export const countFigure = (label: string, n: number, source: FigureSource): AllowedFigure => count(label, n, source)
 const count = (label: string, n: number, source: FigureSource): AllowedFigure => ({ key: `c:${n}`, kind: 'count', value: n, text: String(n), label, source })
 
 export function contextFigures(ctx: FinancialContext): AllowedFigure[] {

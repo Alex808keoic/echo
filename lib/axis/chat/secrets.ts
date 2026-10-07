@@ -16,6 +16,7 @@
  *   - ai/server/analyze.ts: mensaje, conversación y memoria, antes de construir el prompt.
  */
 import type { AxisMemory } from '../types'
+import type { ChatFinancialHistory } from './financial-history'
 import type { ChatInput, ConversationWindow } from './types'
 
 export const REDACTED = '[dato sensible omitido]'
@@ -94,10 +95,21 @@ export function redactMemory(memory: AxisMemory): AxisMemory {
 }
 
 /** Todo lo que un ChatInput lleva escrito por personas: mensaje, conversación y memoria. El contexto financiero (cifras) no se toca. */
+/** El concepto de un movimiento (el «motivo» en «Otros») es texto del usuario: si parece un secreto, viaja la categoría. */
+export function redactHistory(history: ChatFinancialHistory): ChatFinancialHistory {
+  const safe = <T extends { label: string }>(x: T, fallback: string): T => (looksLikeSecret(x.label) ? { ...x, label: fallback } : x)
+  const group = (g: ChatFinancialHistory['largestMovements']['currentMonth']) => ({ ...g, movements: g.movements.map((m) => safe(m, m.category)) })
+  return {
+    closedMonths: history.closedMonths.map((m) => ({ ...m, topExpenses: m.topExpenses.map((c) => safe(c, 'Otros')), topIncomes: m.topIncomes.map((c) => safe(c, 'Otros')) })),
+    largestMovements: { currentMonth: group(history.largestMovements.currentMonth), previousMonth: group(history.largestMovements.previousMonth) },
+  }
+}
+
 export function redactChatInput(input: ChatInput): ChatInput {
   const message = redactText(input.message)
   const conversation = redactWindow(input.conversation)
   const memory = input.memory ? redactMemory(input.memory) : input.memory
-  if (message === input.message && conversation === input.conversation && memory === input.memory) return input
-  return { ...input, message, conversation, memory }
+  const history = input.history ? redactHistory(input.history) : input.history
+  if (message === input.message && conversation === input.conversation && memory === input.memory && !input.history) return input
+  return { ...input, message, conversation, memory, ...(history ? { history } : {}) }
 }
