@@ -2,6 +2,7 @@
 
 import { hasEnoughHistory, MIN_EVOLUTION_POINTS, type PatrimonioPoint } from '@/lib/finance/patrimonio'
 import { filterFrom, periodStartISO, type PeriodId } from '@/lib/finance/summary'
+import { dayNumber } from '@/lib/ui/chart-geometry'
 import { LineChart } from './line-chart'
 import { TrendUpIcon } from '../icons'
 
@@ -54,5 +55,5 @@ export function EvolutionChart({ series, range, className }: EvolutionChartProps
       </div>
     )
   }
-  return <LineChart data={points.map((p) => p.cents / 100)} className={className} />
+  return <LineChart data={points.map((p) => p.cents / 100)} xs={points.map((p) => dayNumber(p.date))} className={className} />
 }

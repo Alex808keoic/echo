@@ -5,7 +5,6 @@ import { formatCents } from '@/lib/money'
 import { currentMonthKey } from '@/lib/dates'
 import { inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
-import { formatPct } from '@/lib/format'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
@@ -92,8 +91,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                     delta.cents >= 0 ? 'text-finax-dark' : 'text-negative',
                   )}
                 >
+                  {/* Solo en euros: un % sobre el saldo inicial se leería como rentabilidad (−1.029 % con 1.200 € de partida). */}
                   {formatCents(delta.cents, true)}
-                  {delta.pct !== null && ` · ${formatPct(delta.pct, true)}`}
                 </p>
               )}
             </div>

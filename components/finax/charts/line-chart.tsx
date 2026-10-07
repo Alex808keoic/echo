@@ -1,52 +1,36 @@
 'use client'
 
 import { useId } from 'react'
+import { chartGeometry, smoothPath } from '@/lib/ui/chart-geometry'
 
 interface LineChartProps {
   data: number[]
+  /** Posición en el tiempo de cada valor (p. ej. días): el eje X es proporcional. Sin ella, espaciado uniforme. */
+  xs?: number[]
   height?: number
   className?: string
 }
 
 /**
  * Gráfico de evolución del patrimonio.
- * Línea suavizada (curva de Catmull-Rom → Bézier) con relleno degradado.
+ * Línea suavizada (interpolación monótona, sin salirse de los datos) con relleno degradado hasta
+ * el cero (lib/ui/chart-geometry: tiempo proporcional y el 0 siempre en escala).
  * SVG puro, responsive vía viewBox.
  */
-export function LineChart({ data, height = 150, className }: LineChartProps) {
+export function LineChart({ data, xs, height = 150, className }: LineChartProps) {
   const gradientId = useId()
   const lineId = useId()
   const width = 340
   const padY = 14
 
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
+  const { points, zeroY } = chartGeometry(data, xs ?? null, width, height, padY)
 
-  const points = data.map((value, i) => {
-    const x = (i / (data.length - 1)) * width
-    const y = padY + (1 - (value - min) / range) * (height - padY * 2)
-    return [x, y] as const
-  })
+  // Suavizado monótono: nunca se sale de los valores reales ni retrocede en el tiempo.
+  const linePath = smoothPath(points)
 
-  // Suavizado tipo Catmull-Rom convertido a curvas cúbicas de Bézier.
-  const linePath = points
-    .map((point, i) => {
-      if (i === 0) return `M ${point[0]},${point[1]}`
-      const p0 = points[i - 1]
-      const p1 = point
-      const prev = points[i - 2] ?? p0
-      const next = points[i + 1] ?? p1
-      const cp1x = p0[0] + (p1[0] - prev[0]) / 6
-      const cp1y = p0[1] + (p1[1] - prev[1]) / 6
-      const cp2x = p1[0] - (next[0] - p0[0]) / 6
-      const cp2y = p1[1] - (next[1] - p0[1]) / 6
-      return `C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p1[0]},${p1[1]}`
-    })
-    .join(' ')
-
-  const areaPath = `${linePath} L ${width},${height} L 0,${height} Z`
+  // El área llega hasta el cero (no hasta el borde inferior): con patrimonio negativo, queda por debajo de la base.
   const last = points[points.length - 1]
+  const areaPath = `${linePath} L ${last[0]},${zeroY} L ${points[0][0]},${zeroY} Z`
 
   return (
     <svg
