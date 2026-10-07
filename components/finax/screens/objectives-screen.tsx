@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { markObjectiveAchieved, moveObjective, reactivateObjective } from '@/lib/db/objectives'
+import { moveObjective, reactivateObjective } from '@/lib/db/objectives'
+import { requestObjectiveAchievement } from '@/lib/objectives/confirm-achievement'
 import { SubPageHeader, IconButton } from '../page-header'
 import { FinancialCard } from '../card'
 import { GoalCard } from '../goal-card'
@@ -12,6 +13,7 @@ import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { ObjectiveForm } from '../forms/objective-form'
+import { Confirm } from '../confirm'
 import { CloseIcon, PlusIcon, TargetIcon } from '../icons'
 import type { ScreenProps } from './types'
 
@@ -51,6 +53,12 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
     const objective = overview.objectives.find((o) => o.id === id)
     if (objective) open('Editar objetivo', <ObjectiveForm objective={objective} onDone={close} />)
   }
+  // «Conseguido» saca el objetivo del reparto: se confirma antes, explicando la consecuencia.
+  const confirmAchieved = (objective: { id: string; name: string }) =>
+    requestObjectiveAchievement(objective, {
+      show: (p) => open(p.title, <Confirm message={p.message} confirmLabel={p.confirmLabel} onConfirm={p.onConfirm} onCancel={p.onCancel} />),
+      close,
+    })
   const reorderable = active.length > 1
 
   return (
@@ -115,7 +123,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
                     onClick={() => edit(item.objective.id)}
                     onMoveUp={reorderable ? (i > 0 ? () => void moveObjective(item.objective.id, -1) : undefined) : undefined}
                     onMoveDown={reorderable ? (i < active.length - 1 ? () => void moveObjective(item.objective.id, 1) : undefined) : undefined}
-                    onAchieve={() => void markObjectiveAchieved(item.objective.id)}
+                    onAchieve={() => confirmAchieved(item.objective)}
                   />
                 ))}
               </FinancialCard>
