@@ -11,10 +11,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.186,
+      "value": 3.177,
       "unit": "%",
-      "asOf": "2026-10-05",
-      "changePct": -0.137,
+      "asOf": "2026-10-06",
+      "changePct": -0.009,
       "source": "Banco de España"
     },
     {
@@ -41,10 +41,10 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19299.7,
+      "value": 19444.2,
       "unit": "pts",
-      "asOf": "2026-10-05",
-      "changePct": -1.53,
+      "asOf": "2026-10-06",
+      "changePct": -0.38,
       "source": "Banco de España"
     },
     {

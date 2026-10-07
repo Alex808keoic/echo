@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-06T14:22:45.400Z",
+  "checkedAt": "2026-10-07T14:38:55.192Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -15,10 +15,10 @@
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.186,
+      "value": 3.177,
       "unit": "%",
-      "asOf": "2026-10-05",
-      "changePct": -0.137,
+      "asOf": "2026-10-06",
+      "changePct": -0.009,
       "source": "Banco de España"
     },
     {
@@ -45,11 +45,21 @@
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19299.7,
+      "value": 19444.2,
       "unit": "pts",
-      "asOf": "2026-10-05",
-      "changePct": -1.53,
+      "asOf": "2026-10-06",
+      "changePct": -0.38,
       "source": "Banco de España"
+    },
+    {
+      "key": "stoxx50",
+      "label": "EURO STOXX 50 (media mensual)",
+      "group": "index",
+      "value": 6316.39,
+      "unit": "pts",
+      "asOf": "2026-09",
+      "changePct": -2.58,
+      "source": "BCE"
     }
   ],
   "events": [
@@ -58,9 +68,6 @@
       "detail": "Banco de España · noticias: Decisiones adoptadas por el Consejo de Gobierno del BCE (distintas de las decisiones por las que se establecen los tipos de interés)"
     }
   ],
-  "failedSources": [
-    "BCE (Euríbor)",
-    "BCE (EURO STOXX 50)"
-  ],
+  "failedSources": [],
   "eventTriggered": false
 }
