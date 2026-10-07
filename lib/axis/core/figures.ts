@@ -130,6 +130,8 @@ const percent = (label: string, v: number, source: FigureSource, derivedFrom?: A
   const text = formatPct(value)
   return { key: figureKey(text), kind: 'percent', value, text, label, source, ...(derivedFrom ? { derivedFrom } : {}) }
 }
+/** Importe permitido con etiqueta y fuente (p. ej. un dato del perfil que el chat puede citar). */
+export const moneyFigure = (label: string, cents: number, source: FigureSource): AllowedFigure => money(label, cents, source)
 const count = (label: string, n: number, source: FigureSource): AllowedFigure => ({ key: `c:${n}`, kind: 'count', value: n, text: String(n), label, source })
 
 export function contextFigures(ctx: FinancialContext): AllowedFigure[] {
@@ -273,8 +275,18 @@ export function forecastFigures(decision: AxisDecision): AllowedFigure[] {
   return dedupe(figures)
 }
 
+/**
+ * Frases de un texto. Solo corta en un punto (o «!», «?») seguido de espacio o
+ * en un salto de línea: el punto de miles («3.500,00 €») no termina una frase.
+ * Cortar en cualquier punto partía las cifras de 1.000 € o más («3.» + «500,00 €»),
+ * y una previsión así nunca se detectaba presentada como hecho.
+ */
+export function splitSentences(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim() !== '')
+}
+
 /** Lo que indica que una frase habla de una previsión y no de dinero que ya existe. */
-const FORECAST_MARKER = /previs|previst|estimad|equival|\bser[ií]an\b|\bquedar[ií]an?\b|supone|si recib/i
+export const FORECAST_MARKER = /previs|previst|estimad|equival|\bser[ií]an\b|\bquedar[ií]an?\b|supone|si recib/i
 
 /**
  * Una cifra que SOLO existe como previsión (no coincide con ninguna cifra real
@@ -286,7 +298,7 @@ export function checkForecastPresentation(text: string, decision: AxisDecision):
   const forecastOnly = new Set(forecastFigures(decision).filter((f) => f.kind === 'money' && !real.has(f.key)).map((f) => f.key))
   if (forecastOnly.size === 0) return []
   const violations: string[] = []
-  for (const sentence of text.split(/(?<=[.!?\n])/)) {
+  for (const sentence of splitSentences(text)) {
     if (FORECAST_MARKER.test(sentence)) continue
     for (const f of extractFigures(sentence)) if (f.kind === 'money' && forecastOnly.has(f.key)) violations.push(f.raw.trim())
   }

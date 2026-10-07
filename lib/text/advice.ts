@@ -110,8 +110,8 @@ const CUSHION = /\b(?:colchon|liquidez|fondo de emergencia|reserva de emergencia
 const DATA = /\b(?:movimientos?|ingresos?|gastos? del mes|datos|registro)\b/
 const GENERIC_OBJECTIVE = /\bobjetivos?\b/
 const GENERIC_POSITION = /\b(?:posicion(?:es)?|cartera|inversion(?:es)?)\b/
-/** Activos e instrumentos que no existen en los datos del usuario: siempre externos. */
-const EXTERNAL = /\b(?:acciones?|fondos?|etfs?|etc|indexados?|cripto(?:monedas?)?|bitcoin|ethereum|oro|plata|bonos?|letras|plazo fijo|depositos?|inmuebles?|pisos?|bolsa|criptos?|tesla|nvidia|apple|amazon|microsoft|google|s&p|nasdaq|ibex)\b/
+/** Activos e instrumentos que no existen en los datos del usuario: siempre externos. «Fondo de emergencia» es el colchón, no un fondo de inversión. */
+const EXTERNAL = /\b(?:acciones?|fondos?(?! de emergencia)|etfs?|etc|indexados?|cripto(?:monedas?)?|bitcoin|ethereum|oro|plata|bonos?|letras|plazo fijo|depositos?|inmuebles?|pisos?|bolsa|criptos?|tesla|nvidia|apple|amazon|microsoft|google|s&p|nasdaq|ibex)\b/
 
 /**
  * Longitud mínima del nombre de una entidad para buscarlo dentro de un texto.

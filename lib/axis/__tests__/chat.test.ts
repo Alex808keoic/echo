@@ -46,7 +46,7 @@ function memory(id: string, content: string, overrides: Partial<UserMemory> = {}
 /** Una respuesta válida tal y como la devolvería el proveedor (sin engine/generatedAt). */
 function validAIOutput(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    reply: 'Este mes ahorras 130,00 € de 2.000,00 € de ingresos.\n\nYo no cambiaría nada todavía.',
+    reply: 'Este mes ahorras 1.300,00 € de 2.000,00 € de ingresos.\n\nYo no cambiaría nada todavía.',
     confidence: 'media',
     nextStep: null,
     memoryProposal: null,
@@ -90,7 +90,7 @@ describe('AXIS conversación · básica', () => {
     assert.equal(reply.engine.id, 'external-ai')
     assert.equal(reply.engine.isAI, true)
     assert.equal(reply.fallbackReason, undefined)
-    assert.match(reply.text, /ahorras 130,00 €/)
+    assert.match(reply.text, /ahorras 1.300,00 €/)
     assert.equal(reply.confidence, 'media')
     assert.deepEqual(phases, ['analyzing', 'responding'], 'las fases reflejan trabajo real')
   })
@@ -609,7 +609,7 @@ describe('AXIS conversación · contrato { reply: ChatReply }', () => {
     const reply = await createChatEngine({ transport: t }).ask(input())
     assert.equal(reply.fallbackReason, undefined, 'un fallbackReason que viniera por HTTP se descarta')
     assert.deepEqual(reply.engine, AI_ENGINE_INFO, 'engine lo fija Finax')
-    assert.match(reply.text, /ahorras 130,00 €/)
+    assert.match(reply.text, /ahorras 1.300,00 €/)
   })
 })
 
@@ -621,14 +621,14 @@ describe('AXIS conversación · servidor', () => {
       id: 'groq:openai/gpt-oss-20b',
       model: 'openai/gpt-oss-20b',
       completeWithUsage: async () => ({
-        output: { reply: '  Con los datos disponibles,\tahorras 130,00 €.\n\n\n\nNada que cambiar.  ', confidence: 'alta', nextStep: { label: 'Ver objetivos', to: 'objetivos' }, memoryProposal: null },
+        output: { reply: '  Con los datos disponibles,\tahorras 1.300,00 €.\n\n\n\nNada que cambiar.  ', confidence: 'alta', nextStep: { label: 'Ver objetivos', to: 'objetivos' }, memoryProposal: null },
         usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
       }),
       complete: async () => ({}),
     }
     const reply = await chatWithProvider(provider, input())
     assert.equal(isChatReply(reply), true)
-    assert.equal(reply.text, 'Con los datos disponibles, ahorras 130,00 €.\n\nNada que cambiar.', 'texto limpio y acotado por parseChatReply')
+    assert.equal(reply.text, 'Con los datos disponibles, ahorras 1.300,00 €.\n\nNada que cambiar.', 'texto limpio y acotado por parseChatReply')
     assert.equal('reply' in reply, false, '«reply» del modelo pasa a ser «text»')
     assert.equal(reply.confidence, 'alta')
     assert.deepEqual(reply.nextStep, { label: 'Ver objetivos', to: 'objetivos' })

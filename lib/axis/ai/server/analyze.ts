@@ -39,7 +39,7 @@ import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { redactChatInput, redactMemory } from '../../chat/secrets'
-import { validateChatReply } from '../../chat/semantic'
+import { buildChatGuard, validateChatReply } from '../../chat/semantic'
 import { diagnoseProposal, parseChatReply } from '../../chat/validate'
 import { withProfileProposal } from '../../chat/profile-proposal'
 import { extractionLabel } from '../../profile/extract'
@@ -286,7 +286,8 @@ export async function analyzeDecisionFirst(model: AxisLanguageModel, input: Axis
 /**
  * Conversación con un proveedor dado: mismo proveedor, mismos límites y misma
  * frontera de validación que el análisis (forma con `parseChatReply`, y
- * semántica con `validateChatReply`: sin certezas injustificadas). El contexto
+ * semántica con `validateChatReply` frente a la decisión de AXIS: certeza,
+ * cifras, previsiones, ejecución, aportación manual y contradicción). El contexto
  * solo vive en esta petición: no se persiste ni se registra nada en el servidor.
  * Un rechazo lanza: la ruta responde 502 y el cliente responde en local.
  */
@@ -313,7 +314,8 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   // El dato estructurado sale del mensaje del usuario, no del modelo (misma puerta que las respuestas locales).
   const { reply, outcome, extraction } = withProfileProposal(parsed, input.message)
   logProposal(extractionLabel(extraction), outcome)
-  const verdict = validateChatReply(reply)
+  // Misma frontera que el análisis: la respuesta se juzga frente a la decisión determinista de AXIS.
+  const verdict = validateChatReply(reply, buildChatGuard(input))
   if (!verdict.ok) {
     console.warn('[axis] chat: respuesta rechazada:', verdict.violations.map((v) => `${v.invariant}@${v.field}: ${v.detail}`).join(' | '))
     throw new AIProviderError('malformed', `respuesta no válida (${verdict.violations.map((v) => v.invariant).join(', ')})`)
