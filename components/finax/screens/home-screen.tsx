@@ -65,7 +65,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             <p
               className={cn(
                 'mt-2 flex items-center gap-1 text-[13px] font-semibold',
-                delta.cents >= 0 ? 'text-finax' : 'text-negative',
+                delta.cents >= 0 ? 'text-finax-dark' : 'text-negative',
               )}
             >
               {delta.cents >= 0 ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
@@ -103,8 +103,8 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
                 key={p.id}
                 onClick={() => setRange(p.id)}
                 className={cn(
-                  'flex-1 rounded-full py-2 text-[12px] font-semibold transition-all',
-                  p.id === range ? 'bg-finax text-white' : 'bg-muted text-muted-foreground',
+                  'relative flex-1 rounded-full py-2 text-[12px] font-semibold transition-all after:absolute after:inset-x-0 after:-inset-y-1',
+                  p.id === range ? 'bg-finax-dark text-white' : 'bg-muted text-muted-foreground',
                 )}
               >
                 {p.id}
@@ -150,7 +150,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         <FinancialCard>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-[19px] font-bold text-finax tabular-nums">
+              <p className="text-[19px] font-bold text-finax-dark tabular-nums">
                 {formatCents(overview.today.incomeCents, true)}
               </p>
               <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">Ingresos</p>

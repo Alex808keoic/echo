@@ -43,7 +43,7 @@ export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderPro
       {actionLabel && (
         <button
           onClick={onAction}
-          className="text-[13px] font-semibold text-finax transition-colors hover:text-finax-dark"
+          className="relative text-[13px] font-semibold text-finax-dark transition-colors hover:text-grafito after:absolute after:-inset-x-2 after:-inset-y-2.5"
         >
           {actionLabel}
         </button>
@@ -68,7 +68,7 @@ export function IconButton({ children, label, onClick, variant = 'circle' }: Ico
       className={
         variant === 'circle'
           ? 'flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-grafito shadow-[0_2px_8px_-6px_rgba(31,41,55,0.3)] transition-colors hover:bg-muted'
-          : 'flex h-9 w-9 items-center justify-center rounded-full text-grafito transition-colors hover:bg-muted'
+          : '-mr-1 flex h-10 w-10 items-center justify-center rounded-full text-grafito transition-colors hover:bg-muted'
       }
     >
       {children}

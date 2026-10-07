@@ -97,7 +97,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
               <p className="flex-1 text-[12.5px] font-medium text-finax-dark text-pretty">
                 Ahora tus objetivos se actualizan automáticamente según tu dinero líquido y su orden de prioridad.
               </p>
-              <button type="button" aria-label="Cerrar aviso" onClick={dismissNotice} className="text-finax-dark/70">
+              <button type="button" aria-label="Cerrar aviso" onClick={dismissNotice} className="relative text-finax-dark after:absolute after:-inset-3">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
@@ -114,7 +114,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
             <p className="mt-1 text-[32px] font-extrabold leading-none tracking-tight text-grafito tabular-nums">
               {formatCents(allocation.allocatedCents)}
             </p>
-            <p className="mt-2 text-[13px] font-semibold text-finax">
+            <p className="mt-2 text-[13px] font-semibold text-finax-dark">
               {formatPct(allocation.activePct)}{' '}
               <span className="font-medium text-muted-foreground">de {formatCents(allocation.activeTargetCents)} en objetivos activos</span>
             </p>

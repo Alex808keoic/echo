@@ -26,10 +26,10 @@ export function FilterTabs({ options, value, onChange, size = 'md' }: FilterTabs
             onClick={() => onChange(option)}
             aria-pressed={active}
             className={cn(
-              'rounded-full font-semibold transition-all',
+              'relative after:absolute after:inset-x-0 after:-inset-y-2 rounded-full font-semibold transition-all',
               size === 'md' ? 'px-5 py-2 text-[13px]' : 'px-3.5 py-1.5 text-xs',
               active
-                ? 'bg-finax text-white shadow-[0_6px_14px_-8px_rgba(14,166,118,0.7)]'
+                ? 'bg-finax-dark text-white shadow-[0_6px_14px_-8px_rgba(14,166,118,0.7)]'
                 : 'bg-muted text-muted-foreground hover:bg-graylight/70',
             )}
           >
@@ -60,8 +60,8 @@ export function Segmented({ options, value, onChange }: SegmentedProps) {
             onClick={() => onChange(option)}
             aria-pressed={active}
             className={cn(
-              'rounded-full px-3 py-1 text-[11px] font-semibold transition-all',
-              active ? 'bg-finax text-white' : 'text-muted-foreground',
+              'relative after:absolute after:inset-x-0 after:-inset-y-2 rounded-full px-3 py-1 text-[11px] font-semibold transition-all',
+              active ? 'bg-finax-dark text-white' : 'text-muted-foreground',
             )}
           >
             {option}

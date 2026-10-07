@@ -40,7 +40,7 @@ export function TransactionRow({ movement, onClick }: TransactionRowProps) {
       </div>
 
       <div className="shrink-0 text-right">
-        <p className={cn('text-[14px] font-bold tabular-nums', isIncome ? 'text-finax' : 'text-negative')}>
+        <p className={cn('text-[14px] font-bold tabular-nums', isIncome ? 'text-finax-dark' : 'text-negative')}>
           {formatCents(isIncome ? movement.amountCents : -movement.amountCents, true)}
         </p>
         <p className="mt-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">

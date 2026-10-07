@@ -21,7 +21,7 @@ import type { ScreenProps } from './types'
 
 function changeBadge(current: number, previous: number, goodWhenUp: boolean) {
   const pct = pctChange(current, previous)
-  if (pct === null) return <p className="mt-1 text-[12px] font-medium text-muted-foreground/80">sin mes anterior</p>
+  if (pct === null) return <p className="mt-1 text-[12px] font-medium text-muted-foreground">sin mes anterior</p>
   const up = pct >= 0
   return (
     <ChangeBadge
@@ -64,7 +64,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
               <p
                 className={cn(
                   'mt-2 flex items-center gap-1 text-[13px] font-semibold',
-                  monthUp ? 'text-finax' : 'text-negative',
+                  monthUp ? 'text-finax-dark' : 'text-negative',
                 )}
               >
                 {monthUp ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}

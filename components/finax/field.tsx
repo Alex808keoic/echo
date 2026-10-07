@@ -23,14 +23,14 @@ export function Field({ label, hint, error, group, children }: FieldProps) {
       {error ? (
         <span className="mt-1.5 block text-[12px] font-medium text-negative">{error}</span>
       ) : hint ? (
-        <span className="mt-1.5 block text-[12px] font-medium text-muted-foreground/80">{hint}</span>
+        <span className="mt-1.5 block text-[12px] font-medium text-muted-foreground">{hint}</span>
       ) : null}
     </Wrapper>
   )
 }
 
 const controlClass =
-  'w-full rounded-2xl border border-border bg-background px-4 py-3 text-[14px] font-semibold text-grafito placeholder:font-medium placeholder:text-muted-foreground/70 focus:border-finax focus:outline-none'
+  'w-full rounded-2xl border border-border bg-background px-4 py-3 text-[14px] font-semibold text-grafito placeholder:font-medium placeholder:text-muted-foreground focus:border-finax focus:outline-none'
 
 export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(controlClass, className)} {...props} />
@@ -76,8 +76,8 @@ export function ChipGroup<T extends string>({ options, value, onChange }: ChipGr
             onClick={() => onChange(option)}
             aria-pressed={active}
             className={cn(
-              'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
-              active ? 'bg-finax text-white' : 'bg-muted text-muted-foreground hover:bg-graylight/70',
+              'relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all after:absolute after:inset-x-0 after:-inset-y-1',
+              active ? 'bg-finax-dark text-white' : 'bg-muted text-muted-foreground hover:bg-graylight/70',
             )}
           >
             {option}

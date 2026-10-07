@@ -34,7 +34,7 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
         <p
           className={cn(
             'mt-1 text-[32px] font-extrabold leading-none tracking-tight tabular-nums',
-            isIncome ? 'text-finax' : 'text-negative',
+            isIncome ? 'text-finax-dark' : 'text-negative',
           )}
         >
           {formatCents(isIncome ? movement.amountCents : -movement.amountCents, true)}

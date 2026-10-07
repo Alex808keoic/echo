@@ -47,7 +47,7 @@ export function BarChart({ data, height = 130, highlightIndex }: BarChartProps) 
           <span
             key={d.month}
             className={`flex-1 text-center text-[11px] font-medium ${
-              i === highlight ? 'text-finax' : 'text-muted-foreground'
+              i === highlight ? 'text-finax-dark' : 'text-muted-foreground'
             }`}
           >
             {d.month}

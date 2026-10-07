@@ -60,7 +60,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
             <p
               className={cn(
                 'mt-2 text-[13px] font-semibold tabular-nums',
-                gain >= 0 ? 'text-finax' : 'text-negative',
+                gain >= 0 ? 'text-finax-dark' : 'text-negative',
               )}
             >
               {formatCents(gain, true)}
@@ -129,7 +129,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                         <p
                           className={cn(
                             'mt-0.5 text-[11px] font-semibold tabular-nums',
-                            g.cents >= 0 ? 'text-finax' : 'text-negative',
+                            g.cents >= 0 ? 'text-finax-dark' : 'text-negative',
                           )}
                         >
                           {g.pct !== null ? formatPct(g.pct, true) : formatCents(g.cents, true)}

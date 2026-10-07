@@ -89,7 +89,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 <p
                   className={cn(
                     'mt-0.5 text-[12.5px] font-semibold tabular-nums',
-                    delta.cents >= 0 ? 'text-finax' : 'text-negative',
+                    delta.cents >= 0 ? 'text-finax-dark' : 'text-negative',
                   )}
                 >
                   {formatCents(delta.cents, true)}

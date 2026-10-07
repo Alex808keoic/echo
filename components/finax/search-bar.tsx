@@ -19,7 +19,7 @@ export function SearchBar({
 }: SearchBarProps) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center gap-2.5 rounded-full border border-border bg-card px-4 py-3">
+      <label className="flex flex-1 cursor-text items-center gap-2.5 rounded-full border border-border bg-card px-4 py-3">
         <SearchIcon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
         <input
           value={value}
@@ -27,7 +27,7 @@ export function SearchBar({
           placeholder={placeholder}
           className="w-full bg-transparent text-[13px] font-medium text-grafito placeholder:text-muted-foreground focus:outline-none"
         />
-      </div>
+      </label>
       {trailing}
     </div>
   )

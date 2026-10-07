@@ -13,7 +13,7 @@ interface ChangeBadgeProps {
 export function ChangeBadge({ pct, direction, tone = 'positive', className }: ChangeBadgeProps) {
   const color =
     tone === 'positive'
-      ? 'text-finax'
+      ? 'text-finax-dark'
       : tone === 'negative'
         ? 'text-negative'
         : 'text-muted-foreground'

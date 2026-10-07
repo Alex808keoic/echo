@@ -54,14 +54,16 @@
   --card-foreground: #1f2937;
 
   --muted: #f1f3f1;
-  --muted-foreground: #6b7280;
+  /* Texto secundario: ≥ 5:1 sobre tarjeta, fondo y fondos suaves. */
+  --muted-foreground: #5f6774;
 
   --border: #eceeec;
   --ring: #0ea676;
 
   /* Finax green */
   --finax: #0ea676;
-  --finax-dark: #0b8560;
+  /* Verde para TEXTO y pulsadores con texto blanco (≥ 4,5:1 en todos los fondos). El verde de marca sigue en logo, gráficos e iconos. */
+  --finax-dark: #087a57;
   --finax-soft: #e7f5ef;
   --finax-soft-2: #d6efe4;
 
@@ -69,7 +71,7 @@
   --graylight: #e5e7eb;
 
   --positive: #0ea676;
-  --negative: #ef4444;
+  --negative: #d42020;
   --negative-soft: #fdecec;
 
   /* AXIS */
