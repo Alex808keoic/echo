@@ -1,12 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { movementLabel, type Movement } from '@/lib/types'
 import { formatCents } from '@/lib/money'
 import { formatFullDate } from '@/lib/dates'
 import { Button } from '../button'
+import { TrashIcon } from '../icons'
+import { useSheet } from '../sheet'
 import { MovementForm } from './movement-form'
+import { useConfirmMovementDeletion } from './delete-movement'
 import { cn } from '@/lib/utils'
+
+export const MOVEMENT_DETAIL_TITLE = 'Detalle del movimiento'
 
 interface MovementDetailProps {
   movement: Movement
@@ -15,8 +19,8 @@ interface MovementDetailProps {
 
 /** Ficha de detalle de un movimiento (única vista donde aparece la nota). */
 export function MovementDetail({ movement, onDone }: MovementDetailProps) {
-  const [editing, setEditing] = useState(false)
-  if (editing) return <MovementForm movement={movement} onDone={onDone} />
+  const { open } = useSheet()
+  const confirmDeletion = useConfirmMovementDeletion()
 
   const isIncome = movement.type === 'ingreso'
   const rows: Array<[string, string]> = [
@@ -48,9 +52,21 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
           </div>
         ))}
       </dl>
-      <Button type="button" variant="secondary" fullWidth onClick={() => setEditing(true)}>
-        Editar movimiento
-      </Button>
+      {/* Eliminar a la izquierda: el «Eliminar» de la confirmación queda a la derecha, así un doble toque no borra. */}
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="secondary"
+          className="px-4 text-negative"
+          icon={<TrashIcon className="h-4 w-4" />}
+          onClick={() => confirmDeletion(movement, () => open(MOVEMENT_DETAIL_TITLE, <MovementDetail movement={movement} onDone={onDone} />))}
+        >
+          Eliminar
+        </Button>
+        <Button type="button" variant="secondary" fullWidth onClick={() => open('Editar movimiento', <MovementForm movement={movement} onDone={onDone} />)}>
+          Editar movimiento
+        </Button>
+      </div>
     </div>
   )
 }

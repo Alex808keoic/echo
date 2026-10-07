@@ -13,7 +13,7 @@ import { EmptyState } from '../empty-state'
 import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
-import { MovementDetail } from '../forms/movement-detail'
+import { MOVEMENT_DETAIL_TITLE, MovementDetail } from '../forms/movement-detail'
 import { MovementForm } from '../forms/movement-form'
 import { SettingsIcon, SearchIcon } from '../icons'
 import type { ScreenProps } from './types'
@@ -108,7 +108,7 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
                     <TransactionRow
                       key={m.id}
                       movement={m}
-                      onClick={() => open('Detalle', <MovementDetail movement={m} onDone={close} />)}
+                      onClick={() => open(MOVEMENT_DETAIL_TITLE, <MovementDetail movement={m} onDone={close} />)}
                     />
                   ))}
                 </div>

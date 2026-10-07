@@ -11,15 +11,16 @@ import {
 } from '@/lib/types'
 import { centsToInputValue, parseAmountToCents } from '@/lib/money'
 import { isValidISODate, todayISO } from '@/lib/dates'
-import { addMovement, deleteMovement, listMovements, updateMovement } from '@/lib/db/movements'
+import { addMovement, listMovements, updateMovement } from '@/lib/db/movements'
 import { suggestedCategory } from '@/lib/finance/suggestions'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Button } from '../button'
 import { FilterTabs } from '../filter-tabs'
 import { AmountInput, ChipGroup, Field, TextArea, TextInput } from '../field'
-import { Confirm } from '../confirm'
 import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
+import { useSheet } from '../sheet'
+import { useConfirmMovementDeletion } from './delete-movement'
 
 const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
 const typeFromLabel = (label: string): MovementType => (label === 'Ingreso' ? 'ingreso' : 'gasto')
@@ -54,7 +55,8 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const { open } = useSheet()
+  const confirmDeletion = useConfirmMovementDeletion()
 
   const categories = categoriesFor(type)
   const needsMotivo = category !== null && requiresMotivo(category)
@@ -93,21 +95,6 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
     setBusy(false)
     if (result.ok) onDone()
     else setSaveError(result.message)
-  }
-
-  if (movement && confirmingDelete) {
-    return (
-      <Confirm
-        message="¿Eliminar este movimiento? El patrimonio se recalculará automáticamente. Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
-        destructive
-        onCancel={() => setConfirmingDelete(false)}
-        onConfirm={async () => {
-          await deleteMovement(movement.id)
-          onDone()
-        }}
-      />
-    )
   }
 
   return (
@@ -153,7 +140,7 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
             type="button"
             variant="secondary"
             aria-label="Eliminar movimiento"
-            onClick={() => setConfirmingDelete(true)}
+            onClick={() => confirmDeletion(movement, () => open('Editar movimiento', <MovementForm movement={movement} onDone={onDone} />))}
             className="px-4 text-negative"
           >
             <TrashIcon className="h-5 w-5" />
