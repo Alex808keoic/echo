@@ -231,7 +231,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
         />
         <Row
           title="Qué sale del dispositivo al usar AXIS con IA"
-          description="Cuando AXIS responde con IA, el contexto necesario (tus cifras, tus memorias y la conversación) se envía al servidor de Finax y a un proveedor de IA para elaborar la respuesta. Con el motor local no se envía nada. El contexto de mercado se descarga de una fuente pública y no lleva datos tuyos."
+          description="Cuando AXIS responde con IA, el contexto necesario para la respuesta se envía al servidor de Finax y a un proveedor de IA. Puede incluir tus cifras financieras, tus memorias de AXIS, la conversación y, en el chat, un resumen de tus movimientos recientes con algunos de ellos (fecha, importe, categoría y concepto). Con el motor local no se envía nada fuera del dispositivo. El contexto de mercado se descarga de una fuente pública y no lleva datos tuyos."
         />
       </Group>
 
