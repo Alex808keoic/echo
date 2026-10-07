@@ -223,7 +223,7 @@
       "id": "savings.falling",
       "domain": "savings",
       "priority": "high",
-      "fact": "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+      "fact": "El ahorro del mes ha caído de 25,00 € a -943,00 €.",
       "interpretation": "Los ingresos se mantienen; la caída viene del gasto.",
       "uncertainty": {
         "title": "Puede ser un mes atípico",
@@ -374,7 +374,7 @@
       "id": "savings.falling",
       "domain": "savings",
       "priority": "high",
-      "fact": "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+      "fact": "El ahorro del mes ha caído de 25,00 € a -943,00 €.",
       "interpretation": "Los ingresos se mantienen; la caída viene del gasto.",
       "uncertainty": {
         "title": "Puede ser un mes atípico",
@@ -425,7 +425,7 @@
     "Patrimonio: 300,00 € (líquido 100,00 €, invertido 200,00 €).",
     "Este mes: ingresos 47,00 €, gastos 990,00 €, balance -943,00 €.",
     "Este mes los gastos (990,00 €) superan a los ingresos (47,00 €): balance -943,00 €.",
-    "El ahorro del mes ha caído de 25,00 € a 943,00 €.",
+    "El ahorro del mes ha caído de 25,00 € a -943,00 €.",
     "Los gastos han subido un 4.400% respecto al mes anterior: 22,00 € → 990,00 €."
   ],
   "recommendation": {

@@ -16,12 +16,16 @@ function formatNumber(value: number, decimals: number): string {
   return decPart ? `${grouped},${decPart}` : grouped
 }
 
+/**
+ * Importe en euros. Un negativo lleva SIEMPRE su «-» (un patrimonio o un
+ * líquido negativo no puede leerse como positivo); `withSign` añade además
+ * el «+» a los positivos.
+ */
 export function formatCurrency(value: number, withSign = false): string {
   const euro = `${formatNumber(value, 2)} €`
-  if (withSign) {
-    if (value > 0) return `+${euro}`
-    if (value < 0) return `-${euro}`
-  }
+  // Lo que redondea a cero se muestra «0,00 €», nunca «-0,00 €».
+  if (value < 0 && euro !== '0,00 €') return `-${euro}`
+  if (withSign && value > 0) return `+${euro}`
   return euro
 }
 

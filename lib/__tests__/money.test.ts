@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { centsToInputValue, parseAmountToCents, parseBalanceToCents } from '../money'
+import { centsToInputValue, formatCents, parseAmountToCents, parseBalanceToCents } from '../money'
 
 describe('parseAmountToCents', () => {
   it('coma decimal (es-ES)', () => {
@@ -58,5 +58,21 @@ describe('parseBalanceToCents', () => {
     for (const cents of [0, 5, 1250, 123456, -987654]) {
       assert.equal(parseBalanceToCents(centsToInputValue(cents)), cents)
     }
+  })
+})
+
+describe('formatCents · signo', () => {
+  it('un importe negativo siempre lleva «-», también sin withSign (líquido, patrimonio, disponible)', () => {
+    assert.equal(formatCents(-174_079), '-1.740,79 €')
+    assert.equal(formatCents(-174_079, true), '-1.740,79 €')
+    assert.equal(formatCents(-1), '-0,01 €')
+  })
+
+  it('withSign solo añade «+» a los positivos; el cero nunca lleva signo', () => {
+    assert.equal(formatCents(174_079), '1.740,79 €')
+    assert.equal(formatCents(174_079, true), '+1.740,79 €')
+    assert.equal(formatCents(0), '0,00 €')
+    assert.equal(formatCents(0, true), '0,00 €')
+    assert.equal(formatCents(-0), '0,00 €')
   })
 })
