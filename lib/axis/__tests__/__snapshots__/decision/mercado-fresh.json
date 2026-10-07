@@ -211,7 +211,7 @@
       "domain": "market",
       "priority": "low",
       "fact": "Mercado (reciente, 2026-09-05 → 2026-09-12): BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).",
-      "interpretation": "Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.",
+      "interpretation": "Según la investigación del 2026-09-12 (puede no reflejar datos publicados después): Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.",
       "uncertainty": {
         "title": "Contexto de mercado de hace 3 días",
         "detail": "Describe el periodo analizado con datos públicos; no anticipa lo que harán los mercados."
@@ -306,7 +306,7 @@
       "domain": "market",
       "priority": "low",
       "fact": "Mercado (reciente, 2026-09-05 → 2026-09-12): BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).",
-      "interpretation": "Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.",
+      "interpretation": "Según la investigación del 2026-09-12 (puede no reflejar datos publicados después): Semana tranquila: los índices europeos han subido ligeramente y el BCE ha mantenido los tipos.",
       "uncertainty": {
         "title": "Contexto de mercado de hace 3 días",
         "detail": "Describe el periodo analizado con datos públicos; no anticipa lo que harán los mercados."

@@ -190,7 +190,10 @@ export function contextFigures(ctx: FinancialContext): AllowedFigure[] {
 function decisionTexts(d: AxisDecision): string[] {
   return [
     ...d.facts,
-    ...d.relevant.flatMap((s) => [s.fact, s.interpretation]),
+    // La interpretación de una señal de mercado es texto de la investigación semanal (overview, notas):
+    // sus cifras pueden estar superadas por los indicadores que el job diario refresca. Solo los HECHOS de
+    // mercado (indicadores frescos, con fecha) aportan cifras que se pueden presentar como actuales.
+    ...d.relevant.flatMap((s) => (s.domain === 'market' ? [s.fact] : [s.fact, s.interpretation])),
     ...(d.recommendation ? [d.recommendation.what, d.recommendation.why] : []),
     ...d.alternatives.map((a) => a.summary),
     ...d.uncertainties.map((u) => u.detail),

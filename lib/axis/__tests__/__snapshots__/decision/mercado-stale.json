@@ -192,6 +192,13 @@
         "title": "Contexto de mercado desactualizado",
         "detail": "No se emiten lecturas de mercado hasta que haya una investigación reciente."
       }
+    },
+    {
+      "id": "market.indicators",
+      "domain": "market",
+      "priority": "low",
+      "fact": "Indicadores de mercado actualizados: BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).",
+      "interpretation": "Son datos publicados recientemente por sus fuentes; no hay una lectura de mercado reciente que los interprete."
     }
   ],
   "lead": {
@@ -262,6 +269,13 @@
         "title": "Contexto de mercado desactualizado",
         "detail": "No se emiten lecturas de mercado hasta que haya una investigación reciente."
       }
+    },
+    {
+      "id": "market.indicators",
+      "domain": "market",
+      "priority": "low",
+      "fact": "Indicadores de mercado actualizados: BCE · facilidad de depósito: 2 % (2026-09-11, BCE) · Euríbor 12 meses: 2,15 % (2026-08, Banco de España) · IPC España: 2,1 % (2026-08, INE) · HICP eurozona: 2 % (2026-08, Eurostat).",
+      "interpretation": "Son datos publicados recientemente por sus fuentes; no hay una lectura de mercado reciente que los interprete."
     }
   ],
   "facts": [

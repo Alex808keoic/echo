@@ -111,8 +111,10 @@ describe('AXIS + MarketContext', () => {
     const result = analyzeLocally({ context: financial(), market }, NOW)
     if (result.status !== 'analysis') throw new Error('unreachable')
     const marketSignals = result.analysis.interpretation.signals.filter((s) => s.id.startsWith('market.'))
-    assert.ok(marketSignals.every((s) => s.id === 'market.stale'))
+    // Con la investigación antigua solo queda el aviso y, si el job diario refrescó indicadores, sus hechos.
+    assert.ok(marketSignals.every((s) => s.id === 'market.stale' || s.id === 'market.indicators'), marketSignals.map((s) => s.id).join(', '))
     assert.ok(!marketSignals.some((s) => s.id.startsWith('market.caution')))
+    assert.equal(result.analysis.recommendation?.action?.verb === 'hold', false, 'ninguna recomendación de mercado')
     assert.ok(result.analysis.uncertainty.items.some((u) => /desactualizado/i.test(u.title)))
   })
 

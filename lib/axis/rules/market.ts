@@ -5,10 +5,15 @@
  *   incertidumbre propia de un contexto con fecha.
  * - Solo `fresh` + clase de activo en `caution` que cruce con una posición:
  *   recomendación de prudencia («revisa antes de ampliar»), nunca comprar/vender.
- * - `stale`: únicamente la advertencia; ninguna recomendación de mercado.
+ * - `stale`: la advertencia y, si el job diario ha refrescado algún indicador,
+ *   solo sus HECHOS (`market.indicators`): sin la lectura antigua, sin eventos,
+ *   sin prudencia y sin ninguna recomendación de mercado.
  *
  * Nunca presenta tendencias como certezas: reproduce lo que la investigación
- * describe del periodo y remite a sus fuentes.
+ * describe del periodo, fechado con la fecha de la investigación (sus cifras
+ * pueden estar superadas por indicadores refrescados después), y remite a sus
+ * fuentes. Las cifras de esa lectura no se permiten como actuales
+ * (core/figures.ts: solo los hechos de mercado aportan cifras).
  *
  * Frescura por indicador (`ContextIndicator.freshness`): solo los indicadores
  * `fresh` aparecen con su valor como situación actual. Los `stale` o
@@ -50,6 +55,19 @@ export const marketRules: Rule = (_ctx, market, _profile) => {
         detail: 'No se emiten lecturas de mercado hasta que haya una investigación reciente.',
       },
     })
+    // La investigación es antigua, pero el job diario puede haber refrescado algunos indicadores: esos
+    // datos sí describen el presente. Solo hechos (valor, fecha, fuente): sin la lectura antigua de la
+    // investigación, sin eventos, sin prudencia y sin recomendación.
+    const current = market.keyIndicators.filter(isCurrent).slice(0, 4)
+    if (current.length > 0) {
+      signals.push({
+        id: 'market.indicators',
+        domain: 'market',
+        priority: 'low',
+        fact: `Indicadores de mercado actualizados: ${current.map(fmtIndicator).join(' · ')}.`,
+        interpretation: 'Son datos publicados recientemente por sus fuentes; no hay una lectura de mercado reciente que los interprete.',
+      })
+    }
     return signals
   }
 
@@ -61,7 +79,9 @@ export const marketRules: Rule = (_ctx, market, _profile) => {
     domain: 'market',
     priority: 'low',
     fact: `Mercado (${FRESHNESS_LABEL[market.freshness]}, ${market.coversFrom} → ${market.coversTo}): ${indicators || 'sin indicadores'}.${withoutCurrent}`,
-    interpretation: market.overview,
+    // La lectura de la investigación es de su fecha: el job diario puede haber refrescado los indicadores
+    // después, y entonces sus cifras ya no son las actuales (las actuales son las del hecho).
+    interpretation: `Según la investigación del ${market.asOf.slice(0, 10)} (puede no reflejar datos publicados después): ${market.overview}`,
     uncertainty: {
       title: `Contexto de mercado de hace ${age}`,
       detail:
