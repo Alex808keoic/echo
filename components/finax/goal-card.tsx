@@ -72,30 +72,30 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
   const { objective: goal, allocatedCents, remainingCents, pct, status, rank } = item
   const achieved = status === 'achieved'
   return (
-    <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
-      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
-        <TargetIcon className="h-6 w-6" />
+    <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+      <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
+        <TargetIcon className="h-5 w-5" />
         {showRank && rank !== null && (
           <span className="absolute -right-1 -top-1 rounded-full bg-finax px-1.5 text-[10.5px] font-bold text-white">{rank}.º</span>
         )}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate text-[14px] font-bold text-grafito">{goal.name}</p>
+          <p className="break-words text-[14px] font-bold text-grafito">{goal.name}</p>
           <span className="shrink-0 text-[13px] font-bold text-finax">{formatPct(pct)}</span>
         </div>
-        <p className="mt-0.5 truncate text-[12.5px] font-semibold text-muted-foreground">
+        <p className="mt-0.5 flex flex-wrap gap-x-1 text-[12.5px] font-semibold text-muted-foreground tabular-nums">
           {achieved ? (
-            <>Meta {formatCents(goal.targetCents)}</>
+            <span className="whitespace-nowrap">Meta {formatCents(goal.targetCents)}</span>
           ) : (
             <>
-              {formatCents(allocatedCents)}{' '}
-              <span className="font-medium text-muted-foreground/70">/ {formatCents(goal.targetCents)}</span>
+              <span className="whitespace-nowrap">{formatCents(allocatedCents)}</span>
+              <span className="whitespace-nowrap font-medium text-muted-foreground/70">/ {formatCents(goal.targetCents)}</span>
             </>
           )}
-          {goal.targetDate && <span className="font-medium text-muted-foreground/70"> · {formatShortDate(goal.targetDate)}</span>}
+          {goal.targetDate && <span className="whitespace-nowrap font-medium text-muted-foreground/70">· {formatShortDate(goal.targetDate)}</span>}
         </p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground/80">
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-medium text-muted-foreground/80">
           {status !== 'in-progress' && (
             <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', achieved ? 'bg-finax text-white' : 'bg-finax-soft text-finax')}>
               {STATUS_LABEL[status]}

@@ -2,7 +2,8 @@
 
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { pctChange, roundedShares } from '@/lib/finance/summary'
+import { pctChange } from '@/lib/finance/summary'
+import { wealthBreakdown } from '@/lib/finance/wealth-breakdown'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
@@ -43,13 +44,8 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
   // Patrimonio = líquido + inversiones; líquido = destinado a objetivos (reparto automático) + disponible.
   const destined = allocation.allocatedCents
   const available = allocation.availableCents
-  const parts = [
-    { key: 'disponible', label: 'Disponible', amount: available },
-    { key: 'objetivos', label: 'Destinado a objetivos', amount: destined },
-    { key: 'inversiones', label: 'Inversiones', amount: investedCents },
-  ].filter((b) => b.amount > 0)
-  const shares = roundedShares(parts.map((b) => b.amount))
-  const breakdown = parts.map((b, i) => ({ ...b, color: chartColor(i), pct: shares[i] }))
+  const breakdownView = wealthBreakdown({ liquidCents, destinedCents: destined, availableCents: available, investedCents })
+  const breakdown = breakdownView.kind === 'parts' ? breakdownView.parts.map((b, i) => ({ ...b, color: chartColor(i) })) : []
 
   const monthUp = (overview.monthChangeCents ?? 0) >= 0
 
@@ -111,9 +107,13 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
 
       <FinancialCard>
         <h2 className="text-[16px] font-bold tracking-tight text-grafito">Desglose del patrimonio</h2>
-        {breakdown.length === 0 ? (
+        {breakdownView.kind === 'empty' ? (
           <p className="mt-3 text-[13px] font-medium text-muted-foreground text-pretty">
             Aún no hay patrimonio que desglosar. Empieza por tu saldo inicial o un ingreso.
+          </p>
+        ) : breakdownView.kind === 'negative-liquid' ? (
+          <p className="mt-3 text-[13px] font-medium text-muted-foreground text-pretty">
+            Tu dinero líquido está en negativo, así que el patrimonio no se puede repartir en porcentajes. Así queda tu líquido:
           </p>
         ) : (
           <div className="mt-4 flex items-center gap-5">
@@ -128,19 +128,18 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
               <span className="text-[11px] font-medium text-muted-foreground">Total</span>
             </DonutChart>
 
-            <ul className="flex-1 space-y-3.5">
+            <ul className="min-w-0 flex-1 space-y-3.5">
               {breakdown.map((b) => (
-                <li key={b.key} className="flex items-center gap-2.5">
-                  <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.color }} />
+                <li key={b.key} className="flex items-start gap-2.5">
+                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.color }} />
+                  {/* Importe y porcentaje en la misma línea, cada uno entero: con cifras grandes nada se parte. */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-grafito">{b.label}</p>
-                    <p className="text-[12.5px] font-medium text-muted-foreground tabular-nums">
-                      {formatCents(b.amount)}
+                    <p className="break-words text-[13px] font-semibold text-grafito">{b.label}</p>
+                    <p className="flex flex-wrap gap-x-1.5 text-[12.5px] font-medium text-muted-foreground tabular-nums">
+                      <span className="whitespace-nowrap">{formatCents(b.amount)}</span>
+                      <span className="whitespace-nowrap font-bold">{formatPct(b.pct)}</span>
                     </p>
                   </div>
-                  <span className="text-[12.5px] font-bold text-muted-foreground tabular-nums">
-                    {formatPct(b.pct)}
-                  </span>
                 </li>
               ))}
             </ul>
@@ -181,7 +180,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-bold text-grafito">Objetivos</p>
-              <p className="truncate text-[12px] font-medium text-muted-foreground">
+              <p className="text-[12px] font-medium text-muted-foreground">
                 {allocation.items.length === 0
                   ? 'Sin objetivos'
                   : `${allocation.activeCount} activo${allocation.activeCount === 1 ? '' : 's'} · ${formatPct(allocation.activePct)}`}
@@ -202,7 +201,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-bold text-grafito">Inversiones</p>
-              <p className="truncate text-[12px] font-medium text-muted-foreground">
+              <p className="text-[12px] font-medium text-muted-foreground">
                 {overview.positions.length === 0
                   ? 'Sin posiciones'
                   : `${overview.positions.length} posici${overview.positions.length === 1 ? 'ón' : 'ones'} · manual`}

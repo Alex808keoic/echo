@@ -125,7 +125,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                   <span className="text-[10.5px] font-medium text-muted-foreground">{noun} este mes</span>
                 </DonutChart>
 
-                <ul className="flex-1 space-y-2.5">
+                <ul className="min-w-0 flex-1 space-y-2.5">
                   {categories.slice(0, 6).map((c, i) => (
                     <li key={c.key}>
                       <LegendRow color={chartColor(i)} label={c.label} pct={c.pct} />

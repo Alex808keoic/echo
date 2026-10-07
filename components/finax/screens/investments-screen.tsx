@@ -89,12 +89,13 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
               </DonutChart>
               <ul className="min-w-0 flex-1 space-y-3.5">
                 {positions.map((p, i) => (
-                  <li key={p.id} className="flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: chartColor(i) }} />
-                    <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-grafito">{p.name}</p>
-                    <span className="shrink-0 text-[12.5px] font-bold text-muted-foreground tabular-nums">
-                      {formatPct(weights[i])}
-                    </span>
+                  <li key={p.id} className="flex items-start gap-2.5">
+                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: chartColor(i) }} />
+                    {/* Porcentaje bajo el nombre (como en Mi Dinero): el nombre tiene todo el ancho y nunca se corta. */}
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-[13px] font-semibold text-grafito">{p.name}</p>
+                      <p className="text-[12.5px] font-bold text-muted-foreground tabular-nums">{formatPct(weights[i])}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -118,8 +119,8 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                         <TrendUpIcon className="h-[22px] w-[22px]" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-bold text-grafito">{p.name}</p>
-                        <p className="truncate text-[12px] font-medium text-muted-foreground">
+                        <p className="break-words text-[14px] font-bold text-grafito">{p.name}</p>
+                        <p className="text-[12px] font-medium text-muted-foreground">
                           {formatCents(p.investedCents)} · {formatShortDate(p.date)}
                         </p>
                       </div>

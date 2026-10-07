@@ -11,11 +11,11 @@ interface LegendRowProps {
 export function LegendRow({ color, label, pct }: LegendRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
-        <span className="text-[13px] font-medium text-grafito">{label}</span>
+        <span className="min-w-0 break-words text-[13px] font-medium text-grafito">{label}</span>
       </div>
-      <span className="text-[13px] font-semibold text-muted-foreground tabular-nums">
+      <span className="shrink-0 text-[13px] font-semibold text-muted-foreground tabular-nums">
         {formatPct(pct)}
       </span>
     </div>
