@@ -10,6 +10,7 @@ import { RECURRING_INCOME_CATEGORIES, type MemoryFact } from '@/lib/axis/profile
 import { listObjectives } from '@/lib/db/objectives'
 import { listUserMemories, resolveMemoryProposal } from '@/lib/db/axis-memories'
 import { Button } from '../button'
+import { writeErrorMessage } from '@/lib/db/storage-errors'
 import { AmountInput, ChipGroup, Field, TextArea } from '../field'
 
 interface MemoryFormProps {
@@ -73,6 +74,9 @@ export function MemoryForm({ memory, memories, onDone }: MemoryFormProps) {
       if (status === 'accepted') onDone()
       else if (status === 'needs-confirmation') setEvicting(evictionPreview(await listUserMemories(), proposal))
       else setSaveError('No se ha podido guardar. Revisa el texto.')
+    } catch (error) {
+      console.error('Finax: la memoria no se ha guardado', error)
+      setSaveError(writeErrorMessage(error))
     } finally {
       setBusy(false)
     }

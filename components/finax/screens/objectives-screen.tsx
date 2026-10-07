@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { attemptWrite } from '@/lib/db/storage-errors'
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
 import { moveObjective, reactivateObjective } from '@/lib/db/objectives'
@@ -43,6 +44,8 @@ function useOneTimeNotice(): [boolean, () => void] {
 export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
   const { open, close } = useSheet()
   const [noticeVisible, dismissNotice] = useOneTimeNotice()
+  /** Fallo de una acción directa (orden, reactivar): se muestra; el objetivo queda como estaba. */
+  const [actionError, setActionError] = useState<string | null>(null)
   if (!overview) return <ScreenLoading />
 
   const allocation = overview.objectivesAllocation
@@ -59,6 +62,12 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
       show: (p) => open(p.title, <Confirm message={p.message} confirmLabel={p.confirmLabel} onConfirm={p.onConfirm} onCancel={p.onCancel} />),
       close,
     })
+  const run = (write: () => Promise<unknown>) => {
+    setActionError(null)
+    void attemptWrite(write).then((result) => {
+      if (!result.ok) setActionError(result.message)
+    })
+  }
   const reorderable = active.length > 1
 
   return (
@@ -94,6 +103,12 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
             </div>
           )}
 
+          {actionError && (
+            <p role="alert" className="rounded-2xl bg-negative-soft px-4 py-3 text-[12.5px] font-semibold text-negative">
+              {actionError}
+            </p>
+          )}
+
           <FinancialCard>
             <p className="text-[13px] font-medium text-muted-foreground">Destinado a objetivos</p>
             <p className="mt-1 text-[32px] font-extrabold leading-none tracking-tight text-grafito tabular-nums">
@@ -121,8 +136,8 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
                     item={item}
                     showRank={reorderable}
                     onClick={() => edit(item.objective.id)}
-                    onMoveUp={reorderable ? (i > 0 ? () => void moveObjective(item.objective.id, -1) : undefined) : undefined}
-                    onMoveDown={reorderable ? (i < active.length - 1 ? () => void moveObjective(item.objective.id, 1) : undefined) : undefined}
+                    onMoveUp={reorderable ? (i > 0 ? () => run(() => moveObjective(item.objective.id, -1)) : undefined) : undefined}
+                    onMoveDown={reorderable ? (i < active.length - 1 ? () => run(() => moveObjective(item.objective.id, 1)) : undefined) : undefined}
                     onAchieve={() => confirmAchieved(item.objective)}
                   />
                 ))}
@@ -139,7 +154,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
                     key={item.objective.id}
                     item={item}
                     onClick={() => edit(item.objective.id)}
-                    onReactivate={() => void reactivateObjective(item.objective.id)}
+                    onReactivate={() => run(() => reactivateObjective(item.objective.id))}
                   />
                 ))}
               </FinancialCard>

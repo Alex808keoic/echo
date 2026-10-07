@@ -8,6 +8,7 @@ import { addObjective, deleteObjective, updateObjective } from '@/lib/db/objecti
 import { Button } from '../button'
 import { AmountInput, Field, TextInput } from '../field'
 import { Confirm } from '../confirm'
+import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
 
 interface ObjectiveFormProps {
@@ -31,6 +32,8 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
   const [date, setDate] = useState(objective?.targetDate ?? '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
+  /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   async function submit(e: FormEvent) {
@@ -45,13 +48,11 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
 
     const input: ObjectiveInput = { name, targetCents, targetDate: date || undefined }
     setBusy(true)
-    try {
-      if (objective) await updateObjective(objective.id, input)
-      else await addObjective(input)
-      onDone()
-    } finally {
-      setBusy(false)
-    }
+    setSaveError(null)
+    const result = await attemptWrite(() => (objective ? updateObjective(objective.id, input) : addObjective(input)))
+    setBusy(false)
+    if (result.ok) onDone()
+    else setSaveError(result.message)
   }
 
   if (objective && confirmingDelete) {
@@ -86,6 +87,12 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
       <Field label="Fecha objetivo (opcional)" error={errors.date}>
         <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+      {saveError && (
+        <p role="alert" className="text-[12.5px] font-medium text-negative">
+          {saveError}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-1">
         {objective && (
           <Button

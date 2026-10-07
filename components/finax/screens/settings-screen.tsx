@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { clearAllData, exportBackup, parseBackup, restoreBackup } from '@/lib/db/backup'
+import { exportErrorMessage } from '@/lib/db/storage-errors'
 import { loadDemoData } from '@/lib/db/demo-seed'
 import { browserTransport } from '@/lib/axis/ai/browser-transport'
 import { listUserMemories } from '@/lib/db/axis-memories'
@@ -86,7 +87,14 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const nothingStored = isEmpty && memoryCount === 0
 
   async function handleExport() {
-    const backup = await exportBackup()
+    let backup: Awaited<ReturnType<typeof exportBackup>>
+    try {
+      backup = await exportBackup()
+    } catch (error) {
+      console.error('Finax: no se ha podido exportar', error)
+      setMessage({ text: exportErrorMessage(error), error: true })
+      return
+    }
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

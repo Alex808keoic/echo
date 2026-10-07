@@ -18,6 +18,7 @@ import { Button } from '../button'
 import { FilterTabs } from '../filter-tabs'
 import { AmountInput, ChipGroup, Field, TextArea, TextInput } from '../field'
 import { Confirm } from '../confirm'
+import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
 
 const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
@@ -51,6 +52,8 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
   const [nota, setNota] = useState(movement?.nota ?? '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
+  /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const categories = categoriesFor(type)
@@ -85,13 +88,11 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
 
     const input: MovementInput = { type, amountCents, date, category, motivo, nota }
     setBusy(true)
-    try {
-      if (movement) await updateMovement(movement.id, input)
-      else await addMovement(input)
-      onDone()
-    } finally {
-      setBusy(false)
-    }
+    setSaveError(null)
+    const result = await attemptWrite(() => (movement ? updateMovement(movement.id, input) : addMovement(input)))
+    setBusy(false)
+    if (result.ok) onDone()
+    else setSaveError(result.message)
   }
 
   if (movement && confirmingDelete) {
@@ -139,6 +140,12 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
       <Field label="Nota (opcional)" hint="Solo se muestra en el detalle del movimiento.">
         <TextArea value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} />
       </Field>
+
+      {saveError && (
+        <p role="alert" className="text-[12.5px] font-medium text-negative">
+          {saveError}
+        </p>
+      )}
 
       <div className="flex gap-3 pt-1">
         {movement && (

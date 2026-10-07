@@ -8,6 +8,7 @@ import { addPosition, deletePosition, updatePosition } from '@/lib/db/positions'
 import { Button } from '../button'
 import { AmountInput, Field, TextInput } from '../field'
 import { Confirm } from '../confirm'
+import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
 
 interface PositionFormProps {
@@ -35,6 +36,8 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
   const [fromLiquid, setFromLiquid] = useState(position ? position.fromLiquid === true : true)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
+  /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   async function submit(e: FormEvent) {
@@ -53,13 +56,11 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
 
     const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid }
     setBusy(true)
-    try {
-      if (position) await updatePosition(position.id, input)
-      else await addPosition(input)
-      onDone()
-    } finally {
-      setBusy(false)
-    }
+    setSaveError(null)
+    const result = await attemptWrite(() => (position ? updatePosition(position.id, input) : addPosition(input)))
+    setBusy(false)
+    if (result.ok) onDone()
+    else setSaveError(result.message)
   }
 
   if (position && confirmingDelete) {
@@ -117,6 +118,12 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
           </span>
         </span>
       </label>
+      {saveError && (
+        <p role="alert" className="text-[12.5px] font-medium text-negative">
+          {saveError}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-1">
         {position && (
           <Button

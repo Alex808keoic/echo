@@ -6,6 +6,7 @@ import { setInitialBalance } from '@/lib/db/config'
 import { Button } from '../button'
 import { AmountInput, Field } from '../field'
 import { Confirm } from '../confirm'
+import { attemptWrite } from '@/lib/db/storage-errors'
 
 interface InitialBalanceFormProps {
   /** Saldo actual; ausente en el primer arranque. */
@@ -21,8 +22,9 @@ export function InitialBalanceForm({ currentCents, onDone }: InitialBalanceFormP
   const [value, setValue] = useState(currentCents !== undefined ? centsToInputValue(currentCents) : '')
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState<number | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
     const cents = parseBalanceToCents(value)
     if (cents === null) {
@@ -31,7 +33,10 @@ export function InitialBalanceForm({ currentCents, onDone }: InitialBalanceFormP
     }
     setError(undefined)
     if (currentCents === undefined) {
-      void setInitialBalance(cents).then(onDone)
+      setSaveError(null)
+      const result = await attemptWrite(() => setInitialBalance(cents))
+      if (result.ok) onDone()
+      else setSaveError(result.message)
     } else {
       setPending(cents)
     }
@@ -60,6 +65,11 @@ export function InitialBalanceForm({ currentCents, onDone }: InitialBalanceFormP
       >
         <AmountInput value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
       </Field>
+      {saveError && (
+        <p role="alert" className="text-[12.5px] font-medium text-negative">
+          {saveError}
+        </p>
+      )}
       <Button type="submit" fullWidth>
         {currentCents === undefined ? 'Empezar' : 'Guardar'}
       </Button>

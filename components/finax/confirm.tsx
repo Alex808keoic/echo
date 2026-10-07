@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { attemptWrite } from '@/lib/db/storage-errors'
 import { Button } from './button'
 
 interface ConfirmProps {
@@ -20,9 +21,16 @@ export function Confirm({
   onCancel,
 }: ConfirmProps) {
   const [busy, setBusy] = useState(false)
+  // Si la operación falla, se dice aquí y la hoja sigue abierta: se puede reintentar o cancelar.
+  const [error, setError] = useState<string | null>(null)
   return (
     <div className="space-y-5">
       <p className="text-[14px] font-medium leading-snug text-grafito/80 text-pretty">{message}</p>
+      {error && (
+        <p role="alert" className="text-[12.5px] font-medium text-negative">
+          {error}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
           Cancelar
@@ -33,11 +41,10 @@ export function Confirm({
           className={destructive ? 'bg-negative shadow-none hover:bg-negative/90' : undefined}
           onClick={async () => {
             setBusy(true)
-            try {
-              await onConfirm()
-            } finally {
-              setBusy(false)
-            }
+            setError(null)
+            const result = await attemptWrite(async () => onConfirm())
+            if (!result.ok) setError(result.message)
+            setBusy(false)
           }}
         >
           {confirmLabel}
