@@ -47,7 +47,8 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
   if (rate !== null && current.savingsCents >= 0) {
     const healthy = rate >= THRESHOLDS.healthySavingsRatePct
     // El primer objetivo pendiente en el orden del reparto: el que recibe primero el excedente.
-    const pendingObjective = ctx.objectives.find((o) => !o.completed)
+    // Con el líquido en negativo el reparto no asigna nada (lo explica `liquidity.negative`): no se nombra destino.
+    const pendingObjective = ctx.wealth.liquidCents >= 0 ? ctx.objectives.find((o) => !o.completed) : undefined
     const influence: Signal['profileInfluence'] = [
       ...(healthy && shortfall ? [{ field: 'minLiquidityCents' as const, sourceMemoryId: shortfall.sourceMemoryId, signalId: 'savings.healthy', effect: 'alternative-removed' as const }] : []),
     ]
