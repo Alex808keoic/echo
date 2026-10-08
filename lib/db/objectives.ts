@@ -62,6 +62,32 @@ export async function moveObjective(id: string, direction: -1 | 1): Promise<void
   })
 }
 
+/**
+ * Pone un objetivo activo el primero del reparto (el plan lo usa para el
+ * «Fondo de emergencia»). El resto conserva su orden relativo.
+ */
+export async function moveObjectiveToFirst(id: string): Promise<void> {
+  await db.transaction('rw', db.objectives, async () => {
+    const ordered = activeInOrder(await db.objectives.toArray())
+    const from = ordered.findIndex((o) => o.id === id)
+    if (from <= 0) return
+    const [target] = ordered.splice(from, 1)
+    await persistOrder([target, ...ordered], Date.now())
+  })
+}
+
+/** Crea un objetivo y lo pone el primero del reparto, en una sola transacción. */
+export async function addObjectiveFirst(input: ObjectiveInput): Promise<Objective> {
+  return db.transaction('rw', db.objectives, async () => {
+    const now = Date.now()
+    const objective: Objective = { ...normalize(input), currentCents: 0, id: newId(), createdAt: now, updatedAt: now }
+    const others = activeInOrder(await db.objectives.toArray())
+    await db.objectives.add(objective)
+    await persistOrder([objective, ...others], now)
+    return { ...objective, priority: 1 }
+  })
+}
+
 /** Marca «Conseguido»: sale del reparto y su parte pasa a los siguientes. */
 export async function markObjectiveAchieved(id: string, now: number = Date.now()): Promise<void> {
   await db.transaction('rw', db.objectives, async () => {

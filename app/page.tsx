@@ -12,6 +12,7 @@ import { ObjectivesScreen } from '@/components/finax/screens/objectives-screen'
 import { InvestmentsScreen } from '@/components/finax/screens/investments-screen'
 import { SettingsScreen } from '@/components/finax/screens/settings-screen'
 import { MemoryScreen } from '@/components/finax/screens/memory-screen'
+import { PlanScreen } from '@/components/finax/screens/plan-screen'
 import { Wordmark } from '@/components/finax/wordmark'
 import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
@@ -81,6 +82,7 @@ function App() {
           {screen === 'inversiones' && <InvestmentsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'ajustes' && <SettingsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'memoria' && <MemoryScreen overview={overview} onNavigate={navigate} onBack={back} />}
+          {screen === 'plan' && <PlanScreen overview={overview} onNavigate={navigate} onBack={back} />}
         </PhoneFrame>
       </div>
     </main>

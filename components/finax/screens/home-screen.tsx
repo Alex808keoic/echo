@@ -6,9 +6,11 @@ import { PERIODS, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
+import { useAllocationPlan } from '@/hooks/use-allocation-plan'
+import { planHeadline } from '@/lib/axis/plan/describe'
 import { Wordmark } from '../wordmark'
 import { IconButton, SectionHeader } from '../page-header'
-import { UserIcon, ArrowUp, ArrowDown } from '../icons'
+import { UserIcon, ArrowUp, ArrowDown, ChevronRight } from '../icons'
 import { EvolutionChart, seriesForRange } from '../charts/evolution-chart'
 import { AxisCard } from '../axis-card'
 import { GoalCard } from '../goal-card'
@@ -26,6 +28,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const [range, setRange] = useState<PeriodId>('1A')
   const { market } = useMarketContext(overview)
   const { state: axis } = useAxis(overview, { market })
+  const plan = useAllocationPlan(overview)
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />
@@ -119,6 +122,20 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         text={axisHeadline(axis)}
         onClick={() => onNavigate('axis')}
       />
+
+      {plan && (
+        <button
+          type="button"
+          onClick={() => onNavigate('plan')}
+          className="flex w-full items-center gap-3 rounded-3xl border border-border bg-card p-4 text-left shadow-[0_2px_14px_-8px_rgba(31,41,55,0.14)] transition-colors hover:bg-muted/40"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">Tu plan del mes</span>
+            <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{planHeadline(plan.plan, plan.decision.context.objectives)}</span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </button>
+      )}
 
       <section>
         <SectionHeader title="Tus objetivos" actionLabel="Ver todos" onAction={() => onNavigate('objetivos')} />
