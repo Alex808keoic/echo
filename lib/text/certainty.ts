@@ -81,7 +81,13 @@ const PUNCT_RE = /[.;:!?,\n()[\]«»"“”…]/g
 /** Divide un texto normalizado en cláusulas con su posición y si son condicionales. */
 export function splitClauses(normalized: string): Clause[] {
   const boundaries: Array<{ index: number; length: number; conditional: boolean }> = []
-  for (const m of normalized.matchAll(PUNCT_RE)) boundaries.push({ index: m.index ?? 0, length: m[0].length, conditional: false })
+  for (const m of normalized.matchAll(PUNCT_RE)) {
+    const i = m.index ?? 0
+    // El separador decimal o de miles de un importe («400,00 €», «1.300 €») no termina una cláusula:
+    // si lo hiciera, «invierte 400,00 € en un ETF» separaría el verbo de su destino.
+    if ((m[0] === ',' || m[0] === '.') && /\d/.test(normalized[i - 1] ?? '') && /\d/.test(normalized[i + 1] ?? '')) continue
+    boundaries.push({ index: i, length: m[0].length, conditional: false })
+  }
   for (const m of normalized.matchAll(MARKER_RE)) boundaries.push({ index: m.index ?? 0, length: 0, conditional: CONDITIONAL_MARKERS.includes(m[1]) })
   boundaries.sort((a, b) => a.index - b.index)
   const clauses: Clause[] = []

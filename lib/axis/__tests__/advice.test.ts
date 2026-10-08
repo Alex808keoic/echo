@@ -229,3 +229,18 @@ describe('AXIS · consejos · Decision First', () => {
     assert.deepEqual(kept.recommendation?.action, d.recommendation?.action)
   })
 })
+
+describe('importes con decimales o miles no parten la cláusula', () => {
+  const none = { objectives: [], positions: [], categories: [] }
+  it('«invierte 400,00 € en un ETF» sigue unido: el destino externo se detecta', () => {
+    for (const text of ['Puedes invertir 400,00 € al mes en un ETF del S&P 500.', 'Te recomiendo comprar 1.300 € de oro.']) {
+      const advice = extractAdvice(text, none)
+      assert.ok(advice.some((a) => a.target.kind === 'external'), `${text} → ${JSON.stringify(advice.map((a) => a.target))}`)
+    }
+  })
+
+  it('una coma normal sigue separando cláusulas', () => {
+    const advice = extractAdvice('Revisa tus gastos, y luego invierte en un ETF.', none)
+    assert.ok(advice.some((a) => a.verbClass === 'review' && a.target.kind !== 'external'))
+  })
+})
