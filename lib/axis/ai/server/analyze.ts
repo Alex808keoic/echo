@@ -43,6 +43,9 @@ import { buildChatGuard, validateChatReply } from '../../chat/semantic'
 import { diagnoseProposal, parseChatReply } from '../../chat/validate'
 import { withProfileProposal } from '../../chat/profile-proposal'
 import { extractionLabel } from '../../profile/extract'
+import { buildWeeklyBriefRequest, parseWeeklyBriefPhrasing, type WeeklyBriefPhrasing } from '../../brief/phrasing'
+import { validateWeeklyBriefPhrasing } from '../../brief/phrasing-validate'
+import type { WeeklyBrief } from '../../brief/weekly'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
 import { AXIS_AI_LIMITS } from './limits'
 
@@ -138,7 +141,7 @@ type Model = AxisLanguageModel | AIProvider | MarketAIProvider
 
 /* ------------------------------ diagnóstico ------------------------------ */
 
-export type AxisCallKind = 'analysis-legacy' | 'analysis-decision-first' | 'chat'
+export type AxisCallKind = 'analysis-legacy' | 'analysis-decision-first' | 'chat' | 'weekly-brief'
 
 const NUMERIC_FIELDS = ['status', 'promptTokens', 'completionTokens', 'totalTokens', 'neurons', 'limit', 'used', 'requested'] as const
 const TEXT_FIELDS = ['finishReason', 'limitType', 'retryAfter', 'limitRequests', 'limitTokens', 'remainingRequests', 'remainingTokens', 'resetRequests', 'resetTokens'] as const
@@ -281,6 +284,27 @@ export async function analyzeDecisionFirst(model: AxisLanguageModel, input: Axis
   }
   // Si respondió el fallback de la cadena, la etiqueta dice cuál.
   return parseAxisAnalysis(mergeExpression(decision, expression, answeredBy === model.id ? engine : aiEngine(answeredBy)))
+}
+
+/**
+ * WEEKLY BRIEF: el modelo solo redacta un `WeeklyBrief` ya construido por
+ * AXIS (lib/axis/brief). Recibe únicamente el contenido del Brief; la
+ * redacción se comprueba en forma (`parseWeeklyBriefPhrasing`) y frente al
+ * propio Brief (`validateWeeklyBriefPhrasing`). Cualquier fallo lanza: quien
+ * llama (`withWeeklyBriefPhrasing`) muestra el Brief determinista. En los logs,
+ * solo invariante y campo: ni textos del modelo ni cifras.
+ */
+export async function phraseWeeklyBrief(provider: Model, brief: WeeklyBrief, signal?: AbortSignal): Promise<WeeklyBriefPhrasing> {
+  if (brief.personal.kind === 'insufficient-data') throw new AIProviderError('malformed', 'sin datos suficientes para redactar')
+  const model = asLanguageModel(provider)
+  const { raw } = await completeLogged(model, buildWeeklyBriefRequest(brief), 'weekly-brief', signal)
+  const phrasing = parseWeeklyBriefPhrasing(raw)
+  const verdict = validateWeeklyBriefPhrasing(brief, phrasing)
+  if (!verdict.ok) {
+    console.warn('[axis] weekly-brief: redacción rechazada:', verdict.violations.map((v) => `${v.invariant}@${v.field}`).join(' | '))
+    throw new AIProviderError('malformed', `redacción no válida (${[...new Set(verdict.violations.map((v) => v.invariant))].join(', ')})`)
+  }
+  return phrasing
 }
 
 /**
