@@ -159,6 +159,7 @@ export function reconcileProfile(profile: UserProfile | ReconciledProfile, ctx: 
     ...(profile.riskAttitude !== undefined ? { riskAttitude: profile.riskAttitude } : {}),
     ...(profile.minLiquidityCents !== undefined ? { minLiquidityCents: profile.minLiquidityCents } : {}),
     ...(profile.irregularIncome !== undefined ? { irregularIncome: profile.irregularIncome } : {}),
+    ...(profile.adult !== undefined ? { adult: profile.adult } : {}),
     // Un ingreso previsto no depende de los datos actuales: se conserva tal cual (copiado).
     ...(profile.recurringIncomes !== undefined ? { recurringIncomes: profile.recurringIncomes.map((r) => ({ ...r })) } : {}),
     sources,

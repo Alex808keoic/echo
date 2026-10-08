@@ -153,3 +153,15 @@ describe('cuestionario · guardado (Dexie)', () => {
     assert.equal(answeredCount(deriveProfile(after)), 4)
   })
 })
+
+describe('la edad llega a la decisión', () => {
+  it('reconcileProfile conserva «adult» (como el resto de campos del cuestionario)', async () => {
+    const { reconcileProfile } = await import('../profile/derive')
+    const { buildFinancialContext } = await import('../context')
+    const { snapshot, TODAY } = await import('./fixtures')
+    const ctx = buildFinancialContext(snapshot(), TODAY)
+    const reconciled = reconcileProfile(deriveProfile([memory({ kind: 'adult', value: false }, 1)]), ctx)
+    assert.equal(reconciled.adult, false)
+    assert.equal(reconciled.sources.adult, 'old-1')
+  })
+})
