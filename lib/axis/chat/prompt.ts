@@ -14,6 +14,8 @@
  * de usuario como JSON.
  */
 import { detectSignals } from '../rules'
+import { decide } from '../core/decision'
+import { chatPlanOf, planForPrompt } from '../plan/chat'
 import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
@@ -51,6 +53,8 @@ export function buildChatRequest(input: ChatInput): AIRequest {
       ...(market ? { contexto_de_mercado: market } : {}),
       // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.
       ...(history ? { historico_de_movimientos: historyForPrompt(history) } : {}),
+      // Plan de reparto de Finax (fase 2d): recalculado aquí con los mismos datos; ningún dato nuevo.
+      plan_de_reparto: planForPrompt(chatPlanOf(decide({ context, market: market ?? null, memory }))),
     },
     memoria: {
       memorias_del_usuario: memory?.userMemories ?? [],

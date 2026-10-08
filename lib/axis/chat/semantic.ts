@@ -30,6 +30,7 @@ import type { KnownEntities } from '../../text/advice'
 import type { AxisAction, AxisDecision } from '../types'
 import type { ChatInput, ChatReply } from './types'
 import { historyFigures, monthsWithHistory } from './financial-history'
+import { chatPlanOf, planFigures, type ChatPlan } from '../plan/chat'
 
 /** Lo que la validación necesita del turno: la decisión de AXIS y las cifras que existen. */
 export interface ChatGuard {
@@ -38,6 +39,8 @@ export interface ChatGuard {
   entities: KnownEntities
   /** Meses (`YYYY-MM`) de los que hay datos de movimientos: el actual, el anterior y los cerrados del histórico. */
   monthsWithData: ReadonlySet<string>
+  /** Plan de reparto de este turno (fase 2d): sus cifras se pueden citar; si no invierte, no se puede proponer invertir. */
+  plan: ChatPlan
 }
 
 /**
@@ -58,12 +61,15 @@ export function buildChatGuard(input: ChatInput): ChatGuard {
     ...(decision.profile.fields.minLiquidityCents !== undefined ? [moneyFigure('Mínimo de liquidez que quieres mantener', decision.profile.fields.minLiquidityCents, 'context')] : []),
     ...historyFigures(input.history),
   ]
-  const figures = [...base.figures, ...extra]
+  // El plan sale de la misma decisión: sus importes (los de «Tu plan») se pueden citar.
+  const plan = chatPlanOf(decision)
+  const figures = [...base.figures, ...extra, ...planFigures(plan)]
   return {
     decision,
     allowed: { figures, keys: new Set(figures.map((f) => f.key)) },
     entities: knownEntities(decision),
     monthsWithData: monthsWithHistory(input.history, input.context.flows.current.key, input.context.flows.previous.key),
+    plan,
   }
 }
 
@@ -154,12 +160,28 @@ const OPPOSES: Partial<Record<AxisAction['verb'], ReadonlySet<AdviceVerbClass>>>
 /** Un consejo condicionado a que antes se cumpla algo («cuando…», «una vez…») no contradice la prioridad actual. */
 const CONDITIONAL = /\b(?:cuando|una vez|despues de|mas adelante|en el futuro|mas tarde|si ya|si antes|antes de nada)\b/
 
-function adviceViolations(text: string, clauses: AdviceClause[], decision: AxisDecision): string[] {
+/**
+ * El plan dice que este mes NO toca invertir (y por qué): bloqueado por líquido
+ * negativo, gasto o falta de ahorro; o colchón incompleto, horizonte corto o
+ * sin margen. Sin datos suficientes o sin perfil, el plan no lo sabe: no prohíbe.
+ */
+function planForbidsInvesting({ plan }: ChatPlan): boolean {
+  if (plan.status === 'blocked') return plan.blocker !== 'insufficient-data'
+  return plan.longTerm.reason === 'cushion-incomplete' || plan.longTerm.reason === 'short-horizon' || plan.longTerm.reason === 'no-room'
+}
+
+function adviceViolations(text: string, clauses: AdviceClause[], decision: AxisDecision, plan?: ChatPlan): string[] {
   const out: string[] = []
   for (const c of clauses) {
     if (c.negated) continue
     if (c.target.kind === 'external') {
       out.push(`destino externo «${c.target.text}»: ${c.clause}`)
+      continue
+    }
+    // Si el plan tiene un motivo firme para no invertir este mes, proponer invertir lo contradice.
+    const conditional = CONDITIONAL.test(sentenceHead(text, c.clause) + ' ' + normalizeForMatching(c.clause))
+    if (plan && planForbidsInvesting(plan) && (c.verbClass === 'invest' || c.verbClass === 'buy') && !conditional) {
+      out.push(`contradice tu plan (no invierte este mes): ${c.clause}`)
       continue
     }
     const action = decision.recommendation?.action
@@ -212,7 +234,7 @@ export function validateChatReply(reply: ChatReply, guard?: ChatGuard): Semantic
 
   const clauses = extractAdvice(text, guard.entities)
   for (const m of manualAllocations(text, clauses)) violations.push({ invariant: 'advice', field: 'reply', detail: `aportación manual a un objetivo: ${m}` })
-  for (const a of adviceViolations(text, clauses, guard.decision)) violations.push({ invariant: 'advice', field: 'reply', detail: a })
+  for (const a of adviceViolations(text, clauses, guard.decision, guard.plan)) violations.push({ invariant: 'advice', field: 'reply', detail: a })
 
   return violations.length === 0 ? { ok: true } : { ok: false, violations }
 }

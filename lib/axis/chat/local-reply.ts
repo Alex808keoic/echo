@@ -9,6 +9,8 @@
  */
 import { analyzeLocally, LOCAL_RULES_ENGINE_INFO } from '../local-engine'
 import { profileFromMemory } from '../profile/derive'
+import { decide } from '../core/decision'
+import { chatPlanOf, planLocalReply, PLAN_QUESTION } from '../plan/chat'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 const REASON_INTRO: Record<FallbackReason, string> = {
@@ -30,6 +32,12 @@ export function composeLocalReply(input: ChatInput, reason: FallbackReason, now:
       text: `${REASON_INTRO['no-data']} ${result.message}${needs ? `\n\nPara empezar necesito: ${needs}.` : ''}`,
       nextStep: result.nextStep,
     }
+  }
+
+  // Preguntas sobre qué hacer con el dinero: el plan de reparto (determinista, como en «Tu plan»).
+  if (PLAN_QUESTION.test(input.message)) {
+    const plan = chatPlanOf(decide({ context: input.context, market: input.market ?? null, memory: input.memory }))
+    return { ...base, text: `${REASON_INTRO[reason]} Esto es lo que dice tu plan:\n\n${planLocalReply(plan)}`, nextStep: { label: 'Ver tu plan', to: 'plan' } }
   }
 
   const { headline, interpretation, recommendation, conclusion } = result.analysis
