@@ -4,22 +4,46 @@
  *
  * - X proporcional al tiempo: dos días seguidos no ocupan lo mismo que dos
  *   meses (antes cada punto estaba a la misma distancia del anterior).
- * - Y siempre incluye el 0: el área rellena hasta el cero, así que una
- *   variación de 50 € sobre 8.000 € se ve pequeña y un patrimonio negativo
- *   queda por debajo de la línea base (antes el eje iba del mínimo al máximo
- *   de la serie y cualquier cambio ocupaba toda la altura, como si fuera una
- *   rentabilidad).
+ * - Y ajustado a la serie, con un ancho mínimo (`yDomain`): una variación de
+ *   49 € sobre 558 € se ve como una subida, pero 3 € sobre 558 € siguen casi
+ *   planos (la escala nunca es más estrecha que el 15 % del patrimonio). El 0
+ *   vuelve a la escala si la serie es negativa, lo cruza o se acerca a él.
+ *   (Con el 0 siempre en escala, un patrimonio lejos del cero se veía como
+ *   una línea plana sobre un bloque verde que no decía nada.)
  */
 export interface ChartGeometry {
   points: Array<readonly [number, number]>
-  /** Altura (en coordenadas del SVG) del valor 0: base del área rellena. */
-  zeroY: number
+  /** Base del área rellena: el 0 si está en escala; si no, el borde inferior (el área se desvanece, no marca una cantidad). */
+  baseY: number
+  /** Si el 0 está en la escala. */
+  zeroInScale: boolean
+}
+
+/** La escala nunca es más estrecha que esta fracción del valor absoluto mayor: así no se exageran cambios pequeños. */
+export const MIN_SPAN_RATIO = 0.15
+/** Con un mínimo por debajo de esta fracción del máximo, la serie está «cerca del cero» y el 0 entra en escala. */
+export const NEAR_ZERO_RATIO = 0.25
+
+/** Dominio vertical [lo, hi] para una serie. */
+export function yDomain(values: number[]): { lo: number; hi: number; zeroInScale: boolean } {
+  const vmin = Math.min(...values)
+  const vmax = Math.max(...values)
+  const nearZero = vmin <= 0 || vmax <= 0 || vmin <= vmax * NEAR_ZERO_RATIO
+  if (nearZero) {
+    const lo = Math.min(0, vmin)
+    const hi = Math.max(0, vmax)
+    return { lo, hi: hi > lo ? hi : lo + 1, zeroInScale: true }
+  }
+  const span = Math.max(vmax - vmin, Math.max(Math.abs(vmin), Math.abs(vmax)) * MIN_SPAN_RATIO)
+  const center = (vmax + vmin) / 2
+  // Al ensanchar por el centro, el borde inferior nunca baja del 0 (sería un cero que no está en escala).
+  const lo = Math.max(0, center - span / 2)
+  return { lo, hi: lo + span, zeroInScale: lo === 0 }
 }
 
 export function chartGeometry(values: number[], xs: number[] | null, width: number, height: number, padY: number): ChartGeometry {
-  const min = Math.min(0, ...values)
-  const max = Math.max(0, ...values)
-  const span = max - min || 1
+  const { lo: min, hi: max, zeroInScale } = yDomain(values)
+  const span = max - min
   const y = (v: number) => padY + (1 - (v - min) / span) * (height - padY * 2)
 
   const hasTime = xs !== null && xs.length === values.length && xs[xs.length - 1] > xs[0]
@@ -27,7 +51,7 @@ export function chartGeometry(values: number[], xs: number[] | null, width: numb
   const xSpan = hasTime ? xs[xs.length - 1] - xs[0] : values.length - 1 || 1
   const x = (i: number) => ((hasTime ? xs[i] - x0 : i) / xSpan) * width
 
-  return { points: values.map((v, i) => [x(i), y(v)] as const), zeroY: y(0) }
+  return { points: values.map((v, i) => [x(i), y(v)] as const), baseY: zeroInScale ? y(0) : height, zeroInScale }
 }
 
 /** Fecha `YYYY-MM-DD` → días (para el eje X). */

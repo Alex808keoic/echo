@@ -1,10 +1,10 @@
 /**
- * El gráfico de evolución dibuja fielmente la serie: tiempo proporcional, el
- * cero siempre en escala y un trazo suave que no inventa valores.
+ * El gráfico de evolución dibuja fielmente la serie: tiempo proporcional, la
+ * escala ajustada sin exagerar (el 0 cuando importa) y un trazo suave que no inventa valores.
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chartGeometry, dayNumber, smoothPath } from '../chart-geometry'
+import { chartGeometry, dayNumber, MIN_SPAN_RATIO, smoothPath, yDomain } from '../chart-geometry'
 
 const W = 340
 const H = 150
@@ -27,23 +27,53 @@ describe('geometría del gráfico de evolución', () => {
     assert.deepEqual(chartGeometry([1, 2, 3], [5, 5, 5], W, H, PAD).points.map(([x]) => x), [0, W / 2, W])
   })
 
-  it('el cero está siempre en escala: 50 € sobre 8.000 € apenas se mueven (antes ocupaban toda la altura)', () => {
-    const { points, zeroY } = chartGeometry([8_000, 8_050, 8_020], null, W, H, PAD)
-    assert.equal(zeroY, H - PAD, 'la base del área es el 0')
-    const ys = points.map(([, y]) => y)
-    assert.ok(Math.max(...ys) - Math.min(...ys) < 1, `variación dibujada: ${Math.max(...ys) - Math.min(...ys)} px`)
-    // Caso A/B: de 100 € a 1.100 € sí es casi toda la altura, porque lo es.
-    const b = chartGeometry([100, 1_100, 1_050], null, W, H, PAD).points.map(([, y]) => y)
-    assert.ok(b[0] - b[1] > (H - 2 * PAD) * 0.85)
+  const drawn = (values: number[]) => {
+    const ys = chartGeometry(values, null, W, H, PAD).points.map(([, y]) => y)
+    return (Math.max(...ys) - Math.min(...ys)) / (H - 2 * PAD)
+  }
+
+  it('lejos del cero, la escala se ajusta a la serie: +48,75 € sobre ~558 € se ven como una subida', () => {
+    // El caso real: con el 0 siempre en escala, esta variación ocupaba < 10 % de la altura (línea plana).
+    const { zeroInScale, baseY } = chartGeometry([509.4, 520, 515, 558.15], null, W, H, PAD)
+    assert.equal(zeroInScale, false)
+    assert.equal(baseY, H, 'sin 0 en escala, el área llega al borde inferior')
+    const share = drawn([509.4, 520, 515, 558.15])
+    assert.ok(share > 0.5 && share < 0.65, `ocupa ${Math.round(share * 100)} % de la altura`)
+  })
+
+  it('pero no exagera: la escala nunca es más estrecha que el 15 % del patrimonio', () => {
+    // 3 € sobre 558 € y 50 € sobre 8.000 € siguen casi planos.
+    assert.ok(drawn([555, 556, 558]) < 0.05)
+    assert.ok(drawn([8_000, 8_050, 8_020]) < 0.05)
+    const { lo, hi } = yDomain([555, 556, 558])
+    assert.ok(Math.abs(hi - lo - 558 * MIN_SPAN_RATIO) < 1e-9)
+    // Una serie constante no divide entre cero y queda en medio.
+    const flat = chartGeometry([500, 500, 500], null, W, H, PAD).points.map(([, y]) => y)
+    assert.ok(flat.every((y) => Math.abs(y - H / 2) < 1e-9))
+  })
+
+  it('cerca del cero, el 0 vuelve a la escala: de 100 € a 1.100 € es casi toda la altura, porque lo es', () => {
+    const { zeroInScale, baseY } = chartGeometry([100, 1_100, 1_050], null, W, H, PAD)
+    assert.equal(zeroInScale, true)
+    assert.equal(baseY, H - PAD, 'la base del área es el 0')
+    assert.ok(drawn([100, 1_100, 1_050]) > 0.85)
   })
 
   it('patrimonio negativo: queda por debajo de la base y el área rellena hasta el cero', () => {
     // Caso E: 100 → −200 → −150.
-    const { points, zeroY } = chartGeometry([100, -200, -150], null, W, H, PAD)
-    assert.ok(zeroY > PAD && zeroY < H - PAD, 'la base está entre el máximo y el mínimo')
-    assert.ok(points[0][1] < zeroY, '100 € por encima del cero')
-    assert.ok(points[1][1] > zeroY && points[2][1] > zeroY, 'los negativos por debajo')
+    const { points, baseY, zeroInScale } = chartGeometry([100, -200, -150], null, W, H, PAD)
+    assert.equal(zeroInScale, true)
+    assert.ok(baseY > PAD && baseY < H - PAD, 'la base está entre el máximo y el mínimo')
+    assert.ok(points[0][1] < baseY, '100 € por encima del cero')
+    assert.ok(points[1][1] > baseY && points[2][1] > baseY, 'los negativos por debajo')
     assert.equal(points[1][1], H - PAD, 'el mínimo, abajo del todo')
+    // Todo negativo: el 0 arriba.
+    assert.equal(chartGeometry([-500, -300], null, W, H, PAD).baseY, PAD)
+  })
+
+  it('al ensanchar la escala, el borde inferior nunca baja del 0', () => {
+    const { lo } = yDomain([30, 34])
+    assert.ok(lo >= 0)
   })
 
   it('el trazo suave nunca se sale de los valores reales ni retrocede en el tiempo', () => {
