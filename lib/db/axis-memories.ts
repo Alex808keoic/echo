@@ -6,7 +6,7 @@
  * borra con «Borrar todos los datos». La lógica (duplicados, actualización,
  * secretos, tope) vive en lib/axis/chat/memory.ts; aquí solo se persiste.
  */
-import { applyProposal, type ApplyOutcome } from '../axis/chat/memory'
+import { applyProposal, applyProposals, type ApplyOutcome } from '../axis/chat/memory'
 import type { MemoryProposal, UserMemory } from '../axis/chat/types'
 import { db, newId } from './db'
 
@@ -36,6 +36,29 @@ export async function saveAcceptedProposal(proposal: MemoryProposal, now: number
     await Promise.all(current.filter((m) => !keep.has(m.id)).map((m) => db.axisMemories.delete(m.id)))
     await db.axisMemories.bulkPut(outcome.memories)
     return outcome
+  })
+}
+
+/**
+ * Guarda varias propuestas en una sola transacción (el cuestionario de perfil):
+ * o se guardan todas o ninguna. Igual que `saveAcceptedProposal`, nunca
+ * olvida en silencio: si el tope obliga a olvidar memorias no confirmadas,
+ * no escribe y devuelve `needs-confirmation` con ellas.
+ */
+export async function saveMemoryProposals(
+  proposals: readonly MemoryProposal[],
+  now: number = Date.now(),
+  confirmedEvictions: readonly string[] = [],
+): Promise<{ action: 'saved' } | { action: 'rejected' } | { action: 'needs-confirmation'; evicted: UserMemory[] }> {
+  return db.transaction('rw', db.axisMemories, async () => {
+    const current = await db.axisMemories.toArray()
+    const outcome = applyProposals(current, proposals, now, newId)
+    if (outcome.action === 'rejected') return { action: 'rejected' as const }
+    if (outcome.evicted.some((m) => !confirmedEvictions.includes(m.id))) return { action: 'needs-confirmation' as const, evicted: outcome.evicted }
+    const keep = new Set(outcome.memories.map((m) => m.id))
+    await Promise.all(current.filter((m) => !keep.has(m.id)).map((m) => db.axisMemories.delete(m.id)))
+    await db.axisMemories.bulkPut(outcome.memories)
+    return { action: 'saved' as const }
   })
 }
 

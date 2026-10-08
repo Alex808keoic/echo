@@ -19,7 +19,7 @@ export type Horizon = (typeof HORIZONS)[number]
 export const RISK_ATTITUDES = ['conservative', 'balanced', 'dynamic'] as const
 export type RiskAttitude = (typeof RISK_ATTITUDES)[number]
 
-export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities', 'recurringIncome'] as const
+export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities', 'recurringIncome', 'adult'] as const
 export type MemoryFactKind = (typeof MEMORY_FACT_KINDS)[number]
 
 /**
@@ -50,6 +50,8 @@ export type MemoryFact =
   | { kind: 'irregularIncome'; value: boolean }
   | { kind: 'priorities'; objectiveIds: string[] }
   | { kind: 'recurringIncome'; cents: number; frequency: RecurringIncomeFrequency; category: RecurringIncomeCategory }
+  /** Mayor de edad (cuestionario de perfil). Solo cambia cómo se explica la parte de inversión: un menor invierte a través de un adulto. */
+  | { kind: 'adult'; value: boolean }
 
 /**
  * Un ingreso recurrente del perfil. Es una PREVISIÓN declarada por el usuario:
@@ -64,7 +66,7 @@ export interface RecurringIncome {
   sourceMemoryId: string
 }
 
-export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities' | 'recurringIncomes'
+export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities' | 'recurringIncomes' | 'adult'
 
 export interface ProfileConflict {
   kind: MemoryFactKind
@@ -83,6 +85,8 @@ export interface UserProfile {
   priorities?: string[]
   /** Ingresos recurrentes declarados: como mucho uno por categoría, en el orden de `RECURRING_INCOME_CATEGORIES`. */
   recurringIncomes?: RecurringIncome[]
+  /** Mayor de edad, si lo ha indicado (cuestionario de perfil). */
+  adult?: boolean
   /** Trazabilidad: id de la memoria que aporta cada campo (los ingresos recurrentes la llevan en cada elemento). */
   sources: Partial<Record<ProfileField, string>>
   conflicts: ProfileConflict[]
@@ -151,6 +155,7 @@ export function isValidMemoryFact(v: unknown): v is MemoryFact {
     case 'minLiquidity':
       return keys.join() === 'cents,kind' && Number.isInteger(v.cents) && (v.cents as number) >= PROFILE_LIMITS.MIN_LIQUIDITY_MIN_CENTS && (v.cents as number) <= PROFILE_LIMITS.MIN_LIQUIDITY_MAX_CENTS
     case 'irregularIncome':
+    case 'adult':
       return keys.join() === 'kind,value' && typeof v.value === 'boolean'
     case 'priorities': {
       if (keys.join() !== 'kind,objectiveIds' || !Array.isArray(v.objectiveIds)) return false

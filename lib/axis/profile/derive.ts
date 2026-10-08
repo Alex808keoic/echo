@@ -128,6 +128,10 @@ function apply(profile: UserProfile, fact: MemoryFact, sourceId: string): void {
     case 'recurringIncome':
       profile.recurringIncomes = [...(profile.recurringIncomes ?? []), { category: fact.category, cents: fact.cents, frequency: fact.frequency, sourceMemoryId: sourceId }]
       return
+    case 'adult':
+      profile.adult = fact.value
+      profile.sources.adult = sourceId
+      return
   }
 }
 

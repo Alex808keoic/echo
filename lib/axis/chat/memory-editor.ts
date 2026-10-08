@@ -17,7 +17,7 @@
  */
 import { formatShortDate, toISODate } from '../../dates'
 import { buildEditedProposal, contentForFact, draftFor, isEditableFact, type EditableFact, type ProposalDraft } from './profile-proposal'
-import { applyProposal, isSavableProposal, normalizeMemoryContent } from './memory'
+import { applyProposal, applyProposals, isSavableProposal, normalizeMemoryContent } from './memory'
 import { looksLikeSecret } from './secrets'
 import { CHAT_LIMITS, type MemoryProposal, type MemorySource, type UserMemory } from './types'
 import type { MemoryFact, RecurringIncomeCategory } from '../profile/types'
@@ -119,6 +119,13 @@ export function evictionPreview(memories: UserMemory[], proposal: MemoryProposal
   return outcome.action === 'created' ? outcome.evicted : []
 }
 
+/** Igual que `evictionPreview`, para varias propuestas guardadas a la vez (cuestionario de perfil). */
+export function evictionPreviewAll(memories: UserMemory[], proposals: readonly MemoryProposal[], now: number = Date.now()): UserMemory[] {
+  let n = 0
+  const outcome = applyProposals(memories, proposals, now, () => `__vista_previa_${n++}__`)
+  return outcome.action === 'applied' ? outcome.evicted : []
+}
+
 /* ------------------------------ pantalla ------------------------------ */
 
 export interface MemoryView {
@@ -153,12 +160,14 @@ export function memoryUsage(fact: MemoryFact | undefined): string {
     case 'minLiquidity':
       return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero líquido baja de esta cifra, te propone completar ese colchón antes que otros fines.'
     case 'irregularIncome':
-      return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. Es una memoria antigua: se puede borrar, pero no editar.'
+      return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. Se cambia desde «Tu perfil».'
     case 'priorities':
       return 'Ya no cambia el orden de tus objetivos: AXIS sigue el orden que tienen en Finax, que es el que usa el reparto automático. Es una memoria antigua: se puede borrar, pero no editar.'
     case 'horizon':
     case 'riskAttitude':
-      return 'AXIS solo lo usa para matizar cómo te explica algunas lecturas de inversión; no cambia sus recomendaciones. Es una memoria antigua: se puede borrar, pero no editar.'
+      return 'AXIS solo lo usa para matizar cómo te explica algunas lecturas de inversión; no cambia sus recomendaciones. Se cambia desde «Tu perfil».'
+    case 'adult':
+      return 'AXIS no lo usa para decidir nada: solo para explicarte bien la parte de inversión. Se cambia desde «Tu perfil».'
   }
 }
 

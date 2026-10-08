@@ -38,5 +38,7 @@ export function describeFact(fact: MemoryFact, objectiveName: (id: string) => st
     }
     case 'recurringIncome':
       return `Ingreso recurrente: ${formatCents(fact.cents)} ${FREQUENCY_LABEL[fact.frequency]} · ${fact.category}`
+    case 'adult':
+      return fact.value ? 'Mayor de edad' : 'Menor de edad'
   }
 }

@@ -15,6 +15,9 @@ import { Confirm } from '../confirm'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { MemoryForm } from '../forms/memory-form'
+import { ProfileForm } from '../forms/profile-form'
+import { deriveProfile } from '@/lib/axis/profile/derive'
+import { answeredCount, PROFILE_QUESTIONS } from '@/lib/axis/profile/questionnaire'
 import { LeafLogo, PlusIcon, TrashIcon } from '../icons'
 import type { ScreenProps } from './types'
 
@@ -32,7 +35,10 @@ export function MemoryScreen({ onBack }: ScreenProps) {
   const describe = (fact: MemoryFact) => describeFact(fact, (id) => objectives?.find((o) => o.id === id)?.name)
   const { facts, notes } = groupMemories(memories, describe)
   const openNew = () => open('Añadir memoria', <MemoryForm memories={memories} onDone={close} />)
-  const openEdit = (m: UserMemory) => open('Editar memoria', <MemoryForm memory={m} memories={memories} onDone={close} />)
+  const openProfile = () => open('Tu perfil', <ProfileForm memories={memories} onDone={close} />)
+  // Los datos del cuestionario (horizonte, riesgo, ingresos, edad) se cambian desde el cuestionario.
+  const openEdit = (m: UserMemory) =>
+    m.fact && PROFILE_QUESTIONS.some((q) => q.id === m.fact?.kind) ? openProfile() : open('Editar memoria', <MemoryForm memory={m} memories={memories} onDone={close} />)
   const confirmDelete = (v: MemoryView) =>
     open(
       '¿Eliminar esta memoria?',
@@ -60,6 +66,8 @@ export function MemoryScreen({ onBack }: ScreenProps) {
           </IconButton>
         }
       />
+
+      <ProfileCard memories={memories} onOpen={openProfile} />
 
       {memories.length === 0 ? (
         <EmptyState
@@ -121,5 +129,29 @@ function Section({ title, items, onEdit, onDelete }: { title: string; items: Mem
         ))}
       </ul>
     </section>
+  )
+}
+
+/** «Tu perfil»: cuántas preguntas del cuestionario tiene respondidas y acceso a responderlas o cambiarlas. */
+function ProfileCard({ memories, onOpen }: { memories: UserMemory[]; onOpen: () => void }) {
+  const answered = answeredCount(deriveProfile(memories))
+  const total = PROFILE_QUESTIONS.length
+  const complete = answered === total
+  return (
+    <FinancialCard className="space-y-3">
+      <div>
+        <p className="text-[15px] font-bold text-grafito">Tu perfil</p>
+        <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
+          {answered === 0
+            ? `${total} preguntas rápidas sobre tus plazos, cómo llevas el riesgo, tus ingresos y tu edad.`
+            : complete
+              ? 'Has respondido todas las preguntas. Puedes cambiarlas cuando quieras.'
+              : `Has respondido ${answered} de ${total} preguntas.`}
+        </p>
+      </div>
+      <Button variant={complete ? 'secondary' : 'primary'} fullWidth onClick={onOpen}>
+        {answered === 0 ? 'Responder' : complete ? 'Cambiar respuestas' : 'Completar'}
+      </Button>
+    </FinancialCard>
   )
 }

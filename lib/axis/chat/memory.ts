@@ -55,6 +55,28 @@ export type ApplyOutcome =
   | { action: 'rejected'; reason: string; memories: UserMemory[] }
 
 /**
+ * Varias propuestas seguidas (el cuestionario de perfil), con la misma lógica
+ * que una a una. Todo o nada: si alguna no es guardable, no se aplica ninguna.
+ * `evicted` reúne las memorias que se olvidarían por el tope, para confirmarlas antes.
+ */
+export function applyProposals(
+  memories: UserMemory[],
+  proposals: readonly MemoryProposal[],
+  now: number,
+  newId: () => string,
+): { action: 'applied'; memories: UserMemory[]; evicted: UserMemory[] } | { action: 'rejected'; reason: string; memories: UserMemory[] } {
+  let current = memories
+  const evicted: UserMemory[] = []
+  for (const proposal of proposals) {
+    const outcome = applyProposal(current, proposal, now, newId)
+    if (outcome.action === 'rejected') return { action: 'rejected', reason: outcome.reason, memories }
+    if (outcome.action === 'created') evicted.push(...outcome.evicted.filter((m) => memories.some((o) => o.id === m.id)))
+    current = outcome.memories
+  }
+  return { action: 'applied', memories: current, evicted }
+}
+
+/**
  * Hueco que ocupa un hecho en el perfil: como mucho una memoria por hueco.
  * Uno por clase de hecho, salvo los ingresos recurrentes: uno por categoría
  * (la paga y los regalos conviven; dos «paga» se sustituyen).
