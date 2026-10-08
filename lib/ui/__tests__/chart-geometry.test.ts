@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chartGeometry, dayNumber, MIN_SPAN_RATIO, smoothPath, yDomain } from '../chart-geometry'
+import { chartGeometry, dayNumber, formatTick, MAX_TICKS, MIN_SPAN_RATIO, niceTicks, smoothPath, yDomain } from '../chart-geometry'
 
 const W = 340
 const H = 150
@@ -91,5 +91,42 @@ describe('geometría del gráfico de evolución', () => {
         assert.ok(cy >= lo - 1e-9 && cy <= hi + 1e-9, `tramo ${i}: el trazo se sale de los valores (${cy} fuera de ${lo}..${hi})`)
       }
     })
+  })
+})
+
+describe('eje vertical con valores redondos', () => {
+  const axis = (values: number[]) => {
+    const g = chartGeometry(values, null, W, H, PAD)
+    return g.ticks.map((t) => formatTick(t.value, g.tickStep))
+  }
+
+  it('de 300 € a 700 €: de 100 en 100', () => {
+    assert.deepEqual(axis([500, 300, 700, 500]), ['300 €', '400 €', '500 €', '600 €', '700 €'])
+  })
+
+  it('el caso real (~509 € a 558 €): saltos de 20 €', () => {
+    assert.deepEqual(axis([509.4, 520, 515, 558.15]), ['500 €', '520 €', '540 €', '560 €'])
+  })
+
+  it('el salto depende de la diferencia: miles, negativos y céntimos', () => {
+    assert.deepEqual(axis([12_000, 13_500, 18_250]), ['12.000 €', '14.000 €', '16.000 €', '18.000 €'])
+    assert.deepEqual(axis([100, -200, -150, 558.15]), ['-200 €', '0 €', '200 €', '400 €'])
+    assert.deepEqual(niceTicks(1, 1.4).ticks, [1, 1.1, 1.2, 1.3, 1.4])
+    assert.equal(formatTick(1.1, 0.1), '1,1 €')
+  })
+
+  it('siempre entre 2 y 5 valores, dentro de la escala y a su altura', () => {
+    const series = [[1, 2, 3], [500, 500, 500], [0, 0, 50], [-500, -300], [8_000, 8_050], [0.5, 0.7, 0.9], [1_000_000, 1_250_000]]
+    for (const values of series) {
+      const g = chartGeometry(values, null, W, H, PAD)
+      const { lo, hi } = yDomain(values)
+      assert.ok(g.ticks.length >= 2 && g.ticks.length <= MAX_TICKS, `${values}: ${g.ticks.length} valores`)
+      for (const t of g.ticks) {
+        assert.ok(t.value >= lo - 1e-9 && t.value <= hi + 1e-9, `${values}: ${t.value} fuera de ${lo}..${hi}`)
+        assert.ok(t.y >= PAD - 1e-9 && t.y <= H - PAD + 1e-9)
+      }
+      // Valores redondos: múltiplos exactos del salto.
+      for (const t of g.ticks) assert.ok(Math.abs(t.value / g.tickStep - Math.round(t.value / g.tickStep)) < 1e-6)
+    }
   })
 })

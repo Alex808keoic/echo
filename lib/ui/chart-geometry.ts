@@ -17,6 +17,20 @@ export interface ChartGeometry {
   baseY: number
   /** Si el 0 está en la escala. */
   zeroInScale: boolean
+  /** Valores redondos del eje vertical (`niceTicks`) y su altura en el SVG. */
+  ticks: Array<{ value: number; y: number }>
+  /** Salto entre valores del eje (para decidir cuántos decimales mostrar). */
+  tickStep: number
+}
+
+/** Valor del eje en euros, sin decimales salvo que el salto los necesite: «500 €», «1.250 €», «2,5 €». */
+export function formatTick(value: number, step: number): string {
+  const decimals = step >= 1 && Number.isInteger(step) ? 0 : step >= 0.1 ? 1 : 2
+  const abs = Math.abs(value).toFixed(decimals)
+  const [int, dec] = abs.split('.')
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const sign = value < 0 && Number(abs) !== 0 ? '-' : ''
+  return `${sign}${grouped}${dec ? `,${dec}` : ''} €`
 }
 
 /** La escala nunca es más estrecha que esta fracción del valor absoluto mayor: así no se exageran cambios pequeños. */
@@ -41,17 +55,69 @@ export function yDomain(values: number[]): { lo: number; hi: number; zeroInScale
   return { lo, hi: lo + span, zeroInScale: lo === 0 }
 }
 
+/** Como mucho tantos valores en el eje vertical (en 150 px de alto, más se amontonan). */
+export const MAX_TICKS = 5
+const NICE_FACTORS = [1, 2, 2.5, 5]
+
+/** Pasos «redondos» crecientes a partir de `from`: 1, 2, 2,5, 5 por potencia de 10 (… 25, 50, 100, 250 …). */
+function* niceSteps(from: number): Generator<number> {
+  let exp = Math.floor(Math.log10(from))
+  for (;;) {
+    for (const f of NICE_FACTORS) {
+      const step = f * 10 ** exp
+      if (step >= from * (1 - 1e-9)) yield step
+    }
+    exp++
+  }
+}
+
+/**
+ * Valores redondos del eje vertical dentro de [lo, hi]: el paso redondo más
+ * pequeño que deja como mucho `MAX_TICKS` valores (y al menos 2). El dominio
+ * no se amplía: los valores caen donde caen y la línea conserva su altura.
+ */
+export function niceTicks(lo: number, hi: number): { step: number; ticks: number[] } {
+  const span = hi - lo
+  const ticksFor = (step: number) => {
+    const out: number[] = []
+    // Redondeo para que 0,1 + 0,2 no dé 0,30000000000000004.
+    const decimals = Math.max(0, -Math.floor(Math.log10(step)) + 1)
+    for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) out.push(Number(v.toFixed(decimals)))
+    return out
+  }
+  for (const step of niceSteps(span / MAX_TICKS)) {
+    const ticks = ticksFor(step)
+    if (ticks.length <= MAX_TICKS) {
+      if (ticks.length >= 2) return { step, ticks }
+      break
+    }
+  }
+  // Muy pocos valores con el paso mínimo: el siguiente paso más pequeño garantiza al menos 2.
+  for (const step of niceSteps(span / (MAX_TICKS * 4))) {
+    const ticks = ticksFor(step)
+    if (ticks.length >= 2 && ticks.length <= MAX_TICKS) return { step, ticks }
+  }
+  return { step: span, ticks: [lo, hi] }
+}
+
 export function chartGeometry(values: number[], xs: number[] | null, width: number, height: number, padY: number): ChartGeometry {
   const { lo: min, hi: max, zeroInScale } = yDomain(values)
   const span = max - min
   const y = (v: number) => padY + (1 - (v - min) / span) * (height - padY * 2)
+  const { step, ticks } = niceTicks(min, max)
 
   const hasTime = xs !== null && xs.length === values.length && xs[xs.length - 1] > xs[0]
   const x0 = hasTime ? xs[0] : 0
   const xSpan = hasTime ? xs[xs.length - 1] - xs[0] : values.length - 1 || 1
   const x = (i: number) => ((hasTime ? xs[i] - x0 : i) / xSpan) * width
 
-  return { points: values.map((v, i) => [x(i), y(v)] as const), baseY: zeroInScale ? y(0) : height, zeroInScale }
+  return {
+    points: values.map((v, i) => [x(i), y(v)] as const),
+    baseY: zeroInScale ? y(0) : height,
+    zeroInScale,
+    ticks: ticks.map((value) => ({ value, y: y(value) })),
+    tickStep: step,
+  }
 }
 
 /** Fecha `YYYY-MM-DD` → días (para el eje X). */
