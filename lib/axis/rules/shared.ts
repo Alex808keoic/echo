@@ -144,7 +144,7 @@ const isCount = (n: unknown): n is number => Number.isSafeInteger(n) && (n as nu
  * negativas (el contexto puede llegar del cliente), los más recientes primero,
  * como mucho `MAX_USUAL_EXPENSE_MONTHS`.
  */
-function usualExpenseMonths(closedMonths: readonly ClosedMonth[] | undefined): ClosedMonth[] {
+export function usualExpenseMonths(closedMonths: readonly ClosedMonth[] | undefined): ClosedMonth[] {
   return (Array.isArray(closedMonths) ? closedMonths : [])
     .filter((m) => typeof m?.key === 'string' && isCount(m.expenseCents) && isCount(m.movementCount) && m.movementCount > 0)
     .sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0))
