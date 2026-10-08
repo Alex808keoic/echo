@@ -17,12 +17,12 @@ const POSITIVES: Array<[string, MemoryFact]> = [
   // Formatos de importe.
   ['Me dan 35€ de paga al mes', income(3_500, 'Paga')],
   ['Mi paga es de 35 euros al mes', income(3_500, 'Paga')],
-  ['Cobro 1.200 € al mes', income(120_000, 'Paga')],
-  ['Mi nómina es de 1.234,56 € al mes', income(123_456, 'Paga')],
-  ['Me pagan 35.50 € cada mes', income(3_550, 'Paga')],
-  ['Tengo un sueldo de 900 € mensuales', income(90_000, 'Paga')],
-  ['Cobro 600 €/mes', income(60_000, 'Paga')],
-  ['Mi padre me paga 35 € al mes', income(3_500, 'Paga')],
+  // Sueldo, nómina o cobro del propio usuario: Otros, nunca Paga.
+  ['Cobro 1.200 € al mes', income(120_000, 'Otros')],
+  ['Mi nómina es de 1.234,56 € al mes', income(123_456, 'Otros')],
+  ['Tengo un sueldo de 900 € mensuales', income(90_000, 'Otros')],
+  ['Cobro 600 €/mes', income(60_000, 'Otros')],
+  ['Mi padre me da 35 € de paga al mes', income(3_500, 'Paga')],
   ['Todos los meses me regalan 20 €', income(2_000, 'Regalos')],
   ['Mi abuela me da 20 € al mes de regalo', income(2_000, 'Regalos')],
   ['Recibo 50 € al mes de otros ingresos', income(5_000, 'Otros')],
@@ -37,6 +37,12 @@ const AMBIGUOUS: Array<[string, AmbiguityReason]> = [
   ['Me dan 35 € al mes', 'no-category'],
   ['Gano 1.200 € al mes', 'no-category'],
   ['Me ingresan 35 € al mes', 'no-category'],
+  // «Me paga(n)» es un verbo: no dice que sea una paga.
+  ['Me pagan 35.50 € cada mes', 'no-category'],
+  ['Mi padre me paga 35 € al mes', 'no-category'],
+  // Sueldo, nómina o cobro sin dueño claro: abstenerse.
+  ['El sueldo es de 1.500 € al mes', 'unclear-owner'],
+  ['El cobro de 500 € al mes llega el día 5', 'unclear-owner'],
   ['Me dan entre 30 y 40 € de paga al mes', 'multiple-amounts'],
   ['Me dan 35 € de paga al mes y 50 € en verano', 'multiple-amounts'],
   ['Me dan unos 35 € de paga al mes', 'approximate'],
@@ -137,5 +143,56 @@ describe('extractor · propiedades', () => {
 
   it('la etiqueta del log nunca lleva importes', () => {
     for (const [m] of [...POSITIVES, ...AMBIGUOUS]) assert.doesNotMatch(extractionLabel(extractProfileFacts(m)), /\d/)
+  })
+})
+
+/**
+ * Casos fijados en la revisión de la fase 2: dato completo, candidato parcial
+ * (sin categoría, fuera de `MemoryFact`) o nada estructurado.
+ */
+describe('extractor · casos de referencia', () => {
+  const complete: Array<[string, MemoryFact]> = [
+    ['Cada mes me dan 35 € de paga.', income(3_500, 'Paga')],
+    ['Cada mes recibo 50 € de regalos.', income(5_000, 'Regalos')],
+    ['Tengo otro ingreso de 100 € al mes.', income(10_000, 'Otros')],
+    // «cobro» en primera persona: del usuario, así que Otros; nunca Paga.
+    ['Cobro 500 € al mes.', income(50_000, 'Otros')],
+  ]
+  for (const [message, expected] of complete) {
+    it(`dato completo: ${message}`, () => {
+      const e = extractProfileFacts(message)
+      assert.deepEqual(e.candidates, [expected])
+      assert.equal(e.incomplete, null)
+    })
+  }
+
+  it('candidato parcial sin categoría: «Me dan 35 € al mes.»', () => {
+    const e = extractProfileFacts('Me dan 35 € al mes.')
+    assert.deepEqual(e.candidates, [])
+    assert.deepEqual(e.incomplete, { kind: 'recurringIncome', cents: 3_500, frequency: 'monthly' })
+    // El candidato parcial no es un MemoryFact: le falta la categoría.
+    assert.equal(isValidMemoryFact(e.incomplete as unknown as MemoryFact), false)
+  })
+
+  for (const message of [
+    'A mi hermano le dan 35 € al mes.',
+    'Me gustaría cobrar 500 € al mes.',
+    'Quizá me den 35 €.',
+    'Me daban 35 € al mes.',
+    'Pago 35 € al mes de gimnasio.',
+    'Tengo que ahorrar 1.000 €.',
+  ]) {
+    it(`ningún dato estructurado: ${message}`, () => {
+      const e = extractProfileFacts(message)
+      assert.deepEqual(e.candidates, [])
+      assert.equal(e.incomplete, null)
+    })
+  }
+
+  it('sueldo, nómina o cobro nunca se clasifican como Paga', () => {
+    for (const m of ['Cobro 500 € al mes.', 'Mi sueldo es de 1.500 € al mes', 'Mi nómina es de 900 € al mes', 'Voy a cobrar 600 € al mes']) {
+      const [fact] = extractProfileFacts(m).candidates
+      assert.ok(!fact || (fact.kind === 'recurringIncome' && fact.category !== 'Paga'), m)
+    }
   })
 })

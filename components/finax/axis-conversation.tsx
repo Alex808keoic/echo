@@ -16,7 +16,7 @@ import { describeFact } from '@/lib/axis/profile/describe'
 import { replacementFor } from '@/lib/axis/chat/memory'
 import { evictionPreview } from '@/lib/axis/chat/memory-editor'
 import { RECURRING_INCOME_CATEGORIES, type MemoryFact } from '@/lib/axis/profile/types'
-import { buildEditedProposal, draftFor, validationMessage, type ProposalDraft } from '@/lib/axis/chat/profile-proposal'
+import { buildEditedProposal, draftFor, noteOnlyProposal, offersNoteOnly, validationMessage, type ProposalDraft } from '@/lib/axis/chat/profile-proposal'
 import { listObjectives } from '@/lib/db/objectives'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -100,6 +100,8 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
   const [touched, setTouched] = useState(false)
   // Memorias que AXIS olvidaría al llegar al tope: se enseñan y se confirman antes de guardar.
   const [evicting, setEvicting] = useState<UserMemory[] | null>(null)
+  // Qué se estaba guardando cuando hubo que confirmar olvidos: «Recordar y olvidar» repite esa misma elección.
+  const [pendingChoice, setPendingChoice] = useState<'remember' | 'note'>('remember')
   if (!proposal) return null
   if (proposal.status !== 'pending') {
     return (
@@ -121,17 +123,21 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
   }
   // Lo mismo que hará `applyProposal` al aceptar: si sustituye un dato, se enseña antes de confirmar.
   const replaces = final ? replacementFor(final, memories).replacedFacts : []
-  const resolve = async (accept: boolean, confirmed: readonly string[] = []) => {
-    const toSave = accept && final ? final : original
+  // «Guardar solo como nota»: el texto, sin el dato estructurado (ni el candidato sin categoría).
+  const note = noteOnlyProposal(original)
+  const resolve = async (choice: 'remember' | 'note' | 'reject', confirmed: readonly string[] = []) => {
+    const accept = choice !== 'reject'
+    const toSave = choice === 'note' ? note : accept && final ? final : original
     setBusy(true)
     try {
       // Llegar al tope olvidaría alguna memoria: primero se pregunta, con las memorias guardadas AHORA.
       const evicted = accept ? evictionPreview(await listUserMemories(), toSave) : []
       if (accept && evicted.some((m) => !confirmed.includes(m.id))) {
+        setPendingChoice(choice === 'note' ? 'note' : 'remember')
         setEvicting(evicted)
         return
       }
-      const result = await onResolve(accept, accept && final && draft ? final : undefined, confirmed)
+      const result = await onResolve(accept, choice === 'note' ? note : accept && final && draft ? final : undefined, confirmed)
       // La lista cambió entre la confirmación y el guardado: se vuelve a preguntar con los datos actuales.
       setEvicting(result === 'needs-confirmation' ? evictionPreview(await listUserMemories(), toSave) : null)
     } finally {
@@ -202,7 +208,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
             <button type="button" disabled={busy} onClick={() => setEvicting(null)} className="rounded-full border border-border bg-white px-3 py-2 text-[12.5px] font-semibold text-grafito transition-all hover:bg-muted disabled:opacity-50">
               Cancelar
             </button>
-            <button type="button" disabled={busy} onClick={() => resolve(true, evicting.map((m) => m.id))} className="rounded-full bg-negative px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:bg-negative/90 disabled:opacity-50">
+            <button type="button" disabled={busy} onClick={() => resolve(pendingChoice, evicting.map((m) => m.id))} className="rounded-full bg-negative px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:bg-negative/90 disabled:opacity-50">
               Recordar y olvidar
             </button>
           </div>
@@ -212,7 +218,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
         <button
           type="button"
           disabled={busy}
-          onClick={() => resolve(false)}
+          onClick={() => resolve('reject')}
           className="rounded-full border border-border bg-white px-3 py-2 text-[12.5px] font-semibold text-grafito transition-all hover:bg-muted disabled:opacity-50"
         >
           No recordar
@@ -220,11 +226,21 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
         <button
           type="button"
           disabled={busy || !final}
-          onClick={() => resolve(true)}
+          onClick={() => resolve('remember')}
           className="rounded-full bg-gradient-to-r from-axis-indigo via-axis-violet to-axis-blue px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:brightness-[1.05] disabled:opacity-50"
         >
           {replaces.length > 0 ? 'Recordar y sustituir' : 'Recordar'}
         </button>
+        {offersNoteOnly(original) && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => resolve('note')}
+            className="col-span-2 rounded-full border border-axis-violet/25 bg-white px-3 py-2 text-[12.5px] font-semibold text-axis-indigo transition-all hover:bg-axis-soft disabled:opacity-50"
+          >
+            Guardar solo como nota
+          </button>
+        )}
       </div>
       )}
     </div>

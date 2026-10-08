@@ -5,6 +5,7 @@
  * conversación) y reconoce dos declaraciones explícitas, en español:
  *
  *   recurringIncome  «Cada mes me van a dar 35 € de paga» → 3.500 céntimos, mensual, Paga
+ *                    «Cobro 1.200 € al mes» → 120.000 céntimos, mensual, Otros (nunca Paga)
  *   minLiquidity     «Quiero tener siempre al menos 5.000 € disponibles» → 500.000 céntimos
  *
  * Es la AUTORIDAD sobre los datos estructurados: el modelo solo puede proponer
@@ -30,6 +31,7 @@ export type AmbiguityReason =
   | 'expense'
   | 'third-person'
   | 'multiple-facts'
+  | 'unclear-owner'
 
 /** Ingreso mensual reconocido sin categoría: la tarjeta la pregunta. */
 export interface IncompleteRecurringIncome {
@@ -61,7 +63,20 @@ const MONTHLY = /\b(?:al mes|cada mes|por mes|mensual(?:es|mente)?|todos los mes
 const OTHER_FREQUENCY =
   /\b(?:a la semana|cada semana|semanal(?:es|mente)?|por semana|quincenal(?:es)?|cada (?:dos|tres|seis) meses|al ano|cada ano|anual(?:es|mente)?|por ano|al dia|cada dia|diari[oa]s?|trimestral(?:es)?|semestral(?:es)?|pagas? extras?)\b/
 
-const PAGA = /\b(?:paga|me pagan|me paga|me van a pagar|sueldo|salario|nomina|cobro|cobrare|voy a cobrar)\b/
+/**
+ * Paga: SOLO el sustantivo explícito («de paga», «mi paga», «la paga»). «Me
+ * paga(n)» es un verbo: no dice que sea una paga, así que no lleva categoría.
+ */
+const PAGA = /\b(?:de|la|mi|tu|su|una|como|esta|esa) paga\b/
+/**
+ * Sueldo, nómina o cobro: nunca Paga. Son «Otros» solo si la frase es
+ * inequívocamente del usuario (primera persona o «mi …»); si no («el sueldo
+ * es…», «el cobro de…»), no hay dato (`unclear-owner`).
+ */
+const SALARY = /\b(?:sueldo|salario|nomina|cobro|cobrare|cobrar)\b/
+const SALARY_MINE = /(?<!\b(?:el|un|del|al|este|ese|cada|tu|su) )\b(?:cobro|cobrare|voy a cobrar)\b|\b(?:mi|tengo un|tengo una) (?:sueldo|salario|nomina)\b/
+/** Verbo de pago al usuario sin decir qué es: ingreso sin categoría. */
+const PAID_TO_ME = /\b(?:me pagan|me paga|me van a pagar)\b/
 const REGALOS = /\b(?:regalos?|me regalan|me regala|me van a regalar)\b/
 const OTROS = /\b(?:otros? ingresos?)\b/
 /** Ingreso sin categoría: «me dan», «recibo», «me ingresan», «gano»… */
@@ -128,7 +143,7 @@ export function extractProfileFacts(message: string): Extraction {
   const amounts = [...text.matchAll(EURO_AMOUNT)]
   if (amounts.length === 0) return NONE
 
-  const isIncome = PAGA.test(text) || REGALOS.test(text) || OTROS.test(text) || GENERIC_INCOME.test(text)
+  const isIncome = PAGA.test(text) || REGALOS.test(text) || OTROS.test(text) || SALARY.test(text) || PAID_TO_ME.test(text) || GENERIC_INCOME.test(text)
   const isLiquidity = !isIncome && (LIQUIDITY_FIXED.test(text) || (LIQUIDITY_VERB.test(text) && !(SAVING_GOAL.test(text) && !/\bdisponibles?\b/.test(text))))
   const monthly = MONTHLY.test(text)
   const kind: ExtractedKind | 'unknown' = isIncome ? 'recurringIncome' : isLiquidity ? 'minLiquidity' : 'unknown'
@@ -153,10 +168,12 @@ export function extractProfileFacts(message: string): Extraction {
   if (kind === 'recurringIncome') {
     if (!monthly) return NONE
     if (LIQUIDITY_FIXED.test(text)) return ambiguous('multiple-facts')
+    // Sueldo, nómina o cobro sin dueño claro: ni dato ni candidato parcial.
+    if (SALARY.test(text) && !SALARY_MINE.test(text)) return ambiguous('unclear-owner')
     const categories: RecurringIncomeCategory[] = [
       ...(PAGA.test(text) ? (['Paga'] as const) : []),
       ...(REGALOS.test(text) ? (['Regalos'] as const) : []),
-      ...(OTROS.test(text) ? (['Otros'] as const) : []),
+      ...(OTROS.test(text) || SALARY_MINE.test(text) ? (['Otros'] as const) : []),
     ]
     if (categories.length !== 1) {
       const incomplete: IncompleteRecurringIncome = { kind: 'recurringIncome', cents, frequency: 'monthly' }

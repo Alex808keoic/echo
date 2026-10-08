@@ -9,7 +9,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildEditedProposal, contentForFact, draftFor, gateProposalFact, proposalFromFact, validationMessage, withProfileProposal } from '../chat/profile-proposal'
+import { buildEditedProposal, contentForFact, draftFor, gateProposalFact, noteOnlyProposal, offersNoteOnly, proposalFromFact, validationMessage, withProfileProposal } from '../chat/profile-proposal'
 import { isSavableProposal, replacementFor } from '../chat/memory'
 import { createChatEngine, type ChatTransport } from '../chat/engine'
 import { chatWithProvider } from '../ai/server/analyze'
@@ -327,5 +327,33 @@ describe('integración · confirmar en la tarjeta y guardar', () => {
     const proposal = gateProposalFact(modelProposal({ fact: { kind: 'riskAttitude', value: 'conservative' } }), extractProfileFacts(LIQ_MSG)).proposal!
     await resolveMemoryProposal(proposal, true, 1_000)
     assert.deepEqual(await incomes(), [LIQ])
+  })
+})
+
+describe('tarjeta · «Guardar solo como nota»', () => {
+  const income: MemoryFact = { kind: 'recurringIncome', cents: 3_500, frequency: 'monthly', category: 'Paga' }
+
+  it('guarda el texto sin dato estructurado y como memoria nueva', () => {
+    const p = { ...proposalFromFact(income), replacesId: 'mem-old' }
+    const note = noteOnlyProposal(p)
+    assert.equal(note.content, p.content)
+    assert.equal('fact' in note, false)
+    assert.equal(note.replacesId, null)
+    assert.ok(isSavableProposal(note))
+  })
+
+  it('un candidato sin categoría se puede guardar como nota, pero no como dato', () => {
+    const { proposal } = gateProposalFact(null, extractProfileFacts('Me dan 35 € al mes.'))
+    assert.ok(proposal?.incompleteFact)
+    assert.equal(isSavableProposal(proposal!), false)
+    const note = noteOnlyProposal(proposal!)
+    assert.equal('incompleteFact' in note, false)
+    assert.ok(isSavableProposal(note))
+  })
+
+  it('solo se ofrece cuando hay algo estructurado que dejar fuera', () => {
+    assert.equal(offersNoteOnly(proposalFromFact(income)), true)
+    assert.equal(offersNoteOnly(gateProposalFact(null, extractProfileFacts('Me dan 35 € al mes.')).proposal!), true)
+    assert.equal(offersNoteOnly(noteOnlyProposal(proposalFromFact(income))), false)
   })
 })

@@ -83,6 +83,20 @@ export function gateProposalFact(proposal: MemoryProposal | null, extraction: Ex
   return { proposal, outcome: 'none' }
 }
 
+/**
+ * «Guardar solo como nota»: el mismo texto, sin dato estructurado ni candidato
+ * parcial, y como memoria nueva (sin `replacesId`), para que una nota nunca
+ * sustituya ni borre un dato estructurado ya guardado. AXIS no la usa para decidir.
+ */
+export function noteOnlyProposal(p: MemoryProposal): MemoryProposal {
+  return { ...textOnly(p), replacesId: null }
+}
+
+/** La tarjeta ofrece «Guardar solo como nota» solo cuando hay algo estructurado que dejar fuera. */
+export function offersNoteOnly(p: MemoryProposal): boolean {
+  return Boolean(p.fact || p.incompleteFact)
+}
+
 function textOnlyWith(p: MemoryProposal, fact: MemoryFact): MemoryProposal {
   return { ...textOnly(p), fact }
 }
