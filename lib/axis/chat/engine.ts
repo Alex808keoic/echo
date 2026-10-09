@@ -19,6 +19,7 @@ import { AI_ENGINE_INFO } from '../ai-engine'
 import { rememberAvailability, withFallback } from '../core/fallback'
 import { composeLocalReply } from './local-reply'
 import { withProfileProposal } from './profile-proposal'
+import { withChatActions } from './actions'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 export type ChatPhase = 'analyzing' | 'responding'
@@ -65,8 +66,10 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
     const reply = await transport.ask(input, signal)
     // El texto, la propuesta y el siguiente paso ya vienen validados del servidor.
     // Estos campos los fija Finax, nunca el modelo ni el transporte.
-    const { fallbackReason: _ignored, ...rest } = reply
+    // Las tarjetas de acción tampoco: las añade withChatActions aquí, nunca el servidor ni el modelo.
+    const { fallbackReason: _ignored, actions: _notFromServer, ...rest } = reply
     void _ignored
+    void _notFromServer
     return {
       ...rest,
       engine: AI_ENGINE_INFO,
@@ -74,8 +77,11 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
     }
   }
 
-  return {
-    async ask(input) {
+  // Toda respuesta (con IA o local) recibe sus tarjetas de acción aquí, en el dispositivo.
+  const ask = async (input: ChatInput): Promise<ChatReply> => withChatActions(await answer(input), input)
+  return { ask }
+
+  async function answer(input: ChatInput): Promise<ChatReply> {
       onPhase?.('analyzing')
       // Sin datos no hay nada que interpretar: el motor local explica qué falta (0 llamadas).
       if (input.context.quality.level === 'none') return local(input, 'no-data')
@@ -97,6 +103,5 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
           return local(input, reason)
         },
       })
-    },
   }
 }

@@ -10,6 +10,7 @@
  *   DATOS ACTUALES → MEMORIA → CONVERSACIÓN ACTUAL → CONSULTA ACTUAL
  */
 import type { MemoryFact } from '../profile/types'
+import type { ChatAction } from './actions'
 import type { ChatFinancialHistory } from './financial-history'
 import type { IncompleteRecurringIncome } from '../profile/extract'
 import type { AxisEngineInfo, AxisMemory, AxisNextStep, Confidence, FinancialContext, MarketContext } from '../types'
@@ -86,6 +87,8 @@ export interface ChatMessage {
   fallbackReason?: FallbackReason
   nextStep?: AxisNextStep
   memoryProposal?: MemoryProposal & { status: ProposalStatus }
+  /** Tarjetas de acción (chat/actions.ts). */
+  actions?: ChatAction[]
 }
 
 /** Historial persistido: mensajes recientes íntegros + resumen de los antiguos. */
@@ -128,6 +131,8 @@ export interface ChatReply {
   engine: AxisEngineInfo
   fallbackReason?: FallbackReason
   generatedAt: string
+  /** Tarjetas de acción calculadas por Finax en el dispositivo (chat/actions.ts); nunca las fija el modelo. */
+  actions?: ChatAction[]
 }
 
 /** Límites de la conversación (cliente y servidor). Inmutables. */

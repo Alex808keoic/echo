@@ -1,17 +1,15 @@
 'use client'
 
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
-import { CUSHION_OBJECTIVE_NAME, type AllocationPlan } from '@/lib/axis/plan/allocation'
+import type { AllocationPlan } from '@/lib/axis/plan/allocation'
 import { describeStep, LONG_TERM_EXPLANATION, PLAN_DISCLAIMER, planSegments, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
-import { addObjectiveFirst, moveObjectiveToFirst } from '@/lib/db/objectives'
 import { formatCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
-import { Confirm } from '../confirm'
 import { ScreenLoading } from '../loading'
-import { useSheet } from '../sheet'
+import { useCushionActions } from '../cushion-actions'
 import { LeafLogo } from '../icons'
 import type { ScreenProps } from './types'
 
@@ -29,39 +27,17 @@ const SEGMENT_COLOR: Record<SegmentKind, string> = {
  */
 export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const result = useAllocationPlan(overview)
-  const { open, close } = useSheet()
+  const cushion = useCushionActions()
   if (!result) return <ScreenLoading />
   const { plan, decision } = result
   const objectives = decision.context.objectives
 
-  const confirmOrderChange = (message: string, label: string, run: () => Promise<unknown>) =>
-    open(
-      label,
-      <Confirm
-        message={message}
-        confirmLabel={label}
-        onCancel={close}
-        onConfirm={async () => {
-          await run()
-          close()
-        }}
-      />,
-    )
-
   const act = (kind: StepAction) => {
     switch (kind) {
       case 'create-cushion':
-        return confirmOrderChange(
-          `Crearé el objetivo «${CUSHION_OBJECTIVE_NAME}» de ${formatCents(plan.cushion?.targetCents ?? 0)} y lo pondré el primero del reparto. Tu dinero líquido irá primero a él, así que el progreso de tus otros objetivos bajará hasta completarlo. Podrás cambiar la cantidad cuando quieras.`,
-          'Crear objetivo',
-          () => addObjectiveFirst({ name: CUSHION_OBJECTIVE_NAME, targetCents: plan.cushion?.targetCents ?? 0 }),
-        )
+        return cushion.createCushion(plan.cushion?.targetCents ?? 0)
       case 'move-cushion-first':
-        return confirmOrderChange(
-          `Pondré «${CUSHION_OBJECTIVE_NAME}» el primero del reparto. Tu dinero líquido irá primero a él, así que el progreso de tus otros objetivos bajará hasta completarlo.`,
-          'Ponerlo primero',
-          () => moveObjectiveToFirst(plan.cushion?.objectiveId ?? ''),
-        )
+        return cushion.moveCushionFirst(plan.cushion?.objectiveId ?? '')
       case 'answer-profile':
         return onNavigate('memoria')
       case 'register-data':

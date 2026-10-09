@@ -106,6 +106,7 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
           ...(reply.fallbackReason ? { fallbackReason: reply.fallbackReason } : {}),
           ...(reply.nextStep ? { nextStep: reply.nextStep } : {}),
           ...(reply.memoryProposal ? { memoryProposal: { ...reply.memoryProposal, status: 'pending' as const } } : {}),
+          ...(reply.actions ? { actions: reply.actions } : {}),
         }
         await persist(appendMessage(withUser, axisMessage))
         setStatus('idle')

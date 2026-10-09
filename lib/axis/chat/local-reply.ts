@@ -38,7 +38,7 @@ export function composeLocalReply(input: ChatInput, reason: FallbackReason, now:
   // Preguntas sobre qué hacer con el dinero: el plan de reparto (determinista, como en «Tu plan»).
   if (PLAN_QUESTION.test(input.message)) {
     const plan = chatPlanOf(decide({ context: input.context, market: input.market ?? null, memory: input.memory }))
-    return { ...base, text: `${REASON_INTRO[reason]} Esto es lo que dice tu plan:\n\n${planLocalReply(plan)}`, nextStep: { label: 'Ver tu plan', to: 'plan' } }
+    return { ...base, text: `${REASON_INTRO[reason]}\n\n${planLocalReply(plan)}`, nextStep: { label: 'Ver tu plan', to: 'plan' } }
   }
 
   const { headline, interpretation, recommendation, conclusion } = result.analysis

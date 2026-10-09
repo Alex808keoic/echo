@@ -28,6 +28,8 @@ import { Confirm } from './confirm'
 import { useSheet } from './sheet'
 import { ArrowUpRight, ChevronRight, CloseIcon, LeafLogo, TrashIcon } from './icons'
 import { cn } from '@/lib/utils'
+import type { ChatAction } from '@/lib/axis/chat/actions'
+import { useCushionActions } from './cushion-actions'
 
 type Navigate = (screen: ScreenKey) => void
 
@@ -82,6 +84,37 @@ function NextStepLink({ step, onNavigate }: { step: AxisNextStep; onNavigate: Na
       {step.label}
       <ArrowUpRight className="h-3.5 w-3.5" />
     </button>
+  )
+}
+
+/**
+ * Tarjetas de acción de una respuesta (chat/actions.ts): las calcula Finax, no la IA.
+ * Las que cambian datos abren la confirmación; las demás llevan a la pantalla.
+ */
+function ActionCards({ actions, onNavigate }: { actions: ChatAction[]; onNavigate: Navigate }) {
+  const cushion = useCushionActions()
+  const run = (a: ChatAction) => {
+    if (a.kind === 'navigate') return onNavigate(a.to)
+    if (a.kind === 'create-cushion') return cushion.createCushion(a.targetCents)
+    return cushion.moveCushionFirst(a.objectiveId)
+  }
+  return (
+    <div className="mt-2.5 flex flex-wrap gap-2">
+      {actions.map((a, i) => (
+        <button
+          key={`${a.kind}-${i}`}
+          type="button"
+          onClick={() => run(a)}
+          className={cn(
+            'inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-[background-color,scale] duration-150 active:scale-[0.97]',
+            a.kind === 'navigate' ? 'border border-axis-violet/25 bg-white text-axis-indigo hover:bg-axis-soft' : 'bg-finax-dark text-white hover:bg-finax-dark/90',
+          )}
+        >
+          {a.label}
+          {a.kind === 'navigate' && <ChevronRight className="h-3.5 w-3.5" />}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -271,6 +304,7 @@ function Message({ message, memories, onResolve, onNavigate }: { message: ChatMe
       <div className="min-w-0 flex-1">
         <Paragraphs text={message.text} />
         {message.nextStep && <NextStepLink step={message.nextStep} onNavigate={onNavigate} />}
+        {message.actions && message.actions.length > 0 && <ActionCards actions={message.actions} onNavigate={onNavigate} />}
         <ProposalCard message={message} memories={memories} onResolve={onResolve} />
         <p className="mt-1.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground/80">
           <span className={cn('rounded-full px-1.5 py-0.5', ai ? 'bg-axis-soft text-axis-indigo' : 'bg-muted')}>{ai ? 'IA' : 'Motor local'}</span>
