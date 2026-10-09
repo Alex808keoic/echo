@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-08T14:46:47.617Z",
+  "checkedAt": "2026-10-09T14:29:37.869Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -9,47 +9,55 @@
       "unit": "%",
       "asOf": "2026-09-16",
       "changePct": 0.25,
-      "source": "BCE"
+      "source": "BCE",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.194,
+      "value": 3.213,
       "unit": "%",
-      "asOf": "2026-10-07",
-      "changePct": 0.017,
-      "source": "Banco de España"
+      "asOf": "2026-10-08",
+      "changePct": 0.019,
+      "source": "Banco de España",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     },
     {
       "key": "ine-ipc",
       "label": "IPC España (interanual)",
       "group": "inflation",
-      "value": 2.9,
+      "value": 4.9,
       "unit": "%",
-      "asOf": "2025-12",
-      "changePct": -0.1,
-      "source": "INE"
+      "asOf": "2026-09",
+      "changePct": 0.6,
+      "source": "INE",
+      "status": "advance",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     },
     {
       "key": "ea-hicp",
       "label": "Inflación eurozona (HICP interanual)",
       "group": "inflation",
-      "value": 2,
+      "value": 3.8,
       "unit": "%",
-      "asOf": "2025-12",
-      "changePct": -0.1,
-      "source": "Eurostat"
+      "asOf": "2026-09",
+      "changePct": 0.6,
+      "source": "Eurostat",
+      "status": "estimated",
+      "publishedAt": "2026-10-02T09:00:00.000Z",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19118,
+      "value": 18928.9,
       "unit": "pts",
-      "asOf": "2026-10-07",
-      "changePct": -1.59,
-      "source": "Banco de España"
+      "asOf": "2026-10-08",
+      "changePct": -0.4,
+      "source": "Banco de España",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     },
     {
       "key": "stoxx50",
@@ -59,10 +67,20 @@
       "unit": "pts",
       "asOf": "2026-09",
       "changePct": -2.58,
-      "source": "BCE"
+      "source": "BCE",
+      "fetchedAt": "2026-10-09T14:29:37.869Z"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "kind": "new-inflation",
+      "detail": "IPC España (interanual): nuevo dato 2026-09 (4.9 %)"
+    },
+    {
+      "kind": "new-inflation",
+      "detail": "Inflación eurozona (HICP interanual): nuevo dato 2026-09 (3.8 %)"
+    }
+  ],
   "failedSources": [],
   "eventTriggered": false
 }
