@@ -579,6 +579,7 @@ describe('AXIS conversación · contrato { reply: ChatReply }', () => {
 
   it('el transporte devuelve el ChatReply del servidor tal cual (text, no reply)', async () => {
     const { result } = await withProductionFetch(() => browserChatTransport.ask(input(), new AbortController().signal))
+    if ('toolRequest' in result) return assert.fail('el servidor devolvió una respuesta, no una consulta')
     assert.equal(isChatReply(result), true)
     assert.equal(result.text, 'respuesta de prueba')
     assert.equal(result.engine.isAI, true)

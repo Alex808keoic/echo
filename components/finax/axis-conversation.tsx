@@ -50,6 +50,7 @@ const SUGGESTIONS = ['¿Cómo ves mi situación este mes?', 'He gastado bastante
 const STATUS_LABEL: Partial<Record<ChatStatus, string>> = {
   preparing: 'Preparando AXIS…',
   analyzing: 'Analizando tus datos…',
+  consulting: 'Consultando tus movimientos…',
   responding: 'Respondiendo…',
   error: 'No he podido responder. Inténtalo de nuevo.',
 }
@@ -372,7 +373,7 @@ function MemoriesList({ memories, onForget, onNavigate }: { memories: UserMemory
 export function AxisConversation({ status, online, messages, memories, onSend, onResolveProposal, onClear, onForget, onNavigate }: AxisConversationProps) {
   const [draft, setDraft] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
-  const working = status === 'analyzing' || status === 'responding'
+  const working = status === 'analyzing' || status === 'consulting' || status === 'responding'
   const disabled = status === 'preparing' || working
 
   useEffect(() => {

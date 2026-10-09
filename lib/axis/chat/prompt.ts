@@ -23,6 +23,7 @@ import type { AIRequest } from '../ai/provider'
 import type { FinancialContext, Signal } from '../types'
 import { AXIS_CHAT_SCHEMA } from './schema'
 import { historyForPrompt } from './financial-history'
+import { TOOL_REQUEST_SCHEMA, TOOLS_FOR_PROMPT } from './tools'
 import type { ChatInput } from './types'
 
 export { AXIS_CHAT_SYSTEM_PROMPT }
@@ -44,8 +45,20 @@ function signalSummary(signals: Signal[]) {
   return signals.map(({ id, priority, fact, interpretation }) => ({ id, priority, fact, interpretation }))
 }
 
-export function buildChatRequest(input: ChatInput): AIRequest {
-  const { context, market, memory, conversation, message, history } = input
+/** Esquema de la PRIMERA llamada con consultas (parte 4c): el de siempre más «consulta». */
+export const AXIS_CHAT_TOOL_SCHEMA = {
+  ...AXIS_CHAT_SCHEMA,
+  properties: { ...AXIS_CHAT_SCHEMA.properties, consulta: TOOL_REQUEST_SCHEMA },
+  required: [...AXIS_CHAT_SCHEMA.required, 'consulta'],
+} as const
+
+/**
+ * `tools`: la primera llamada puede pedir UNA consulta (parte 4c). Con
+ * `toolResults` (segunda llamada) nunca: van los resultados y el esquema de siempre.
+ */
+export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: boolean } = {}): AIRequest {
+  const { context, market, memory, conversation, message, history, toolResults } = input
+  const offerTools = tools && !toolResults
   const signals = detectSignals(context, market ?? null, reconcileProfile(profileFromMemory(memory), context))
   // La misma decisión que el análisis y la validación: de ella salen el plan y el tono.
   const decision = decide({ context, market: market ?? null, memory })
@@ -70,10 +83,12 @@ export function buildChatRequest(input: ChatInput): AIRequest {
       ultimos_mensajes: conversation.recent,
     },
     consulta_actual: message,
+    ...(offerTools ? { consultas_disponibles: TOOLS_FOR_PROMPT } : {}),
+    ...(toolResults ? { resultados_de_consultas: toolResults.map((r) => ({ consulta: r.consulta, resultado: r.resultado })) } : {}),
   }
   return {
     system: AXIS_CHAT_SYSTEM_PROMPT,
     user: `Responde a «consulta_actual» y devuelve el JSON de la respuesta.\n\n${JSON.stringify(payload)}`,
-    schema: AXIS_CHAT_SCHEMA as unknown as Record<string, unknown>,
+    schema: (offerTools ? AXIS_CHAT_TOOL_SCHEMA : AXIS_CHAT_SCHEMA) as unknown as Record<string, unknown>,
   }
 }

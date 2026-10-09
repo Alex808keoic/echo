@@ -20,14 +20,15 @@ import { rememberAvailability, withFallback } from '../core/fallback'
 import { composeLocalReply } from './local-reply'
 import { withProfileProposal } from './profile-proposal'
 import { withChatActions } from './actions'
+import { TOOL_LIMITS, type ChatToolRequest, type ChatToolResult } from './tools'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
-export type ChatPhase = 'analyzing' | 'responding'
+export type ChatPhase = 'analyzing' | 'consulting' | 'responding'
 
 export interface ChatTransport {
   isAvailable(): Promise<boolean>
-  /** Devuelve el `ChatReply` ya validado por el servidor, o lanza `ChatTransportError`. */
-  ask(input: ChatInput, signal: AbortSignal): Promise<ChatReply>
+  /** Devuelve el `ChatReply` ya validado por el servidor, o la consulta que pide el modelo (parte 4c), o lanza `ChatTransportError`. */
+  ask(input: ChatInput, signal: AbortSignal): Promise<ChatReply | { toolRequest: ChatToolRequest }>
 }
 
 /** Error del transporte con causa clasificada (p. ej. 429 → sin cupo). */
@@ -48,6 +49,11 @@ export interface ChatEngineOptions {
   isOffline?: () => boolean
   onPhase?: (phase: ChatPhase) => void
   onFallback?: (reason: FallbackReason, detail: string) => void
+  /**
+   * Ejecuta en el dispositivo la consulta que pide el modelo (parte 4c), sobre
+   * los datos locales. Sin ella, una consulta no se puede atender y responde el motor local.
+   */
+  runTool?: (request: ChatToolRequest) => ChatToolResult | Promise<ChatToolResult>
 }
 
 export const DEFAULT_CHAT_TIMEOUT_MS = 25_000
@@ -56,14 +62,28 @@ export interface ChatEngine {
   ask(input: ChatInput): Promise<ChatReply>
 }
 
-export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_MS, isOffline, onPhase, onFallback }: ChatEngineOptions): ChatEngine {
+export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_MS, isOffline, onPhase, onFallback, runTool }: ChatEngineOptions): ChatEngine {
   const isAvailable = rememberAvailability(() => transport.isAvailable())
   // Respuesta local: misma puerta de datos de perfil que el servidor aplica a las respuestas con IA.
   const local = (input: ChatInput, reason: FallbackReason) => withProfileProposal(composeLocalReply(input, reason), input.message).reply
 
   async function askAI(input: ChatInput, signal: AbortSignal): Promise<ChatReply> {
     onPhase?.('responding')
-    const reply = await transport.ask(input, signal)
+    // Como mucho TOOL_LIMITS.MAX_ROUNDS consultas: si el modelo pide más, o no hay quien la ejecute, responde el motor local.
+    let current = input
+    let reply: ChatReply | null = null
+    for (let round = 0; reply === null; round++) {
+      const turn = await transport.ask(current, signal)
+      if (!('toolRequest' in turn)) {
+        reply = turn
+        break
+      }
+      if (!runTool || round >= TOOL_LIMITS.MAX_ROUNDS) throw new ChatTransportError('error', 'consulta no atendida')
+      onPhase?.('consulting')
+      const result = await runTool(turn.toolRequest)
+      current = { ...input, toolResults: [result] }
+      onPhase?.('responding')
+    }
     // El texto, la propuesta y el siguiente paso ya vienen validados del servidor.
     // Estos campos los fija Finax, nunca el modelo ni el transporte.
     // Las tarjetas de acción tampoco: las añade withChatActions aquí, nunca el servidor ni el modelo.

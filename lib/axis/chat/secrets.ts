@@ -30,6 +30,8 @@ export const REDACTED = '[dato sensible omitido]'
 const ANNOUNCERS: RegExp[] = [
   /\b(contrase[ñn]a|password|passwd|clave (?:de acceso|secreta|del banco)|c[oó]digo (?:pin|de seguridad)|cvv|cvc|api[\s_-]?key|access[\s_-]?token|secret)\b/i,
   /\bpin\b\s*(?:es|:|=)\s*\d/i,
+  // «PIN 1234» sin dos puntos (p. ej. en el concepto de un movimiento).
+  /\bpin\s+\d{4,8}\b/i,
 ]
 const FORMATS: RegExp[] = [
   // Claves con formato conocido (Google, OpenAI, Groq, GitHub, AWS…).

@@ -37,6 +37,7 @@ import { decide } from '../../core/decision'
 import { buildExpressionRequest, mergeExpression, parseExpression } from '../../core/expression'
 import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
+import { parseToolRequest, type ChatToolRequest } from '../../chat/tools'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { redactChatInput, redactMemory } from '../../chat/secrets'
 import { buildChatGuard, validateChatReply } from '../../chat/semantic'
@@ -320,6 +321,39 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   // Defensa en profundidad: mensaje, conversación y memoria se redactan también aquí antes de construir el prompt.
   const input = redactChatInput(rawInput)
   const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input), 'chat', signal)
+  return finishChatReply(raw, input, answeredBy)
+}
+
+/** Un turno del chat con consultas (parte 4c): o la respuesta validada, o la consulta que pide el modelo. */
+export type ChatTurn = { reply: ChatReply } | { toolRequest: ChatToolRequest }
+
+/**
+ * Igual que `chatWithProvider`, pero la primera llamada puede pedir UNA consulta
+ * a los datos del usuario (`consulta`), que el dispositivo ejecuta y devuelve en
+ * `toolResults`. Con resultados ya no se ofrece consultar: el modelo responde, y
+ * la respuesta se valida con las cifras del resultado permitidas. Una consulta
+ * no válida se ignora y se juzga la respuesta. En los logs, solo el nombre de la consulta.
+ */
+export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput, signal?: AbortSignal): Promise<ChatTurn> {
+  const model = asLanguageModel(provider)
+  const input = redactChatInput(rawInput)
+  const tools = !input.toolResults
+  const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input, { tools }), 'chat', signal)
+  if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
+  if (tools) {
+    const toolRequest = parseToolRequest(raw.consulta)
+    if (toolRequest) {
+      console.info('[axis] chat: consulta:', toolRequest.herramienta)
+      return { toolRequest }
+    }
+  }
+  const { consulta: _ignored, ...rest } = raw
+  void _ignored
+  return { reply: await finishChatReply(rest, input, answeredBy) }
+}
+
+/** Forma, puerta de datos de perfil y validación semántica de la salida del modelo. Lanza si no es válida. */
+async function finishChatReply(raw: unknown, input: ChatInput, answeredBy: string): Promise<ChatReply> {
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   // Qué propuso el modelo, qué reconoció el extractor y qué hizo la puerta: solo etiquetas, nunca valores.
   const diagnosis = diagnoseProposal(raw)

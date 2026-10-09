@@ -11,6 +11,7 @@ import { ChatTransportError, type ChatTransport } from './engine'
 import { redactChatInput } from './secrets'
 import type { ChatInput } from './types'
 import { isChatReply } from './validate'
+import { parseToolRequest } from './tools'
 
 export const browserChatTransport: ChatTransport = {
   isAvailable: () => browserTransport.isAvailable(),
@@ -29,6 +30,7 @@ export const browserChatTransport: ChatTransport = {
         conversation: input.conversation,
         message: input.message,
         history: input.history,
+        ...(input.toolResults ? { toolResults: input.toolResults } : {}),
       }),
       signal,
     })
@@ -36,6 +38,9 @@ export const browserChatTransport: ChatTransport = {
     if (res.status === 503) throw new ChatTransportError('unavailable', 'axis api 503')
     if (!res.ok) throw new ChatTransportError('error', `axis api ${res.status}`)
     const body: unknown = await res.json()
+    // Consulta pedida por el modelo (parte 4c): se vuelve a validar aquí antes de ejecutarla.
+    const toolRequest = parseToolRequest(typeof body === 'object' && body !== null ? (body as { toolRequest?: unknown }).toolRequest : undefined)
+    if (toolRequest) return { toolRequest }
     const reply = typeof body === 'object' && body !== null ? (body as { reply?: unknown }).reply : undefined
     if (!isChatReply(reply)) throw new ChatTransportError('error', 'axis api: respuesta sin reply')
     return reply

@@ -4,6 +4,8 @@
  *   GET  /api/axis                  → { available, mode }      ¿hay proveedor de IA? · 'legacy' | 'decision-first'
  *   POST /api/axis                  → { analysis }             análisis validado, o error sin detalles técnicos
  *   POST /api/axis  { mode:'chat' } → { reply }                respuesta conversacional validada
+ *                                   → { toolRequest }          o UNA consulta a los datos (parte 4c): el
+ *                                                              dispositivo la ejecuta y vuelve con { toolResults }
  *
  * Es el único punto donde se usa la clave del proveedor. Nunca devuelve
  * secretos ni trazas; el cliente hace fallback al motor local ante cualquier
@@ -12,12 +14,13 @@
  * El contexto recibido se procesa en la petición y no se persiste.
  */
 import { NextResponse } from 'next/server'
-import { analysisModeOf, analyzeWithProvider, chatWithProvider, isFinancialContext, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
+import { analysisModeOf, analyzeWithProvider, chatTurnWithProvider, isFinancialContext, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
 import { languageModelFromConfig } from '@/lib/axis/language/server'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
 import { isChatPayload } from '@/lib/axis/chat/validate'
 import { isChatFinancialHistory } from '@/lib/axis/chat/financial-history'
+import { isChatToolResults, type ChatToolResult } from '@/lib/axis/chat/tools'
 import type { AxisMemory, MarketContext } from '@/lib/axis/types'
 
 export const runtime = 'nodejs'
@@ -73,8 +76,11 @@ export async function POST(request: Request) {
     if (chat) {
       // Histórico compacto: solo si tiene la forma y los límites esperados; si no, el chat sigue sin él.
       const history = isChatFinancialHistory(rec.history) ? rec.history : undefined
-      const reply = await chatWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message, history }, request.signal)
-      return NextResponse.json({ reply }, { headers: NO_STORE })
+      // Resultado de la consulta que pidió el modelo (parte 4c): solo si tiene la forma y los límites esperados.
+      if (rec.toolResults !== undefined && !isChatToolResults(rec.toolResults)) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
+      const toolResults = rec.toolResults as ChatToolResult[] | undefined
+      const turn = await chatTurnWithProvider(model, { context, market, memory, conversation: chat.conversation, message: chat.message, history, ...(toolResults ? { toolResults } : {}) }, request.signal)
+      return NextResponse.json(turn, { headers: NO_STORE })
     }
     const analysis = await analyzeWithProvider(model, context, memory, request.signal, market, mode)
     return NextResponse.json({ analysis }, { headers: NO_STORE })

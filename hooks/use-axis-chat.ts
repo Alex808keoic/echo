@@ -19,6 +19,8 @@ import { buildFinancialContext } from '@/lib/axis/context'
 import { buildChatFinancialHistory } from '@/lib/axis/chat/financial-history'
 import { browserChatTransport } from '@/lib/axis/chat/browser-transport'
 import { createChatEngine, type ChatPhase } from '@/lib/axis/chat/engine'
+import { runChatTool } from '@/lib/axis/chat/tools'
+import type { Movement } from '@/lib/types'
 import { appendMessage, updateMessage, windowForModel } from '@/lib/axis/chat/history'
 import { redactSecrets } from '@/lib/axis/chat/secrets'
 import { CHAT_LIMITS, type ChatMessage, type ConversationState, type MemoryProposal, type UserMemory } from '@/lib/axis/chat/types'
@@ -36,7 +38,7 @@ import type { FinancialOverview } from './use-financial-overview'
  * responding llamada al proveedor en curso
  * error      la última consulta no pudo completarse ni con el motor local
  */
-export type ChatStatus = 'preparing' | 'idle' | 'analyzing' | 'responding' | 'error'
+export type ChatStatus = 'preparing' | 'idle' | 'analyzing' | 'consulting' | 'responding' | 'error'
 
 export function useAxisChat(overview: FinancialOverview | undefined, market: MarketContext | null) {
   const stored = useLiveQuery(getConversation, [])
@@ -47,11 +49,16 @@ export function useAxisChat(overview: FinancialOverview | undefined, market: Mar
   const [conversation, setConversation] = useState<ConversationState | null>(null)
   const busy = useRef(false)
   // Un motor por montaje: la disponibilidad de la IA se comprueba una vez y se recuerda.
+  // Movimientos actuales para las consultas del modelo (parte 4c): el motor se crea una vez y lee siempre los últimos.
+  const movementsRef = useRef<Movement[]>([])
+  movementsRef.current = overview?.movements ?? []
   const [engine] = useState(() =>
     createChatEngine({
       transport: browserChatTransport,
       isOffline: () => typeof navigator !== 'undefined' && navigator.onLine === false,
       onPhase: (phase: ChatPhase) => setStatus(phase),
+      // La consulta se ejecuta aquí, sobre los datos locales: solo el resultado resumido sale del dispositivo.
+      runTool: (request) => runChatTool(request, movementsRef.current),
     }),
   )
 

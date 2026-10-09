@@ -11,6 +11,7 @@
  */
 import type { MemoryFact } from '../profile/types'
 import type { ChatAction } from './actions'
+import type { ChatToolResult } from './tools'
 import type { ChatFinancialHistory } from './financial-history'
 import type { IncompleteRecurringIncome } from '../profile/extract'
 import type { AxisEngineInfo, AxisMemory, AxisNextStep, Confidence, FinancialContext, MarketContext } from '../types'
@@ -117,6 +118,11 @@ export interface ChatInput {
   message: string
   /** Histórico compacto de movimientos reales (chat/financial-history.ts). Opcional: sin él, el chat no conoce meses anteriores. */
   history?: ChatFinancialHistory
+  /**
+   * Resultado de la consulta que pidió el modelo (parte 4c), ejecutada en el
+   * dispositivo. Presente solo en la segunda llamada: entonces el modelo ya no puede pedir otra.
+   */
+  toolResults?: ChatToolResult[]
 }
 
 /* ================================ SALIDA ================================ */

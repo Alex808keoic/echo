@@ -31,6 +31,7 @@ import type { AxisAction, AxisDecision } from '../types'
 import type { ChatInput, ChatReply } from './types'
 import { historyFigures, monthsWithHistory } from './financial-history'
 import { chatPlanOf, planFigures, type ChatPlan } from '../plan/chat'
+import { toolResultFigures } from './tools'
 
 /** Lo que la validación necesita del turno: la decisión de AXIS y las cifras que existen. */
 export interface ChatGuard {
@@ -60,6 +61,8 @@ export function buildChatGuard(input: ChatInput): ChatGuard {
     ...earlierUserTexts.flatMap((t) => messageFigures(t)),
     ...(decision.profile.fields.minLiquidityCents !== undefined ? [moneyFigure('Mínimo de liquidez que quieres mantener', decision.profile.fields.minLiquidityCents, 'context')] : []),
     ...historyFigures(input.history),
+    // Resultado de la consulta que pidió el modelo (parte 4c): calculado por Finax en el dispositivo.
+    ...toolResultFigures(input.toolResults),
   ]
   // El plan sale de la misma decisión: sus importes (los de «Tu plan») se pueden citar.
   const plan = chatPlanOf(decision)
