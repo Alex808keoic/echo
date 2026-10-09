@@ -5,6 +5,7 @@ import { formatCents } from '@/lib/money'
 import { useAxis } from '@/hooks/use-axis'
 import { useAxisChat } from '@/hooks/use-axis-chat'
 import { useMarketContext } from '@/hooks/use-market-context'
+import { useWeeklyBrief } from '@/hooks/use-weekly-brief'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
 import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
@@ -211,6 +212,8 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
   const { market, marketState } = useMarketContext(overview)
   const { state: axis, refresh } = useAxis(overview, { ai: true, market, remember: true })
   const chat = useAxisChat(overview, market)
+  // Tarjeta del resumen semanal: solo el título determinista (sin llamadas a la IA hasta abrirlo).
+  const brief = useWeeklyBrief(overview, market)
   if (!overview) return <ScreenLoading />
 
   const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null
@@ -257,6 +260,21 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         )}
 
         <SituationCard overview={overview} onNavigate={onNavigate} />
+
+        {brief && (
+          <button
+            type="button"
+            onClick={() => onNavigate('resumen')}
+            className="flex w-full items-center gap-3 rounded-3xl border border-axis-violet/20 bg-axis-soft p-4 text-left transition-[background-color,scale] duration-150 active:scale-[0.99]"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-axis-indigo">Resumen semanal</span>
+              <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{brief.view.title}</span>
+              {brief.view.researchLine && <span className="mt-0.5 block text-[11.5px] font-medium text-muted-foreground">{brief.view.researchLine}</span>}
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-axis-indigo/70" />
+          </button>
+        )}
 
         {market && marketState.freshness && (
           <p className="px-1 text-[11.5px] font-medium text-muted-foreground text-pretty">

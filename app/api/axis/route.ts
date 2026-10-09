@@ -6,6 +6,7 @@
  *   POST /api/axis  { mode:'chat' } → { reply }                respuesta conversacional validada
  *                                   → { toolRequest }          o UNA consulta a los datos (parte 4c): el
  *                                                              dispositivo la ejecuta y vuelve con { toolResults }
+ *   POST /api/axis  { mode:'weekly-brief', brief } → { phrasing }  redacción del resumen semanal (validada)
  *
  * Es el único punto donde se usa la clave del proveedor. Nunca devuelve
  * secretos ni trazas; el cliente hace fallback al motor local ante cualquier
@@ -14,7 +15,8 @@
  * El contexto recibido se procesa en la petición y no se persiste.
  */
 import { NextResponse } from 'next/server'
-import { analysisModeOf, analyzeWithProvider, chatTurnWithProvider, isFinancialContext, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
+import { analysisModeOf, analyzeWithProvider, chatTurnWithProvider, isFinancialContext, phraseWeeklyBrief, readAIServerConfig } from '@/lib/axis/ai/server/analyze'
+import { isWeeklyBrief } from '@/lib/axis/brief/view'
 import { languageModelFromConfig } from '@/lib/axis/language/server'
 import { AXIS_AI_LIMITS, consumeInstanceSlot } from '@/lib/axis/ai/server/limits'
 import { AIProviderError } from '@/lib/axis/ai/provider'
@@ -52,6 +54,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
   }
   const rec = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
+
+  // Resumen semanal (parte 5a): solo el Brief determinista ya construido en el dispositivo; nada más.
+  if (rec.mode === 'weekly-brief') {
+    if (!isWeeklyBrief(rec.brief)) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
+    const briefSlot = consumeInstanceSlot()
+    if (!briefSlot.allowed) {
+      console.warn('[axis] sin cupo de la instancia:', briefSlot.reason)
+      return NextResponse.json({ error: 'rate-limited' }, { status: 429, headers: NO_STORE })
+    }
+    try {
+      const phrasing = await phraseWeeklyBrief(model, rec.brief, request.signal)
+      return NextResponse.json({ phrasing }, { headers: NO_STORE })
+    } catch (error) {
+      const status = error instanceof AIProviderError && error.kind === 'rate-limit' ? 429 : 502
+      console.warn('[axis] weekly-brief: se usa el Brief determinista:', error instanceof Error ? error.name : 'error')
+      return NextResponse.json({ error: 'ai-failed' }, { status, headers: NO_STORE })
+    }
+  }
+
   const context = rec.context
   if (!isFinancialContext(context)) return NextResponse.json({ error: 'bad-request' }, { status: 400, headers: NO_STORE })
   const memory = typeof rec.memory === 'object' && rec.memory !== null ? (rec.memory as AxisMemory) : undefined
