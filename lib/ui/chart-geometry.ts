@@ -25,7 +25,8 @@ export interface ChartGeometry {
 
 /** Valor del eje en euros, sin decimales salvo que el salto los necesite: «500 €», «1.250 €», «2,5 €». */
 export function formatTick(value: number, step: number): string {
-  const decimals = step >= 1 && Number.isInteger(step) ? 0 : step >= 0.1 ? 1 : 2
+  // Los decimales que necesita el salto (2,5 € → 1; 0,25 € → 2): nunca se redondea un valor del eje.
+  const decimals = Number.isInteger(step) ? 0 : Number.isInteger(Math.round(step * 1000) / 100) ? 1 : 2
   const abs = Math.abs(value).toFixed(decimals)
   const [int, dec] = abs.split('.')
   const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -57,14 +58,16 @@ export function yDomain(values: number[]): { lo: number; hi: number; zeroInScale
 
 /** Como mucho tantos valores en el eje vertical (en 150 px de alto, más se amontonan). */
 export const MAX_TICKS = 5
-const NICE_FACTORS = [1, 2, 2.5, 5]
+const NICE_FACTORS = [1, 2, 2.5, 5, 7.5]
 
-/** Pasos «redondos» crecientes a partir de `from`: 1, 2, 2,5, 5 por potencia de 10 (… 25, 50, 100, 250 …). */
+/** Pasos «redondos» crecientes a partir de `from`: 1, 2, 2,5 y 5 por potencia de 10, y 7,5 desde 75 (… 25, 50, 75, 100, 200, 250 …). */
 function* niceSteps(from: number): Generator<number> {
   let exp = Math.floor(Math.log10(from))
   for (;;) {
     for (const f of NICE_FACTORS) {
       const step = f * 10 ** exp
+      // 7,5 solo en saltos de 75 € o más: 0,75 € o 7,5 € serían valores raros de leer.
+      if (f === 7.5 && step < 75) continue
       if (step >= from * (1 - 1e-9)) yield step
     }
     exp++
@@ -72,39 +75,35 @@ function* niceSteps(from: number): Generator<number> {
 }
 
 /**
- * Valores redondos del eje vertical dentro de [lo, hi]: el paso redondo más
- * pequeño que deja como mucho `MAX_TICKS` valores (y al menos 2). El dominio
- * no se amplía: los valores caen donde caen y la línea conserva su altura.
+ * Eje vertical con valores redondos que cubre de lo mínimo a lo máximo: la
+ * escala se amplía al múltiplo del salto justo por debajo del mínimo y justo
+ * por encima del máximo (450 € → 600 € de 50 en 50 para una serie de 452 € a
+ * 558 €). El salto es el redondo más pequeño que deja como mucho `MAX_TICKS`
+ * valores: con más diferencia, 75, 100, 250…
  */
-export function niceTicks(lo: number, hi: number): { step: number; ticks: number[] } {
+export function niceTicks(lo: number, hi: number): { step: number; ticks: number[]; lo: number; hi: number } {
   const span = hi - lo
-  const ticksFor = (step: number) => {
-    const out: number[] = []
+  for (const step of niceSteps(span / (MAX_TICKS - 1))) {
     // Redondeo para que 0,1 + 0,2 no dé 0,30000000000000004.
-    const decimals = Math.max(0, -Math.floor(Math.log10(step)) + 1)
-    for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) out.push(Number(v.toFixed(decimals)))
-    return out
+    const decimals = Math.max(0, -Math.floor(Math.log10(step)) + 2)
+    const round = (v: number) => Number(v.toFixed(decimals))
+    const from = round(Math.floor(lo / step + 1e-9) * step)
+    const to = round(Math.ceil(hi / step - 1e-9) * step)
+    const count = Math.round((to - from) / step) + 1
+    if (count > MAX_TICKS) continue
+    const ticks = Array.from({ length: Math.max(2, count) }, (_, i) => round(from + i * step))
+    return { step, ticks, lo: ticks[0], hi: ticks[ticks.length - 1] }
   }
-  for (const step of niceSteps(span / MAX_TICKS)) {
-    const ticks = ticksFor(step)
-    if (ticks.length <= MAX_TICKS) {
-      if (ticks.length >= 2) return { step, ticks }
-      break
-    }
-  }
-  // Muy pocos valores con el paso mínimo: el siguiente paso más pequeño garantiza al menos 2.
-  for (const step of niceSteps(span / (MAX_TICKS * 4))) {
-    const ticks = ticksFor(step)
-    if (ticks.length >= 2 && ticks.length <= MAX_TICKS) return { step, ticks }
-  }
-  return { step: span, ticks: [lo, hi] }
+  return { step: span, ticks: [lo, hi], lo, hi }
 }
 
 export function chartGeometry(values: number[], xs: number[] | null, width: number, height: number, padY: number): ChartGeometry {
-  const { lo: min, hi: max, zeroInScale } = yDomain(values)
+  // La escala ajustada a la serie (`yDomain`) se amplía a los valores redondos del eje.
+  const domain = yDomain(values)
+  const { step, ticks, lo: min, hi: max } = niceTicks(domain.lo, domain.hi)
   const span = max - min
+  const zeroInScale = min <= 0 && max >= 0
   const y = (v: number) => padY + (1 - (v - min) / span) * (height - padY * 2)
-  const { step, ticks } = niceTicks(min, max)
 
   const hasTime = xs !== null && xs.length === values.length && xs[xs.length - 1] > xs[0]
   const x0 = hasTime ? xs[0] : 0

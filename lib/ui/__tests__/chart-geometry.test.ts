@@ -37,8 +37,9 @@ describe('geometría del gráfico de evolución', () => {
     const { zeroInScale, baseY } = chartGeometry([509.4, 520, 515, 558.15], null, W, H, PAD)
     assert.equal(zeroInScale, false)
     assert.equal(baseY, H, 'sin 0 en escala, el área llega al borde inferior')
+    // Con el eje ampliado a valores redondos (450–600 €), la subida sigue viéndose (antes, < 10 %).
     const share = drawn([509.4, 520, 515, 558.15])
-    assert.ok(share > 0.5 && share < 0.65, `ocupa ${Math.round(share * 100)} % de la altura`)
+    assert.ok(share > 0.25 && share < 0.65, `ocupa ${Math.round(share * 100)} % de la altura`)
   })
 
   it('pero no exagera: la escala nunca es más estrecha que el 15 % del patrimonio', () => {
@@ -52,11 +53,12 @@ describe('geometría del gráfico de evolución', () => {
     assert.ok(flat.every((y) => Math.abs(y - H / 2) < 1e-9))
   })
 
-  it('cerca del cero, el 0 vuelve a la escala: de 100 € a 1.100 € es casi toda la altura, porque lo es', () => {
+  it('cerca del cero, el 0 vuelve a la escala: de 100 € a 1.100 € es gran parte de la altura, porque lo es', () => {
     const { zeroInScale, baseY } = chartGeometry([100, 1_100, 1_050], null, W, H, PAD)
     assert.equal(zeroInScale, true)
     assert.equal(baseY, H - PAD, 'la base del área es el 0')
-    assert.ok(drawn([100, 1_100, 1_050]) > 0.85)
+    // Eje 0–1.500 € de 500 en 500: la subida ocupa dos tercios.
+    assert.ok(drawn([100, 1_100, 1_050]) > 0.6)
   })
 
   it('patrimonio negativo: queda por debajo de la base y el área rellena hasta el cero', () => {
@@ -104,25 +106,34 @@ describe('eje vertical con valores redondos', () => {
     assert.deepEqual(axis([500, 300, 700, 500]), ['300 €', '400 €', '500 €', '600 €', '700 €'])
   })
 
-  it('el caso real (~509 € a 558 €): saltos de 20 €', () => {
-    assert.deepEqual(axis([509.4, 520, 515, 558.15]), ['500 €', '520 €', '540 €', '560 €'])
+  it('el caso real (~450 € a 558 €): de 50 en 50, de un valor redondo por debajo del mínimo a uno por encima del máximo', () => {
+    assert.deepEqual(axis([452, 470, 520, 558.15]), ['450 €', '500 €', '550 €', '600 €'])
+    assert.deepEqual(axis([509.4, 520, 515, 558.15]), ['450 €', '500 €', '550 €', '600 €'])
   })
 
-  it('el salto depende de la diferencia: miles, negativos y céntimos', () => {
-    assert.deepEqual(axis([12_000, 13_500, 18_250]), ['12.000 €', '14.000 €', '16.000 €', '18.000 €'])
-    assert.deepEqual(axis([100, -200, -150, 558.15]), ['-200 €', '0 €', '200 €', '400 €'])
+  it('con una diferencia grande, el salto sube a 75 o 100', () => {
+    assert.deepEqual(axis([450, 600, 750]), ['450 €', '525 €', '600 €', '675 €', '750 €'])
+    assert.deepEqual(axis([500, 300, 700, 500]), ['300 €', '400 €', '500 €', '600 €', '700 €'])
+  })
+
+  it('el salto depende de la diferencia: miles, negativos y céntimos (sin saltos raros como 0,75 €)', () => {
+    assert.deepEqual(axis([12_000, 13_500, 18_250]), ['12.000 €', '14.000 €', '16.000 €', '18.000 €', '20.000 €'])
+    assert.deepEqual(axis([100, -200, -150, 558.15]), ['-200 €', '0 €', '200 €', '400 €', '600 €'])
+    assert.deepEqual(axis([3, 4.2, 5.8]), ['3 €', '4 €', '5 €', '6 €'])
     assert.deepEqual(niceTicks(1, 1.4).ticks, [1, 1.1, 1.2, 1.3, 1.4])
     assert.equal(formatTick(1.1, 0.1), '1,1 €')
+    assert.equal(formatTick(2.5, 2.5), '2,5 €')
+    assert.equal(formatTick(0.25, 0.25), '0,25 €')
   })
 
-  it('siempre entre 2 y 5 valores, dentro de la escala y a su altura', () => {
+  it('siempre entre 2 y 5 valores, cubriendo de lo mínimo a lo máximo y a su altura', () => {
     const series = [[1, 2, 3], [500, 500, 500], [0, 0, 50], [-500, -300], [8_000, 8_050], [0.5, 0.7, 0.9], [1_000_000, 1_250_000]]
     for (const values of series) {
       const g = chartGeometry(values, null, W, H, PAD)
-      const { lo, hi } = yDomain(values)
       assert.ok(g.ticks.length >= 2 && g.ticks.length <= MAX_TICKS, `${values}: ${g.ticks.length} valores`)
+      assert.ok(g.ticks[0].value <= Math.min(...values) + 1e-9, `${values}: el eje empieza por encima del mínimo`)
+      assert.ok(g.ticks[g.ticks.length - 1].value >= Math.max(...values) - 1e-9, `${values}: el eje acaba por debajo del máximo`)
       for (const t of g.ticks) {
-        assert.ok(t.value >= lo - 1e-9 && t.value <= hi + 1e-9, `${values}: ${t.value} fuera de ${lo}..${hi}`)
         assert.ok(t.y >= PAD - 1e-9 && t.y <= H - PAD + 1e-9)
       }
       // Valores redondos: múltiplos exactos del salto.
