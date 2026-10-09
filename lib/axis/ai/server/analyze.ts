@@ -37,7 +37,8 @@ import { decide } from '../../core/decision'
 import { buildExpressionRequest, mergeExpression, parseExpression } from '../../core/expression'
 import { validateExpression } from '../../core/semantic'
 import { buildChatRequest } from '../../chat/prompt'
-import { parseToolRequest, type ChatToolRequest } from '../../chat/tools'
+import { parseToolRequest, SERVER_TOOLS, type ChatToolRequest } from '../../chat/tools'
+import { searchMarket } from '../../../market/search'
 import type { ChatInput, ChatReply } from '../../chat/types'
 import { redactChatInput, redactMemory } from '../../chat/secrets'
 import { buildChatGuard, validateChatReply } from '../../chat/semantic'
@@ -48,7 +49,7 @@ import { buildWeeklyBriefRequest, parseWeeklyBriefPhrasing, type WeeklyBriefPhra
 import { validateWeeklyBriefPhrasing } from '../../brief/phrasing-validate'
 import type { WeeklyBrief } from '../../brief/weekly'
 import type { AxisAnalysis, AxisEngineInfo, AxisInput, AxisMemory, FinancialContext, MarketContext } from '../../types'
-import { AXIS_AI_LIMITS } from './limits'
+import { AXIS_AI_LIMITS, consumeInstanceSlot } from './limits'
 
 export type AxisAiProviderId = 'cloudflare' | 'gemini' | 'groq'
 
@@ -334,7 +335,14 @@ export type ChatTurn = { reply: ChatReply } | { toolRequest: ChatToolRequest }
  * la respuesta se valida con las cifras del resultado permitidas. Una consulta
  * no válida se ignora y se juzga la respuesta. En los logs, solo el nombre de la consulta.
  */
-export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput, signal?: AbortSignal): Promise<ChatTurn> {
+export interface ChatTurnDeps {
+  /** Búsqueda de mercado (parte 5b). Por defecto, la real sobre fuentes públicas. */
+  searchMarket?: (text: string) => Promise<Record<string, unknown>>
+  /** Cupo para la segunda llamada de una consulta del servidor. Por defecto, el de la instancia. */
+  consumeSlot?: () => boolean
+}
+
+export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput, signal?: AbortSignal, deps: ChatTurnDeps = {}): Promise<ChatTurn> {
   const model = asLanguageModel(provider)
   const input = redactChatInput(rawInput)
   const tools = !input.toolResults
@@ -342,6 +350,15 @@ export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput,
   if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
   if (tools) {
     const toolRequest = parseToolRequest(raw.consulta)
+    if (toolRequest && SERVER_TOOLS.has(toolRequest.herramienta)) {
+      // Consulta del servidor (buscar_mercado): se ejecuta aquí y se responde en esta misma petición.
+      console.info('[axis] chat: consulta (servidor):', toolRequest.herramienta)
+      const consume = deps.consumeSlot ?? (() => consumeInstanceSlot().allowed)
+      if (!consume()) throw new AIProviderError('rate-limit', 'sin cupo para la consulta de mercado')
+      const search = deps.searchMarket ?? ((text: string) => searchMarket(text, { now: new Date(), dataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL }))
+      const resultado = await search(toolRequest.texto ?? '')
+      return chatTurnWithProvider(provider, { ...input, toolResults: [{ consulta: toolRequest, resultado }] }, signal, deps)
+    }
     if (toolRequest) {
       console.info('[axis] chat: consulta:', toolRequest.herramienta)
       return { toolRequest }

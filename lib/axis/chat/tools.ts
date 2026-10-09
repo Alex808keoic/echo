@@ -19,7 +19,9 @@ import { looksLikeSecret } from './secrets'
 
 const CATEGORIES: readonly string[] = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]
 
-export const CHAT_TOOLS = ['resumen_mes', 'gasto_por_categoria', 'buscar_movimientos'] as const
+export const CHAT_TOOLS = ['resumen_mes', 'gasto_por_categoria', 'buscar_movimientos', 'buscar_mercado'] as const
+/** Consultas que ejecuta el servidor (necesitan internet), nunca el dispositivo: el cliente no puede aportar su resultado. */
+export const SERVER_TOOLS: ReadonlySet<ChatToolName> = new Set(['buscar_mercado'])
 export type ChatToolName = (typeof CHAT_TOOLS)[number]
 
 export const TOOL_LIMITS = Object.freeze({
@@ -55,6 +57,8 @@ export const TOOLS_FOR_PROMPT = {
     resumen_mes: 'Ingresos, gastos y ahorro de un mes. Requiere «mes» (AAAA-MM).',
     gasto_por_categoria: 'Gasto por categoría de un mes, o el de una sola categoría. Requiere «mes» (AAAA-MM); «categoria» opcional.',
     buscar_movimientos: `Hasta ${TOOL_LIMITS.MAX_MOVEMENTS} movimientos, los más recientes, filtrados por «mes», «categoria», «tipo» (ingreso | gasto) y/o «texto» del concepto.`,
+    buscar_mercado:
+      'Si pregunta por un activo o un tema de mercado (oro, depósitos, tipos, hipotecas, bolsa…): titulares recientes de fuentes oficiales (BCE, Fed, Banco de España) y la nota de la investigación de Finax sobre ese tema. Requiere «texto» con el tema (pocas palabras). Es contexto fechado, nunca una recomendación.',
   },
   categorias: CATEGORIES,
 } as const
@@ -99,6 +103,7 @@ export function parseToolRequest(raw: unknown): ChatToolRequest | null {
   if (texto !== undefined && (typeof texto !== 'string' || texto.trim() === '' || texto.length > TOOL_LIMITS.MAX_SEARCH_CHARS || looksLikeSecret(texto))) return null
   if (tipo !== undefined && tipo !== 'ingreso' && tipo !== 'gasto') return null
   if ((tool === 'resumen_mes' || tool === 'gasto_por_categoria') && mes === undefined) return null
+  if (tool === 'buscar_mercado' && texto === undefined) return null
   return {
     herramienta: tool as ChatToolName,
     ...(mes !== undefined ? { mes: mes as string } : {}),
@@ -118,6 +123,7 @@ const safeLabel = (m: Movement) => {
 
 /** Ejecuta una consulta ya validada sobre los movimientos locales. Pura y determinista. */
 export function runChatTool(request: ChatToolRequest, movements: readonly Movement[]): ChatToolResult {
+  if (SERVER_TOOLS.has(request.herramienta)) throw new Error('consulta que solo ejecuta el servidor')
   const inMonth = (m: Movement) => !request.mes || m.date.startsWith(request.mes)
   switch (request.herramienta) {
     case 'resumen_mes': {
@@ -151,6 +157,9 @@ export function runChatTool(request: ChatToolRequest, movements: readonly Moveme
         },
       }
     }
+    case 'buscar_mercado':
+      // Nunca llega aquí (lo comprueba SERVER_TOOLS arriba): la ejecuta el servidor.
+      throw new Error('consulta que solo ejecuta el servidor')
   }
 }
 
@@ -158,7 +167,9 @@ export function runChatTool(request: ChatToolRequest, movements: readonly Moveme
 export function isChatToolResults(v: unknown): v is ChatToolResult[] {
   if (!Array.isArray(v) || v.length === 0 || v.length > TOOL_LIMITS.MAX_ROUNDS) return false
   return v.every((r) => {
-    if (!isRecord(r) || parseToolRequest(r.consulta) === null || !isRecord(r.resultado)) return false
+    const consulta = isRecord(r) ? parseToolRequest(r.consulta) : null
+    // El resultado de una consulta del servidor nunca puede venir del cliente.
+    if (!isRecord(r) || consulta === null || SERVER_TOOLS.has(consulta.herramienta) || !isRecord(r.resultado)) return false
     const text = JSON.stringify(r.resultado)
     return text.length <= 2_000 && !looksLikeSecret(text)
   })
@@ -174,7 +185,8 @@ export function toolResultFigures(results: readonly ChatToolResult[] | undefined
     else if (Array.isArray(v)) v.forEach(walk)
     else if (isRecord(v)) Object.values(v).forEach(walk)
   }
-  for (const r of results) walk(r.resultado)
+  // Los resultados de buscar_mercado son texto de terceros (titulares, notas): sus cifras no se pueden citar.
+  for (const r of results) if (!SERVER_TOOLS.has(r.consulta.herramienta)) walk(r.resultado)
   return texts.flatMap((t) =>
     extractFigures(t).flatMap((f): AllowedFigure[] => {
       const n = Number(f.key.slice(2))
