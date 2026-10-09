@@ -16,6 +16,7 @@
 import { detectSignals } from '../rules'
 import { decide } from '../core/decision'
 import { chatPlanOf, planForPrompt } from '../plan/chat'
+import { coachingTone, TONE_GUIDE } from '../coaching'
 import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
@@ -46,6 +47,8 @@ function signalSummary(signals: Signal[]) {
 export function buildChatRequest(input: ChatInput): AIRequest {
   const { context, market, memory, conversation, message, history } = input
   const signals = detectSignals(context, market ?? null, reconcileProfile(profileFromMemory(memory), context))
+  // La misma decisión que el análisis y la validación: de ella salen el plan y el tono.
+  const decision = decide({ context, market: market ?? null, memory })
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),
@@ -54,7 +57,9 @@ export function buildChatRequest(input: ChatInput): AIRequest {
       // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.
       ...(history ? { historico_de_movimientos: historyForPrompt(history) } : {}),
       // Plan de reparto de Finax (fase 2d): recalculado aquí con los mismos datos; ningún dato nuevo.
-      plan_de_reparto: planForPrompt(chatPlanOf(decide({ context, market: market ?? null, memory }))),
+      plan_de_reparto: planForPrompt(chatPlanOf(decision)),
+      // Tono de coach decidido por Finax (coaching.ts), no por el modelo.
+      tono_sugerido: TONE_GUIDE[coachingTone(decision).tone],
     },
     memoria: {
       memorias_del_usuario: memory?.userMemories ?? [],

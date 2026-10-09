@@ -58,6 +58,7 @@ export const AXIS_CHAT_SYSTEM_PROMPT = prompt([
     PERSONALITY.style.reasoned,
     SAFETY.chat.noAssumptions,
     SAFETY.chat.plan,
+    SAFETY.chat.tone,
     PERSONALITY.style.noDisclaimer,
   ]),
   section('VOZ Y FORMATO', [PERSONALITY.tone.chat, ...Object.values(PERSONALITY.voice), PERSONALITY.style.brevity, OUTPUT.chat.fields, OUTPUT.chat.jsonOnly]),

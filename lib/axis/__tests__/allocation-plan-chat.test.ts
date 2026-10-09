@@ -67,6 +67,8 @@ describe('el modelo recibe el plan, con los mismos textos que «Tu plan»', () =
     const i = investing()
     const withoutPlan = JSON.parse(buildChatRequest(i).user.slice(buildChatRequest(i).user.indexOf('{')))
     delete withoutPlan.datos_actuales.plan_de_reparto
+    // El tono (parte 4a) también se deriva de la misma decisión: tampoco es un dato nuevo.
+    delete withoutPlan.datos_actuales.tono_sugerido
     assert.deepEqual(Object.keys(withoutPlan.datos_actuales), ['contexto_financiero', 'senales_detectadas_por_finax'])
   })
 })

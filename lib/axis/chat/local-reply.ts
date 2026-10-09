@@ -11,6 +11,7 @@ import { analyzeLocally, LOCAL_RULES_ENGINE_INFO } from '../local-engine'
 import { profileFromMemory } from '../profile/derive'
 import { decide } from '../core/decision'
 import { chatPlanOf, planLocalReply, PLAN_QUESTION } from '../plan/chat'
+import { coachingTone, TONE_OPENER } from '../coaching'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 const REASON_INTRO: Record<FallbackReason, string> = {
@@ -41,8 +42,11 @@ export function composeLocalReply(input: ChatInput, reason: FallbackReason, now:
   }
 
   const { headline, interpretation, recommendation, conclusion } = result.analysis
+  // Tono de coach (coaching.ts): la misma decisión que usa el chat con IA.
+  const opener = TONE_OPENER[coachingTone(decide({ context: input.context, market: input.market ?? null, memory: input.memory })).tone]
   const parts = [
     `${REASON_INTRO[reason]} Con mis reglas locales, esto es lo que veo hoy en tus datos:`,
+    ...(opener ? [opener] : []),
     `${headline.replace(/[.!?]$/, '')}. ${interpretation.summary}`,
     recommendation ? `${recommendation.what} ${recommendation.why}` : conclusion.summary,
   ]
