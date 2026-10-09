@@ -80,8 +80,11 @@ export function LineChart({ data, xs, height = 150, className }: LineChartProps)
             vectorEffect="non-scaling-stroke"
           />
         ))}
-        <path d={areaPath} fill={`url(#${gradientId})`} />
+        {/* key = el trazado: al cambiar de periodo, la línea se vuelve a dibujar. */}
+        <path key={`a-${linePath}`} className="chart-area" d={areaPath} fill={`url(#${gradientId})`} />
         <path
+          key={`l-${linePath}`}
+          className="chart-draw"
           d={linePath}
           fill="none"
           stroke={`url(#${lineId})`}
@@ -90,8 +93,10 @@ export function LineChart({ data, xs, height = 150, className }: LineChartProps)
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
-        <circle cx={last[0]} cy={last[1]} r="4.5" fill="var(--finax)" />
-        <circle cx={last[0]} cy={last[1]} r="8" fill="var(--finax)" fillOpacity="0.18" />
+        <g key={`p-${linePath}`} className="chart-area">
+          <circle cx={last[0]} cy={last[1]} r="4.5" fill="var(--finax)" />
+          <circle cx={last[0]} cy={last[1]} r="8" fill="var(--finax)" fillOpacity="0.18" />
+        </g>
       </svg>
     </div>
   )

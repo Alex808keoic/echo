@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PhoneFrame } from '@/components/finax/phone-frame'
+import { PhoneFrame, type ScreenEnter } from '@/components/finax/phone-frame'
 import { BottomNavigation, isTab, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
 import { HomeScreen } from '@/components/finax/screens/home-screen'
 import { MoneyScreen } from '@/components/finax/screens/money-screen'
@@ -31,16 +31,24 @@ function App() {
   const [screen, setScreen] = useState<ScreenKey>('inicio')
   /** Última pestaña principal visitada: se resalta en la barra y es el destino de «volver». */
   const [origin, setOrigin] = useState<TabKey>('inicio')
+  // Animación de entrada: ninguna al abrir la app; después, según de dónde a dónde se va.
+  const [enter, setEnter] = useState<ScreenEnter | undefined>(undefined)
   const overview = useFinancialOverview()
   const { open, close } = useSheet()
 
   const showFab = screen === 'movimientos' || screen === 'estadisticas'
   const openNewMovement = () => open('Nuevo movimiento', <MovementForm onDone={close} />)
   const navigate = (next: ScreenKey) => {
+    if (next === screen) return
+    // Entre pestañas, fundido; hacia una pantalla secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
+    setEnter(isTab(next) ? (isTab(screen) ? 'fade' : 'back') : 'forward')
     if (isTab(next)) setOrigin(next)
     setScreen(next)
   }
-  const back = () => setScreen(origin)
+  const back = () => {
+    setEnter('back')
+    setScreen(origin)
+  }
 
   return (
     <main className="min-h-dvh w-full bg-background">
@@ -61,6 +69,7 @@ function App() {
           nav={<BottomNavigation active={origin} onChange={navigate} />}
           overlay={<SheetOutlet />}
           contentKey={screen}
+          enter={enter}
           floatingAction={
             showFab ? (
               <button

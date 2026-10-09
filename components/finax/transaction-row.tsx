@@ -23,7 +23,7 @@ export function TransactionRow({ movement, onClick }: TransactionRowProps) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3.5 py-3 text-left"
+      className="flex w-full items-center gap-3.5 py-3 text-left transition-opacity duration-150 active:opacity-60"
     >
       <span
         className={cn(

@@ -127,7 +127,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         <button
           type="button"
           onClick={() => onNavigate('plan')}
-          className="flex w-full items-center gap-3 rounded-3xl border border-border bg-card p-4 text-left shadow-[0_2px_14px_-8px_rgba(31,41,55,0.14)] transition-colors hover:bg-muted/40"
+          className="flex w-full items-center gap-3 rounded-3xl border border-border bg-card p-4 text-left shadow-[0_2px_14px_-8px_rgba(31,41,55,0.14)] transition-[background-color,scale] duration-150 hover:bg-muted/40 active:scale-[0.99]"
         >
           <span className="min-w-0 flex-1">
             <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">Tu plan del mes</span>

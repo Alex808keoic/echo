@@ -20,7 +20,7 @@ export function AxisCard({ text, title, tone = 'lavender', onClick }: AxisCardPr
     <button
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3.5 rounded-3xl border p-4 text-left transition-colors',
+        'flex w-full items-center gap-3.5 rounded-3xl border p-4 text-left transition-[color,background-color,border-color,scale] duration-150 active:scale-[0.99]',
         isLavender
           ? 'border-axis-violet/15 bg-axis-soft hover:bg-[#e7eaff]'
           : 'border-finax/15 bg-finax-soft hover:bg-finax-soft-2',

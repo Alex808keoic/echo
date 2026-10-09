@@ -97,14 +97,14 @@ export function SheetOutlet() {
   return (
     <div ref={layerRef} className="absolute inset-0 z-30 flex flex-col justify-end">
       {/* Tocar fuera cierra; no es un control más para el teclado ni el lector (ya están la X y Escape). */}
-      <button type="button" tabIndex={-1} aria-hidden="true" onClick={close} className="absolute inset-0 bg-grafito/35 backdrop-blur-[2px]" />
+      <button type="button" tabIndex={-1} aria-hidden="true" onClick={close} className="fade-in absolute inset-0 bg-grafito/35 backdrop-blur-[2px]" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sheet-title"
         tabIndex={-1}
-        className="no-scrollbar relative max-h-[88%] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-card px-5 pb-8 pt-3 shadow-[0_-12px_40px_-20px_rgba(31,41,55,0.35)] focus:outline-none"
+        className="sheet-up no-scrollbar relative max-h-[88%] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-card px-5 pb-8 pt-3 shadow-[0_-12px_40px_-20px_rgba(31,41,55,0.35)] focus:outline-none"
       >
         <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-graylight" />
         <div className="mb-4 flex items-center justify-between gap-3">

@@ -48,12 +48,12 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
             key={tab.key}
             onClick={() => onChange(tab.key)}
             aria-current={isActive ? 'page' : undefined}
-            className="flex flex-1 flex-col items-center gap-1"
+            className="flex flex-1 flex-col items-center gap-1 transition-transform duration-150 active:scale-95"
           >
             <span
               className={cn(
-                'flex h-6 items-center justify-center transition-colors',
-                isActive ? activeColor : 'text-muted-foreground',
+                'flex h-6 items-center justify-center transition-[color,scale] duration-200',
+                isActive ? cn(activeColor, 'scale-110') : 'text-muted-foreground',
               )}
             >
               {isAxis ? (

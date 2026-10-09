@@ -107,7 +107,7 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
           {status === 'covered' && 'Tu dinero líquido ya llega a la meta'}
         </p>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-finax" style={{ width: `${pct}%` }} />
+          <div className="h-full rounded-full bg-finax transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
         </div>
       </div>
     </button>
