@@ -17,6 +17,7 @@ import { detectSignals } from '../rules'
 import { decide } from '../core/decision'
 import { chatPlanOf, planForPrompt } from '../plan/chat'
 import { coachingTone, TONE_GUIDE } from '../coaching'
+import { chatGuideOf, guideForPrompt } from '../guide/chat'
 import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
@@ -62,6 +63,7 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
   const signals = detectSignals(context, market ?? null, reconcileProfile(profileFromMemory(memory), context))
   // La misma decisión que el análisis y la validación: de ella salen el plan y el tono.
   const decision = decide({ context, market: market ?? null, memory })
+  const guide = chatGuideOf(message, decision)
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),
@@ -83,6 +85,8 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
       ultimos_mensajes: conversation.recent,
     },
     consulta_actual: message,
+    // Guía para invertir: solo si el mensaje nombra tipos de producto (información general y encaje con su plan).
+    ...(guide ? { guia_para_invertir: guideForPrompt(guide) } : {}),
     ...(offerTools ? { consultas_disponibles: TOOLS_FOR_PROMPT } : {}),
     ...(toolResults ? { resultados_de_consultas: toolResults.map((r) => ({ consulta: r.consulta, resultado: r.resultado })) } : {}),
   }

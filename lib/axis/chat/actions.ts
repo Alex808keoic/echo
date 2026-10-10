@@ -12,10 +12,11 @@
 import { decide } from '../core/decision'
 import { buildAllocationPlan, type AllocationPlan } from '../plan/allocation'
 import { PLAN_QUESTION } from '../plan/chat'
+import { matchProductTypes } from '../guide/products'
 import type { AxisDecision } from '../types'
 import type { ChatInput, ChatReply } from './types'
 
-export type ChatActionTarget = 'plan' | 'memoria' | 'movimientos' | 'estadisticas' | 'dinero' | 'objetivos'
+export type ChatActionTarget = 'plan' | 'memoria' | 'movimientos' | 'estadisticas' | 'dinero' | 'objetivos' | 'guia'
 
 export type ChatAction =
   | { kind: 'navigate'; label: string; to: ChatActionTarget }
@@ -50,7 +51,7 @@ function planStepAction(plan: AllocationPlan): ChatAction | null {
 /** ¿Merece esta respuesta tarjetas de acción? */
 function wantsActions(message: string, decision: AxisDecision): boolean {
   const lead = decision.lead?.priority
-  return PLAN_QUESTION.test(message) || lead === 'critical' || lead === 'high'
+  return PLAN_QUESTION.test(message) || matchProductTypes(message).length > 0 || lead === 'critical' || lead === 'high'
 }
 
 export function chatActions(input: ChatInput, reply: Pick<ChatReply, 'nextStep'>, decision: AxisDecision = decide({ context: input.context, market: input.market ?? null, memory: input.memory })): ChatAction[] {
@@ -58,7 +59,9 @@ export function chatActions(input: ChatInput, reply: Pick<ChatReply, 'nextStep'>
   const plan = buildAllocationPlan(decision)
   // Además del suelto «answer-profile» al final del plan: si falta el perfil, también se ofrece.
   const answerProfile = plan.steps.some((s) => s.kind === 'answer-profile') ? ({ kind: 'navigate', label: 'Responder «Tu perfil»', to: 'memoria' } as const) : null
-  const candidates: Array<ChatAction | null> = [planStepAction(plan), { kind: 'navigate', label: 'Ver tu plan', to: 'plan' }, answerProfile]
+  // Si pregunta por un tipo de producto, la guía va primero.
+  const guide = matchProductTypes(input.message).length > 0 ? ({ kind: 'navigate', label: 'Ver la guía para invertir', to: 'guia' } as const) : null
+  const candidates: Array<ChatAction | null> = [guide, planStepAction(plan), { kind: 'navigate', label: 'Ver tu plan', to: 'plan' }, answerProfile]
   const out: ChatAction[] = []
   for (const a of candidates) {
     if (!a || out.length >= MAX_CHAT_ACTIONS) continue

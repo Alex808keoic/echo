@@ -32,6 +32,7 @@ import type { ChatInput, ChatReply } from './types'
 import { historyFigures, monthsWithHistory } from './financial-history'
 import { chatPlanOf, planFigures, type ChatPlan } from '../plan/chat'
 import { toolResultFigures } from './tools'
+import { chatGuideOf, guideFigures } from '../guide/chat'
 
 /** Lo que la validación necesita del turno: la decisión de AXIS y las cifras que existen. */
 export interface ChatGuard {
@@ -63,6 +64,8 @@ export function buildChatGuard(input: ChatInput): ChatGuard {
     ...historyFigures(input.history),
     // Resultado de la consulta que pidió el modelo (parte 4c): calculado por Finax en el dispositivo.
     ...toolResultFigures(input.toolResults),
+    // Cifras de la guía para invertir (escritas por Finax), si el mensaje nombra tipos de producto.
+    ...guideFigures(chatGuideOf(input.message, decision)),
   ]
   // El plan sale de la misma decisión: sus importes (los de «Tu plan») se pueden citar.
   const plan = chatPlanOf(decision)

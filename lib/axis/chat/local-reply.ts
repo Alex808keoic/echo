@@ -12,6 +12,7 @@ import { profileFromMemory } from '../profile/derive'
 import { decide } from '../core/decision'
 import { chatPlanOf, planLocalReply, PLAN_QUESTION } from '../plan/chat'
 import { coachingTone, TONE_OPENER } from '../coaching'
+import { chatGuideOf, guideLocalReply } from '../guide/chat'
 import type { ChatInput, ChatReply, FallbackReason } from './types'
 
 const REASON_INTRO: Record<FallbackReason, string> = {
@@ -34,6 +35,10 @@ export function composeLocalReply(input: ChatInput, reason: FallbackReason, now:
       nextStep: result.nextStep,
     }
   }
+
+  // Preguntas sobre un tipo de producto: la guía para invertir y su encaje con el plan (antes que el plan).
+  const guide = chatGuideOf(input.message, decide({ context: input.context, market: input.market ?? null, memory: input.memory }))
+  if (guide) return { ...base, text: `${REASON_INTRO[reason]}\n\n${guideLocalReply(guide)}`, nextStep: { label: 'Ver la guía para invertir', to: 'guia' } }
 
   // Preguntas sobre qué hacer con el dinero: el plan de reparto (determinista, como en «Tu plan»).
   if (PLAN_QUESTION.test(input.message)) {

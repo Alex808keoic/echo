@@ -226,7 +226,7 @@ export type Priority = 'critical' | 'high' | 'medium' | 'low'
 export type SignalDomain = 'income' | 'expenses' | 'savings' | 'objectives' | 'investments' | 'market' | 'forecast'
 
 /** Pantalla de Finax donde continuar. AXIS solo propone; nunca ejecuta. */
-export type AxisDestination = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'objetivos' | 'inversiones' | 'plan'
+export type AxisDestination = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'objetivos' | 'inversiones' | 'plan' | 'guia'
 
 export interface AxisNextStep {
   label: string

@@ -85,7 +85,7 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     what: 'Parecido a un fondo indexado, pero se compra y vende en bolsa como una acción, a través de un bróker.',
     goodFor: 'La parte a largo plazo, si prefieres operar en bolsa.',
     compare: ['La comisión total anual (TER)', 'Las comisiones del bróker por comprar y vender', 'Qué índice copia y si es amplio'],
-    warnings: ['Puede caer mucho en un año malo', 'En España, cambiar de un ETF a otro normalmente tributa (no hay traspaso como en los fondos)', 'Hay ETF muy especializados o apalancados: mucho más arriesgados'],
+    warnings: ['Puede caer mucho en un año malo, incluso más de un 30 %: solo para dinero que puedas dejar quieto', 'En España, cambiar de un ETF a otro normalmente tributa (no hay traspaso como en los fondos)', 'Hay ETF muy especializados o apalancados: mucho más arriesgados'],
     keywords: ['etf', 'etfs'],
   },
   {
