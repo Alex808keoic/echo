@@ -14,6 +14,7 @@ import { SettingsScreen } from '@/components/finax/screens/settings-screen'
 import { MemoryScreen } from '@/components/finax/screens/memory-screen'
 import { PlanScreen } from '@/components/finax/screens/plan-screen'
 import { BriefScreen } from '@/components/finax/screens/brief-screen'
+import { GuideScreen } from '@/components/finax/screens/guide-screen'
 import { Wordmark } from '@/components/finax/wordmark'
 import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
@@ -94,6 +95,7 @@ function App() {
           {screen === 'memoria' && <MemoryScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'plan' && <PlanScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'resumen' && <BriefScreen overview={overview} onNavigate={navigate} onBack={back} />}
+          {screen === 'guia' && <GuideScreen overview={overview} onNavigate={navigate} onBack={back} />}
         </PhoneFrame>
       </div>
     </main>

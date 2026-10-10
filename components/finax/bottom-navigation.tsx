@@ -7,7 +7,7 @@ import { AxisSphere } from './axis-sphere'
 export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'axis'
 
 /** Pantallas secundarias accesibles desde las pestañas principales. */
-export type ScreenKey = TabKey | 'objetivos' | 'inversiones' | 'ajustes' | 'memoria' | 'plan' | 'resumen'
+export type ScreenKey = TabKey | 'objetivos' | 'inversiones' | 'ajustes' | 'memoria' | 'plan' | 'resumen' | 'guia'
 
 interface Tab {
   key: TabKey
