@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-09T14:29:37.869Z",
+  "checkedAt": "2026-10-12T16:53:59.795Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,7 +10,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     },
     {
       "key": "euribor-12m",
@@ -21,7 +21,7 @@
       "asOf": "2026-10-08",
       "changePct": 0.019,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     },
     {
       "key": "ine-ipc",
@@ -33,7 +33,7 @@
       "changePct": 0.6,
       "source": "INE",
       "status": "advance",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     },
     {
       "key": "ea-hicp",
@@ -46,7 +46,7 @@
       "source": "Eurostat",
       "status": "estimated",
       "publishedAt": "2026-10-02T09:00:00.000Z",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     },
     {
       "key": "ibex",
@@ -57,7 +57,7 @@
       "asOf": "2026-10-08",
       "changePct": -0.4,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     },
     {
       "key": "stoxx50",
@@ -68,19 +68,10 @@
       "asOf": "2026-09",
       "changePct": -2.58,
       "source": "BCE",
-      "fetchedAt": "2026-10-09T14:29:37.869Z"
+      "fetchedAt": "2026-10-12T16:53:59.795Z"
     }
   ],
-  "events": [
-    {
-      "kind": "new-inflation",
-      "detail": "IPC España (interanual): nuevo dato 2026-09 (4.9 %)"
-    },
-    {
-      "kind": "new-inflation",
-      "detail": "Inflación eurozona (HICP interanual): nuevo dato 2026-09 (3.8 %)"
-    }
-  ],
+  "events": [],
   "failedSources": [],
   "eventTriggered": false
 }
