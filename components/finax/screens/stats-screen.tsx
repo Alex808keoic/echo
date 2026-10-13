@@ -112,16 +112,16 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 No hay {noun.toLowerCase()} registrados este mes.
               </p>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <DonutChart
                   segments={categories.map((c, i) => ({ pct: c.pct, color: chartColor(i) }))}
-                  size={132}
-                  thickness={16}
+                  size={120}
+                  thickness={14}
                 >
                   <span className="text-[15px] font-extrabold text-grafito tabular-nums">
                     {formatCents(monthTotal)}
                   </span>
-                  <span className="text-[10.5px] font-medium text-muted-foreground">{noun} este mes</span>
+                  <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">{noun} este mes</span>
                 </DonutChart>
 
                 <ul className="min-w-0 flex-1 space-y-2.5">
@@ -136,8 +136,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
           </FinancialCard>
 
           <FinancialCard>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[16px] font-bold tracking-tight text-grafito">Evolución de {noun.toLowerCase()}</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <h2 className="whitespace-nowrap text-[16px] font-bold tracking-tight text-grafito">Evolución de {noun.toLowerCase()}</h2>
               <Segmented options={RANGES} value={range} onChange={setRange} />
             </div>
             {hasBars ? (

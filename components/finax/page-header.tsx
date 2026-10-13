@@ -86,12 +86,12 @@ interface SubPageHeaderProps {
 /** Cabecera de pantalla secundaria: botón «atrás» + título. */
 export function SubPageHeader({ title, subtitle, onBack, action }: SubPageHeaderProps) {
   return (
-    <header className="flex items-center gap-3">
+    <header className="flex items-start gap-3">
       <IconButton label="Volver" onClick={onBack}>
         <ChevronLeft className="h-5 w-5" />
       </IconButton>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[22px] font-extrabold leading-tight tracking-tight text-grafito">
+        <h1 className="pt-1 text-[22px] font-extrabold leading-tight tracking-tight text-grafito text-balance">
           {title}
         </h1>
         {subtitle && (

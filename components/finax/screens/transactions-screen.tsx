@@ -70,10 +70,11 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
       <SearchBar placeholder="Buscar movimiento..." value={query} onChange={setQuery} />
 
       {shown.count > 0 && (
-        <p className="-mt-1 text-[13px] text-muted-foreground">
-          {shown.count === 1 ? '1 movimiento' : `${shown.count} movimientos`}
-          {shown.incomeCents > 0 && ` · ${formatCents(shown.incomeCents)} en ingresos`}
-          {shown.expenseCents > 0 && ` · ${formatCents(shown.expenseCents)} en gastos`}
+        // Cada parte entera: a 360 px se partía entre la cifra y «en gastos».
+        <p className="-mt-1 flex flex-wrap gap-x-1 text-[13px] text-muted-foreground">
+          <span className="whitespace-nowrap">{shown.count === 1 ? '1 movimiento' : `${shown.count} movimientos`}</span>
+          {shown.incomeCents > 0 && <span className="whitespace-nowrap">· {formatCents(shown.incomeCents)} en ingresos</span>}
+          {shown.expenseCents > 0 && <span className="whitespace-nowrap">· {formatCents(shown.expenseCents)} en gastos</span>}
         </p>
       )}
 

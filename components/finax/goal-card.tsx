@@ -26,28 +26,31 @@ export function GoalCard({ item, onClick, showRank, onMoveUp, onMoveDown, onAchi
   const hasOrder = onMoveUp !== undefined || onMoveDown !== undefined
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <GoalSummary item={item} onClick={onClick} showRank={showRank} />
-        {hasOrder && (
-          <div className="-mr-1.5 flex shrink-0 flex-col">
-            <OrderButton label={`Subir ${item.objective.name}`} onClick={onMoveUp}>
-              <ArrowUp className="h-3.5 w-3.5" />
-            </OrderButton>
-            <OrderButton label={`Bajar ${item.objective.name}`} onClick={onMoveDown}>
-              <ArrowDown className="h-3.5 w-3.5" />
-            </OrderButton>
-          </div>
-        )}
-      </div>
-      {(onAchieve || onReactivate) && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onAchieve ?? onReactivate}
-            className="relative rounded-full bg-finax-soft px-3 py-1.5 text-[12px] font-bold text-finax-dark transition-all after:absolute after:inset-x-0 after:-inset-y-2 hover:bg-finax-soft-2 active:scale-95"
-          >
-            {onAchieve ? 'Marcar como conseguido' : 'Reactivar'}
-          </button>
+      <GoalSummary item={item} onClick={onClick} showRank={showRank} />
+      {(hasOrder || onAchieve || onReactivate) && (
+        // Orden y acciones debajo del resumen: a 360 px una columna lateral le quitaba ancho al nombre y las cifras.
+        <div className="flex items-center justify-between gap-2">
+          {hasOrder ? (
+            <div className="-ml-1.5 flex">
+              <OrderButton label={`Subir ${item.objective.name}`} onClick={onMoveUp}>
+                <ArrowUp className="h-3.5 w-3.5" />
+              </OrderButton>
+              <OrderButton label={`Bajar ${item.objective.name}`} onClick={onMoveDown}>
+                <ArrowDown className="h-3.5 w-3.5" />
+              </OrderButton>
+            </div>
+          ) : (
+            <span />
+          )}
+          {(onAchieve || onReactivate) && (
+            <button
+              type="button"
+              onClick={onAchieve ?? onReactivate}
+              className="relative rounded-full bg-finax-soft px-3 py-1.5 text-[12px] font-bold text-finax-dark transition-all after:absolute after:inset-x-0 after:-inset-y-2 hover:bg-finax-soft-2 active:scale-95"
+            >
+              {onAchieve ? 'Marcar como conseguido' : 'Reactivar'}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -74,7 +77,7 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
   const { objective: goal, allocatedCents, remainingCents, pct, status, rank } = item
   const achieved = status === 'achieved'
   return (
-    <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+    <button type="button" onClick={onClick} className="flex w-full min-w-0 flex-1 items-start gap-3 text-left">
       <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
         <TargetIcon className="h-5 w-5" />
         {showRank && rank !== null && (

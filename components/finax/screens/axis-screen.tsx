@@ -133,12 +133,12 @@ function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate
       <Layer label="Interpretación">
         <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{interpretation.summary}</p>
         {interpretation.signals.length > 1 && (
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-3 space-y-3">
             {interpretation.signals.slice(1).map((s) => (
-              <li key={s.id} className="flex items-start gap-2 text-[12.5px] font-medium text-muted-foreground">
+              <li key={s.id} className="flex flex-col items-start gap-1 text-[12.5px] font-medium text-muted-foreground">
                 <span
                   className={cn(
-                    'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
                     s.priority === 'critical' || s.priority === 'high'
                       ? 'bg-negative-soft text-negative'
                       : 'bg-muted text-muted-foreground',

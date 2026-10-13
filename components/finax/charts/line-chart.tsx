@@ -50,54 +50,62 @@ export function LineChart({ data, xs, height = 150, className }: LineChartProps)
           </span>
         ))}
       </div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-full min-w-0 flex-1"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Evolución del patrimonio: entre ${formatCurrency(Math.min(...data))} y ${formatCurrency(Math.max(...data))} en el periodo`}
-      >
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--finax)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--finax)" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={lineId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="100%" stopColor="var(--finax)" />
-          </linearGradient>
-        </defs>
-        {ticks.map((t) => (
-          <line
-            key={t.value}
-            x1={0}
-            x2={width}
-            y1={t.y}
-            y2={t.y}
-            stroke="var(--border)"
-            strokeWidth="1"
-            strokeDasharray="3 4"
+      {/* mr-2: el punto final (HTML) sobresale del trazado sin cortarse en el borde. */}
+      <div className="relative mr-2 min-w-0 flex-1">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-full w-full"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Evolución del patrimonio: entre ${formatCurrency(Math.min(...data))} y ${formatCurrency(Math.max(...data))} en el periodo`}
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--finax)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="var(--finax)" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={lineId} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#34d399" />
+              <stop offset="100%" stopColor="var(--finax)" />
+            </linearGradient>
+          </defs>
+          {ticks.map((t) => (
+            <line
+              key={t.value}
+              x1={0}
+              x2={width}
+              y1={t.y}
+              y2={t.y}
+              stroke="var(--border)"
+              strokeWidth="1"
+              strokeDasharray="3 4"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {/* key = el trazado: al cambiar de periodo, la línea se vuelve a dibujar. */}
+          <path key={`a-${linePath}`} className="chart-area" d={areaPath} fill={`url(#${gradientId})`} />
+          <path
+            key={`l-${linePath}`}
+            className="chart-draw"
+            d={linePath}
+            fill="none"
+            stroke={`url(#${lineId})`}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-        ))}
-        {/* key = el trazado: al cambiar de periodo, la línea se vuelve a dibujar. */}
-        <path key={`a-${linePath}`} className="chart-area" d={areaPath} fill={`url(#${gradientId})`} />
-        <path
-          key={`l-${linePath}`}
-          className="chart-draw"
-          d={linePath}
-          fill="none"
-          stroke={`url(#${lineId})`}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <g key={`p-${linePath}`} className="chart-area">
-          <circle cx={last[0]} cy={last[1]} r="4.5" fill="var(--finax)" />
-          <circle cx={last[0]} cy={last[1]} r="8" fill="var(--finax)" fillOpacity="0.18" />
-        </g>
-      </svg>
+        </svg>
+        {/* Punto final en HTML: dentro del SVG (preserveAspectRatio="none") se deformaba en óvalo y se cortaba. */}
+        <span
+          key={`p-${linePath}`}
+          aria-hidden
+          className="chart-area absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-finax/20"
+          style={{ left: `${(last[0] / width) * 100}%`, top: `${(last[1] / height) * 100}%` }}
+        >
+          <span className="h-[9px] w-[9px] rounded-full bg-finax" />
+        </span>
+      </div>
     </div>
   )
 }

@@ -10,7 +10,7 @@ interface LegendRowProps {
 /** Fila de leyenda para el donut: punto de color, etiqueta y porcentaje. */
 export function LegendRow({ color, label, pct }: LegendRowProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
         <span className="min-w-0 break-words text-[13px] font-medium text-grafito">{label}</span>

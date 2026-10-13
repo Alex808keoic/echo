@@ -120,8 +120,9 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="break-words text-[14px] font-bold text-grafito">{p.name}</p>
-                        <p className="text-[12px] font-medium text-muted-foreground">
-                          {formatCents(p.investedCents)} · {formatShortDate(p.date)}
+                        <p className="flex flex-wrap gap-x-1 text-[12px] font-medium text-muted-foreground">
+                          <span className="whitespace-nowrap">{formatCents(p.investedCents)}</span>
+                          <span className="whitespace-nowrap">· {formatShortDate(p.date)}</span>
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
