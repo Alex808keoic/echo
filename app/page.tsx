@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { PhoneFrame, type ScreenEnter } from '@/components/finax/phone-frame'
-import { BottomNavigation, isTab, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
+import { BottomNavigation, isTab, tabIndex, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
 import { HomeScreen } from '@/components/finax/screens/home-screen'
 import { MoneyScreen } from '@/components/finax/screens/money-screen'
 import { TransactionsScreen } from '@/components/finax/screens/transactions-screen'
@@ -20,6 +21,10 @@ import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
 import { MovementForm } from '@/components/finax/forms/movement-form'
 import { useFinancialOverview } from '@/hooks/use-financial-overview'
+
+type NavDirection = 'forward' | 'back' | 'left' | 'right'
+
+const FALLBACK_ENTER: Record<NavDirection, ScreenEnter> = { forward: 'forward', back: 'back', left: 'fade', right: 'fade' }
 
 export default function Page() {
   return (
@@ -40,17 +45,43 @@ function App() {
 
   const showFab = screen === 'movimientos' || screen === 'estadisticas'
   const openNewMovement = () => open('Nuevo movimiento', <MovementForm onDone={close} />)
+  /**
+   * Cambia de pantalla con transición. Con View Transitions (Chrome/Android) la pantalla que sale y la
+   * que entra se animan a la vez según la dirección (globals.css); sin soporte o con «reducir
+   * movimiento», solo la animación de entrada de PhoneFrame.
+   */
+  const transition = (direction: NavDirection, update: () => void) => {
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!doc.startViewTransition || reduce) {
+      setEnter(FALLBACK_ENTER[direction])
+      update()
+      return
+    }
+    document.documentElement.dataset.nav = direction
+    doc.startViewTransition(() =>
+      flushSync(() => {
+        setEnter(undefined)
+        update()
+      }),
+    )
+  }
   const navigate = (next: ScreenKey) => {
     if (next === screen) return
-    // Entre pestañas, fundido; hacia una pantalla secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
-    setEnter(isTab(next) ? (isTab(screen) ? 'fade' : 'back') : 'forward')
-    if (isTab(next)) setOrigin(next)
-    setScreen(next)
+    // Entre pestañas, hacia el lado de la pestaña; a una secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
+    const direction: NavDirection = isTab(next)
+      ? isTab(screen)
+        ? tabIndex(next) > tabIndex(screen)
+          ? 'right'
+          : 'left'
+        : 'back'
+      : 'forward'
+    transition(direction, () => {
+      if (isTab(next)) setOrigin(next)
+      setScreen(next)
+    })
   }
-  const back = () => {
-    setEnter('back')
-    setScreen(origin)
-  }
+  const back = () => transition('back', () => setScreen(origin))
 
   return (
     <main className="min-h-dvh w-full bg-background">

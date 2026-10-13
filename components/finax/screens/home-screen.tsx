@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { PERIODS, type PeriodId } from '@/lib/finance/summary'
+import { useSlidingIndicator } from '../use-sliding-indicator'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
@@ -100,20 +101,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         <>
           <EvolutionChart series={overview.series} range={range} className="h-[150px] w-full" />
 
-          <div className="flex items-center justify-between gap-1.5">
-            {PERIODS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setRange(p.id)}
-                className={cn(
-                  'relative flex-1 rounded-full py-2 text-[12px] font-semibold transition-all after:absolute after:inset-x-0 after:-inset-y-1',
-                  p.id === range ? 'bg-finax-dark text-white' : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {p.id}
-              </button>
-            ))}
-          </div>
+          <PeriodTabs range={range} onChange={setRange} />
         </>
       )}
 
@@ -181,6 +169,37 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
           </div>
         </FinancialCard>
       </section>
+    </div>
+  )
+}
+
+/** Periodos de la gráfica de Inicio, con el verde deslizándose de uno a otro. */
+function PeriodTabs({ range, onChange }: { range: PeriodId; onChange: (range: PeriodId) => void }) {
+  const { containerRef, style, animate } = useSlidingIndicator<HTMLDivElement>(range)
+  return (
+    <div ref={containerRef} className="relative isolate flex items-center justify-between gap-1.5">
+      <span
+        aria-hidden
+        className={cn('pointer-events-none absolute inset-y-0 left-0 z-10 rounded-full bg-finax-dark', animate && 'slide-indicator')}
+        style={style}
+      />
+      {PERIODS.map((p) => {
+        const active = p.id === range
+        return (
+          <button
+            key={p.id}
+            onClick={() => onChange(p.id)}
+            aria-pressed={active}
+            data-active={active}
+            className={cn(
+              'relative flex-1 rounded-full py-2 text-[12px] font-semibold transition-colors duration-200 after:absolute after:inset-x-0 after:-inset-y-1',
+              active ? 'text-white' : 'bg-muted text-muted-foreground',
+            )}
+          >
+            <span className="relative z-20">{p.id}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }

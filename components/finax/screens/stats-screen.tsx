@@ -88,79 +88,82 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
 
       <FilterTabs options={FILTERS} value={filter} onChange={setFilter} size="sm" />
 
-      {isPatrimonio ? (
-        <FinancialCard>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-[16px] font-bold tracking-tight text-grafito">Evolución del patrimonio</h2>
-              {delta && (
-                <p
-                  className={cn(
-                    'mt-0.5 text-[12.5px] font-semibold tabular-nums',
-                    delta.cents >= 0 ? 'text-finax-dark' : 'text-negative',
-                  )}
-                >
-                  {/* Solo en euros: un % sobre el saldo inicial se leería como rentabilidad (−1.029 % con 1.200 € de partida). */}
-                  {formatCents(delta.cents, true)}
-                </p>
-              )}
-            </div>
-            <Segmented options={RANGES} value={range} onChange={setRange} />
-          </div>
-          <EvolutionChart series={overview.series} range={patrimonioRange} className="h-[150px] w-full" />
-          <p className="mt-3 text-[11.5px] font-medium text-muted-foreground text-pretty">
-            Parte de tu saldo inicial. Cada punto es tu patrimonio total al cierre de un día con movimientos; las
-            inversiones cuentan por lo aportado y, en el último punto, por su valor actual.
-          </p>
-        </FinancialCard>
-      ) : (
-        <>
+      {/* key = filtro: Gastos, Ingresos y Patrimonio entran con suavidad al cambiar. */}
+      <div key={filter} className="content-swap space-y-6">
+        {isPatrimonio ? (
           <FinancialCard>
-            {categories.length === 0 ? (
-              <p className="text-[13px] font-medium text-muted-foreground text-pretty">
-                No hay {noun.toLowerCase()} registrados {monthPhrase}.
-              </p>
-            ) : (
-              <div className="flex items-center gap-3">
-                <DonutChart
-                  segments={slices.map((c) => ({ pct: c.pct, color: c.color }))}
-                  size={120}
-                  thickness={14}
-                >
-                  <span className="text-[15px] font-extrabold text-grafito tabular-nums">
-                    {formatCents(monthTotal)}
-                  </span>
-                  <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">
-                    {noun} {isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`}
-                  </span>
-                </DonutChart>
-
-                <ul className="min-w-0 flex-1 space-y-2.5">
-                  {slices.map((c) => (
-                    <li key={c.key}>
-                      <LegendRow color={c.color} label={c.label} pct={c.pct} />
-                    </li>
-                  ))}
-                </ul>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-bold tracking-tight text-grafito">Evolución del patrimonio</h2>
+                {delta && (
+                  <p
+                    className={cn(
+                      'mt-0.5 text-[12.5px] font-semibold tabular-nums',
+                      delta.cents >= 0 ? 'text-finax-dark' : 'text-negative',
+                    )}
+                  >
+                    {/* Solo en euros: un % sobre el saldo inicial se leería como rentabilidad (−1.029 % con 1.200 € de partida). */}
+                    {formatCents(delta.cents, true)}
+                  </p>
+                )}
               </div>
-            )}
-          </FinancialCard>
-
-          <FinancialCard>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <h2 className="whitespace-nowrap text-[16px] font-bold tracking-tight text-grafito">Evolución de {noun.toLowerCase()}</h2>
               <Segmented options={RANGES} value={range} onChange={setRange} />
             </div>
-            {hasBars ? (
-              <BarChart data={bars} selected={month} onSelect={setPickedMonth} />
-            ) : (
-              <p className="text-[13px] font-medium text-muted-foreground text-pretty">
-                Sin {noun.toLowerCase()} en este periodo.
-              </p>
-            )}
+            <EvolutionChart series={overview.series} range={patrimonioRange} className="h-[150px] w-full" />
+            <p className="mt-3 text-[11.5px] font-medium text-muted-foreground text-pretty">
+              Parte de tu saldo inicial. Cada punto es tu patrimonio total al cierre de un día con movimientos; las
+              inversiones cuentan por lo aportado y, en el último punto, por su valor actual.
+            </p>
           </FinancialCard>
-        </>
-      )}
+        ) : (
+          <>
+            <FinancialCard>
+              {categories.length === 0 ? (
+                <p className="text-[13px] font-medium text-muted-foreground text-pretty">
+                  No hay {noun.toLowerCase()} registrados {monthPhrase}.
+                </p>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <DonutChart
+                    segments={slices.map((c) => ({ pct: c.pct, color: c.color }))}
+                    size={120}
+                    thickness={14}
+                  >
+                    <span className="text-[15px] font-extrabold text-grafito tabular-nums">
+                      {formatCents(monthTotal)}
+                    </span>
+                    <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">
+                      {noun} {isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`}
+                    </span>
+                  </DonutChart>
+                  <ul className="min-w-0 flex-1 space-y-2.5">
+                    {slices.map((c) => (
+                      <li key={c.key}>
+                        <LegendRow color={c.color} label={c.label} pct={c.pct} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </FinancialCard>
+
+            <FinancialCard>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <h2 className="whitespace-nowrap text-[16px] font-bold tracking-tight text-grafito">Evolución de {noun.toLowerCase()}</h2>
+                <Segmented options={RANGES} value={range} onChange={setRange} />
+              </div>
+              {hasBars ? (
+                <BarChart data={bars} selected={month} onSelect={setPickedMonth} />
+              ) : (
+                <p className="text-[13px] font-medium text-muted-foreground text-pretty">
+                  Sin {noun.toLowerCase()} en este periodo.
+                </p>
+              )}
+            </FinancialCard>
+          </>
+        )}
+
+      </div>
 
       <AxisCard
         tone="lavender"

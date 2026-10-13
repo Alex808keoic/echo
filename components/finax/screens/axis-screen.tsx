@@ -223,7 +223,13 @@ let lastTab: AxisTab = 'analisis'
 
 function AxisTabs({ value, onChange }: { value: AxisTab; onChange: (tab: AxisTab) => void }) {
   return (
-    <div role="tablist" aria-label="AXIS" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+    <div role="tablist" aria-label="AXIS" className="relative isolate grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+      {/* Fondo blanco que se desliza a la pestaña elegida (la mitad menos el hueco). */}
+      <span
+        aria-hidden
+        className="slide-indicator pointer-events-none absolute inset-y-1 left-1 z-10 w-[calc(50%-6px)] rounded-full bg-card shadow-[0_2px_10px_-6px_rgba(79,70,229,0.5)]"
+        style={{ transform: value === 'conversacion' ? 'translateX(calc(100% + 4px))' : 'none' }}
+      />
       {TABS.map((t) => {
         const active = t.key === value
         return (
@@ -236,8 +242,8 @@ function AxisTabs({ value, onChange }: { value: AxisTab; onChange: (tab: AxisTab
             aria-controls={`axis-panel-${t.key}`}
             onClick={() => onChange(t.key)}
             className={cn(
-              'rounded-full py-2.5 text-[13.5px] font-bold transition-all',
-              active ? 'bg-card text-axis-indigo shadow-[0_2px_10px_-6px_rgba(79,70,229,0.5)]' : 'text-muted-foreground',
+              'relative z-20 rounded-full py-2.5 text-[13.5px] font-bold transition-colors duration-200',
+              active ? 'text-axis-indigo' : 'text-muted-foreground',
             )}
           >
             {t.label}
@@ -301,7 +307,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
       </div>
 
       {tab === 'conversacion' ? (
-        <div id="axis-panel-conversacion" role="tabpanel" aria-labelledby="axis-tab-conversacion" className="mt-5 px-5">
+        <div id="axis-panel-conversacion" role="tabpanel" aria-labelledby="axis-tab-conversacion" className="content-swap mt-5 px-5">
           <AxisConversation
             status={chat.status}
             online={chat.online}
@@ -315,7 +321,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
           />
         </div>
       ) : (
-      <div id="axis-panel-analisis" role="tabpanel" aria-labelledby="axis-tab-analisis" className="mt-5 space-y-5 px-5">
+      <div id="axis-panel-analisis" role="tabpanel" aria-labelledby="axis-tab-analisis" className="content-swap mt-5 space-y-5 px-5">
         {axis.status === 'analysis' && axis.analysis.basedOnDemoData && (
           <p className="rounded-2xl border border-axis-violet/20 bg-axis-soft px-4 py-2.5 text-[12px] font-semibold text-axis-indigo">
             Análisis sobre datos de demostración: no describe tu situación real.

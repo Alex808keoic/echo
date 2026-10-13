@@ -97,7 +97,8 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
           />
         )
       ) : (
-        <div className="space-y-5">
+        // key = filtro: al cambiar Todos/Ingresos/Gastos la lista entra con suavidad (al buscar, no).
+        <div key={filter} className="content-swap space-y-5">
           {groups.map((group) => (
             <section key={group.date}>
               <h2 className="mb-2 text-[13px] font-bold text-muted-foreground">
