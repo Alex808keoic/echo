@@ -1,12 +1,126 @@
 # Finax — Handoff para continuar el desarrollo
 
 > Documento de traspaso para otra IA o desarrollador que no conoce las
-> conversaciones anteriores. Todo lo que sigue se ha comprobado en el código
-> real del repositorio el **2026-09-27**. Si algo de aquí contradice al código,
-> **manda el código**. Lo que no se puede verificar desde el repo está marcado
-> como **NO VERIFICABLE**.
+> conversaciones anteriores. **Empieza por la sección del 2026-10-13**: es el
+> estado actual y manda sobre todo lo de debajo. Las secciones antiguas
+> (2026-10-02, 2026-09-30 y §0–§15, del 2026-09-27) se conservan como
+> historial; varios de sus «problemas conocidos» ya están resueltos (ver la
+> tabla de abajo). Si algo de aquí contradice al código, **manda el código**.
+> Lo que no se puede verificar desde el repo está marcado como **NO VERIFICABLE**.
 >
 > Este documento no contiene ni debe contener secretos ni claves de API.
+
+---
+
+## 🟢 Estado al 2026-10-13 (actual)
+
+### Repositorio y producción
+
+| Dato | Valor |
+|---|---|
+| Carpeta local | `C:\Users\sofia\Projects\finax-v0` (la carpeta `Projects/finax` es un prototipo antiguo de agosto; no usar) |
+| Repo | `https://github.com/Alex808keoic/echo.git`, rama `main` |
+| Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
+| IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
+| Tests | `pnpm test` → **1.206 pasan, 0 fallan** (277 suites, también con `TZ=UTC`) |
+| Typecheck / build | OK / OK |
+| CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
+| Lint | No existe |
+| Dispositivo principal | Galaxy S21 del usuario (~360 × 800 CSS px). Los cambios de UI se comprueban a 360 × 800 |
+
+**Subir a GitHub:** `gh` tiene dos cuentas. Solo `Alex808keoic` puede escribir en el repo; con
+`gisbertsalminenalex-ship-it` activa, el push da 403. Antes de subir:
+`gh auth switch --user Alex808keoic` y después
+`git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
+
+### Qué se hizo del 2 al 10 de octubre (≈ 60 commits)
+
+Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
+`git log 293c830..HEAD` para el detalle.
+
+- **Dinero y objetivos**
+  - Importes con punto decimal (`1ba851e`).
+  - Las inversiones descuentan del líquido con `fromLiquid` (`3d52262`).
+  - **Objetivos automáticos:** el líquido se reparte en cascada por prioridad (`allocateObjectives`, `115e946`). `Objective` gana `priority?` y `achievedAt?`; `currentCents` solo queda por compatibilidad. No hay aportaciones manuales: «Aportar» existió (`73b8b07`) y se quitó.
+  - «Marcar como conseguido» pide confirmación (`2d6d3a5`).
+- **AXIS: perfil y memoria**
+  - El perfil llega a `decide()` desde los hechos de memoria (`d186ec8`).
+  - Ingreso recurrente como previsión, nunca como dinero real (`3f37e8c`, `9970434`).
+  - Extractor determinista de hechos (`a55a9d4`, `8ef247a`).
+  - Pantalla «Lo que AXIS sabe de ti» (`140b800`). No hay expulsiones silenciosas: lo pregunta.
+  - Backup **v2** con las memorias (`886f34f`).
+  - Cuestionario «Tu perfil» con horizonte, riesgo, ingresos estables y mayoría de edad (`79db741`).
+- **AXIS: reglas**
+  - Objetivos alineados con el reparto automático (`269121a`, `ea50f30`, `de568ea`, `da89801`).
+  - `liquidity.negative` (`978b50b`).
+  - Conclusión coherente con la recomendación (`c5a7a27`).
+- **Chat**
+  - Validación completa en el servidor frente a `decide()` (`c5d357f`): cifras, previsiones, ejecución, aportación manual y consejos.
+  - Historial compacto de movimientos (`7399432`).
+  - Tono por reglas (`aa58cd5`).
+  - Tarjetas de acción (`329bc14`).
+  - Consultas acotadas a datos locales (`824c705`).
+  - Búsqueda de mercado en el servidor con feeds oficiales (`4ca0d5f`).
+- **Plan, guía y resumen**
+  - Plan de reparto determinista y pantalla «Tu plan» (`7addfe1`, `497b236`, `b09fd6e`).
+  - Resumen semanal de mercado: determinista, con redacción IA validada, pantalla y tarjeta (`56aa39f`, `5ea2159`, `b91c7ed`).
+  - «Guía para invertir» y su uso en el chat (`f2e9a76`, `6d156b0`). Solo tipos de producto, nunca marcas ni «cómpralo», porque es actividad regulada por la CNMV.
+- **Mercado**
+  - Series de inflación nuevas: INE base 2025 y Eurostat ECOICOP v2 (`4c36fa6`).
+  - Frescura por indicador, también en AXIS (`cf10134`, `43119fc`, `1f047b1`).
+  - La clave de caché incluye las fechas de los indicadores (`1c91c0c`).
+- **UI**
+  - Errores de almacenamiento y carga bloqueada (`c2ed614`).
+  - Signo menos en negativos (`98c2206`).
+  - Tarjetas en pantalla estrecha (`ba4fcbf`).
+  - Contraste WCAG AA y áreas táctiles (`1951ce6`).
+  - Foco de las hojas y borrado de movimientos en 3 toques (`97a5686`).
+  - Gráfica fiel con eje proporcional, sin inventar valores y eje Y redondo (`a347eeb`, `ff36b2a`, `60d8fa7`, `970d5f3`).
+  - Transiciones solo CSS que respetan «reducir movimiento» (`8dda061`).
+- **Ajustes**
+  - El texto de privacidad dice qué se envía con IA (`886f34f`, `f386686`, `824c705`).
+  - La fila de AXIS muestra el estado real de la IA.
+- **Abandonado a propósito:** los ejemplos para que el chat proponga hechos de perfil (`722ca83`, revertido en `2d17269`). Gemma proponía hechos del tipo equivocado; ahora manda el extractor determinista.
+
+### Problemas conocidos del 2026-09-27 (§14.4): estado
+
+| # | Problema | Estado |
+|---|---|---|
+| 1 | Parseo de importes con «.» | ✅ Resuelto (`1ba851e`) |
+| 2 | Ajustes decía que los datos no salen / que no hay IA | ✅ Resuelto (`886f34f`, `f386686`) |
+| 3 | «Sin cupo de IA» por TPM de Groq | 🟡 Mitigado: Cloudflare es el principal y Groq queda de fallback. Faltan muestras de producción |
+| 4 | El perfil no llega a producción | ✅ Resuelto (`d186ec8` y siguientes) |
+| 5 | Índices de mercado en puntos rompen la licencia de cifras | ❌ Pendiente |
+| 6 | Investigación por evento sin fallback (`scripts/market/deep.ts`) | ❌ Pendiente (comprobado el 2026-10-13: el `assertBudget` del bucle sigue con `eventResearch: isEvent`) |
+| 7 | Curva de líquido frente a cifra de patrimonio total | ✅ Resuelto: la gráfica es de patrimonio total (`3d52262`, `a347eeb`) |
+| 8 | Invertir no descontaba liquidez | ✅ Resuelto (`fromLiquid`, `3d52262`) |
+| 9 | Memorias expulsadas sin aviso / disponibilidad de la IA cacheada | ✅ / ❌ La expulsión pide confirmación; la disponibilidad sigue cacheada por sesión de motor (`ai-engine.ts`) |
+| 10 | «Todo» en las barras de Estadísticas = 12 meses | ❌ Pendiente (`stats-screen.tsx`, `MONTHS_FOR_RANGE`) |
+
+### Pendiente (en orden recomendado)
+
+1. **Pasada de diseño para el Galaxy S21** (360 px), pantalla por pantalla. El usuario la dejó a propósito para el final; en los commits de arreglos no se tocan tamaños ni layout sin pedirlo.
+2. **Que Vercel solo despliegue si pasa la CI** (p. ej. *Ignored Build Step* o despliegue desde Actions).
+3. **Medir en producción:**
+   - Si el timeout de Cloudflare en el análisis es sistemático.
+   - Si el detector de certeza rechaza a menudo a Gemma.
+   - Cómo responden en la práctica el chat con consultas y el resumen semanal.
+   Ver `[axis] llamada` en `vercel logs`.
+4. Corregir el fallback por evento de `deep.ts` (problema 6), con test.
+5. Licenciar los índices de mercado en puntos (problema 5).
+6. «Todo» en Estadísticas (problema 10) y recomprobar la disponibilidad de la IA sin recargar.
+7. Conversación por intención y simulador determinista (fase 3 de `docs/AXIS.md`); un solo pipeline (fase 4).
+8. Oro en Market Research (`docs/SPIKE_GOLD_SOURCES.md`).
+9. `docs/AXIS_MARKET_INTELLIGENCE.md` (2026-10-05): investigación con decisiones pendientes de aprobar (§16). Parte ya se implementó (frescura, series de inflación); el resto **no está aprobado**.
+
+### Invariantes nuevas (además de §15)
+
+- **Nunca recomendar productos, entidades, marcas ni momentos de compra o venta.** Solo categorías y encaje con el plan. La guía tiene un test que lo comprueba.
+- **Objetivos:** el reparto automático es la única fuente del progreso. Nada (ni AXIS, ni el chat, ni la UI) aporta a mano.
+- **Previsiones** (ingreso recurrente): nunca se presentan ni se suman como dinero actual.
+- **Hechos de perfil del chat:** manda el extractor determinista (`gateProposalFact`), no el modelo. `adult` solo viene del cuestionario.
+- **Tarjetas de acción y consultas:** las calcula y ejecuta Finax. Como mucho, una consulta (dos llamadas) por mensaje.
+- **Mercado:** solo los indicadores `fresh` se presentan con valor. Las cifras de la lectura de la investigación no licencian nada.
 
 ---
 

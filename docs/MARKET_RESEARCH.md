@@ -18,7 +18,7 @@ gastos automáticamente.**
 │ market-deep · sábado 06:00 UTC │ cambio)│                            │       │  investigación + posiciones  │
 │  kill switch → secret →        │        └────────────────────────────┘       │  (en el dispositivo)         │
 │  presupuesto → fuentes →       │                                              │  → MarketContext reducido    │
-│  compactar → estimar tokens →  │             Netlify solo construye `main`:   │                              │
+│  compactar → estimar tokens →  │             Vercel solo despliega `main`:    │                              │
 │  presupuesto → Gemini          │             la investigación NO despliega    │ AXIS: motor local / IA       │
 │  (→ Groq una vez) → validar    │                                              │ (con o sin MarketContext)    │
 └────────────────────────────────┘                                              └──────────────────────────────┘
@@ -91,7 +91,8 @@ retraso; sintetizado con IA a partir de fuentes públicas.
    (al agotar la cuota devuelve 429 y para); Groq plan free **sin tarjeta**.
    Checklist obligatorio antes de crear los secrets (§11).
 2. **Plataforma**: GitHub spending limit 0 $ (por defecto) y repo público;
-   Netlify no construye la rama `market-data`.
+   la rama `market-data` no contiene la app (sus previews de Vercel fallan con
+   «No Next.js version detected»; es ruido y no afecta a producción).
 3. **Kill switches**: variable de repositorio `MARKET_AI_ENABLED` (≠ `true` →
    el job termina sin hacer nada) y ausencia del secret → sin llamada.
 4. **Presupuesto en código** (`scripts/market/limits.ts` + ledger `budget.json`):
@@ -201,7 +202,7 @@ Checklist antes de activar (`MARKET_AI_ENABLED=true`):
 5. GitHub spending limit en 0 $ (por defecto). Repo público (para la lectura raw).
 6. `NEXT_PUBLIC_MARKET_DATA_URL` ya está fijada en `.env.production` (versionado; es una URL
    pública, no un secreto): `https://raw.githubusercontent.com/Alex808keoic/echo/market-data`.
-   No hace falta configurarla en Netlify.
+   No hace falta configurarla en Vercel.
 7. Primera ejecución manual de `market-light` (sin IA) para crear la rama;
    después, `market-deep` con `reason=manual`.
 
@@ -239,24 +240,34 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
    La síntesis IA solo recibe como «INDICADORES VIGENTES» los frescos (con valor); los demás
    van como «NO INTERPRETABLES», sin valor ni variación, y el prompt prohíbe describir su
    nivel o tendencia (en 2026-W40 describió una desaceleración con datos de 2025-12).
-   **Pendiente:** AXIS (`buildMarketContext` → `keyIndicators`) aún no filtra por esta
-   frescura; la línea de mercado de la UI sigue usando la frescura de la investigación.
+   AXIS también la usa: `buildMarketContext` marca cada `keyIndicator` con su frescura y
+   solo los `fresh` aparecen con valor (`43119fc`, `1f047b1`).
 6. Contenido enviado al free tier de Gemini se usa para mejorar productos (solo datos públicos).
 7. La lectura raw exige repo/rama pública; alternativa: repo de datos público separado.
 8. En repos públicos el cron se desactiva tras 60 días sin actividad: los commits de la investigación cuentan como actividad.
 9. La validación de certezas es por patrones (español e inglés); un texto que sortee los patrones no se detecta.
+10. **Bug sin corregir:** en `deep.ts` el `assertBudget` del fallback reutiliza
+    `eventResearch: true` después de que `recordAttempt` del primer intento ya contó el evento
+    de la semana (`MAX_EVENT_RESEARCH_PER_WEEK = 1`). Una investigación por evento nunca puede
+    usar el fallback; si falla el principal, no publica.
 
 ## 14. Fuera de alcance
 
-Trading o ejecución automática, recomendaciones de compra/venta, scraping,
-cambios de navegación o diseño, chat de AXIS, memoria persistida.
+Trading o ejecución automática, recomendaciones de compra/venta, scraping.
+
+Fuera de este motor pero ya implementado en AXIS (ver `docs/AXIS.md`): el
+resumen semanal (`lib/axis/brief/`) y la búsqueda de mercado bajo demanda
+desde el chat (`lib/market/search.ts`: titulares de feeds oficiales de los
+últimos 30 días y la nota de la investigación vigente, sin IA ni claves).
 
 ## 15. Reutilización prevista: periódico + bajo demanda (diseño, sin implementar)
 
 Auditoría de la fase 0 de la evolución de AXIS. Clasifica cada módulo según
 si podrá compartirse entre el job periódico (este documento) y una futura
-investigación bajo demanda desde el chat. **Nada se ha movido todavía**: es
-el mapa para hacerlo sin duplicar lógica ni tocar los workflows.
+investigación bajo demanda desde el chat. Solo se ha movido `parseRSS` /
+`Headline` a `lib/market/rss.ts` (el pipeline los reexporta), para la búsqueda
+de mercado del chat; el resto sigue en su sitio. Es el mapa para hacerlo sin
+duplicar lógica ni tocar los workflows.
 
 | Módulo | Clase | Motivo |
 |---|---|---|

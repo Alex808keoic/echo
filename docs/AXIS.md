@@ -76,9 +76,12 @@ Estado por fases:
   expresa; hechos, prioridades, `recommendation.what`, siguiente paso,
   confianza y demo los fija AXIS; validación semántica mecánica; ante
   cualquier fallo, la misma decisión en local. Ver «Decision First» más abajo.
-- **Fase 3 (pendiente)**: conversación por intención (`EXPLAIN_CURRENT_SITUATION`,
-  `SIMULATE_SCENARIO`, `CREATE_GOAL`, …), plan de respuesta, simulador
-  determinista, respuesta local sin LLM cuando la intención está cubierta.
+- **Fase 3 (en parte)**: el chat ya se valida en el servidor frente a la misma
+  `decide()` que el análisis (cifras, previsiones, ejecución, consejos), y
+  recibe bloques deterministas (plan de reparto, guía para invertir, tono) y
+  consultas acotadas. Sigue pendiente la conversación por intención
+  (`EXPLAIN_CURRENT_SITUATION`, `SIMULATE_SCENARIO`, …) y un simulador
+  determinista. Ver «Novedades de octubre de 2026».
 - **Fase 4 (pendiente)**: un solo pipeline para análisis y conversación.
 
 Regla de oro de las fases 0–1: Finax se usa exactamente igual que antes; solo
@@ -170,8 +173,10 @@ esta interfaz.
 - `flows`: mes actual y anterior (ingresos, gastos, ahorro, tasa de ahorro,
   distribución por categoría), variación % de ingresos y gastos, evolución
   real del patrimonio (un punto por día con movimientos).
-- `objectives`: por objetivo, meta, actual, restante, progreso, fecha, meses
-  restantes y aportación mensual necesaria (solo si hay fecha futura).
+- `objectives`: en orden del reparto automático (`allocateObjectives`): meta,
+  lo asignado del líquido, restante, progreso, estado (`in-progress` |
+  `covered` | `achieved`), puesto, lo que falta a los anteriores, fecha, meses
+  restantes y ahorro mensual necesario (solo si hay fecha futura).
 - `investments`: posiciones con peso sobre la cartera, totales y peso sobre el patrimonio.
 - `quality`: `level` (`none` | `limited` | `sufficient`), saldo inicial, nº de
   movimientos, días y meses con datos, si hay mes anterior, objetivos,
@@ -199,7 +204,8 @@ navegación desconocidos. Es la única puerta hacia la UI.
 | income | sin ingresos con gastos · caída ≥ 20 % · subida ≥ 50 % (extraordinario) | high/medium · high · low |
 | expenses | gastos > ingresos · subida ≥ 20 % (accionable solo con margen ajustado) · una categoría ≥ 50 % con margen ajustado | critical · low/medium/high · medium |
 | savings | mes sin movimientos · tasa ≥ 20 % (sólida) / < 20 % (ajustada) · ahorro cae > 50 % | medium · low/medium · high |
-| objectives | conseguido · fecha vencida · ritmo mensual necesario vs. ahorro · ≥ 90 % · sin progreso 30 días · sin fecha | low · high · low/high · medium · medium · low |
+| liquidity | líquido negativo · líquido por debajo del mínimo declarado (solo con perfil) | high · high |
+| objectives | conseguido · cubierto · fecha vencida · ritmo mensual necesario en cascada vs. ahorro · cerca · le toca y no recibe nada · sin fecha · previsión con ingreso recurrente declarado | low · low · high · low/high · medium · medium · low · low |
 | investments | sin posiciones · una posición ≥ 70 % · inversiones ≥ 80 % del patrimonio · valores manuales | low · medium · medium · low |
 
 Umbrales en `rules/shared.ts` (`THRESHOLDS`).
@@ -245,7 +251,8 @@ local; no recalcula ni sustituye la lógica financiera.
   entorno solo puede reducir el tope diario). El tope diario es el que protege
   la cuota; el de minuto solo acota la ráfaga. Sin cupo se registra
   `[axis] sin cupo de la instancia: …`, para distinguirlo de un 429 del proveedor, contexto ≤ 40 000 caracteres (413 si se
-  supera), 3 000 tokens de salida, 20 s de timeout. Sin cupo → 429 y el
+  supera), tope de salida por proveedor (Cloudflare 1 200, Groq y Gemini
+  3 000), 20 s de timeout por llamada y 22 s para toda la cadena. Sin cupo → 429 y el
   cliente usa el motor local; nunca se llama al proveedor.
 - Memoria: la pantalla AXIS guarda las últimas 5 conclusiones en Dexie
   (`lib/db/axis-memory.ts`, tabla `axisMemory`) y las pasa como
@@ -265,22 +272,25 @@ las señales. No se envían nombres personales, cuentas, credenciales ni datos t
 
 | Variable | Efecto |
 |---|---|
-| `AXIS_AI_PROVIDER` | `groq` (producción) o `gemini`. Sin valor → sin IA (AXIS local). Ambos proveedores viven en `lib/ai/providers/`; el servidor solo conoce `AxisLanguageModel`. |
-| `GEMINI_API_KEY` / `GROQ_API_KEY` | Clave del proveedor elegido (cuenta free tier, sin billing ni tarjeta). |
-| `AXIS_AI_MODEL` | Modelo (por defecto `gemini-2.5-flash-lite` / `openai/gpt-oss-120b`). |
+| `AXIS_AI_PROVIDER` | Principal: `cloudflare` (producción), `groq` o `gemini`. Sin valor → sin IA (AXIS local). Los proveedores viven en `lib/ai/providers/`; el servidor solo conoce `AxisLanguageModel`. |
+| `AXIS_AI_FALLBACK_PROVIDER` | Opcional (`groq` en producción). Solo se prueba ante fallos del proveedor (429, timeout, red, 5xx, 401/403, respuesta vacía/truncada/no JSON), nunca tras un rechazo de validación. |
+| `CF_ACCOUNT_ID` + `CF_API_TOKEN` / `GROQ_API_KEY` / `GEMINI_API_KEY` | Credenciales (free tier, sin billing). Un proveedor sin credenciales se omite. |
+| `AXIS_AI_MODEL_CLOUDFLARE` / `_GROQ` / `_GEMINI` | Modelo de cada proveedor (por defecto `@cf/google/gemma-4-26b-a4b-it` / `openai/gpt-oss-120b` / `gemini-2.5-flash-lite`). `AXIS_AI_MODEL` es heredada y solo aplica al principal. |
 | `AXIS_AI_ENABLED` | `false` desactiva la IA aunque exista un proveedor. |
 | `AXIS_AI_MAX_REQUESTS_PER_DAY` | Solo puede reducir el tope diario por instancia (máx. fijo 40). |
+| `AXIS_DECISION_FIRST` | `true` (producción): el modelo solo expresa la decisión. |
 
-Se configuran en el servidor (Netlify → *Environment variables*, ámbito de
-funciones/servidor). Reglas fijas: nunca hardcodearlas, nunca exponerlas con
+Se configuran en el servidor (Vercel → *Settings → Environment Variables*,
+como *Secret*). Reglas fijas: nunca hardcodearlas, nunca exponerlas con
 `NEXT_PUBLIC_`, nunca guardarlas en Dexie o localStorage, nunca subir `.env` /
 `.env.local` (ignorados en Git). El usuario no introduce claves en la app.
 Comprobación al cerrar cada fase: el bundle cliente (`.next/static`) no
 contiene credenciales ni endpoints de proveedores.
 
-**Estado**: implementado y probado con clave falsa (401 → 502 → fallback
-local; 4.ª llamada del día con tope 3 → 429 sin llamar). **No activado en
-producción** hasta que se configure `AXIS_AI_PROVIDER` y su clave en Netlify.
+**Estado**: activo en producción desde el 2 de octubre de 2026 (Vercel,
+proyecto «echo»): Cloudflare Workers AI como principal y Groq como fallback,
+con Decision First. Cada intento escribe una línea `[axis] llamada:` en los
+logs (tokens, `finishReason`, límites; nunca textos ni cifras).
 
 ### Coste
 
@@ -322,24 +332,26 @@ en `memoria`; nunca ejecuta; propone recordar solo información útil y no sensi
 
 **Memoria persistente** (`chat/memory.ts`, `lib/db/axis-memories.ts`, tabla
 `axisMemories`): entradas `{ id, content, category, importance, confidence,
-source:'conversation', createdAt, updatedAt }`, categorías `preference | goal |
+source:'conversation'|'manual', createdAt, updatedAt, fact? }`, categorías `preference | goal |
 financial_plan | constraint | decision | context | other`. Solo entra lo que el
 usuario acepta con «Recordar»; una propuesta con `replacesId` **actualiza** la
 memoria existente (sin duplicados ni contradicciones); contenido equivalente no
 se duplica; máximo 30 (salen primero las menos importantes y, a igual importancia,
-las más antiguas; la recién aceptada nunca sale y las expulsadas se devuelven
-en `evicted`); nada
+las más antiguas; la recién aceptada nunca sale y, antes de expulsar una, la
+app lo pregunta); nada
 que parezca un secreto (`chat/secrets.ts`: contraseñas, claves, tokens, IBAN,
 tarjetas) se propone ni se guarda — se filtra en el servidor y en el cliente.
 `getAxisMemory()` une conclusiones + memorias, así que el análisis también las
-recibe. «Lo que recuerdo» permite ver y olvidar cada nota.
+recibe. La pantalla «Lo que AXIS sabe de ti» permite ver, crear, editar y
+olvidar cada memoria. Las memorias entran en el backup (formato v2); la
+conversación y las conclusiones no.
 
 **Historial** (`chat/history.ts`, tabla `axisConversation`): se conservan los
 últimos 20 mensajes íntegros; lo anterior se comprime, sin IA, en un resumen
 de texto (una línea por mensaje, ≤ 160 caracteres, total ≤ 1 500, conservando
 lo más reciente). Persiste entre recargas; «Borrar» lo elimina (las memorias se
 conservan); «Borrar todos los datos» elimina memorias, historial, resumen y
-conclusiones. Nada de esto entra en el backup.
+conclusiones. El historial y el resumen no entran en el backup.
 
 **Estados reales** (`ChatStatus`): `preparing` (cargando lo local), `analyzing`
 (contexto + disponibilidad), `responding` (llamada en curso), `error`; sin
@@ -347,11 +359,20 @@ conexión se indica y se responde en local. Cada respuesta lleva un indicador
 «IA» o «Motor local» (+ motivo del fallback). No se finge actividad.
 
 **Servidor**: `POST /api/axis` con `mode:'chat'` comparte proveedor, cupo de
-instancia (40/día, 12/min), 40 000 caracteres de cuerpo, 3 000 tokens de salida
-y 20 s de timeout con el análisis; además valida mensaje ≤ 1 000 caracteres,
+instancia (40/día, 12/min), 40 000 caracteres de cuerpo, topes de salida y
+plazos con el análisis; además valida mensaje ≤ 1 000 caracteres,
 resumen ≤ 1 500 y ≤ 8 mensajes recientes (`isChatPayload`). Procesa la
 petición y no persiste nada. Nunca se envían backups, credenciales, la serie
-diaria de patrimonio ni el historial completo.
+diaria de patrimonio ni el historial completo; sí un resumen compacto de
+movimientos (`chat/financial-history.ts`) y, si el modelo la pide, el
+resultado de una consulta local acotada.
+
+**Validación** (`chat/semantic.ts`, `buildChatGuard`): el servidor ejecuta
+`decide()` con el mismo contexto y juzga la respuesta con la misma frontera
+que el análisis: cifras licenciadas (contexto, mensaje del usuario, historial,
+plan, guía), previsiones nunca como dinero real, nada de ejecución ni de
+aportar a mano a objetivos, ningún activo o producto externo y ninguna
+contradicción con la acción decidida. Si falla → 502 → respuesta local.
 
 ## Contexto de mercado (`AxisInput.market`)
 
@@ -362,8 +383,41 @@ dispositivo a partir de la investigación pública del Market Research Engine
 incertidumbre; solo con frescura `fresh` y una clase en `caution` que cruce con
 una posición emite una recomendación de prudencia («revisa antes de ampliar»);
 con `stale` no hay recomendaciones de mercado. Sin `MarketContext`, AXIS
-funciona exactamente igual. La caché de `useAxis` se indexa también por
-`researchId` y frescura.
+funciona exactamente igual. Cada indicador lleva su propia frescura
+(`lib/market/freshness.ts`): solo los `fresh` aparecen con valor; la lectura de
+la investigación va fechada y no licencia cifras. La caché del análisis
+(`analysis-cache.ts`) se indexa por investigación, valor y fecha de cada
+indicador clave y por la firma del perfil.
+
+## Novedades de octubre de 2026
+
+Todo determinista en el dispositivo o el servidor; el modelo, si lo hay, solo
+redacta y pasa la misma validación.
+
+- **Perfil** (`profile/`): hechos estructurados (horizonte, riesgo, mínimo de
+  liquidez, ingresos irregulares, ingreso recurrente, mayor de edad) que llegan
+  a `decide()` como `profileFacts`. Vienen del cuestionario «Tu perfil», del
+  formulario de memorias o del chat; en el chat manda el extractor
+  determinista (`profile/extract.ts`, `gateProposalFact`), no el modelo.
+- **Previsiones**: el ingreso recurrente declarado genera `objectives.forecast`
+  («Previsión (no es dinero que ya tengas)»); nunca cuenta como dinero real.
+- **Objetivos automáticos**: el líquido se reparte en cascada por orden
+  (`lib/finance/objectives.ts`); AXIS no recomienda aportar a mano.
+- **Plan de reparto** (`plan/`): `buildAllocationPlan(decision)` → colchón
+  («Fondo de emergencia»), objetivos a ≤ 24 meses y un 20/40/60 % a largo plazo
+  según el riesgo, solo como categoría. Pantalla «Tu plan»; el chat lo explica.
+- **Guía para invertir** (`guide/`): fichas de tipos de producto, «Revisar una
+  opción» (`fit.ts`) y cómo comprobar entidades autorizadas. Sin marcas ni
+  «cómpralo». El chat la usa cuando el mensaje nombra un tipo de producto.
+- **Resumen semanal** (`brief/`): `buildWeeklyBrief` determinista + redacción
+  opcional (`POST /api/axis { mode:'weekly-brief' }`) validada y cacheada por firma.
+- **Tono** (`coaching.ts`): firme, celebrar, animar o sereno, decidido por reglas.
+- **Tarjetas de acción** (`chat/actions.ts`): hasta dos botones calculados en
+  el dispositivo; el modelo no los fija.
+- **Consultas acotadas** (`chat/tools.ts`): el modelo puede pedir una sola
+  consulta (`resumen_mes`, `gasto_por_categoria`, `buscar_movimientos`), que
+  el dispositivo ejecuta; `buscar_mercado` la ejecuta el servidor con feeds
+  oficiales (`lib/market/search.ts`). Como mucho dos llamadas por mensaje.
 
 ## Límites actuales
 
@@ -371,8 +425,10 @@ funciona exactamente igual. La caché de `useAxis` se indexa también por
 - Sin cotizaciones en tiempo real: el mercado llega como síntesis semanal con
   fecha; nunca opina sobre rentabilidad futura, riesgo de mercado ni productos.
 - Comparación mes actual vs. mes anterior; sin medias móviles ni estacionalidad.
-- Memoria mínima: solo las últimas conclusiones; sin preferencias declaradas por el usuario.
-- Sin chat: AXIS sigue siendo un centro estratégico.
+- Nunca recomienda productos, entidades ni momentos de compra o venta
+  (actividad regulada por la CNMV); solo categorías y encaje con el plan.
+- Los índices de mercado en puntos («15.234,5 pts») no son cifras licenciadas:
+  si el modelo los cita, se rechaza la respuesta.
 - El contador de la IA es por instancia de servidor (serverless puede tener varias); la
   barrera principal sigue siendo la cuenta sin billing y la caché del cliente.
 
@@ -386,15 +442,16 @@ funciona exactamente igual. La caché de `useAxis` se indexa también por
 
 ## Cómo añadir un proveedor de IA
 
-1. Implementar `AIProvider` en `lib/axis/ai/server/<proveedor>-provider.ts`:
+1. Implementar `AIProvider` en `lib/ai/providers/<proveedor>.ts`:
    `complete(request)` envía `request.system` + `request.user`, exige salida
    JSON conforme a `request.schema` y devuelve el objeto parseado; clasifica
    los errores con `AIProviderError` (`unavailable`, `rate-limit`, `http`,
    `timeout`, `malformed`, `refusal`). Con un nivel gratuito y límites
    estrictos, el `rate-limit` es un fallo normal: el cliente hace fallback al
    motor local sin mostrar errores.
-2. Leer sus credenciales en `readAIServerConfig()` (solo servidor) y devolver
-   la instancia desde `providerFromConfig()`.
+2. Leer sus credenciales en `readAIServerConfig()` (`ai/server/analyze.ts`,
+   solo servidor), devolver la instancia desde `providerFromConfig()` y
+   añadir su tope de salida en `MAX_OUTPUT_TOKENS_BY_PROVIDER` (`limits.ts`).
 3. Documentar las variables en `.env.example` sin valores.
 
 Prompt, esquema, validación, fallback, coste y UI no cambian.
