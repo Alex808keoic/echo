@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chartGeometry, dayNumber, formatTick, MAX_TICKS, MIN_SPAN_RATIO, niceTicks, smoothPath, yDomain } from '../chart-geometry'
+import { chartGeometry, dayNumber, formatTick, MAX_TICKS, MIN_SPAN_RATIO, nearestPointIndex, niceTicks, smoothPath, yDomain } from '../chart-geometry'
 
 const W = 340
 const H = 150
@@ -139,5 +139,22 @@ describe('eje vertical con valores redondos', () => {
       // Valores redondos: múltiplos exactos del salto.
       for (const t of g.ticks) assert.ok(Math.abs(t.value / g.tickStep - Math.round(t.value / g.tickStep)) < 1e-6)
     }
+  })
+})
+
+describe('nearestPointIndex (leer la gráfica al tocarla)', () => {
+  const pts = [[0, 10], [100, 20], [340, 5]] as const
+
+  it('elige el punto real más cercano en horizontal', () => {
+    assert.equal(nearestPointIndex(pts, -20), 0)
+    assert.equal(nearestPointIndex(pts, 40), 0)
+    assert.equal(nearestPointIndex(pts, 60), 1)
+    assert.equal(nearestPointIndex(pts, 300), 2)
+    assert.equal(nearestPointIndex(pts, 999), 2)
+  })
+
+  it('con empate gana el anterior; un solo punto siempre es el 0', () => {
+    assert.equal(nearestPointIndex(pts, 50), 0)
+    assert.equal(nearestPointIndex([[170, 1]], 0), 0)
   })
 })

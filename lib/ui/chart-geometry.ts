@@ -155,3 +155,16 @@ export function smoothPath(points: ReadonlyArray<readonly [number, number]>): st
   }
   return d
 }
+
+/**
+ * Índice del punto real más cercano en horizontal a `x` (mismas unidades que
+ * los puntos): lo que se lee al tocar la gráfica. Nunca interpola un valor
+ * entre dos puntos; con empate, gana el anterior.
+ */
+export function nearestPointIndex(points: ReadonlyArray<readonly [number, number]>, x: number): number {
+  let best = 0
+  for (let i = 1; i < points.length; i++) {
+    if (Math.abs(points[i][0] - x) < Math.abs(points[best][0] - x)) best = i
+  }
+  return best
+}

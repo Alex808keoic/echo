@@ -29,6 +29,16 @@ export function formatCurrency(value: number, withSign = false): string {
   return euro
 }
 
+/**
+ * Importe en euros enteros, redondeado («8.851 €»): para leer un punto de una
+ * gráfica de un vistazo. Mismo criterio de signo que `formatCurrency`.
+ */
+export function formatWholeCurrency(value: number): string {
+  const rounded = Math.round(value)
+  const euro = `${formatNumber(rounded, 0)} €`
+  return rounded < 0 ? `-${euro}` : euro
+}
+
 export function formatPct(value: number, withSign = false): string {
   const decimals = value % 1 === 0 ? 0 : 1
   const formatted = formatNumber(value, decimals)

@@ -71,6 +71,11 @@ export function formatMonthLabel(monthKey: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+/** Mes completo a partir de `YYYY-MM`: "abril de 2025". */
+export function formatMonthYear(monthKey: string): string {
+  return `${MONTHS_LONG[Number(monthKey.slice(5, 7)) - 1]} de ${monthKey.slice(0, 4)}`
+}
+
 export interface DayGroup<T> {
   date: string
   items: T[]

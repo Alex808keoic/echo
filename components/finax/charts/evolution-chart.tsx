@@ -55,5 +55,12 @@ export function EvolutionChart({ series, range, className }: EvolutionChartProps
       </div>
     )
   }
-  return <LineChart data={points.map((p) => p.cents / 100)} xs={points.map((p) => dayNumber(p.date))} className={className} />
+  return (
+    <LineChart
+      data={points.map((p) => p.cents / 100)}
+      xs={points.map((p) => dayNumber(p.date))}
+      dates={points.map((p) => p.date)}
+      className={className}
+    />
+  )
 }
