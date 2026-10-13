@@ -125,15 +125,15 @@
 
 /* Pantallas: hacia delante (abrir una secundaria), hacia atrás (volver) y entre pestañas. */
 @keyframes screen-forward {
-  from { opacity: 0; transform: translateX(18px); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes screen-back {
-  from { opacity: 0; transform: translateX(-18px); }
+  from { opacity: 0; transform: translateX(-12px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes screen-fade {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; }
   to { opacity: 1; transform: none; }
 }
 .screen-forward { animation: screen-forward 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -152,44 +152,40 @@
 ::view-transition-group(root) { animation: none; }
 ::view-transition-old(root) { display: none; }
 ::view-transition-new(root) { animation: none; }
-::view-transition-group(finax-screen) { animation-duration: 340ms; }
+::view-transition-group(finax-screen) { animation-duration: 260ms; }
 ::view-transition-old(finax-screen),
 ::view-transition-new(finax-screen) {
-  animation-duration: 340ms;
+  animation-duration: 260ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   animation-fill-mode: both;
   mix-blend-mode: normal;
 }
-@keyframes vt-out-to-left { to { opacity: 0; transform: translateX(-56px); } }
-@keyframes vt-out-to-right { to { opacity: 0; transform: translateX(56px); } }
-@keyframes vt-in-from-right { from { opacity: 0; transform: translateX(72px); } }
-@keyframes vt-in-from-left { from { opacity: 0; transform: translateX(-72px); } }
-@keyframes vt-tab-out-left { to { opacity: 0; transform: translateX(-28px) scale(0.985); } }
-@keyframes vt-tab-out-right { to { opacity: 0; transform: translateX(28px) scale(0.985); } }
-@keyframes vt-tab-in-right { from { opacity: 0; transform: translateX(36px) scale(0.985); } }
-@keyframes vt-tab-in-left { from { opacity: 0; transform: translateX(-36px) scale(0.985); } }
-/* La que sale se apaga antes (200 ms) para que nunca se lean dos pantallas a la vez. */
-html[data-nav='forward']::view-transition-old(finax-screen) { animation-name: vt-out-to-left; animation-duration: 200ms; }
+/*
+ * Recorridos cortos (8-16 px) y sin escalar: lo que se nota es el fundido; el desplazamiento solo
+ * insinúa la dirección. Con más recorrido (36-72 px) la pantalla entera se movía y mareaba.
+ */
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in-from-right { from { opacity: 0; transform: translateX(16px); } }
+@keyframes vt-in-from-left { from { opacity: 0; transform: translateX(-16px); } }
+@keyframes vt-tab-in-right { from { opacity: 0; transform: translateX(8px); } }
+@keyframes vt-tab-in-left { from { opacity: 0; transform: translateX(-8px); } }
+/* La que sale solo se apaga, sin moverse, y antes (140 ms): nunca se leen dos pantallas a la vez. */
+html[data-nav]::view-transition-old(finax-screen) { animation-name: vt-out; animation-duration: 140ms; animation-timing-function: ease-out; }
 html[data-nav='forward']::view-transition-new(finax-screen) { animation-name: vt-in-from-right; }
-html[data-nav='back']::view-transition-old(finax-screen) { animation-name: vt-out-to-right; animation-duration: 200ms; }
 html[data-nav='back']::view-transition-new(finax-screen) { animation-name: vt-in-from-left; }
-html[data-nav='right']::view-transition-old(finax-screen) { animation-name: vt-tab-out-left; animation-duration: 200ms; }
 html[data-nav='right']::view-transition-new(finax-screen) { animation-name: vt-tab-in-right; }
-html[data-nav='left']::view-transition-old(finax-screen) { animation-name: vt-tab-out-right; animation-duration: 200ms; }
 html[data-nav='left']::view-transition-new(finax-screen) { animation-name: vt-tab-in-left; }
 
 /* Al entrar en una pantalla, sus bloques aparecen escalonados (muy sutil). */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-.screen-stagger > * > * { animation: rise-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.screen-stagger > * > :nth-child(2) { animation-delay: 30ms; }
-.screen-stagger > * > :nth-child(3) { animation-delay: 60ms; }
-.screen-stagger > * > :nth-child(4) { animation-delay: 90ms; }
-.screen-stagger > * > :nth-child(5) { animation-delay: 120ms; }
-.screen-stagger > * > :nth-child(6) { animation-delay: 150ms; }
-.screen-stagger > * > :nth-child(n + 7) { animation-delay: 180ms; }
+.screen-stagger > * > * { animation: rise-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.screen-stagger > * > :nth-child(2) { animation-delay: 20ms; }
+.screen-stagger > * > :nth-child(3) { animation-delay: 40ms; }
+.screen-stagger > * > :nth-child(4) { animation-delay: 60ms; }
+.screen-stagger > * > :nth-child(n + 5) { animation-delay: 80ms; }
 
 /* Indicador deslizante de pestañas y selectores: se mueve con un pequeño rebote. */
 .slide-indicator {
@@ -200,7 +196,23 @@ html[data-nav='left']::view-transition-new(finax-screen) { animation-name: vt-ta
 }
 
 /* Contenido que cambia dentro de una pantalla (pestañas de AXIS, filtros). */
-.content-swap { animation: rise-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.content-swap { animation: rise-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/*
+ * Gráficas al aparecer, como la línea del patrimonio: el donut se dibuja en el
+ * sentido de las agujas del reloj (cada porción empieza cuando acaba la
+ * anterior; el retraso y la duración los pone donut-chart.tsx) y las barras
+ * crecen desde la base, una tras otra.
+ */
+@keyframes donut-sweep {
+  from { stroke-dasharray: 0 var(--donut-c); opacity: 0; }
+  1% { opacity: 1; }
+}
+.donut-seg { animation: donut-sweep linear both; }
+@keyframes grow-up { from { transform: scaleY(0); } }
+.bar-grow { transform-origin: bottom; animation: grow-up 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes grow-right { from { transform: scaleX(0); } }
+.bar-fill { transform-origin: left; animation: grow-right 600ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* Hojas inferiores: el panel sube y el fondo aparece. */
 @keyframes sheet-up {

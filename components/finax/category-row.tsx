@@ -48,7 +48,7 @@ export function CategoryRow({ icon, label, amount, pct }: CategoryRowProps) {
         </div>
         <p className="mt-0.5 text-[12.5px] font-semibold text-muted-foreground">{amount}</p>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-finax" style={{ width: `${pct}%` }} />
+          <div className="bar-fill h-full rounded-full bg-finax" style={{ width: `${pct}%` }} />
         </div>
       </div>
     </div>

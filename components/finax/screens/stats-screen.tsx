@@ -125,6 +125,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
               ) : (
                 <div className="flex items-center gap-3">
                   <DonutChart
+                    // key = mes: al tocar otra barra, el donut se vuelve a dibujar con ese mes.
+                    key={month}
                     segments={slices.map((c) => ({ pct: c.pct, color: c.color }))}
                     size={120}
                     thickness={14}
@@ -153,7 +155,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 <Segmented options={RANGES} value={range} onChange={setRange} />
               </div>
               {hasBars ? (
-                <BarChart data={bars} selected={month} onSelect={setPickedMonth} />
+                <BarChart key={range} data={bars} selected={month} onSelect={setPickedMonth} />
               ) : (
                 <p className="text-[13px] font-medium text-muted-foreground text-pretty">
                   Sin {noun.toLowerCase()} en este periodo.

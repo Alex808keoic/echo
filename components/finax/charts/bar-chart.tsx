@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { formatWholeCurrency } from '@/lib/format'
 import { formatMonthYear } from '@/lib/dates'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,13 @@ interface BarChartProps {
  */
 export function BarChart({ data, selected, onSelect, height = 130 }: BarChartProps) {
   const max = Math.max(...data.map((d) => d.value))
+  // Tras el primer pintado, el importe de una barra tocada aparece sin esperar. Ref y no estado:
+  // un re-render cambiaría el retraso a mitad de la animación de entrada.
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    mountedRef.current = true
+  }, [])
+  const mounted = mountedRef.current
   // Un mes elegido que ya no está en el rango (al cambiar 6M/1A/Todo) vuelve al mes actual.
   const pickedIndex = data.findIndex((d) => d.monthKey === selected)
   const highlight = pickedIndex >= 0 ? pickedIndex : data.length - 1
@@ -48,15 +56,17 @@ export function BarChart({ data, selected, onSelect, height = 130 }: BarChartPro
             >
               {active && (
                 <span
-                  className="absolute left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap text-[11.5px] font-bold text-grafito tabular-nums"
-                  style={{ bottom: `${h}%` }}
+                  className="fade-in absolute left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap text-[11.5px] font-bold text-grafito tabular-nums"
+                  // Al aparecer, el importe llega cuando su barra ya ha crecido; al tocar otra barra, enseguida.
+                  style={{ bottom: `${h}%`, animationDelay: mounted ? '0ms' : `${i * 45 + 380}ms` }}
                 >
                   {formatWholeCurrency(d.value)}
                 </span>
               )}
               <span
-                className="block w-full rounded-t-lg transition-[height,background-color] duration-300"
-                style={{ height: `${h}%`, backgroundColor: active ? 'var(--finax)' : 'var(--finax-soft-2)' }}
+                // Al aparecer, cada barra crece desde la base, una tras otra.
+                className="bar-grow block w-full rounded-t-lg transition-[height,background-color] duration-300"
+                style={{ animationDelay: `${i * 45}ms`, height: `${h}%`, backgroundColor: active ? 'var(--finax)' : 'var(--finax-soft-2)' }}
               />
             </button>
           )
