@@ -66,7 +66,7 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
   if (env.MARKET_AI_ENABLED !== 'true') return { status: 'skipped', reason: 'MARKET_AI_ENABLED no es "true"' }
   // 2. Secret / proveedor disponible.
   const primary = deps.providers.primary
-  if (!primary) return { status: 'skipped', reason: 'sin proveedor principal (falta GEMINI_API_KEY)' }
+  if (!primary) return { status: 'skipped', reason: 'sin proveedor (faltan las claves de Cloudflare y de Groq)' }
 
   // 3. Presupuesto (antes de gastar nada, ni siquiera red hacia las fuentes).
   const stored = await store.readLedger()
@@ -95,7 +95,11 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
 
   for (const provider of candidates) {
     // 7. Presupuesto de nuevo, con la estimación real (también para el fallback).
-    const decision = assertBudget(ledger, { ...check, estimatedInputTokens: estimated, newDeepResearch: attempts.length === 0 }, now)
+    // El cupo semanal de eventos lo gasta el primer intento: el fallback de esa MISMA investigación no
+    // vuelve a pedirlo (antes lo pedía, el cupo ya estaba lleno y una investigación por evento nunca
+    // podía usar el fallback).
+    const first = attempts.length === 0
+    const decision = assertBudget(ledger, { ...check, estimatedInputTokens: estimated, newDeepResearch: first, eventResearch: isEvent && first }, now)
     if (!decision.allowed) {
       log(`bloqueado antes de ${provider.id}: ${decision.reason}`)
       return attempts.length === 0 ? { status: 'blocked', reason: decision.reason } : { status: 'failed', reason: decision.reason, attempts }

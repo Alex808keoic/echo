@@ -10,9 +10,8 @@
 import { appendFileSync } from 'node:fs'
 import { runDeepResearch } from './deep'
 import { runLightCheck } from './light'
-import { createGeminiProvider } from '../../lib/ai/providers/gemini'
-import { createGroqProvider } from '../../lib/ai/providers/groq'
 import { createMockProvider } from './providers/mock'
+import { marketProviders } from './providers/select'
 import { collectSources } from './sources'
 import { fileStore } from './store'
 
@@ -50,11 +49,9 @@ async function main() {
       : process.env
     const providers = useMock
       ? { primary: createMockProvider(), fallback: null }
-      : {
-          primary: process.env.GEMINI_API_KEY ? createGeminiProvider({ apiKey: process.env.GEMINI_API_KEY, model: process.env.MARKET_GEMINI_MODEL || undefined }) : null,
-          fallback: process.env.GROQ_API_KEY ? createGroqProvider({ apiKey: process.env.GROQ_API_KEY, model: process.env.MARKET_GROQ_MODEL || undefined }) : null,
-        }
+      : marketProviders(process.env)
     if (useMock) log('proveedor de prueba (mock): sin IA, solo para ejecución local')
+    else log(`proveedores: ${providers.primary?.id ?? 'ninguno'} → ${providers.fallback?.id ?? 'sin fallback'}`)
     const outcome = await runDeepResearch({ store, collect: () => collectSources(), providers, env, reason, log })
     log(`resultado: ${outcome.status}${'reason' in outcome ? ` — ${outcome.reason}` : ''}`)
     output('status', outcome.status)

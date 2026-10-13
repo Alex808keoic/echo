@@ -19,7 +19,7 @@ gastos automáticamente.**
 │  kill switch → secret →        │        └────────────────────────────┘       │  (en el dispositivo)         │
 │  presupuesto → fuentes →       │                                              │  → MarketContext reducido    │
 │  compactar → estimar tokens →  │             Vercel solo despliega `main`:    │                              │
-│  presupuesto → Gemini          │             la investigación NO despliega    │ AXIS: motor local / IA       │
+│  presupuesto → Cloudflare      │             la investigación NO despliega    │ AXIS: motor local / IA       │
 │  (→ Groq una vez) → validar    │                                              │ (con o sin MarketContext)    │
 └────────────────────────────────┘                                              └──────────────────────────────┘
 ```
@@ -43,7 +43,7 @@ Principios:
 | Capa | Archivos | Se ejecuta en |
 |---|---|---|
 | Modelo y lógica pura | `lib/market/types.ts`, `validate.ts`, `freshness.ts`, `relevance.ts`, `schema.ts` | app y scripts |
-| Engine | `scripts/market/limits.ts`, `budget.ts`, `store.ts`, `sources/*`, `material.ts`, `light.ts`, `deep.ts`, `publish.ts`, `cli.ts`, `providers/mock.ts`; proveedores compartidos en `lib/ai/providers/{gemini,groq}.ts` | GitHub Actions (Node + tsx) |
+| Engine | `scripts/market/limits.ts`, `budget.ts`, `store.ts`, `sources/*`, `material.ts`, `light.ts`, `deep.ts`, `publish.ts`, `cli.ts`, `providers/mock.ts`; proveedores compartidos en `lib/ai/providers/{cloudflare,groq}.ts`, elegidos en `providers/select.ts` | GitHub Actions (Node + tsx) |
 | Workflows | `.github/workflows/market-light.yml`, `market-deep.yml` | GitHub |
 | Cliente | `lib/db/market.ts` (Dexie v2, tabla `market`), `hooks/use-market.ts` | navegador |
 | AXIS | `lib/axis/rules/market.ts`, `types.ts` (`MarketContext`), `ai/prompt.ts`, `engine.ts`, `hooks/use-axis.ts` | navegador |
@@ -165,17 +165,20 @@ una caída no rompe la investigación y queda en `failedSources`.
 
 ## 9. Proveedores (implementados en `lib/ai/providers/`, compartidos con AXIS)
 
+Desde el 2026-10-13 la cadena es la misma que la de AXIS en producción (`scripts/market/providers/select.ts`):
+
 | | Principal | Fallback | Prueba |
 |---|---|---|---|
-| Proveedor | **Gemini** `gemini-2.5-flash-lite` (REST `generateContent`, sin SDK) | **Groq** `openai/gpt-oss-120b` (API compatible OpenAI) | `mock` (sin IA, determinista) |
-| Salida | `responseMimeType: application/json` + `responseJsonSchema` | `response_format: json_schema` con `strict: true` | JSON fijo a partir del material |
-| Herramientas | **Ninguna**: sin `tools`, sin Google Search grounding, sin ejecución de código | **Ninguna** | — |
-| Tope de salida | `maxOutputTokens = MAX_OUTPUT_TOKENS` | `max_completion_tokens = MAX_OUTPUT_TOKENS` | — |
-| Errores | 429 → `rate-limit`; 401/403 → `unavailable`; timeout; `MAX_TOKENS` → `malformed`; bloqueo → `refusal` | igual | — |
-| Uso | Se usa cuando Gemini falla por `rate-limit`, `timeout`, `http`, `malformed` o `unavailable`, **una sola vez**, tras `assertBudget` | | Solo `--provider mock` en local; nunca desde el cron |
+| Proveedor | **Cloudflare Workers AI** `@cf/google/gemma-4-26b-a4b-it` (`CF_ACCOUNT_ID` + `CF_API_TOKEN`, plazo 90 s) | **Groq** `openai/gpt-oss-120b` (`GROQ_API_KEY`) | `mock` (sin IA, determinista) |
+| Salida | `response_format: json_schema` con `strict: true`, sin razonamiento | igual | JSON fijo a partir del material |
+| Herramientas | **Ninguna** (sin `tools`) | **Ninguna** | — |
+| Tope de salida | `max_completion_tokens = MAX_OUTPUT_TOKENS` | igual | — |
+| Errores | 429 → `rate-limit`; 401/403 → `unavailable`; timeout; truncado → `malformed` | igual | — |
+| Uso | Si falla por `rate-limit`, `timeout`, `http`, `malformed` o `unavailable`, Groq **una sola vez**, tras `assertBudget` | | Solo `--provider mock` en local; nunca desde el cron |
 
-Los modelos pueden cambiarse con las variables de repositorio `MARKET_GEMINI_MODEL`
-y `MARKET_GROQ_MODEL` (sin tocar código ni límites).
+- **Sin las claves de Cloudflare** en los secrets de GitHub, Groq es el principal (sin fallback). Sin ninguna clave, la investigación se omite (`skipped`).
+- **Gemini ya no se usa aquí:** falló en todos los intentos del 13-09 al 10-10-2026 (404 y después HTTP 403) y cada semana gastaba un intento del presupuesto. `lib/ai/providers/gemini.ts` se conserva (AXIS puede usarlo).
+- Modelos: variables de repositorio `MARKET_CLOUDFLARE_MODEL` y `MARKET_GROQ_MODEL` (sin tocar código ni límites).
 
 ## 10. Workflows (`.github/workflows/`)
 
@@ -183,7 +186,7 @@ y `MARKET_GROQ_MODEL` (sin tocar código ni límites).
 |---|---|---|
 | Cron | `30 7 * * 1-5` (L–V 07:30 UTC) | `0 6 * * 6` (sábado 06:00 UTC) + `workflow_dispatch` (`reason`: scheduled / event / manual) |
 | Condición | siempre (no usa IA) | `if: vars.MARKET_AI_ENABLED == 'true'` |
-| Secrets | `FRED_API_KEY` (opcional) | `GEMINI_API_KEY`, `GROQ_API_KEY`, `FRED_API_KEY` (opcional) |
+| Secrets | `FRED_API_KEY` (opcional) | `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `GROQ_API_KEY`, `FRED_API_KEY` (opcional) |
 | Pasos | checkout `main` → checkout/creación de la rama huérfana `market-data` → `pnpm install` → `cli.ts light` → commit **solo si hay diff** → si `trigger_deep` y `MARKET_AI_ENABLED`, `gh workflow run market-deep.yml -f reason=event` | igual con `cli.ts deep` (el ledger se commitea aunque la investigación falle: un intento consumido queda registrado) |
 | Protecciones | `concurrency: market` (nunca dos a la vez), `timeout-minutes` 10 / 15, permisos `contents: write` (+ `actions: write` en light para el dispatch), commits `[skip ci]`, `GITHUB_TOKEN` (sus pushes no disparan otros workflows) | |
 
@@ -194,11 +197,11 @@ en el ledger). Desde entonces `MARKET_GEMINI_MODEL=gemini-3.5-flash-lite`.
 ## 11. Operación
 
 Checklist antes de activar (`MARKET_AI_ENABLED=true`):
-1. Proyecto Gemini en una cuenta **sin método de pago**; AI Studio muestra
-   «Free tier». Sin billing enlazado. Leer las cuotas del proyecto en AI Studio.
+1. Cuenta de Cloudflare en el plan gratuito de Workers AI (cuota diaria de neurons; al agotarla, 429 y fallback).
 2. Cuenta Groq en plan free, **sin tarjeta**.
-3. Secrets en GitHub: `GEMINI_API_KEY`, `GROQ_API_KEY` (opcional `FRED_API_KEY`).
-4. Variable de repositorio `MARKET_AI_ENABLED=true` (opcionales `MARKET_GEMINI_MODEL`, `MARKET_GROQ_MODEL`).
+3. Secrets en GitHub: `CF_ACCOUNT_ID`, `CF_API_TOKEN` (los mismos valores que en Vercel), `GROQ_API_KEY` (opcional `FRED_API_KEY`).
+   `GEMINI_API_KEY` y `MARKET_GEMINI_MODEL` ya no se leen: se pueden borrar.
+4. Variable de repositorio `MARKET_AI_ENABLED=true` (opcionales `MARKET_CLOUDFLARE_MODEL`, `MARKET_GROQ_MODEL`).
 5. GitHub spending limit en 0 $ (por defecto). Repo público (para la lectura raw).
 6. `NEXT_PUBLIC_MARKET_DATA_URL` ya está fijada en `.env.production` (versionado; es una URL
    pública, no un secreto): `https://raw.githubusercontent.com/Alex808keoic/echo/market-data`.
@@ -246,10 +249,10 @@ mock) escriben en `public/market-data-local/` (ignorado en Git); con
 7. La lectura raw exige repo/rama pública; alternativa: repo de datos público separado.
 8. En repos públicos el cron se desactiva tras 60 días sin actividad: los commits de la investigación cuentan como actividad.
 9. La validación de certezas es por patrones (español e inglés); un texto que sortee los patrones no se detecta.
-10. **Bug sin corregir:** en `deep.ts` el `assertBudget` del fallback reutiliza
-    `eventResearch: true` después de que `recordAttempt` del primer intento ya contó el evento
-    de la semana (`MAX_EVENT_RESEARCH_PER_WEEK = 1`). Una investigación por evento nunca puede
-    usar el fallback; si falla el principal, no publica.
+10. **Corregido el 2026-10-13:** el `assertBudget` del fallback volvía a pedir el cupo semanal de
+    eventos que el primer intento ya había gastado, así que una investigación por evento nunca podía
+    usar el fallback. Así se perdieron las del 17-09, 01-10 y 05-10-2026. Ahora solo lo pide el primer
+    intento (test en `engine.test.ts`).
 
 ## 14. Fuera de alcance
 

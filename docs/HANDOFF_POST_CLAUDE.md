@@ -22,6 +22,7 @@
 | Repo | `https://github.com/Alex808keoic/echo.git`, rama `main` |
 | Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
 | IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
+| IA de Market Research | Desde el 2026-10-13, Cloudflare → Groq (`scripts/market/providers/select.ts`). Necesita los secrets `CF_ACCOUNT_ID` y `CF_API_TOKEN` en GitHub (los añade el usuario; sin ellos, solo Groq). Gemini ya no se usa: fallaba siempre (HTTP 403) |
 | Tests | `pnpm test` → **1.206 pasan, 0 fallan** (277 suites, también con `TZ=UTC`) |
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
@@ -91,7 +92,7 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
 | 3 | «Sin cupo de IA» por TPM de Groq | 🟡 Mitigado: Cloudflare es el principal y Groq queda de fallback. Faltan muestras de producción |
 | 4 | El perfil no llega a producción | ✅ Resuelto (`d186ec8` y siguientes) |
 | 5 | Índices de mercado en puntos rompen la licencia de cifras | ❌ Pendiente |
-| 6 | Investigación por evento sin fallback (`scripts/market/deep.ts`) | ❌ Pendiente (comprobado el 2026-10-13: el `assertBudget` del bucle sigue con `eventResearch: isEvent`) |
+| 6 | Investigación por evento sin fallback (`scripts/market/deep.ts`) | ✅ Resuelto el 2026-10-13 (solo el primer intento pide el cupo de evento; test en `engine.test.ts`). Se habían perdido las del 17-09, 01-10 y 05-10 |
 | 7 | Curva de líquido frente a cifra de patrimonio total | ✅ Resuelto: la gráfica es de patrimonio total (`3d52262`, `a347eeb`) |
 | 8 | Invertir no descontaba liquidez | ✅ Resuelto (`fromLiquid`, `3d52262`) |
 | 9 | Memorias expulsadas sin aviso / disponibilidad de la IA cacheada | ✅ / ❌ La expulsión pide confirmación; la disponibilidad sigue cacheada por sesión de motor (`ai-engine.ts`) |
@@ -106,7 +107,7 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
    - Si el detector de certeza rechaza a menudo a Gemma.
    - Cómo responden en la práctica el chat con consultas y el resumen semanal.
    Ver `[axis] llamada` en `vercel logs`.
-4. Corregir el fallback por evento de `deep.ts` (problema 6), con test.
+4. Comprobar la primera investigación de mercado con Cloudflare (sábado 17-10 o `workflow_dispatch` manual) cuando el usuario haya añadido los secrets: el log dice `proveedores: cloudflare:… → groq:…`.
 5. Licenciar los índices de mercado en puntos (problema 5).
 6. «Todo» en Estadísticas (problema 10) y recomprobar la disponibilidad de la IA sin recargar.
 7. Conversación por intención y simulador determinista (fase 3 de `docs/AXIS.md`); un solo pipeline (fase 4).

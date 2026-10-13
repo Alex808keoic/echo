@@ -185,6 +185,31 @@ describe('investigación profunda · barreras de coste', () => {
     assert.equal(out.provider, 'groq')
   })
 
+  it('investigación por evento: si falla el principal, el fallback publica (el cupo de evento se gasta una vez)', async () => {
+    const store = memoryStore({ latest: research({ id: '2026-W36' }) })
+    const primary = failing('cloudflare', 'unavailable')
+    const fallback = ok('groq')
+    const out = await runDeepResearch(deps({ store, providers: { primary, fallback }, reason: 'event' }))
+    assert.equal(out.status, 'published')
+    if (out.status !== 'published') return
+    assert.equal(out.provider, 'groq')
+    assert.equal(fallback.calls, 1)
+    const ledger = await store.readLedger()
+    assert.equal(ledger?.eventResearchThisWeek, 1, 'una investigación por evento, aunque haya dos intentos')
+    assert.equal(ledger?.deepResearchThisMonth, 1)
+    assert.equal(ledger?.monthCalls, 2)
+  })
+
+  it('investigación por evento con el cupo semanal ya gastado → blocked, sin llamadas', async () => {
+    let ledger = emptyLedger(NOW)
+    ledger = recordAttempt(ledger, { provider: 'x', reason: 'event', newDeepResearch: true, eventResearch: true }, NOW)
+    const store = memoryStore({ ledger })
+    const primary = ok('cloudflare')
+    const out = await runDeepResearch(deps({ store, providers: { primary, fallback: ok('groq') }, reason: 'event' }))
+    assert.equal(out.status, 'blocked')
+    assert.equal(primary.calls, 0)
+  })
+
   it('respuesta inválida y sin fallback → última investigación disponible', async () => {
     const store = memoryStore({ latest: research({ id: '2026-W36' }) })
     const primary = provider('gemini', async () => ({ output: 'no es un objeto', usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } }))
