@@ -2,23 +2,32 @@ import type { CategoryTotal } from '@/lib/finance/summary'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type MovementType } from '@/lib/types'
 
 /**
- * Paleta categórica: ocho tonos distintos en un orden validado para daltonismo
- * (cada par vecino ΔE ≥ 9 con protanopía, deuteranopía y tritanopía; ≥ 19 con
- * visión normal). Antes eran seis verdes casi iguales: con más de tres
- * categorías no se distinguían. Tres tonos (aqua, amarillo, magenta) quedan
- * por debajo de 3:1 sobre blanco, así que siempre van con su nombre y su
- * porcentaje al lado (leyenda), nunca solo el color.
+ * Paleta categórica de la familia de Finax: del verde de la marca al violeta
+ * de AXIS, pasando por bosque, petróleo y azul cielo. Tonos fríos y tranquilos
+ * para una app blanca y verde (una paleta multicolor con naranja o amarillo
+ * rompía la estética), separados sobre todo por claridad.
+ *
+ * Validada con TODAS las parejas, no solo las vecinas, porque en el donut
+ * cualquier color puede quedar junto a cualquier otro: ΔE ≥ 12,2 con
+ * daltonismo (protanopía/deuteranopía) y ≥ 15,5 con visión normal, también
+ * frente al gris de «Resto». El azul cielo queda por debajo de 3:1 sobre
+ * blanco: como todos, va siempre con su nombre y su porcentaje en la leyenda.
  */
 export const CHART_COLORS = [
-  '#2a78d6', // azul
-  '#eb6834', // naranja
-  '#1baf7a', // aqua
-  '#eda100', // amarillo
-  '#e87ba4', // magenta
-  '#008300', // verde
-  '#6250d6', // violeta
-  '#e34948', // rojo
+  '#0ea676', // verde Finax
+  '#6d5fd8', // violeta AXIS
+  '#4aa3df', // azul cielo
+  '#02648c', // petróleo
+  '#00672c', // verde bosque
 ] as const
+
+/** Gris claro de «Resto»: lo que no cabe en la leyenda, sin competir con los colores. */
+export const REST_COLOR = '#c4c7cc'
+
+/** Color por posición fija (inversiones): el orden de la lista, nunca el tamaño. */
+export function chartColor(index: number): string {
+  return index < CHART_COLORS.length ? CHART_COLORS[index] : REST_COLOR
+}
 
 /**
  * Verdes de Finax para el desglose del patrimonio (Mi Dinero): como mucho tres
@@ -35,16 +44,8 @@ export function brandColor(key: keyof typeof BRAND_COLORS): string {
   return BRAND_COLORS[key]
 }
 
-/** Gris de «Resto»: lo que no cabe en la leyenda, sin competir con los colores. */
-export const REST_COLOR = '#9a9890'
-
-/** Color por posición fija (inversiones, desglose): el orden de la lista, nunca el tamaño. */
-export function chartColor(index: number): string {
-  return index < CHART_COLORS.length ? CHART_COLORS[index] : REST_COLOR
-}
-
 /**
- * Las categorías cerradas tienen siempre el mismo color (Comida siempre azul),
+ * Las categorías cerradas tienen siempre el mismo color (Comida siempre verde),
  * así que al cambiar de mes una categoría no cambia de color. «Otros» no tiene
  * color propio: cada motivo («Luz», «Gasolina») toma los libres por tamaño.
  */
@@ -53,8 +54,11 @@ const FIXED_SLOTS: Record<MovementType, readonly string[]> = {
   ingreso: INCOME_CATEGORIES.filter((c) => c !== 'Otros'),
 }
 
-/** Porciones como mucho en el donut (con «Resto»): lo que cabe en la leyenda a 360 px. */
-export const MAX_DONUT_SLICES = 6
+/**
+ * Porciones como mucho en el donut (con «Resto»): tantas como colores, así que
+ * nunca se repite uno (las cerradas que no salen dejan su color a los motivos).
+ */
+export const MAX_DONUT_SLICES = CHART_COLORS.length
 
 export interface DonutSlice extends CategoryTotal {
   color: string

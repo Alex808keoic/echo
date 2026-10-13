@@ -55,8 +55,20 @@ describe('donutSlices', () => {
 })
 
 describe('chartColor', () => {
-  it('ocho colores distintos por posición y luego gris', () => {
-    assert.equal(new Set(CHART_COLORS.map((_, i) => chartColor(i))).size, 8)
-    assert.equal(chartColor(8), REST_COLOR)
+  it('colores distintos por posición y luego gris', () => {
+    assert.equal(new Set(CHART_COLORS.map((_, i) => chartColor(i))).size, CHART_COLORS.length)
+    assert.equal(chartColor(CHART_COLORS.length), REST_COLOR)
+  })
+})
+
+describe('donutSlices: nunca un color repetido', () => {
+  it('con cualquier mezcla de categorías cerradas y motivos', () => {
+    const labels = ['Comida', 'Restaurantes', 'Salidas', 'Caprichos', 'Ropa', 'Luz', 'Gasolina', 'Netflix']
+    // Todas las combinaciones de hasta 8 categorías, en el orden de tamaño dado.
+    for (let mask = 1; mask < 1 << labels.length; mask++) {
+      const picked = labels.filter((_, i) => mask & (1 << i)).map((l, i) => cat(l, 1000 - i, 10))
+      const colors = donutSlices(picked, 'gasto').map((s) => s.color)
+      assert.equal(new Set(colors).size, colors.length, picked.map((c) => c.label).join(','))
+    }
   })
 })
