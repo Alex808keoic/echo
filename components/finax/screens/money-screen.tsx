@@ -9,7 +9,7 @@ import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
-import { chartColor } from '../charts/palette'
+import { brandColor } from '@/lib/ui/chart-colors'
 import { AxisCard } from '../axis-card'
 import { ChangeBadge } from '../metric'
 import { ArrowUp, ArrowDown, TargetIcon, TrendUpIcon, ChevronRight, MoneyIcon } from '../icons'
@@ -45,7 +45,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
   const destined = allocation.allocatedCents
   const available = allocation.availableCents
   const breakdownView = wealthBreakdown({ liquidCents, destinedCents: destined, availableCents: available, investedCents })
-  const breakdown = breakdownView.kind === 'parts' ? breakdownView.parts.map((b, i) => ({ ...b, color: chartColor(i) })) : []
+  const breakdown = breakdownView.kind === 'parts' ? breakdownView.parts.map((b) => ({ ...b, color: brandColor(b.key) })) : []
 
   const monthUp = (overview.monthChangeCents ?? 0) >= 0
 

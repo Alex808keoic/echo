@@ -13,7 +13,7 @@ import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
 import { BarChart } from '../charts/bar-chart'
 import { EvolutionChart, seriesForRange } from '../charts/evolution-chart'
-import { chartColor } from '../charts/palette'
+import { donutSlices } from '@/lib/ui/chart-colors'
 import { LegendRow, CategoryRow } from '../category-row'
 import { AxisCard } from '../axis-card'
 import { categoryIconMap, DotsIcon } from '../icons'
@@ -74,6 +74,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const monthMovements = inMonth(overview.movements, month)
   const categories = totalsByCategory(monthMovements, type)
   const monthTotal = categories.reduce((t, c) => t + c.cents, 0)
+  // Donut y leyenda salen de las mismas porciones: cada color tiene su fila y cada categoría su color fijo.
+  const slices = donutSlices(categories, type)
   const monthPhrase = isThisMonth ? 'este mes' : `en ${formatMonthYear(month)}`
   const hasBars = bars.some((b) => b.value > 0)
   const patrimonioRange: PeriodId = rangeKey === 'Todo' ? 'Todo' : rangeKey
@@ -121,7 +123,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
             ) : (
               <div className="flex items-center gap-3">
                 <DonutChart
-                  segments={categories.map((c, i) => ({ pct: c.pct, color: chartColor(i) }))}
+                  segments={slices.map((c) => ({ pct: c.pct, color: c.color }))}
                   size={120}
                   thickness={14}
                 >
@@ -134,9 +136,9 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                 </DonutChart>
 
                 <ul className="min-w-0 flex-1 space-y-2.5">
-                  {categories.slice(0, 6).map((c, i) => (
+                  {slices.map((c) => (
                     <li key={c.key}>
-                      <LegendRow color={chartColor(i)} label={c.label} pct={c.pct} />
+                      <LegendRow color={c.color} label={c.label} pct={c.pct} />
                     </li>
                   ))}
                 </ul>
