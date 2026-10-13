@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatCents } from '@/lib/money'
 import { useAxis } from '@/hooks/use-axis'
 import { useAxisChat } from '@/hooks/use-axis-chat'
@@ -208,7 +208,52 @@ function engineNote(engine: AxisEngineInfo | null): string {
     : `${engine.label} (sin IA). AXIS analiza y recomienda; nunca ejecuta operaciones.`
 }
 
+type AxisTab = 'analisis' | 'conversacion'
+
+const TABS: ReadonlyArray<{ key: AxisTab; label: string }> = [
+  { key: 'analisis', label: 'Análisis' },
+  { key: 'conversacion', label: 'Conversación' },
+]
+
+/**
+ * Pestaña recordada mientras la app siga abierta: si una tarjeta del chat lleva a
+ * otra pantalla, al volver se sigue en la conversación.
+ */
+let lastTab: AxisTab = 'analisis'
+
+function AxisTabs({ value, onChange }: { value: AxisTab; onChange: (tab: AxisTab) => void }) {
+  return (
+    <div role="tablist" aria-label="AXIS" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+      {TABS.map((t) => {
+        const active = t.key === value
+        return (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            id={`axis-tab-${t.key}`}
+            aria-selected={active}
+            aria-controls={`axis-panel-${t.key}`}
+            onClick={() => onChange(t.key)}
+            className={cn(
+              'rounded-full py-2.5 text-[13.5px] font-bold transition-all',
+              active ? 'bg-card text-axis-indigo shadow-[0_2px_10px_-6px_rgba(79,70,229,0.5)]' : 'text-muted-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function AxisScreen({ overview, onNavigate }: ScreenProps) {
+  const [tab, setTabState] = useState<AxisTab>(lastTab)
+  const setTab = (next: AxisTab) => {
+    lastTab = next
+    setTabState(next)
+  }
   const { market, marketState } = useMarketContext(overview)
   const { state: axis, refresh } = useAxis(overview, { ai: true, market, remember: true })
   const chat = useAxisChat(overview, market)
@@ -236,23 +281,41 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         </IconButton>
       </div>
 
-      {/* Hero con esfera */}
-      <div className="relative mt-2 flex flex-col items-center overflow-hidden px-5 pb-6 pt-6">
+      {/* Saludo compacto: la esfera grande ocupaba media pantalla del móvil antes de llegar a nada útil. */}
+      <div className="relative mt-3 flex items-center gap-4 px-5 pb-4 pt-2">
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-64"
-          style={{
-            background:
-              'radial-gradient(60% 60% at 50% 30%, rgba(129,140,248,0.20), rgba(129,140,248,0) 70%)',
-          }}
+          className="pointer-events-none absolute left-0 top-[-12px] h-[104px] w-[104px]"
+          style={{ background: 'radial-gradient(closest-side, rgba(129,140,248,0.22), rgba(129,140,248,0))' }}
         />
-        <AxisSphere size={132} />
-        <h1 className="relative mt-6 text-[26px] font-extrabold tracking-tight text-grafito">{greeting()}</h1>
-        <p className="relative mt-2 max-w-[280px] text-center text-[13px] font-medium leading-snug text-muted-foreground text-pretty">
-          Analizo tu situación financiera para ayudarte a tomar mejores decisiones.
-        </p>
+        <AxisSphere size={60} className="shrink-0" />
+        <div className="relative min-w-0">
+          <h1 className="text-[22px] font-extrabold leading-tight tracking-tight text-grafito">{greeting()}</h1>
+          <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
+            Analizo tu situación financiera para ayudarte a tomar mejores decisiones.
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-5 px-5">
+      <div className="px-5">
+        <AxisTabs value={tab} onChange={setTab} />
+      </div>
+
+      {tab === 'conversacion' ? (
+        <div id="axis-panel-conversacion" role="tabpanel" aria-labelledby="axis-tab-conversacion" className="mt-5 px-5">
+          <AxisConversation
+            status={chat.status}
+            online={chat.online}
+            messages={chat.messages}
+            memories={chat.memories}
+            onSend={chat.send}
+            onResolveProposal={chat.resolveProposal}
+            onClear={chat.clear}
+            onForget={chat.forget}
+            onNavigate={onNavigate}
+          />
+        </div>
+      ) : (
+      <div id="axis-panel-analisis" role="tabpanel" aria-labelledby="axis-tab-analisis" className="mt-5 space-y-5 px-5">
         {axis.status === 'analysis' && axis.analysis.basedOnDemoData && (
           <p className="rounded-2xl border border-axis-violet/20 bg-axis-soft px-4 py-2.5 text-[12px] font-semibold text-axis-indigo">
             Análisis sobre datos de demostración: no describe tu situación real.
@@ -319,18 +382,6 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
           <Analysis analysis={axis.analysis} onNavigate={onNavigate} />
         )}
 
-        <AxisConversation
-          status={chat.status}
-          online={chat.online}
-          messages={chat.messages}
-          memories={chat.memories}
-          onSend={chat.send}
-          onResolveProposal={chat.resolveProposal}
-          onClear={chat.clear}
-          onForget={chat.forget}
-          onNavigate={onNavigate}
-        />
-
         <p className="flex items-center justify-center gap-1.5 px-4 text-center text-[11.5px] font-medium text-muted-foreground text-pretty">
           <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />
           {engineNote(engine)}
@@ -346,6 +397,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
           </button>
         )}
       </div>
+      )}
     </div>
   )
 }
