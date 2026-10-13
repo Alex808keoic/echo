@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { formatWholeCurrency } from '@/lib/format'
 import { formatMonthYear } from '@/lib/dates'
 import { cn } from '@/lib/utils'
@@ -14,18 +13,21 @@ interface BarDatum {
 
 interface BarChartProps {
   data: BarDatum[]
+  /** Mes elegido (`YYYY-MM`); `null` o fuera del rango = el último (mes actual). */
+  selected: string | null
+  onSelect: (monthKey: string) => void
   height?: number
 }
 
 /**
- * Barras mensuales (gastos o ingresos). Al tocar una barra se resalta y
- * muestra su importe en euros enteros; por defecto, la del mes actual.
+ * Barras mensuales (gastos o ingresos). Al tocar una barra se resalta,
+ * muestra su importe en euros enteros y avisa a la pantalla (que enseña ese
+ * mes en el resto de gráficos); por defecto, la del mes actual.
  */
-export function BarChart({ data, height = 130 }: BarChartProps) {
-  const [picked, setPicked] = useState<string | null>(null)
+export function BarChart({ data, selected, onSelect, height = 130 }: BarChartProps) {
   const max = Math.max(...data.map((d) => d.value))
   // Un mes elegido que ya no está en el rango (al cambiar 6M/1A/Todo) vuelve al mes actual.
-  const pickedIndex = data.findIndex((d) => d.monthKey === picked)
+  const pickedIndex = data.findIndex((d) => d.monthKey === selected)
   const highlight = pickedIndex >= 0 ? pickedIndex : data.length - 1
 
   return (
@@ -39,7 +41,7 @@ export function BarChart({ data, height = 130 }: BarChartProps) {
             <button
               key={d.monthKey}
               type="button"
-              onClick={() => setPicked(d.monthKey)}
+              onClick={() => onSelect(d.monthKey)}
               aria-pressed={active}
               aria-label={`${formatMonthYear(d.monthKey)}: ${formatWholeCurrency(d.value)}`}
               className="relative flex h-full flex-1 items-end"

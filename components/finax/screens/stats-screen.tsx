@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
-import { currentMonthKey } from '@/lib/dates'
+import { currentMonthKey, formatMonthLabel, formatMonthYear } from '@/lib/dates'
 import { inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
@@ -38,6 +38,8 @@ function iconFor(label: string) {
 export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const [filter, setFilter] = useState<string>('Gastos')
   const [range, setRange] = useState<string>('6M')
+  // Mes tocado en las barras: el donut y las categorías pasan a ese mes.
+  const [pickedMonth, setPickedMonth] = useState<string | null>(null)
   const { market } = useMarketContext(overview)
   const { state: axis } = useAxis(overview, { market })
   const { open, close } = useSheet()
@@ -63,11 +65,16 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
 
   const type: MovementType = filter === 'Ingresos' ? 'ingreso' : 'gasto'
   const isPatrimonio = filter === 'Patrimonio'
-  const monthMovements = inMonth(overview.movements, currentMonthKey())
-  const categories = totalsByCategory(monthMovements, type)
-  const monthTotal = type === 'gasto' ? overview.month.expenseCents : overview.month.incomeCents
   const rangeKey = range as (typeof RANGES)[number]
   const bars = monthlyTotals(overview.movements, type, MONTHS_FOR_RANGE[rangeKey])
+  // Un mes que ya no está en las barras (otro rango) vuelve al mes actual, igual que en BarChart.
+  const thisMonth = currentMonthKey()
+  const month = pickedMonth !== null && bars.some((b) => b.monthKey === pickedMonth) ? pickedMonth : thisMonth
+  const isThisMonth = month === thisMonth
+  const monthMovements = inMonth(overview.movements, month)
+  const categories = totalsByCategory(monthMovements, type)
+  const monthTotal = categories.reduce((t, c) => t + c.cents, 0)
+  const monthPhrase = isThisMonth ? 'este mes' : `en ${formatMonthYear(month)}`
   const hasBars = bars.some((b) => b.value > 0)
   const patrimonioRange: PeriodId = rangeKey === 'Todo' ? 'Todo' : rangeKey
   const delta = seriesDelta(seriesForRange(overview.series, patrimonioRange))
@@ -109,7 +116,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
           <FinancialCard>
             {categories.length === 0 ? (
               <p className="text-[13px] font-medium text-muted-foreground text-pretty">
-                No hay {noun.toLowerCase()} registrados este mes.
+                No hay {noun.toLowerCase()} registrados {monthPhrase}.
               </p>
             ) : (
               <div className="flex items-center gap-3">
@@ -121,7 +128,9 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                   <span className="text-[15px] font-extrabold text-grafito tabular-nums">
                     {formatCents(monthTotal)}
                   </span>
-                  <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">{noun} este mes</span>
+                  <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">
+                    {noun} {isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`}
+                  </span>
                 </DonutChart>
 
                 <ul className="min-w-0 flex-1 space-y-2.5">
@@ -141,7 +150,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
               <Segmented options={RANGES} value={range} onChange={setRange} />
             </div>
             {hasBars ? (
-              <BarChart data={bars} />
+              <BarChart data={bars} selected={month} onSelect={setPickedMonth} />
             ) : (
               <p className="text-[13px] font-medium text-muted-foreground text-pretty">
                 Sin {noun.toLowerCase()} en este periodo.
@@ -160,7 +169,7 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
 
       {!isPatrimonio && categories.length > 0 && (
         <section>
-          <SectionHeader title="Categorías" actionLabel="Ver todas" onAction={() => onNavigate('movimientos')} />
+          <SectionHeader title={isThisMonth ? 'Categorías' : `Categorías · ${formatMonthLabel(month)}`} actionLabel="Ver todas" onAction={() => onNavigate('movimientos')} />
           <FinancialCard className="space-y-4">
             {categories.slice(0, 5).map((c) => (
               <CategoryRow
