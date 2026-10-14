@@ -208,8 +208,24 @@ function fromExtracted(f: ExtractedFigure, label: string, source: FigureSource):
   return { key: f.key, kind: 'count', value: n, text: String(n), label, source }
 }
 
+/**
+ * Cifras de los textos de la decisión. A diferencia del mensaje del usuario,
+ * aquí también se licencian los números desnudos: los escribe AXIS, y así el
+ * modelo puede repetir un índice de mercado en puntos («IBEX 35: 15.234,5 pts»)
+ * que AXIS presenta como hecho actual. Los de la interpretación de mercado
+ * siguen fuera (`decisionTexts`): pueden estar superados.
+ */
 export function decisionTextFigures(decision: AxisDecision): AllowedFigure[] {
-  return dedupe(decisionTexts(decision).flatMap((t) => extractFigures(t).flatMap((f) => fromExtracted(f, 'Escrito por AXIS en la decisión', 'decision-text') ?? [])))
+  const label = 'Escrito por AXIS en la decisión'
+  return dedupe(
+    decisionTexts(decision).flatMap((t) =>
+      extractFigures(t).flatMap((f): AllowedFigure | AllowedFigure[] =>
+        f.kind === 'bare' && f.bareValue !== undefined
+          ? [{ key: `c:${f.bareValue}`, kind: 'count', value: f.bareValue, text: f.raw, label, source: 'decision-text' }]
+          : (fromExtracted(f, label, 'decision-text') ?? []),
+      ),
+    ),
+  )
 }
 
 /** Cifras que el usuario ha escrito en su mensaje (puede citárselas tal cual). Los números desnudos no cuentan. */

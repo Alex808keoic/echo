@@ -138,6 +138,29 @@ describe('AXIS · cifras permitidas · validación', () => {
     assert.deepEqual(checkFigures('Suma 12345 y verás', set).map((v) => v.reason), ['bare-number'])
   })
 
+  it('índices de mercado en puntos: se licencia el del hecho actual, no uno inventado ni el de la lectura', () => {
+    const d = decision()
+    const withIndex: AxisDecision = {
+      ...d,
+      relevant: [
+        ...d.relevant,
+        {
+          id: 'market.indicators',
+          domain: 'market',
+          priority: 'low',
+          fact: 'IBEX 35: 15.234,5 pts (2026-10-13, BME)',
+          interpretation: 'Según la investigación semanal, el índice cerró en 19.659,8 puntos.',
+        },
+      ],
+    }
+    const set = buildAllowedFigures(withIndex)
+    assert.deepEqual(checkFigures('El IBEX 35 está en 15.234,5 pts, y 15.234,5 puntos es su último cierre.', set), [])
+    assert.deepEqual(checkFigures('El IBEX 35 está en 16.000 pts.', set).map((v) => [v.raw, v.reason]), [['16.000', 'bare-number']])
+    assert.deepEqual(checkFigures('Cerró en 19.659,8 puntos.', set).map((v) => v.reason), ['bare-number'], 'la lectura de la investigación puede estar superada')
+    assert.deepEqual(checkFigures('El IBEX 35 está en 15.234,5 pts.', buildAllowedFigures(d)).map((v) => v.reason), ['bare-number'], 'sin el hecho, no')
+    assert.deepEqual(messageFigures('¿El IBEX en 15.234,5 es caro?'), [], 'los números desnudos del usuario siguen sin contar')
+  })
+
   it('con el mensaje del usuario, sus cifras y las derivadas quedan permitidas', () => {
     const set = buildAllowedFigures(decision(), { message: '¿Puedo meter 100 € al viaje?' })
     assert.deepEqual(checkFigures('Si metes 100,00 € te quedarían 3.450,00 € líquidos, un 5% de tus ingresos.', set), [])
