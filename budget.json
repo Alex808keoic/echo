@@ -1,13 +1,13 @@
 {
   "version": 1,
   "month": "2026-10",
-  "monthCalls": 6,
-  "monthTokens": 13832,
-  "deepResearchThisMonth": 4,
-  "day": "2026-10-10",
+  "monthCalls": 8,
+  "monthTokens": 23718,
+  "deepResearchThisMonth": 5,
+  "day": "2026-10-14",
   "dayCalls": 2,
-  "week": "2026-W41",
-  "eventResearchThisWeek": 1,
+  "week": "2026-W42",
+  "eventResearchThisWeek": 0,
   "attempts": [
     {
       "at": "2026-09-13T13:33:34.307Z",
@@ -99,6 +99,20 @@
       "reason": "scheduled",
       "ok": true,
       "tokens": 7534
+    },
+    {
+      "at": "2026-10-14T14:32:52.390Z",
+      "provider": "cloudflare:@cf/google/gemma-4-26b-a4b-it",
+      "reason": "manual",
+      "ok": false,
+      "tokens": 0
+    },
+    {
+      "at": "2026-10-14T14:32:52.390Z",
+      "provider": "groq:openai/gpt-oss-120b",
+      "reason": "manual",
+      "ok": true,
+      "tokens": 6835
     }
   ]
 }
