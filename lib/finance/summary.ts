@@ -129,6 +129,24 @@ export interface MonthTotal {
  * (incluido el actual), en euros para el gráfico de barras. Los meses sin
  * movimientos valen 0: son meses reales del calendario, no datos inventados.
  */
+/**
+ * Meses de calendario desde el mes del movimiento más antiguo hasta el actual
+ * (ambos incluidos), con un mínimo de `min`: el rango «Todo» de las barras
+ * nunca enseña menos meses que «1A». Los movimientos con fecha futura no
+ * alargan el rango.
+ */
+export function historyMonthCount(movements: Movement[], min: number): number {
+  const current = shiftedMonthKey(0)
+  let first = current
+  for (const m of movements) {
+    const key = m.date.slice(0, 7)
+    if (key < first) first = key
+  }
+  const [fy, fm] = first.split('-').map(Number)
+  const [cy, cm] = current.split('-').map(Number)
+  return Math.max(min, (cy - fy) * 12 + (cm - fm) + 1)
+}
+
 export function monthlyTotals(movements: Movement[], type: MovementType, count: number): MonthTotal[] {
   const result: MonthTotal[] = []
   for (let offset = count - 1; offset >= 0; offset--) {

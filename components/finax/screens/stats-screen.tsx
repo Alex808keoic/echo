@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { currentMonthKey, formatMonthLabel, formatMonthYear } from '@/lib/dates'
-import { inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
+import { historyMonthCount, inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
@@ -28,7 +28,7 @@ import type { ScreenProps } from './types'
 
 const FILTERS = ['Gastos', 'Ingresos', 'Patrimonio'] as const
 const RANGES = ['6M', '1A', 'Todo'] as const
-const MONTHS_FOR_RANGE: Record<(typeof RANGES)[number], number> = { '6M': 6, '1A': 12, Todo: 12 }
+const MONTHS_FOR_RANGE = { '6M': 6, '1A': 12 } as const
 
 function iconFor(label: string) {
   const Icon = categoryIconMap[label as Category] ?? DotsIcon
@@ -66,7 +66,9 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const type: MovementType = filter === 'Ingresos' ? 'ingreso' : 'gasto'
   const isPatrimonio = filter === 'Patrimonio'
   const rangeKey = range as (typeof RANGES)[number]
-  const bars = monthlyTotals(overview.movements, type, MONTHS_FOR_RANGE[rangeKey])
+  // «Todo» = desde el primer movimiento (nunca menos que «1A»); con más de 12 meses las barras se desplazan.
+  const barMonths = rangeKey === 'Todo' ? historyMonthCount(overview.movements, MONTHS_FOR_RANGE['1A']) : MONTHS_FOR_RANGE[rangeKey]
+  const bars = monthlyTotals(overview.movements, type, barMonths)
   // Un mes que ya no está en las barras (otro rango) vuelve al mes actual, igual que en BarChart.
   const thisMonth = currentMonthKey()
   const month = pickedMonth !== null && bars.some((b) => b.monthKey === pickedMonth) ? pickedMonth : thisMonth
