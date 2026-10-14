@@ -91,25 +91,25 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
 | 2 | Ajustes decía que los datos no salen / que no hay IA | ✅ Resuelto (`886f34f`, `f386686`) |
 | 3 | «Sin cupo de IA» por TPM de Groq | 🟡 Mitigado: Cloudflare es el principal y Groq queda de fallback. Faltan muestras de producción |
 | 4 | El perfil no llega a producción | ✅ Resuelto (`d186ec8` y siguientes) |
-| 5 | Índices de mercado en puntos rompen la licencia de cifras | ❌ Pendiente |
+| 5 | Índices de mercado en puntos rompen la licencia de cifras | ✅ Resuelto el 2026-10-14: `decisionTextFigures` licencia los números desnudos de los textos de AXIS (el hecho «IBEX 35: 15.234,5 pts»); los de la lectura de la investigación siguen sin licenciar. Test en `figures.test.ts` |
 | 6 | Investigación por evento sin fallback (`scripts/market/deep.ts`) | ✅ Resuelto el 2026-10-13 (solo el primer intento pide el cupo de evento; test en `engine.test.ts`). Se habían perdido las del 17-09, 01-10 y 05-10 |
 | 7 | Curva de líquido frente a cifra de patrimonio total | ✅ Resuelto: la gráfica es de patrimonio total (`3d52262`, `a347eeb`) |
 | 8 | Invertir no descontaba liquidez | ✅ Resuelto (`fromLiquid`, `3d52262`) |
-| 9 | Memorias expulsadas sin aviso / disponibilidad de la IA cacheada | ✅ / ❌ La expulsión pide confirmación; la disponibilidad sigue cacheada por sesión de motor (`ai-engine.ts`) |
-| 10 | «Todo» en las barras de Estadísticas = 12 meses | ❌ Pendiente (`stats-screen.tsx`, `MONTHS_FOR_RANGE`) |
+| 9 | Memorias expulsadas sin aviso / disponibilidad de la IA cacheada | ✅ La expulsión pide confirmación. Disponibilidad (2026-10-14): un «sí» vale toda la sesión; un «no» se vuelve a comprobar al minuto (`rememberAvailability`, `core/fallback.ts`) |
+| 10 | «Todo» en las barras de Estadísticas = 12 meses | ✅ Resuelto el 2026-10-14: desde el primer movimiento (`historyMonthCount`, mínimo 12); con más de 12 meses las barras se desplazan en horizontal y arrancan en el mes actual |
 
 ### Pendiente (en orden recomendado)
 
 1. **Pasada de diseño para el Galaxy S21** (360 px), pantalla por pantalla. El usuario la dejó a propósito para el final; en los commits de arreglos no se tocan tamaños ni layout sin pedirlo.
-2. **Que Vercel solo despliegue si pasa la CI** (p. ej. *Ignored Build Step* o despliegue desde Actions).
+2. ~~Que Vercel solo despliegue si pasa la CI~~ ✅ 2026-10-14: `vercel.json` hace que Vercel ejecute `typecheck` y `test` antes de `build`; si fallan, no despliega y producción sigue con la versión anterior.
 3. **Medir en producción:**
    - Si el timeout de Cloudflare en el análisis es sistemático.
    - Si el detector de certeza rechaza a menudo a Gemma.
    - Cómo responden en la práctica el chat con consultas y el resumen semanal.
    Ver `[axis] llamada` en `vercel logs`.
 4. Comprobar la primera investigación de mercado con Cloudflare (sábado 17-10 o `workflow_dispatch` manual) cuando el usuario haya añadido los secrets: el log dice `proveedores: cloudflare:… → groq:…`.
-5. Licenciar los índices de mercado en puntos (problema 5).
-6. «Todo» en Estadísticas (problema 10) y recomprobar la disponibilidad de la IA sin recargar.
+5. ~~Índices en puntos, «Todo» en Estadísticas y disponibilidad de la IA~~ ✅ 2026-10-14.
+6. Si Cloudflare sigue rechazado en el mercado por el detector de certeza (el 14-10 lo fue por «asegurar»), revisar `lib/text/certainty.ts` con tests; no relajarlo a ciegas.
 7. Conversación por intención y simulador determinista (fase 3 de `docs/AXIS.md`); un solo pipeline (fase 4).
 8. Oro en Market Research (`docs/SPIKE_GOLD_SOURCES.md`).
 9. `docs/AXIS_MARKET_INTELLIGENCE.md` (2026-10-05): investigación con decisiones pendientes de aprobar (§16). Parte ya se implementó (frescura, series de inflación); el resto **no está aprobado**.
@@ -361,8 +361,8 @@ En escritorio la app se ve dentro de un marco de teléfono.
   - Con menos de 3 días con movimientos muestra «Aún no hay evolución» (no inventa datos).
   - **Inconsistencia de UX:** la cifra grande de Inicio es el patrimonio **total**, pero la curva y la
     variación son del **líquido** (el texto dice «líquido, en el periodo»).
-- **Estadísticas:** donut por categoría, barras mensuales (el rango «Todo» muestra solo 12 meses,
-  `stats-screen.tsx:32`), evolución.
+- **Estadísticas:** donut por categoría, barras mensuales (el rango «Todo» cubre desde el primer movimiento, mínimo 12 meses;
+  con más, las barras se desplazan), evolución.
 - **Formato:** `lib/format.ts` y `lib/money.ts` (es-ES hecho a mano: `3.486,70 €`).
 
 ### ⚠️ Bug conocido de parseo de importes (sin corregir)
@@ -713,7 +713,6 @@ Detalle:
 
 **Huecos:**
 - Ningún golden con perfil.
-- Ningún test de Decision First con índices de mercado en puntos.
 - Ningún test del bug de fallback por evento ni del parseo de importes con «.».
 - Sin tests de UI.
 - Sin CI.
