@@ -41,8 +41,8 @@ export interface AIEngineOptions {
 export const DEFAULT_AI_TIMEOUT_MS = 25_000
 
 export function createAIEngine({ transport, fallback, timeoutMs = DEFAULT_AI_TIMEOUT_MS, onFallback }: AIEngineOptions): AxisEngine {
-  // La disponibilidad se comprueba una vez por sesión de motor: si no hay IA,
-  // no se vuelve a preguntar ni se hacen llamadas.
+  // Un «sí» se recuerda toda la sesión del motor; un «no» se vuelve a comprobar pasado un minuto
+  // (sin red al abrir la app, la IA vuelve sola al recuperarla, sin recargar).
   const isAvailable = rememberAvailability(() => transport.isAvailable())
 
   async function analyzeWithAI(input: AxisInput, signal: AbortSignal): Promise<AxisResult> {

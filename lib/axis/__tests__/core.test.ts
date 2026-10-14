@@ -115,6 +115,31 @@ describe('AXIS · fallback común (core/fallback.ts)', () => {
     assert.equal(await failing(), false)
   })
 
+  it('rememberAvailability: un «no» se vuelve a comprobar pasado el plazo; un «sí», nunca', async () => {
+    let t = 0
+    let online = false
+    let calls = 0
+    const available = rememberAvailability(
+      async () => {
+        calls++
+        if (!online) throw new Error('sin red')
+        return true
+      },
+      { retryAfterMs: 60_000, now: () => t },
+    )
+    assert.equal(await available(), false)
+    online = true
+    t = 59_999
+    assert.equal(await available(), false, 'dentro del plazo no se vuelve a preguntar')
+    assert.equal(calls, 1)
+    t = 60_000
+    assert.equal(await available(), true, 'pasado el plazo, la IA vuelve sin recargar')
+    online = false
+    t = 10 * 60_000
+    assert.equal(await available(), true, 'un «sí» vale para toda la sesión')
+    assert.equal(calls, 2)
+  })
+
   it('withFallback: no disponible → local sin intento; fallo → local con el error; éxito → resultado', async () => {
     let attempts = 0
     const plan = (available: boolean, fail: boolean) => ({

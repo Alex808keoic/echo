@@ -5,10 +5,31 @@
  * modelo para funcionar; este módulo es el que lo garantiza.
  */
 
-/** Recuerda la disponibilidad: se comprueba una vez por motor y un fallo cuenta como «no disponible». */
-export function rememberAvailability(check: () => Promise<boolean>): () => Promise<boolean> {
+/** Tras un «no disponible», cuánto se espera antes de volver a preguntar. */
+export const AVAILABILITY_RETRY_MS = 60_000
+
+/**
+ * Recuerda la disponibilidad y un fallo cuenta como «no disponible». Un «sí»
+ * vale para toda la sesión del motor (si luego falla, cada intento cae al
+ * motor local). Un «no» caduca a los `retryAfterMs`: la app es offline-first
+ * y una comprobación sin red al abrirla no debe dejar la IA apagada hasta
+ * recargar la página.
+ */
+export function rememberAvailability(
+  check: () => Promise<boolean>,
+  { retryAfterMs = AVAILABILITY_RETRY_MS, now = Date.now }: { retryAfterMs?: number; now?: () => number } = {},
+): () => Promise<boolean> {
   let pending: Promise<boolean> | null = null
-  return () => (pending ??= check().catch(() => false))
+  let unavailableAt: number | null = null
+  return () => {
+    if (pending && unavailableAt !== null && now() - unavailableAt >= retryAfterMs) pending = null
+    return (pending ??= check()
+      .catch(() => false)
+      .then((available) => {
+        unavailableAt = available ? null : now()
+        return available
+      }))
+  }
 }
 
 /** Ejecuta `run` con un `AbortSignal` que se dispara a los `timeoutMs`. */
