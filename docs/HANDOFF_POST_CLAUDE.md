@@ -633,7 +633,7 @@ Detalle:
 **Deep** (`market-deep.yml`, sábados a las 06:00 UTC, por evento o manual):
 - Orden: kill switch `MARKET_AI_ENABLED` → secret → presupuesto → fuentes → compactar → estimar tokens → presupuesto → registrar intento → Gemini → (Groq una vez) → validar (incluida la certeza) → publicar.
 
-**Límites duros** (`scripts/market/limits.ts`): 6 deep/mes, 2 llamadas/día, 8/mes, 30k tokens de entrada, 6k de salida, 250k tokens/mes, 1 evento/semana, 1 reintento. El ledger vive en `budget.json` dentro de la rama de datos.
+**Límites duros** (`scripts/market/limits.ts`): 10 deep/mes, 2 llamadas/día, 20/mes (subidos el 2026-10-14; antes 6 y 8), 30k tokens de entrada, 6k de salida, 250k tokens/mes, 1 evento/semana, 1 reintento. El ledger vive en `budget.json` dentro de la rama de datos.
 
 **Cliente** (`hooks/use-market.ts`): descarga `latest.json` y `history.json` desde `NEXT_PUBLIC_MARKET_DATA_URL` (rama pública `market-data`) como máximo una vez cada 24 h, con ETag, y los guarda en Dexie. **Abrir Finax nunca llama a una IA.**
 

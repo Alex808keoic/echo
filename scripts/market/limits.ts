@@ -6,9 +6,15 @@
  * commit revisado.
  */
 export const LIMITS = Object.freeze({
-  MAX_DEEP_RESEARCH_PER_MONTH: 6,
+  /**
+   * Caben todas las del peor mes: 5 sábados + 1 por evento cada semana (5) = 10, para que la
+   * semanal no se quede nunca sin publicar. (Con 6/8, en octubre de 2026 los intentos fallidos de
+   * Gemini y una prueba manual bloqueaban los últimos sábados.)
+   */
+  MAX_DEEP_RESEARCH_PER_MONTH: 10,
   MAX_AI_REQUESTS_PER_DAY: 2,
-  MAX_AI_REQUESTS_PER_MONTH: 8,
+  /** Cada investigación puede gastar 2 llamadas (principal + fallback): 10 × 2. */
+  MAX_AI_REQUESTS_PER_MONTH: 20,
   /** Por llamada. El material se recorta antes de llamar; nunca se excede. */
   MAX_INPUT_TOKENS: 30_000,
   /** Por llamada. Se pasa al proveedor como tope de generación. */

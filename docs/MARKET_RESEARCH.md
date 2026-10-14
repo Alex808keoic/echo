@@ -28,7 +28,7 @@ Principios:
 
 1. **Una investigación para todos los usuarios**, en el cron; la app solo descarga JSON.
 2. **Dos niveles**: ligera **sin IA** (L–V) y profunda **con IA** (sábado, o antes
-   si la ligera detecta un acontecimiento; máx. 1 extra/semana y 6 profundas/mes).
+   si la ligera detecta un acontecimiento; máx. 1 extra/semana y 10 profundas/mes).
 3. **La IA no busca**: recibe las fuentes ya recopiladas y compactadas por
    nuestros scripts y **solo sintetiza**. Sin Google Search grounding ni
    herramientas del modelo.
@@ -99,9 +99,9 @@ retraso; sintetizado con IA a partir de fuentes públicas.
 
 | Límite | Valor |
 |---|---|
-| `MAX_DEEP_RESEARCH_PER_MONTH` | 6 |
+| `MAX_DEEP_RESEARCH_PER_MONTH` | 10 (5 sábados + 1 por evento cada semana; antes 6) |
 | `MAX_AI_REQUESTS_PER_DAY` | 2 |
-| `MAX_AI_REQUESTS_PER_MONTH` | 8 |
+| `MAX_AI_REQUESTS_PER_MONTH` | 20 (principal + fallback de cada una; antes 8) |
 | `MAX_INPUT_TOKENS` (por llamada) | 30 000 |
 | `MAX_OUTPUT_TOKENS` (por llamada, forzado al proveedor) | 6 000 |
 | `MAX_TOTAL_TOKENS` (por mes) | 250 000 |

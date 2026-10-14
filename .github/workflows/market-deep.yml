@@ -1,6 +1,6 @@
 # Investigación profunda del mercado (sábado, o por evento/manual).
 # Llama al proveedor de IA SOLO tras: kill switch → secret → presupuesto →
-# fuentes → compactar → estimar tokens → presupuesto. Máx. 6/mes (ledger).
+# fuentes → compactar → estimar tokens → presupuesto. Máx. 10/mes (ledger).
 # Publica en la rama `market-data`; no despliega la app.
 name: market-deep
 
