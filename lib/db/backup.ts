@@ -20,6 +20,7 @@ import {
   currentCategory,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
+  POSITION_ASSET_TYPES,
   type AppConfig,
   type Movement,
   type Objective,
@@ -132,6 +133,7 @@ function isPosition(v: unknown): v is Position {
     isStr(v.date) &&
     isValidISODate(v.date) &&
     (v.fromLiquid === undefined || typeof v.fromLiquid === 'boolean') &&
+    (v.assetType === undefined || (POSITION_ASSET_TYPES as readonly unknown[]).includes(v.assetType)) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )
@@ -226,7 +228,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
  * conversación). Nada sobrevive al borrado completo.
  */
 export async function clearAllData(): Promise<void> {
-  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation]
+  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks]
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()))
   })

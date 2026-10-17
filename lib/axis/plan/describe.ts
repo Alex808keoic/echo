@@ -45,6 +45,12 @@ function mixSentence(mix: readonly MixPart[]): string {
   return `Repartido así: ${mixAmounts(mix)}.`
 }
 
+/** «70 % renta variable global y 30 % renta fija» (solo los tipos con peso). */
+function pctSentence(pct: Record<SleeveKey, number>): string {
+  const parts = (Object.keys(SEGMENT_OF) as SleeveKey[]).filter((k) => pct[k] > 0).map((k) => `${pct[k]} % ${SEGMENT_OF[k].label.toLowerCase()}`)
+  return parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`
+}
+
 function riskyWarning(mix: readonly MixPart[]): { warning?: string } {
   const risky = mix.find((p) => p.key === 'risky')
   return risky ? { warning: `La parte arriesgada (${eur(risky.cents)}) es dinero que podrías perder entero. Tu perfil lo permite, pero no hace falta: puedes ponerla también en renta variable global.` } : {}
@@ -109,11 +115,19 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
     }
     case 'invest-long-term': {
       const why = step.noObjectives ? ', según tu perfil y porque no tienes objetivos pendientes: ese dinero no tiene otro destino' : ', según tu perfil'
+      const rebalance = step.rebalance
+        ? ` Ahora tienes ${pctSentence(step.rebalance.heldPct)}, y tu mezcla es ${pctSentence(step.rebalance.targetPct)}: por eso este mes va a lo que falta, sin vender nada.`
+        : ''
+      const drawdown =
+        step.drawdownPct !== undefined
+          ? `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste. Con un plazo largo es normal pasar por años malos: el plan no cambia por una caída.`
+          : null
+      const notes = [drawdown, minorNote(step.adult, step.mix).note].filter((n): n is string => Boolean(n))
       return {
         title: `${eur(step.monthlyCents)} al mes a largo plazo`,
-        detail: `El ${step.pct} % de lo que te sobra${why}. ${mixSentence(step.mix)}`,
+        detail: `El ${step.pct} % de lo que te sobra${why}. ${mixSentence(step.mix)}${rebalance}`,
         ...riskyWarning(step.mix),
-        ...minorNote(step.adult, step.mix),
+        ...(notes.length > 0 ? { note: notes.join(' ') } : {}),
       }
     }
     case 'idle-money':

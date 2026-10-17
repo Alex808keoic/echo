@@ -13,18 +13,26 @@ import { extractFigures } from '../core/figures'
 import type { AxisDecision } from '../types'
 import { buildAllocationPlan, type AllocationPlan } from './allocation'
 import { describeStep, PLAN_DISCLAIMER } from './describe'
+import { stepReasons } from './why'
 
 export interface ChatPlan {
   plan: AllocationPlan
   /** Pasos del plan con sus textos, en orden. */
-  steps: Array<{ title: string; detail?: string; warning?: string; note?: string }>
+  steps: Array<{ title: string; detail?: string; warning?: string; note?: string; why?: string[] }>
 }
 
 export function chatPlanOf(decision: AxisDecision): ChatPlan {
   const plan = buildAllocationPlan(decision)
   const steps = plan.steps.map((s) => {
     const v = describeStep(s, plan, decision.context.objectives)
-    return { title: v.title, ...(v.detail ? { detail: v.detail } : {}), ...(v.warning ? { warning: v.warning } : {}), ...(v.note ? { note: v.note } : {}) }
+    const why = stepReasons(s, plan, decision.profile.fields)
+    return {
+      title: v.title,
+      ...(v.detail ? { detail: v.detail } : {}),
+      ...(v.warning ? { warning: v.warning } : {}),
+      ...(v.note ? { note: v.note } : {}),
+      ...(why.length > 0 ? { why } : {}),
+    }
   })
   return { plan, steps }
 }
@@ -43,13 +51,15 @@ export function planForPrompt({ plan, steps }: ChatPlan) {
       ...(s.detail ? { detalle: s.detail } : {}),
       ...(s.warning ? { aviso: s.warning } : {}),
       ...(s.note ? { nota: s.note } : {}),
+      // Por qué, con los datos y las respuestas del usuario: el chat lo usa para explicar el plan.
+      ...(s.why ? { porque: s.why } : {}),
     })),
   }
 }
 
 /** Cifras de los textos del plan (las mismas que ve el usuario en «Tu plan»): el chat puede citarlas. */
 export function planFigures({ steps }: ChatPlan): AllowedFigure[] {
-  const texts = steps.flatMap((s) => [s.title, s.detail ?? '', s.warning ?? '', s.note ?? ''])
+  const texts = steps.flatMap((s) => [s.title, s.detail ?? '', s.warning ?? '', s.note ?? '', ...(s.why ?? [])])
   return texts.flatMap((t) =>
     extractFigures(t).flatMap((f): AllowedFigure[] => {
       const n = Number(f.key.slice(2))
@@ -67,10 +77,12 @@ export function planFigures({ steps }: ChatPlan): AllowedFigure[] {
  * ahorrar al mes?») la responde mejor la lectura de AXIS.
  */
 export const PLAN_QUESTION =
-  /(?:\b(?:mi|tu|el|este) plan\b|\bplan de reparto\b|\brepart\w*|\binvert\w*|\binviert\w*|\binversi[oó]n\w*|\bfondo de emergencia\b|\bqu[eé] (?:hago|hacer) con (?:mi |el )?(?:dinero|ahorro)\b|\bd[oó]nde (?:meto|pongo|guardo) (?:mi |el )?(?:dinero|ahorro)\b)/i
+  /(?:\b(?:mi|tu|el|este) plan\b|\bplan de reparto\b|\brepart\w*|\binvert\w*|\binviert\w*|\binversi[oó]n\w*|\bfondo de emergencia\b|\brenta (?:fija|variable)\b|\bparte arriesgada\b|\bdinero parado\b|\bqu[eé] (?:hago|hacer) con (?:mi |el )?(?:dinero|ahorro)\b|\bd[oó]nde (?:meto|pongo|guardo) (?:mi |el )?(?:dinero|ahorro)\b)/i
 
 /** El plan en texto, para la respuesta sin IA. */
 export function planLocalReply({ steps }: ChatPlan): string {
-  const lines = steps.map((s, i) => `${i + 1}. ${s.title}.${s.detail ? ` ${s.detail}` : ''}${s.warning ? ` ${s.warning}` : ''}${s.note ? ` ${s.note}` : ''}`)
+  const lines = steps.map(
+    (s, i) => `${i + 1}. ${s.title}.${s.detail ? ` ${s.detail}` : ''}${s.warning ? ` ${s.warning}` : ''}${s.note ? ` ${s.note}` : ''}${s.why ? ` Por qué: ${s.why.join(' ')}` : ''}`,
+  )
   return `Tu plan de este mes, según tus datos:\n\n${lines.join('\n')}\n\n${PLAN_DISCLAIMER}`
 }

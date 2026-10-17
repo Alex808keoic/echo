@@ -8,6 +8,7 @@ import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
+import { usePlanChecklist } from '@/hooks/use-plan-checklist'
 import { planHeadline } from '@/lib/axis/plan/describe'
 import { Wordmark } from '../wordmark'
 import { IconButton, SectionHeader } from '../page-header'
@@ -30,6 +31,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const { market } = useMarketContext(overview)
   const { state: axis } = useAxis(overview, { market })
   const plan = useAllocationPlan(overview)
+  const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives)
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />
@@ -120,6 +122,11 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
           <span className="min-w-0 flex-1">
             <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">Tu plan del mes</span>
             <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{planHeadline(plan.plan, plan.decision.context.objectives)}</span>
+            {checklist && checklist.items.length > 0 && (
+              <span className="mt-1 block text-[12px] font-medium text-muted-foreground tabular-nums">
+                Tu decisión del mes: {checklist.doneCount} de {checklist.items.length} hechas
+              </span>
+            )}
           </span>
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </button>

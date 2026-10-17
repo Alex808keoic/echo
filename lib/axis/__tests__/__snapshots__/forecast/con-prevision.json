@@ -173,7 +173,8 @@
           "name": "Fondo",
           "investedCents": 15000,
           "valueCents": 20000,
-          "weightPct": 100
+          "weightPct": 100,
+          "assetType": "other"
         }
       ],
       "totalInvestedCents": 15000,

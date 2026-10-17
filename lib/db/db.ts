@@ -9,6 +9,7 @@ import type { MarketCacheEntry } from './market'
 import type { AxisMemoryEntry } from './axis-memory'
 import type { ConversationEntry } from './axis-conversation'
 import type { UserMemory } from '../axis/chat/types'
+import type { PlanChecksEntry } from './plan-checks'
 
 export const CONFIG_KEY = 'config' as const
 
@@ -25,6 +26,8 @@ export const db = new Dexie('finax') as Dexie & {
   axisMemories: EntityTable<UserMemory, 'id'>
   /** Historial reciente + resumen de la conversación con AXIS (registro único). */
   axisConversation: EntityTable<ConversationEntry, 'key'>
+  /** «Tu decisión del mes»: qué pasos has marcado como hechos, por mes (no entra en el backup). */
+  planChecks: EntityTable<PlanChecksEntry, 'key'>
 }
 
 db.version(1).stores({
@@ -64,6 +67,10 @@ db.version(5)
         if (current !== m.category) m.category = current as Movement['category']
       }),
   )
+
+db.version(6).stores({
+  planChecks: 'key',
+})
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */
 export function newId(): string {

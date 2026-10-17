@@ -126,7 +126,8 @@
           "name": "Fondo Indexado Global",
           "investedCents": 150000,
           "valueCents": 158000,
-          "weightPct": 100
+          "weightPct": 100,
+          "assetType": "global-equity"
         }
       ],
       "totalInvestedCents": 150000,

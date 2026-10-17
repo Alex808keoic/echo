@@ -30,7 +30,7 @@
 import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
-import { mixWeights, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
+import { DRAWDOWN_NOTICE_PCT, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 export const CUSHION_MONTHS = { regular: 3, irregular: 6 } as const
@@ -77,6 +77,10 @@ export type PlanStep =
       mix: MixPart[]
       /** Sin objetivos pendientes: por eso el porcentaje es mayor. */
       noObjectives: boolean
+      /** Solo si tu mezcla real se aleja de la del plan: el reparto de este mes la acerca, sin vender. */
+      rebalance?: { heldPct: Record<SleeveKey, number>; targetPct: Record<SleeveKey, number> }
+      /** Solo si tus inversiones valen al menos un `DRAWDOWN_NOTICE_PCT` % menos de lo que aportaste. */
+      drawdownPct?: number
     }
   /** Dinero sin destino (por encima del colchón y de todos tus objetivos): de una vez o repartido; eliges tú. */
   | { kind: 'idle-money'; idleCents: number; safe: boolean; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null }
@@ -119,6 +123,8 @@ export interface AllocationPlan {
 const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normalize(o.name) === normalize(CUSHION_OBJECTIVE_NAME)
+
+const sameMix = (a: readonly MixPart[], b: readonly MixPart[]) => a.length === b.length && a.every((p, i) => p.key === b[i].key && p.cents === b[i].cents)
 
 /** Tipos de inversión que el plan propone este mes (largo plazo y dinero parado). */
 export function planSleeves(plan: AllocationPlan): Set<SleeveKey> {
@@ -245,6 +251,9 @@ export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions
   // 3. Largo plazo, repartido en TIPOS de inversión según el perfil.
   let longTerm: AllocationPlan['longTerm']
   let mixFor: ((cents: number) => MixPart[]) | null = null
+  let rebalance: { heldPct: Record<SleeveKey, number>; targetPct: Record<SleeveKey, number> } | null = null
+  let plainFor: ((cents: number) => MixPart[]) | null = null
+  const held = heldBySleeve(ctx.investments.positions)
   if (needsProfile) longTerm = noLongTerm('no-profile')
   else if (profile.horizon === 'short') longTerm = noLongTerm('short-horizon')
   else {
@@ -252,7 +261,11 @@ export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions
     const horizon = profile.horizon as 'medium' | 'long'
     const risky = riskyAllowed({ riskAttitude: risk, horizon, cushionComplete: true, shortTermAtRisk: atRisk, idleCents, spendingCents: monthly.spendingCents })
     const weights = mixWeights(risk, horizon, risky)
-    mixFor = (cents) => splitMix(cents, weights)
+    // Si tu mezcla real se ha alejado de la del plan, lo nuevo va a lo que falta (sin vender nada).
+    const current = heldPct(held)
+    if (current && needsRebalance(held, weights)) rebalance = { heldPct: current, targetPct: weights }
+    mixFor = (cents) => (rebalance ? rebalanceSplit(cents, weights, held) : splitMix(cents, weights))
+    plainFor = (cents) => splitMix(cents, weights)
     if (room <= 0) longTerm = noLongTerm('no-room')
     else {
       const pct = (noObjectives ? LONG_TERM_PCT_NO_OBJECTIVES : LONG_TERM_PCT)[risk]
@@ -260,7 +273,22 @@ export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions
     }
   }
   if (longTerm.monthlyCents > 0 && mixFor) {
-    steps.push({ kind: 'invest-long-term', monthlyCents: longTerm.monthlyCents, pct: longTerm.pct, category: LONG_TERM_CATEGORY, adult: profile.adult ?? null, mix: mixFor(longTerm.monthlyCents), noObjectives })
+    const invested = ctx.investments.positions.reduce((t, p) => t + Math.max(0, p.investedCents), 0)
+    const value = ctx.investments.positions.reduce((t, p) => t + Math.max(0, p.valueCents), 0)
+    const drawdownPct = invested > 0 ? Math.round((1 - value / invested) * 100) : 0
+    const mix = mixFor(longTerm.monthlyCents)
+    steps.push({
+      kind: 'invest-long-term',
+      monthlyCents: longTerm.monthlyCents,
+      pct: longTerm.pct,
+      category: LONG_TERM_CATEGORY,
+      adult: profile.adult ?? null,
+      mix,
+      noObjectives,
+      // Solo se explica el reequilibrio si de verdad cambia el reparto de este mes.
+      ...(rebalance && plainFor && !sameMix(mix, plainFor(longTerm.monthlyCents)) ? { rebalance } : {}),
+      ...(drawdownPct >= DRAWDOWN_NOTICE_PCT ? { drawdownPct } : {}),
+    })
   }
 
   // 4. El resto se queda en el líquido y el reparto automático lo lleva a los objetivos.

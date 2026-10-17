@@ -15,6 +15,8 @@
  * decisión del usuario, 2026-10-17: si no lo eres, se explica que lo haría un adulto.)
  */
 import type { Horizon, RiskAttitude } from '../profile/types'
+import type { PositionAssetType } from '../../types'
+import { matchProductTypes, type ProductFamily } from '../guide/products'
 
 export type SleeveKey = 'global-equity' | 'bonds' | 'risky'
 
@@ -65,6 +67,21 @@ export function riskyAllowed(c: RiskyConditions): boolean {
   )
 }
 
+const TYPE_OF_FAMILY: Record<ProductFamily, PositionAssetType> = {
+  'diversified-equity': 'global-equity',
+  bonds: 'bonds',
+  'concentrated-equity': 'risky',
+  speculative: 'risky',
+  cash: 'safe',
+  'short-debt': 'safe',
+}
+
+/** Tipo de una inversión por su nombre («MSCI World indexado» → renta variable global); sin pistas, «other». */
+export function guessAssetType(name: string): PositionAssetType {
+  const [first] = matchProductTypes(name)
+  return first ? TYPE_OF_FAMILY[first.family] : 'other'
+}
+
 /** Porcentajes de cada parte (suman 100). */
 export function mixWeights(riskAttitude: RiskAttitude, horizon: Exclude<Horizon, 'short'>, risky: boolean): Record<SleeveKey, number> {
   const bonds = BONDS_PCT[horizon][riskAttitude]
@@ -83,4 +100,69 @@ export function splitMix(totalCents: number, weights: Record<SleeveKey, number>)
   const largest = parts.reduce((a, b) => (b.pct > a.pct ? b : a), parts[0])
   if (largest && rest > 0) largest.cents += rest
   return parts
+}
+
+/* -------------------------- tu mezcla real (reequilibrar) -------------------------- */
+
+/** Desviación (puntos porcentuales) a partir de la cual el plan reequilibra con las aportaciones. */
+export const REBALANCE_THRESHOLD_PP = 10
+/** Caída del valor de tus inversiones (respecto a lo aportado) a partir de la cual el plan lo comenta. */
+export const DRAWDOWN_NOTICE_PCT = 15
+
+const SLEEVE_KEYS: readonly SleeveKey[] = ORDER
+
+/** Valor actual por tipo del plan; el ahorro seguro y «otro» no cuentan en la mezcla. */
+export function heldBySleeve(positions: ReadonlyArray<{ valueCents: number; assetType?: PositionAssetType }>): Record<SleeveKey, number> {
+  const held: Record<SleeveKey, number> = { 'global-equity': 0, bonds: 0, risky: 0 }
+  for (const p of positions) {
+    const key = p.assetType as SleeveKey
+    if (SLEEVE_KEYS.includes(key) && Number.isSafeInteger(p.valueCents) && p.valueCents > 0) held[key] += p.valueCents
+  }
+  return held
+}
+
+/** Porcentaje real de cada tipo sobre lo invertido en ellos (enteros); `null` sin nada invertido. */
+export function heldPct(held: Record<SleeveKey, number>): Record<SleeveKey, number> | null {
+  const total = SLEEVE_KEYS.reduce((t, k) => t + held[k], 0)
+  if (total <= 0) return null
+  return { 'global-equity': Math.round((held['global-equity'] / total) * 100), bonds: Math.round((held.bonds / total) * 100), risky: Math.round((held.risky / total) * 100) }
+}
+
+/** ¿Tu mezcla real se aleja de la del plan en algún tipo al menos `REBALANCE_THRESHOLD_PP` puntos? */
+export function needsRebalance(held: Record<SleeveKey, number>, weights: Record<SleeveKey, number>): boolean {
+  const pct = heldPct(held)
+  return pct !== null && SLEEVE_KEYS.some((k) => Math.abs(pct[k] - weights[k]) >= REBALANCE_THRESHOLD_PP)
+}
+
+/**
+ * Reparte `totalCents` para acercar tu mezcla real a la del plan SIN vender:
+ * cada tipo recibe en proporción a lo que le falta para su peso después de
+ * aportar. Lo que ya está por encima de su peso no recibe nada. Euros enteros;
+ * el redondeo va al tipo que más necesita.
+ */
+export function rebalanceSplit(totalCents: number, weights: Record<SleeveKey, number>, held: Record<SleeveKey, number>): MixPart[] {
+  const after = SLEEVE_KEYS.reduce((t, k) => t + held[k], 0) + totalCents
+  const need = Object.fromEntries(SLEEVE_KEYS.map((k) => [k, Math.max(0, (after * weights[k]) / 100 - held[k])])) as Record<SleeveKey, number>
+  const totalNeed = SLEEVE_KEYS.reduce((t, k) => t + need[k], 0)
+  if (totalNeed <= 0) return splitMix(totalCents, weights)
+  const keys = SLEEVE_KEYS.filter((k) => need[k] > 0)
+  const parts = keys.map((key) => {
+    const cents = Math.floor((totalCents * need[key]) / totalNeed / 100) * 100
+    return { key, label: SLEEVES[key].label, pct: 0, cents }
+  })
+  const rest = totalCents - parts.reduce((t, p) => t + p.cents, 0)
+  const neediest = parts.reduce((a, b) => (need[b.key] > need[a.key] ? b : a), parts[0])
+  if (neediest && rest > 0) neediest.cents += rest
+  // La parte arriesgada nunca recibe más que su peso de ESTA aportación, aunque vaya por detrás: el exceso va a lo diversificado.
+  const risky = parts.find((p) => p.key === 'risky')
+  const cap = Math.floor((totalCents * weights.risky) / 100 / 100) * 100
+  if (risky && risky.cents > cap) {
+    const excess = risky.cents - cap
+    risky.cents = cap
+    const safer = parts.filter((p) => p.key !== 'risky').reduce<MixPart | undefined>((a, b) => (!a || need[b.key] > need[a.key] ? b : a), undefined)
+    if (safer) safer.cents += excess
+    else parts.push({ key: 'global-equity', label: SLEEVES['global-equity'].label, pct: 0, cents: excess })
+  }
+  // `pct` es el peso de cada parte en ESTA aportación.
+  return parts.filter((p) => p.cents > 0).map((p) => ({ ...p, pct: Math.round((p.cents / totalCents) * 100) }))
 }

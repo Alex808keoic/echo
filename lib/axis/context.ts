@@ -9,6 +9,7 @@ import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctC
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
+import { guessAssetType } from './plan/mix'
 import type { AppConfig, Movement, Objective, Position } from '../types'
 import type {
   CategoryShare,
@@ -138,6 +139,7 @@ function positionContexts(positions: Position[]): PositionContext[] {
     investedCents: p.investedCents,
     valueCents: p.valueCents,
     weightPct: weights[i],
+    assetType: p.assetType ?? guessAssetType(p.name),
   }))
 }
 

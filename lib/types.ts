@@ -145,9 +145,18 @@ export interface Position {
    * o dinero de fuera de Finax): no toca el líquido.
    */
   fromLiquid?: boolean
+  /**
+   * Tipo de inversión, para comparar tu mezcla real con la del plan. Ausente
+   * (posiciones anteriores a este campo): se deduce del nombre.
+   */
+  assetType?: PositionAssetType
   createdAt: number
   updatedAt: number
 }
+
+/** Tipos de inversión del plan (plan/mix.ts) más ahorro seguro y «otro». */
+export const POSITION_ASSET_TYPES = ['global-equity', 'bonds', 'risky', 'safe', 'other'] as const
+export type PositionAssetType = (typeof POSITION_ASSET_TYPES)[number]
 
 /** Importe que una posición descuenta del líquido (0 si no salió de él). */
 export function liquidOutflowCents(p: Pick<Position, 'investedCents' | 'fromLiquid'>): number {

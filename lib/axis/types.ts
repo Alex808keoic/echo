@@ -110,6 +110,8 @@ export interface PositionContext {
   valueCents: number
   /** Peso sobre el valor total invertido, 0–100 (los pesos suman 100). */
   weightPct: number
+  /** Tipo de inversión (el guardado o, si no hay, el deducido del nombre). */
+  assetType?: PositionAssetType
 }
 
 export type ContextLevel = 'none' | 'limited' | 'sufficient'
@@ -207,6 +209,7 @@ export interface ProfileFactEntry {
  * en el dispositivo (ver lib/market). Opcional: AXIS funciona igual sin él.
  */
 import type { MarketContext } from '../market/types'
+import type { PositionAssetType } from '../types'
 import type { DecisionProfile, MemoryFact, ProfileInfluence, UserProfile } from './profile/types'
 
 export type { MarketContext }

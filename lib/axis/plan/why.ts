@@ -1,0 +1,69 @@
+/**
+ * «¿Por qué?» de cada paso del plan: las razones salen de tus datos y de TUS
+ * respuestas (citadas con las palabras del cuestionario), con reglas fijas.
+ * Las usan la pantalla «Tu plan», el chat de AXIS y la respuesta sin IA.
+ * Nunca añaden cifras que el plan no tenga.
+ */
+import { formatCents } from '../../money'
+import { PROFILE_QUESTIONS, type ProfileQuestionId } from '../profile/questionnaire'
+import type { ReconciledProfile } from '../profile/types'
+import { CUSHION_MONTHS, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
+import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS } from './mix'
+
+type Profile = Pick<ReconciledProfile, 'riskAttitude' | 'horizon' | 'irregularIncome' | 'minLiquidityCents' | 'adult'>
+
+/** «Respondiste «En más de 5 años»» para la respuesta guardada; `null` si no hay. */
+function answer(id: ProfileQuestionId, value: unknown): string | null {
+  const option = PROFILE_QUESTIONS.find((q) => q.id === id)?.options.find((o) => o.fact.value === value)
+  return option ? `«${option.label}»` : null
+}
+
+const MIX_BY_RISK = {
+  conservative: 'más renta fija que renta variable, porque prefieres no arriesgar',
+  balanced: 'sobre todo renta variable global, con una parte de renta fija que da estabilidad',
+  dynamic: 'casi todo en renta variable global, porque llevas bien los altibajos',
+} as const
+
+export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profile): string[] {
+  const why: string[] = []
+  const risk = answer('riskAttitude', profile.riskAttitude)
+  const horizon = answer('horizon', profile.horizon)
+  switch (step.kind) {
+    case 'create-cushion':
+    case 'fill-cushion':
+    case 'move-cushion-first': {
+      const c = plan.cushion
+      if (c?.source === 'min-liquidity' && profile.minLiquidityCents !== undefined)
+        why.push(`Dijiste que quieres tener siempre al menos ${formatCents(profile.minLiquidityCents)} líquidos.`)
+      else if (c?.source === 'months' && profile.irregularIncome === true)
+        why.push(`Respondiste ${answer('irregularIncome', true)} sobre tus ingresos: por eso el colchón es de ${CUSHION_MONTHS.irregular} meses de gasto, no de ${CUSHION_MONTHS.regular}.`)
+      else if (c?.source === 'months') why.push(`${CUSHION_MONTHS.regular} meses de tu gasto habitual es lo normal con ingresos estables.`)
+      why.push('Sin colchón, cualquier imprevisto te obligaría a sacar dinero invertido, quizá justo en un mal momento.')
+      break
+    }
+    case 'short-term-objectives':
+      why.push(`Los necesitas en ${SHORT_TERM_MONTHS / 12} años o menos: el dinero que vas a usar pronto no se arriesga, porque una inversión podría estar en pérdidas justo entonces.`)
+      break
+    case 'invest-long-term': {
+      if (risk) why.push(`Sobre el riesgo respondiste ${risk}: por eso la mezcla lleva ${MIX_BY_RISK[profile.riskAttitude!]}.`)
+      if (horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}${profile.horizon === 'medium' ? ': con un plazo medio, la mezcla lleva más renta fija' : ''}.`)
+      if (step.noObjectives) why.push('No tienes objetivos pendientes, así que lo que te sobra no tiene otro destino: por eso se invierte una parte mayor.')
+      else why.push('Tienes objetivos pendientes: por eso solo se invierte una parte y el resto va a ellos.')
+      if (step.mix.some((p) => p.key === 'risky'))
+        why.push(`Tienes la parte arriesgada (como mucho el ${RISKY_MAX_PCT} %) porque se cumplen todas las condiciones: perfil dinámico, plazo largo, colchón completo, ningún objetivo cercano con retraso y dinero parado de más de ${RISKY_MIN_IDLE_MONTHS} meses de gasto.`)
+      if (step.rebalance) why.push('Lo que ya tienes invertido se ha alejado de tu mezcla: en vez de vender, lo nuevo va a lo que falta.')
+      break
+    }
+    case 'idle-money':
+      why.push('Tu colchón está completo y tus objetivos tienen lo que necesitan: este dinero no tiene ningún destino.')
+      if (step.safe && horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}: por eso no se invierte.`)
+      else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
+      break
+    case 'forecast-basis':
+      why.push('Declaraste un ingreso fijo, así que no hace falta esperar a tener dos meses completos para empezar.')
+      break
+    default:
+      break
+  }
+  return why
+}

@@ -1,20 +1,33 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import type { Position, PositionInput } from '@/lib/types'
+import type { Position, PositionAssetType, PositionInput } from '@/lib/types'
+import { guessAssetType } from '@/lib/axis/plan/mix'
 import { centsToInputValue, parseAmountToCents, parseBalanceToCents } from '@/lib/money'
 import { isValidISODate, todayISO } from '@/lib/dates'
 import { addPosition, deletePosition, updatePosition } from '@/lib/db/positions'
 import { Button } from '../button'
-import { AmountInput, Field, TextInput } from '../field'
+import { AmountInput, ChipGroup, Field, TextInput } from '../field'
 import { Confirm } from '../confirm'
 import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
 
 interface PositionFormProps {
   position?: Position
+  /** Valores iniciales al crear (p. ej. desde «Tu decisión del mes»). */
+  initial?: { name?: string; investedCents?: number; assetType?: PositionAssetType }
   onDone: () => void
 }
+
+const TYPE_LABELS: Record<PositionAssetType, string> = {
+  'global-equity': 'Renta variable global',
+  bonds: 'Renta fija',
+  risky: 'Arriesgada',
+  safe: 'Ahorro seguro',
+  other: 'Otro',
+}
+const TYPE_OPTIONS = Object.values(TYPE_LABELS)
+const typeOfLabel = (label: string) => (Object.keys(TYPE_LABELS) as PositionAssetType[]).find((k) => TYPE_LABELS[k] === label) ?? 'other'
 
 interface Errors {
   name?: string
@@ -27,13 +40,16 @@ interface Errors {
  * Alta y edición de posiciones manuales (D-22: activo, importe y fecha).
  * El valor actual se introduce a mano porque no hay cotizaciones conectadas.
  */
-export function PositionForm({ position, onDone }: PositionFormProps) {
-  const [name, setName] = useState(position?.name ?? '')
-  const [invested, setInvested] = useState(position ? centsToInputValue(position.investedCents) : '')
+export function PositionForm({ position, initial, onDone }: PositionFormProps) {
+  const [name, setName] = useState(position?.name ?? initial?.name ?? '')
+  const [invested, setInvested] = useState(position ? centsToInputValue(position.investedCents) : initial?.investedCents ? centsToInputValue(initial.investedCents) : '')
   const [value, setValue] = useState(position ? centsToInputValue(position.valueCents) : '')
   const [date, setDate] = useState(position?.date ?? todayISO())
   // Nueva inversión: lo normal es pagarla con el dinero registrado. Al editar se respeta lo guardado.
   const [fromLiquid, setFromLiquid] = useState(position ? position.fromLiquid === true : true)
+  // Tipo para comparar tu mezcla con la del plan: el guardado o, si no lo has elegido, el que sugiere el nombre.
+  const [assetType, setAssetType] = useState<PositionAssetType | null>(position?.assetType ?? initial?.assetType ?? null)
+  const shownType = assetType ?? guessAssetType(name)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -54,7 +70,7 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
     setErrors(next)
     if (Object.keys(next).length > 0 || investedCents === null || valueCents === null) return
 
-    const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid }
+    const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid, assetType: shownType }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (position ? updatePosition(position.id, input) : addPosition(input)))
@@ -91,6 +107,9 @@ export function PositionForm({ position, onDone }: PositionFormProps) {
       </Field>
       <Field label="Importe invertido" error={errors.invested}>
         <AmountInput value={invested} onChange={(e) => setInvested(e.target.value)} />
+      </Field>
+      <Field label="Tipo" hint="Sirve para comparar lo que tienes con la mezcla de tu plan. Se sugiere por el nombre; cámbialo si no es." group>
+        <ChipGroup options={TYPE_OPTIONS} value={TYPE_LABELS[shownType]} onChange={(label) => setAssetType(typeOfLabel(label))} />
       </Field>
       <Field label="Fecha de la aportación" error={errors.date}>
         <TextInput type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
