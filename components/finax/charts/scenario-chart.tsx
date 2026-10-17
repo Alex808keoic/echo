@@ -9,8 +9,6 @@ import { cn } from '@/lib/utils'
 interface ScenarioChartProps {
   /** Mes a mes (0…n): los tres escenarios. */
   series: ScenarioResult[]
-  /** Un camino posible mes a mes, en céntimos (lib/axis/guide/scenarios.ts `scenarioPath`). */
-  path: number[]
   /** Mes marcado al tocar, o `null`. */
   active: number | null
   onActive: (month: number | null) => void
@@ -18,18 +16,18 @@ interface ScenarioChartProps {
 }
 
 /**
- * Escenarios ilustrativos: banda entre «si va mal» y «si va bien», línea
- * discontinua de «lo normal» y un camino posible que sube y baja como una
- * inversión real. Eje vertical ajustado a los valores, con euros redondos, y
- * eje de tiempo. Al tocar o deslizar se marca un mes; el valor lo enseña quien
- * la usa (las tres cifras de debajo cambian a ese mes).
+ * Escenarios ilustrativos: banda entre «si va mal» y «si va bien» y la línea
+ * de «lo normal». Eje vertical ajustado a los valores, con euros redondos, y
+ * eje de tiempo. Al tocar o deslizar se marca un mes con «lo normal» de ese
+ * momento (las tres cifras de debajo cambian a ese mes).
  */
-export function ScenarioChart({ series, path, active, onActive, height = 150 }: ScenarioChartProps) {
+export function ScenarioChart({ series, active, onActive, height = 150 }: ScenarioChartProps) {
   const gradientId = useId()
   const width = 300
   const padY = 10
   const n = series.length - 1
-  const cents = [...series.flatMap((s) => [s.badCents, s.goodCents]), ...path]
+  const mid = series.map((s) => s.midCents)
+  const cents = series.flatMap((s) => [s.badCents, s.goodCents])
   const domain = yDomain(cents.map((c) => c / 100))
   const { ticks, step, lo, hi } = niceTicks(domain.lo, domain.hi)
   const x = (i: number) => (n === 0 ? 0 : (i / n) * width)
@@ -42,7 +40,7 @@ export function ScenarioChart({ series, path, active, onActive, height = 150 }: 
     .reverse()
     .map(([i, v]) => `L${x(i).toFixed(2)},${y(v).toFixed(2)}`)
     .join(' ')} Z`
-  const points = path.map((v, i) => [x(i), y(v)] as const)
+  const points = mid.map((v, i) => [x(i), y(v)] as const)
   const picked = active !== null && active <= n ? active : null
   const marker = points[picked ?? n]
   const labels = ticks.map((value) => ({ value, y: y(value * 100), text: formatTick(value, step) }))
@@ -93,12 +91,11 @@ export function ScenarioChart({ series, path, active, onActive, height = 150 }: 
             <path d={band} fill={`url(#${gradientId})`} />
             <path d={line(good)} fill="none" stroke="var(--finax)" strokeOpacity="0.5" strokeWidth="1.25" vectorEffect="non-scaling-stroke" />
             <path d={line(bad)} fill="none" stroke="var(--negative)" strokeOpacity="0.5" strokeWidth="1.25" vectorEffect="non-scaling-stroke" />
-            <path d={line(series.map((s) => s.midCents))} fill="none" stroke="var(--grafito)" strokeOpacity="0.45" strokeWidth="1.25" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
-            {/* key = el camino: al cambiar cantidad o plazo, se vuelve a dibujar. */}
+            {/* key = «lo normal»: al cambiar cantidad o plazo, se vuelve a dibujar. */}
             <path
-              key={path.join(',')}
+              key={mid.join(',')}
               className="chart-draw"
-              d={line(path)}
+              d={line(mid)}
               fill="none"
               stroke="var(--finax-dark)"
               strokeWidth="2"
@@ -127,7 +124,7 @@ export function ScenarioChart({ series, path, active, onActive, height = 150 }: 
               )}
               style={{ left: `${(marker[0] / width) * 100}%` }}
             >
-              {formatWholeCurrency(path[picked] / 100)}
+              {formatWholeCurrency(mid[picked] / 100)}
               <span className="font-semibold text-white/75"> · {monthsLabel(picked)}</span>
             </span>
           )}

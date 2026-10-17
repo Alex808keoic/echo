@@ -5,7 +5,7 @@ import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { productFit, type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
 import { AUTHORIZED_SERVICES, EXAMPLES_NOTICE, groupRiskRange, OFFICIAL_LINKS, RISK_LABEL, type InvestmentGroupId, type ProductType } from '@/lib/axis/guide/products'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
-import { defaultYears, monthsLabel, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioPath, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
+import { defaultYears, monthsLabel, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
 import { formatWholeCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { ScenarioChart } from '../charts/scenario-chart'
@@ -366,7 +366,7 @@ function ScenarioSection({ type }: { type: ProductType }) {
           {badYear}
         </>
       ) : (
-        <ScenarioBody assumption={assumption} amount={amount} years={years} onAmount={setAmount} onYears={setYears} badYear={badYear} seedKey={type.id} />
+        <ScenarioBody assumption={assumption} amount={amount} years={years} onAmount={setAmount} onYears={setYears} badYear={badYear} />
       )}
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">{SCENARIO_NOTICE}</p>
     </div>
@@ -380,7 +380,6 @@ function ScenarioBody({
   onAmount,
   onYears,
   badYear,
-  seedKey,
 }: {
   assumption: GrowthAssumption
   amount: (typeof SCENARIO_AMOUNTS_CENTS)[number]
@@ -388,11 +387,9 @@ function ScenarioBody({
   onAmount: (v: (typeof SCENARIO_AMOUNTS_CENTS)[number]) => void
   onYears: (v: (typeof SCENARIO_YEARS)[number]) => void
   badYear: ReactNode
-  seedKey: string
 }) {
   const [active, setActive] = useState<number | null>(null)
   const series = scenarioSeries(amount, assumption, years)
-  const path = scenarioPath(amount, assumption, years, seedKey)
   // Tocando la gráfica, las cifras son las de ese mes; si no, las del final del plazo.
   const month = active ?? series.length - 1
   const result = series[month]
@@ -428,9 +425,9 @@ function ScenarioBody({
           label={yearsLabel}
         />
       </div>
-      <ScenarioChart series={series} path={path} active={active} onActive={setActive} />
+      <ScenarioChart series={series} active={active} onActive={setActive} />
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
-        {fixed ? 'Toca la gráfica para ver cuánto tendrías cada mes.' : 'La línea es un camino posible, con subidas y bajadas como las reales; la zona sombreada, entre «si va mal» y «si va bien». Toca la gráfica para ver cada mes.'}
+        {fixed ? 'Toca la gráfica para ver cuánto tendrías cada mes.' : 'La línea es «lo normal»; la zona sombreada, entre «si va mal» y «si va bien». Toca la gráfica para ver cada mes.'}
       </p>
       <p className="text-[12px] font-bold text-grafito">{active === null ? `Al cabo de ${monthsLabel(month)}` : `A los ${monthsLabel(month)}`}</p>
       <ul className="space-y-1">

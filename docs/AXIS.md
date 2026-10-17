@@ -417,8 +417,7 @@ redacta y pasa la misma validación.
   escenarios ilustrativos (`scenarios.ts`: «si va mal / lo normal / si va
   bien», percentiles 10/50/90 de un modelo lognormal con supuestos fijos, más
   la caída de un año muy malo) para la cantidad y el plazo que elija el
-  usuario, con una gráfica mes a mes que se puede tocar y un camino posible
-  (`scenarioPath`: paseo aleatorio determinista que acaba en «lo normal»); donde no hay base razonable (cripto, apalancados, crowdfunding,
+  usuario, con una gráfica mes a mes que se puede tocar; donde no hay base razonable (cripto, apalancados, crowdfunding,
   stablecoins) lo explica sin cifras. Solo pantalla, nunca al chat ni al
   modelo. El chat usa la guía cuando el mensaje nombra un tipo de producto.
 - **Resumen semanal** (`brief/`): `buildWeeklyBrief` determinista + redacción

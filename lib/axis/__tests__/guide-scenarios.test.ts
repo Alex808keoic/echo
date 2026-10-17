@@ -9,7 +9,7 @@ import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
 import { chatGuideOf, guideForPrompt } from '../guide/chat'
 import { PRODUCT_TYPES } from '../guide/products'
-import { defaultYears, monthsLabel, projectScenario, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioPath, scenarioSeries, type GrowthAssumption } from '../guide/scenarios'
+import { defaultYears, monthsLabel, projectScenario, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '../guide/scenarios'
 import { config, gasto, ingreso, snapshot, TODAY } from './fixtures'
 
 const growth = (id: string) => SCENARIO_ASSUMPTIONS[id] as GrowthAssumption
@@ -73,35 +73,6 @@ describe('escenarios', () => {
     assert.equal(s.length, 61)
     assert.deepEqual([s[0].badCents, s[0].midCents, s[0].goodCents], [100_000, 100_000, 100_000])
     assert.deepEqual(s[60], projectScenario(100_000, growth('etf'), 5))
-  })
-})
-
-describe('un camino posible para la gráfica', () => {
-  it('empieza en lo que pones y termina exactamente en «lo normal», un punto por mes', () => {
-    const p = scenarioPath(100_000, growth('fondo-indexado'), 10, 'fondo-indexado')
-    assert.equal(p.length, 121)
-    assert.equal(p[0], 100_000)
-    assert.equal(p[120], projectScenario(100_000, growth('fondo-indexado'), 10).midCents)
-    for (const v of p) assert.ok(Number.isSafeInteger(v) && v > 0)
-  })
-
-  it('es determinista: el mismo tipo dibuja siempre el mismo camino', () => {
-    assert.deepEqual(scenarioPath(100_000, growth('etf'), 5, 'etf'), scenarioPath(100_000, growth('etf'), 5, 'etf'))
-  })
-
-  it('sube y baja: con volatilidad hay meses de caída; con interés fijo, nunca', () => {
-    const drops = (p: number[]) => p.slice(1).filter((v, i) => v < p[i]).length
-    assert.ok(drops(scenarioPath(100_000, growth('fondo-indexado'), 10, 'fondo-indexado')) > 20)
-    assert.equal(drops(scenarioPath(100_000, growth('cuenta-deposito'), 5, 'cuenta-deposito')), 0)
-  })
-
-  it('más volatilidad, más sacudidas mes a mes', () => {
-    const jitter = (id: string) => {
-      const p = scenarioPath(100_000, growth(id), 10, id)
-      return p.slice(1).reduce((t, v, i) => t + Math.abs(Math.log(v / p[i])), 0)
-    }
-    assert.ok(jitter('bonos-estado') < jitter('fondo-indexado'))
-    assert.ok(jitter('fondo-indexado') < jitter('acciones-crecimiento'))
   })
 
   it('las etiquetas de tiempo se leen bien', () => {
