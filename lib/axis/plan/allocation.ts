@@ -14,9 +14,14 @@
  *   2. Con el colchón completo: lo que necesitan al mes los objetivos con fecha
  *      en ≤ 24 meses (dinero que no se arriesga).
  *   3. De lo que sobra, un porcentaje a largo plazo según tu perfil de riesgo
- *      (20 / 40 / 60 %), solo si lo has indicado y tu horizonte no es corto.
- *      Solo una CATEGORÍA (renta variable global diversificada), nunca un producto.
+ *      (20 / 40 / 60 %; 40 / 70 / 90 % si no tienes objetivos pendientes, porque
+ *      ese dinero no tiene otro destino), solo si lo has indicado y tu horizonte
+ *      no es corto. Se reparte en TIPOS de inversión según tu perfil (plan/mix.ts),
+ *      nunca en productos.
  *   4. El resto se queda en tu líquido: el reparto automático lo lleva a tus objetivos.
+ *   5. Dinero parado (líquido por encima del colchón y de todos tus objetivos):
+ *      el plan propone invertirlo de una vez o en 6 meses, con la misma mezcla, y
+ *      eliges tú; con un plazo corto, propone dejarlo en ahorro seguro.
  *
  * Gasto: tu gasto habitual (mediana de los últimos meses), como referencia.
  * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
@@ -25,12 +30,19 @@
 import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
+import { mixWeights, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 export const CUSHION_MONTHS = { regular: 3, irregular: 6 } as const
 /** Objetivos con fecha a este plazo o menos: corto plazo (su dinero no se invierte). */
 export const SHORT_TERM_MONTHS = 24
 export const LONG_TERM_PCT: Record<RiskAttitude, number> = { conservative: 20, balanced: 40, dynamic: 60 }
+/** Sin objetivos pendientes (aparte del colchón), lo que sobra no tiene otro destino: se invierte más. */
+export const LONG_TERM_PCT_NO_OBJECTIVES: Record<RiskAttitude, number> = { conservative: 40, balanced: 70, dynamic: 90 }
+/** Meses en los que se propone repartir el dinero parado. */
+export const IDLE_SPREAD_MONTHS = 6
+/** Dinero parado mínimo para mencionarlo: 100 € y al menos un mes de gasto habitual. */
+export const IDLE_MIN_CENTS = 10_000
 /** La única categoría de inversión del plan. Nunca un producto concreto. */
 export const LONG_TERM_CATEGORY = { key: 'global-diversified-equity', label: 'Renta variable global diversificada y de bajo coste' } as const
 
@@ -55,8 +67,21 @@ export type PlanStep =
   | { kind: 'move-cushion-first'; objectiveId: string }
   | { kind: 'fill-cushion'; monthlyCents: number; remainingCents: number; months: number }
   | { kind: 'short-term-objectives'; monthlyCents: number; objectiveIds: string[]; atRisk: boolean }
-  | { kind: 'invest-long-term'; monthlyCents: number; pct: number; category: typeof LONG_TERM_CATEGORY; adult: boolean | null }
-  | { kind: 'rest-to-objectives'; monthlyCents: number }
+  | {
+      kind: 'invest-long-term'
+      monthlyCents: number
+      pct: number
+      category: typeof LONG_TERM_CATEGORY
+      adult: boolean | null
+      /** En qué tipos se reparte (suma `monthlyCents`). */
+      mix: MixPart[]
+      /** Sin objetivos pendientes: por eso el porcentaje es mayor. */
+      noObjectives: boolean
+    }
+  /** Dinero sin destino (por encima del colchón y de todos tus objetivos): de una vez o repartido; eliges tú. */
+  | { kind: 'idle-money'; idleCents: number; safe: boolean; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null }
+  /** `noObjectives` solo existe (true) si no hay objetivos pendientes: el resto se queda en el líquido sin destino. */
+  | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
   /** Plan provisional: el ahorro sale del ingreso fijo previsto, no de meses registrados. */
   | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number }
@@ -94,6 +119,13 @@ export interface AllocationPlan {
 const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normalize(o.name) === normalize(CUSHION_OBJECTIVE_NAME)
+
+/** Tipos de inversión que el plan propone este mes (largo plazo y dinero parado). */
+export function planSleeves(plan: AllocationPlan): Set<SleeveKey> {
+  const keys = new Set<SleeveKey>()
+  for (const s of plan.steps) if (s.kind === 'invest-long-term' || s.kind === 'idle-money') for (const p of s.mix) if (p.cents > 0) keys.add(p.key)
+  return keys
+}
 
 /**
  * Prioridad declarada (memoria `priorities`): si su primer objetivo no es el
@@ -204,22 +236,50 @@ export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions
   }
   const room = Math.max(0, monthly.savingsCents - shortMonthly)
 
-  // 3. Largo plazo, solo como categoría.
+  // Dinero parado: el líquido que no necesitan ni el colchón ni ningún objetivo activo.
+  const idleCents = euros(ctx.wealth.liquidCents - Math.max(0, ctx.wealth.reservedForObjectivesCents) - (cushionObjective ? 0 : targetCents))
+  const pendingObjectives = active.filter((o) => !isCushionObjective(o) && !o.completed)
+  const noObjectives = pendingObjectives.length === 0
+  const atRisk = shortTerm.length > 0 && shortNeed > monthly.savingsCents
+
+  // 3. Largo plazo, repartido en TIPOS de inversión según el perfil.
   let longTerm: AllocationPlan['longTerm']
+  let mixFor: ((cents: number) => MixPart[]) | null = null
   if (needsProfile) longTerm = noLongTerm('no-profile')
   else if (profile.horizon === 'short') longTerm = noLongTerm('short-horizon')
-  else if (room <= 0) longTerm = noLongTerm('no-room')
   else {
-    const pct = LONG_TERM_PCT[profile.riskAttitude as RiskAttitude]
-    longTerm = { pct, monthlyCents: euros((room * pct) / 100), reason: 'ok' }
+    const risk = profile.riskAttitude as RiskAttitude
+    const horizon = profile.horizon as 'medium' | 'long'
+    const risky = riskyAllowed({ riskAttitude: risk, horizon, cushionComplete: true, shortTermAtRisk: atRisk, idleCents, spendingCents: monthly.spendingCents })
+    const weights = mixWeights(risk, horizon, risky)
+    mixFor = (cents) => splitMix(cents, weights)
+    if (room <= 0) longTerm = noLongTerm('no-room')
+    else {
+      const pct = (noObjectives ? LONG_TERM_PCT_NO_OBJECTIVES : LONG_TERM_PCT)[risk]
+      longTerm = { pct, monthlyCents: euros((room * pct) / 100), reason: 'ok' }
+    }
   }
-  if (longTerm.monthlyCents > 0) {
-    steps.push({ kind: 'invest-long-term', monthlyCents: longTerm.monthlyCents, pct: longTerm.pct, category: LONG_TERM_CATEGORY, adult: profile.adult ?? null })
+  if (longTerm.monthlyCents > 0 && mixFor) {
+    steps.push({ kind: 'invest-long-term', monthlyCents: longTerm.monthlyCents, pct: longTerm.pct, category: LONG_TERM_CATEGORY, adult: profile.adult ?? null, mix: mixFor(longTerm.monthlyCents), noObjectives })
   }
 
   // 4. El resto se queda en el líquido y el reparto automático lo lleva a los objetivos.
   const rest = room - longTerm.monthlyCents
-  if (rest > 0) steps.push({ kind: 'rest-to-objectives', monthlyCents: rest })
+  if (rest > 0) steps.push({ kind: 'rest-to-objectives', monthlyCents: rest, ...(noObjectives ? { noObjectives: true as const } : {}) })
+
+  // 5. Dinero parado: de una vez o repartido en meses (eliges tú); con plazo corto, a ahorro seguro.
+  if (!needsProfile && idleCents >= Math.max(IDLE_MIN_CENTS, monthly.spendingCents)) {
+    const safe = profile.horizon === 'short'
+    steps.push({
+      kind: 'idle-money',
+      idleCents,
+      safe,
+      mix: !safe && mixFor ? mixFor(idleCents) : [],
+      spreadMonths: IDLE_SPREAD_MONTHS,
+      perMonthCents: euros(idleCents / IDLE_SPREAD_MONTHS),
+      adult: profile.adult ?? null,
+    })
+  }
 
   return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm, steps })
 }

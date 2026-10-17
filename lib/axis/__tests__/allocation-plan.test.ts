@@ -129,12 +129,25 @@ describe('colchón: el «Fondo de emergencia», el primero del reparto', () => {
 })
 
 describe('con el colchón completo', () => {
-  const full = (extra: Scenario = {}) => planFor({ liquidCents: 800_000, objectives: [CUSHION(300_000), ...(extra.objectives ?? [])], facts: extra.facts ?? PROFILE })
+  /** Un objetivo pendiente grande (sin él, el porcentaje a largo plazo es el de «sin objetivos»). */
+  const COCHE = () => objective({ name: 'Coche', targetCents: 2_000_000, priority: 2 })
+  const full = (extra: Scenario = {}) => planFor({ liquidCents: 800_000, objectives: [CUSHION(300_000), ...(extra.objectives ?? [COCHE()])], facts: extra.facts ?? PROFILE })
 
-  it('perfil equilibrado: 40 % a largo plazo como categoría y el resto a los objetivos', () => {
+  it('perfil equilibrado: 40 % a largo plazo, repartido 70 / 30 entre renta variable global y renta fija, y el resto a los objetivos', () => {
     const p = full()
     assert.deepEqual(p.longTerm, { pct: 40, monthlyCents: 40_000, reason: 'ok' })
-    assert.deepEqual(step(p, 'invest-long-term'), { kind: 'invest-long-term', monthlyCents: 40_000, pct: 40, category: LONG_TERM_CATEGORY, adult: null })
+    assert.deepEqual(step(p, 'invest-long-term'), {
+      kind: 'invest-long-term',
+      monthlyCents: 40_000,
+      pct: 40,
+      category: LONG_TERM_CATEGORY,
+      adult: null,
+      mix: [
+        { key: 'global-equity', label: LONG_TERM_CATEGORY.label, pct: 70, cents: 28_000 },
+        { key: 'bonds', label: 'Renta fija (bonos de estados y empresas)', pct: 30, cents: 12_000 },
+      ],
+      noObjectives: false,
+    })
     assert.deepEqual(step(p, 'rest-to-objectives'), { kind: 'rest-to-objectives', monthlyCents: 60_000 })
   })
 

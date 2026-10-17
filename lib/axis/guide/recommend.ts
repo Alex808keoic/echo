@@ -7,6 +7,7 @@
 import type { AllocationPlan } from '../plan/allocation'
 import type { ReconciledProfile } from '../profile/types'
 import { productFit, type FitVerdict, type ProductFit } from './fit'
+import { SLEEVES } from '../plan/mix'
 import { INVESTMENT_GROUPS, PRODUCT_TYPES, type InvestmentGroup, type ProductRisk, type ProductType } from './products'
 
 /** De mejor a peor encaje. */
@@ -47,15 +48,33 @@ export interface GuideRecommendation {
 /** Solo un encaje «fits» o «fits-short-term» es una recomendación; el resto, una explicación. */
 export const isRecommended = (v: FitVerdict): boolean => v === 'fits' || v === 'fits-short-term'
 
-function better(a: TypeFit, b: TypeFit): TypeFit {
-  const va = VERDICT_ORDER.indexOf(a.fit.verdict)
-  const vb = VERDICT_ORDER.indexOf(b.fit.verdict)
-  if (va !== vb) return va < vb ? a : b
-  if (RISK_RANK[a.type.risk] !== RISK_RANK[b.type.risk]) return RISK_RANK[a.type.risk] < RISK_RANK[b.type.risk] ? a : b
-  return PRODUCT_TYPES.indexOf(a.type) <= PRODUCT_TYPES.indexOf(b.type) ? a : b
+/**
+ * Mejor veredicto; a igualdad, el tipo con más peso en la mezcla del plan (si el
+ * plan reparte 70 % renta variable y 30 % renta fija, destaca la renta variable);
+ * después, el de menos riesgo y el orden de la guía.
+ */
+function betterFor(weight: (t: TypeFit) => number) {
+  return (a: TypeFit, b: TypeFit): TypeFit => {
+    const va = VERDICT_ORDER.indexOf(a.fit.verdict)
+    const vb = VERDICT_ORDER.indexOf(b.fit.verdict)
+    if (va !== vb) return va < vb ? a : b
+    if (weight(a) !== weight(b)) return weight(a) > weight(b) ? a : b
+    if (RISK_RANK[a.type.risk] !== RISK_RANK[b.type.risk]) return RISK_RANK[a.type.risk] < RISK_RANK[b.type.risk] ? a : b
+    return PRODUCT_TYPES.indexOf(a.type) <= PRODUCT_TYPES.indexOf(b.type) ? a : b
+  }
+}
+
+/** Peso (%) de la familia del tipo en la mezcla del plan; 0 si el plan no la usa. */
+function mixWeightOf(plan: AllocationPlan): (t: TypeFit) => number {
+  const weights = new Map<string, number>()
+  for (const s of plan.steps)
+    if (s.kind === 'invest-long-term' || s.kind === 'idle-money')
+      for (const p of s.mix) for (const family of SLEEVES[p.key].families) weights.set(family, Math.max(weights.get(family) ?? 0, p.pct))
+  return (t) => weights.get(t.type.family) ?? 0
 }
 
 export function recommendGuide(plan: AllocationPlan, profile: Pick<ReconciledProfile, 'horizon' | 'adult'>): GuideRecommendation {
+  const better = betterFor(mixWeightOf(plan))
   const groups = INVESTMENT_GROUPS.map((group): GroupFit => {
     const types = PRODUCT_TYPES.filter((t) => t.group === group.id).map((type) => ({ type, fit: productFit(type, plan, profile) }))
     return { group, types, best: types.reduce(better) }

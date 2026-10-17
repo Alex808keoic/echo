@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
 import { buildAllocationPlan, CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from '../plan/allocation'
-import { describeStep, LONG_TERM_EXPLANATION, PLAN_DISCLAIMER, planHeadline, planSegments } from '../plan/describe'
+import { describeStep, LONG_TERM_EXPLANATION, PLAN_DISCLAIMER, planHeadline, planSegments, SLEEVE_EXPLANATION } from '../plan/describe'
 import type { MemoryFact } from '../profile/types'
 import type { Movement, Objective } from '../../types'
 import { activeInOrder } from '../../finance/objectives'
@@ -37,6 +37,8 @@ const PROFILE: MemoryFact[] = [
   { kind: 'riskAttitude', value: 'balanced' },
 ]
 const CUSHION = (target: number, priority = 1) => objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: target, priority })
+/** Un objetivo pendiente grande: con él, el largo plazo usa el 20 / 40 / 60 % de siempre. */
+const COCHE = () => objective({ name: 'Coche', targetCents: 2_000_000, priority: 2 })
 
 describe('textos del plan', () => {
   it('sin colchón: el primer paso lo crea, con su meta y su acción', () => {
@@ -55,12 +57,12 @@ describe('textos del plan', () => {
     assert.match(fill!.detail ?? '', /Te faltan 2\.000,00 €: unos 2 meses/)
   })
 
-  it('largo plazo: importe, porcentaje y categoría; con menor de edad, el aviso del adulto', () => {
-    const s = setup(800_000, [CUSHION(300_000)], [...PROFILE, { kind: 'adult', value: false }])
+  it('largo plazo: importe, porcentaje y mezcla por tipos; con menor de edad, el aviso del adulto', () => {
+    const s = setup(800_000, [CUSHION(300_000), COCHE()], [...PROFILE, { kind: 'adult', value: false }])
     const invest = s.plan.steps.find((x): x is Extract<PlanStep, { kind: 'invest-long-term' }> => x.kind === 'invest-long-term')!
     const v = describeStep(invest, s.plan, s.objectives)
     assert.equal(v.title, '400,00 € al mes a largo plazo')
-    assert.match(v.detail ?? '', /El 40 % de lo que te sobra/)
+    assert.match(v.detail ?? '', /El 40 % de lo que te sobra, según tu perfil[.] Repartido así: 280,00 € a renta variable global diversificada y de bajo coste, 120,00 € a renta fija/)
     assert.match(v.note ?? '', /menor de edad/)
     assert.equal(v.warning, undefined, 'es información, no un problema')
   })
@@ -77,10 +79,12 @@ describe('textos del plan', () => {
   })
 
   it('ningún texto nombra productos concretos ni da timing', () => {
-    const all = [setup(100_000), setup(800_000, [CUSHION(300_000)], PROFILE), setup(-50_000)]
+    const dynamicRich = setup(5_000_000, [CUSHION(300_000)], [{ kind: 'horizon', value: 'long' }, { kind: 'riskAttitude', value: 'dynamic' }])
+    const shortIdle = setup(5_000_000, [CUSHION(300_000)], [{ kind: 'horizon', value: 'short' }, { kind: 'riskAttitude', value: 'dynamic' }])
+    const all = [setup(100_000), setup(800_000, [CUSHION(300_000)], PROFILE), setup(-50_000), dynamicRich, shortIdle]
       .flatMap((s) => views(s))
-      .flatMap((v) => [v.title, v.detail ?? '', v.warning ?? ''])
-      .concat(LONG_TERM_EXPLANATION, PLAN_DISCLAIMER)
+      .flatMap((v) => [v.title, v.detail ?? '', v.warning ?? '', v.note ?? ''])
+      .concat(LONG_TERM_EXPLANATION, PLAN_DISCLAIMER, ...Object.values(SLEEVE_EXPLANATION))
       .join(' ')
     assert.doesNotMatch(all, /\b(etf|bitcoin|oro|compra ya|vende|aprovecha|buen momento)\b/i)
   })
@@ -88,12 +92,13 @@ describe('textos del plan', () => {
 
 describe('barra del reparto', () => {
   it('suma lo que se reparte y solo incluye importes positivos', () => {
-    const s = setup(800_000, [CUSHION(300_000)], PROFILE)
+    const s = setup(800_000, [CUSHION(300_000), COCHE()], PROFILE)
     const segs = planSegments(s.plan)
     assert.deepEqual(
       segs.map((x) => [x.kind, x.cents]),
       [
-        ['long-term', 40_000],
+        ['long-term', 28_000],
+        ['long-term-bonds', 12_000],
         ['objectives', 60_000],
       ],
     )

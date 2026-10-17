@@ -37,7 +37,9 @@ function input(message: string, liquidCents: number, objectives: Objective[] = [
   return { context, market: null, memory, conversation: { summary: null, recent: [] }, message }
 }
 /** Colchón completo y perfil equilibrado: el plan invierte 400,00 € al mes. */
-const investing = (message = '¿Cuánto debería invertir?') => input(message, 800_000, [objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: 300_000, priority: 1 })])
+// Con un objetivo pendiente grande: el largo plazo usa el 40 % del perfil equilibrado y no hay dinero parado.
+const investing = (message = '¿Cuánto debería invertir?') =>
+  input(message, 800_000, [objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: 300_000, priority: 1 }), objective({ name: 'Coche', targetCents: 2_000_000, priority: 2 })])
 /** Colchón a medias: el plan dice que aún no toca invertir. */
 const cushionIncomplete = (message = '¿Cuánto debería invertir?') => input(message, 100_000, [objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: 300_000, priority: 1 })])
 

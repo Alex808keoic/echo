@@ -2,7 +2,7 @@
 
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import type { AllocationPlan } from '@/lib/axis/plan/allocation'
-import { describeStep, LONG_TERM_EXPLANATION, PLAN_DISCLAIMER, planSegments, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
+import { describeStep, PLAN_DISCLAIMER, planSegments, SLEEVE_EXPLANATION, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
 import { formatCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 import { SubPageHeader } from '../page-header'
@@ -17,6 +17,8 @@ const SEGMENT_COLOR: Record<SegmentKind, string> = {
   cushion: 'bg-finax-dark',
   'short-term': 'bg-axis-violet',
   'long-term': 'bg-axis-blue',
+  'long-term-bonds': 'bg-axis-indigo',
+  'long-term-risky': 'bg-negative',
   objectives: 'bg-finax',
 }
 
@@ -74,8 +76,23 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
                     {view.warning && <p className="rounded-xl bg-negative/8 px-3 py-2 text-[12.5px] font-semibold leading-snug text-negative text-pretty">{view.warning}</p>}
                   </div>
                 </div>
-                {step.kind === 'invest-long-term' && (
-                  <p className="rounded-xl bg-muted px-3 py-2 text-[12px] font-medium leading-snug text-grafito/75 text-pretty">{LONG_TERM_EXPLANATION}</p>
+                {(step.kind === 'invest-long-term' || step.kind === 'idle-money') && step.mix.length > 0 && (
+                  <ul className="space-y-2 rounded-xl bg-muted px-3 py-2.5">
+                    {step.mix.map((p) => (
+                      <li key={p.key} className="space-y-0.5">
+                        <p className="flex items-baseline justify-between gap-3 text-[12.5px] font-bold text-grafito">
+                          <span className="min-w-0">
+                            {p.label} · {p.pct} %
+                          </span>
+                          <span className="whitespace-nowrap tabular-nums">
+                            {formatCents(p.cents)}
+                            {step.kind === 'invest-long-term' ? '/mes' : ''}
+                          </span>
+                        </p>
+                        <p className="text-[12px] font-medium leading-snug text-grafito/75 text-pretty">{SLEEVE_EXPLANATION[p.key]}</p>
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 {view.action && (
                   <Button variant={i === 0 ? 'primary' : 'secondary'} fullWidth onClick={() => act(view.action!.kind)}>

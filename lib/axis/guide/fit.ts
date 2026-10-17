@@ -6,7 +6,8 @@
  */
 import type { AllocationPlan } from '../plan/allocation'
 import type { ReconciledProfile } from '../profile/types'
-import { LONG_TERM_CATEGORY } from '../plan/allocation'
+import { LONG_TERM_CATEGORY, planSleeves } from '../plan/allocation'
+import { RISKY_MAX_PCT } from '../plan/mix'
 import type { ProductType } from './products'
 
 export type FitVerdict = 'fits' | 'fits-short-term' | 'not-now' | 'not-for-horizon' | 'partial' | 'outside-plan'
@@ -52,6 +53,13 @@ export function productFit(product: ProductType, plan: AllocationPlan, profile: 
   } else if (plan.longTerm.reason === 'cushion-incomplete') {
     verdict = 'not-now'
     reasons.push('Tu plan dice que primero conviene completar el colchón; después, una parte puede ir a largo plazo.')
+  } else if ((product.family === 'speculative' || product.family === 'concentrated-equity') && planSleeves(plan).has('risky')) {
+    verdict = 'fits'
+    reasons.push(`Encaja con la parte arriesgada de tu plan: como mucho el ${RISKY_MAX_PCT} % de lo que inviertes.`)
+    reasons.push('Es dinero que podrías perder entero: si no te sientes cómodo, ponlo también en renta variable global.')
+  } else if (product.family === 'bonds' && planSleeves(plan).has('bonds')) {
+    verdict = 'fits'
+    reasons.push('Tu plan reparte una parte del largo plazo en renta fija, según tu perfil: este tipo encaja ahí.')
   } else if (product.family === 'speculative') {
     verdict = 'outside-plan'
     reasons.push(`La parte a largo plazo de tu plan es ${LONG_TERM_CATEGORY.label.toLowerCase()}; este tipo de producto no lo es.`)

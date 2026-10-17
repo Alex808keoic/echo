@@ -6,7 +6,8 @@
 import { formatCents } from '../../money'
 import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
-import { CUSHION_OBJECTIVE_NAME, LONG_TERM_CATEGORY, type AllocationPlan, type PlanStep } from './allocation'
+import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './allocation'
+import { RISKY_MAX_PCT, type MixPart, type SleeveKey } from './mix'
 
 /** Lo que la pantalla puede hacer desde un paso. */
 export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories'
@@ -26,6 +27,34 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export const LONG_TERM_EXPLANATION =
   'Fondos que reparten tu dinero entre muchas empresas de todo el mundo, con comisiones bajas (por ejemplo, fondos indexados globales). Pueden bajar mucho en un año malo: solo son para dinero que no vayas a necesitar en más de 5 años.'
+
+/** Qué es cada tipo de la mezcla (pantalla «Tu plan»). */
+export const SLEEVE_EXPLANATION: Record<SleeveKey, string> = {
+  'global-equity': LONG_TERM_EXPLANATION,
+  bonds: 'Préstamos a estados y empresas que pagan un interés (por ejemplo, fondos de renta fija). Se mueven menos que las acciones: dan estabilidad a la mezcla.',
+  risky: `Acciones de empresas concretas, sectores, criptomonedas… Pueden subir mucho o perderlo casi todo: solo dinero que podrías perder entero, y nunca más del ${RISKY_MAX_PCT} % de lo que inviertes.`,
+}
+
+/** «a renta variable global…», «a la parte arriesgada…». */
+const toPart = (p: MixPart) => `${p.key === 'risky' ? 'a la' : 'a'} ${p.label.charAt(0).toLowerCase()}${p.label.slice(1)}`
+const mixAmounts = (mix: readonly MixPart[]) => mix.map((p) => `${eur(p.cents)} ${toPart(p)}`).join(', ')
+
+/** «Repartido así: …» (una sola parte: «Todo a …»). */
+function mixSentence(mix: readonly MixPart[]): string {
+  if (mix.length === 1) return `Todo ${toPart(mix[0])}.`
+  return `Repartido así: ${mixAmounts(mix)}.`
+}
+
+function riskyWarning(mix: readonly MixPart[]): { warning?: string } {
+  const risky = mix.find((p) => p.key === 'risky')
+  return risky ? { warning: `La parte arriesgada (${eur(risky.cents)}) es dinero que podrías perder entero. Tu perfil lo permite, pero no hace falta: puedes ponerla también en renta variable global.` } : {}
+}
+
+function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: string } {
+  if (adult !== false) return {}
+  const risky = mix.some((p) => p.key === 'risky') ? ' Las plataformas de acciones sueltas y de criptomonedas suelen exigir tener 18 años.' : ''
+  return { note: `Como eres menor de edad, esta parte tendría que hacerla un adulto a tu nombre (por ejemplo, tus padres o tutores).${risky}` }
+}
 
 export const PLAN_DISCLAIMER =
   'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos ni el momento de comprar o vender.'
@@ -78,13 +107,34 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         ...(step.atRisk ? { warning: 'Con tu ahorro actual no llegas a tiempo a todos. Plantéate ajustar la fecha o la meta.' } : {}),
       }
     }
-    case 'invest-long-term':
+    case 'invest-long-term': {
+      const why = step.noObjectives ? ', según tu perfil y porque no tienes objetivos pendientes: ese dinero no tiene otro destino' : ', según tu perfil'
       return {
         title: `${eur(step.monthlyCents)} al mes a largo plazo`,
-        detail: `El ${step.pct} % de lo que te sobra, según tu perfil. Categoría: ${LONG_TERM_CATEGORY.label.toLowerCase()}.`,
-        ...(step.adult === false ? { note: 'Como eres menor de edad, esta parte tendría que hacerla un adulto a tu nombre (por ejemplo, tus padres o tutores).' } : {}),
+        detail: `El ${step.pct} % de lo que te sobra${why}. ${mixSentence(step.mix)}`,
+        ...riskyWarning(step.mix),
+        ...minorNote(step.adult, step.mix),
+      }
+    }
+    case 'idle-money':
+      if (step.safe)
+        return {
+          title: `Tienes ${eur(step.idleCents)} sin destino`,
+          detail:
+            'No lo necesitan ni tu colchón ni tus objetivos. Como esperas necesitar tu dinero en menos de 2 años, mejor en ahorro seguro: una cuenta remunerada, un depósito o Letras del Tesoro (mira «Ahorro seguro» en la Guía).',
+        }
+      return {
+        title: `Tienes ${eur(step.idleCents)} sin destino`,
+        detail: `No lo necesitan ni tu colchón ni tus objetivos. Puedes invertirlo con la misma mezcla, como prefieras: de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Poco a poco reduce el riesgo de entrar justo antes de una caída; de una vez, el dinero empieza antes a trabajar. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.`,
+        ...riskyWarning(step.mix),
+        ...minorNote(step.adult, step.mix),
       }
     case 'rest-to-objectives':
+      if (step.noObjectives)
+        return {
+          title: `${eur(step.monthlyCents)} al mes se quedan en tu dinero líquido`,
+          detail: 'No tienes objetivos pendientes. Si creas uno, el reparto automático le llevará este dinero; si no, cuando se acumule, tu plan te propondrá qué hacer con él.',
+        }
       return {
         title: `${eur(step.monthlyCents)} al mes a tus objetivos`,
         detail: 'Se queda en tu dinero líquido y el reparto automático lo lleva a tus objetivos, en su orden.',
@@ -121,7 +171,13 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
   }
 }
 
-export type SegmentKind = 'cushion' | 'short-term' | 'long-term' | 'objectives'
+export type SegmentKind = 'cushion' | 'short-term' | 'long-term' | 'long-term-bonds' | 'long-term-risky' | 'objectives'
+
+const SEGMENT_OF: Record<SleeveKey, { kind: SegmentKind; label: string }> = {
+  'global-equity': { kind: 'long-term', label: 'Renta variable global' },
+  bonds: { kind: 'long-term-bonds', label: 'Renta fija' },
+  risky: { kind: 'long-term-risky', label: 'Parte arriesgada' },
+}
 
 /** Reparto del ahorro mensual para la barra: solo pasos con importe. */
 export function planSegments(plan: AllocationPlan): Array<{ kind: SegmentKind; label: string; cents: number }> {
@@ -129,8 +185,8 @@ export function planSegments(plan: AllocationPlan): Array<{ kind: SegmentKind; l
   for (const s of plan.steps) {
     if (s.kind === 'fill-cushion') out.push({ kind: 'cushion', label: 'Colchón', cents: s.monthlyCents })
     else if (s.kind === 'short-term-objectives') out.push({ kind: 'short-term', label: 'Objetivos cercanos', cents: s.monthlyCents })
-    else if (s.kind === 'invest-long-term') out.push({ kind: 'long-term', label: 'Largo plazo', cents: s.monthlyCents })
-    else if (s.kind === 'rest-to-objectives') out.push({ kind: 'objectives', label: 'Tus objetivos', cents: s.monthlyCents })
+    else if (s.kind === 'invest-long-term') for (const p of s.mix) out.push({ ...SEGMENT_OF[p.key], cents: p.cents })
+    else if (s.kind === 'rest-to-objectives') out.push({ kind: 'objectives', label: s.noObjectives ? 'Se queda en tu líquido' : 'Tus objetivos', cents: s.monthlyCents })
   }
   return out.filter((s) => s.cents > 0)
 }
