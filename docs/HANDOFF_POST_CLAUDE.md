@@ -130,6 +130,11 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - Tu mezcla real: `Position.assetType` (deducido del nombre si falta, `guessAssetType`). Si se aleja ≥ 10 puntos de la del plan, la aportación va a lo que falta, sin vender (`rebalanceSplit`); la parte arriesgada nunca recibe más de su peso de la aportación. Caída ≥ 15 % de lo invertido: nota tranquila, el plan no cambia.
   - «¿Por qué?» de cada paso (`plan/why.ts`) con las respuestas del cuestionario; llega al chat (`porque` en `plan_de_reparto`) y a la respuesta local.
   - Recomendar productos concretos queda fuera: sería asesoramiento (CNMV) si la app la usaran otras personas.
+- **Ciclo del consultor (2026-10-17):**
+  - Revisión del mes anterior (`plan/review.ts`, `useMonthReview`): ahorro, inversión, pasos marcados, líquido y coste de la inflación frente a la foto del plan de ese mes (`PlannedMonth` en `planChecks`); sin foto, compara con el plan actual y lo dice.
+  - Proyección del patrimonio (`plan/projection.ts`): supuestos de `guide/scenarios.ts` por tipo, percentiles 10/50/90 aplicados a la vez (abanico prudente), líquido al 0 %, «en euros de hoy» y comparación con dejarlo todo quieto.
+  - Recordatorios (`lib/reminders.ts`): en Inicio siempre; con la app cerrada, `periodicsync` en `public/sw.js` (Chrome Android con la app instalada; el sistema decide cuándo). **El service worker repite las reglas de `reminders.ts`: cambiarlas en los dos sitios.** `sw.js` pasa a `finax-sw-v2`.
+  - Inflación (`plan/inflation.ts`): IPC del INE solo si está `fresh`; si no, el 2 % del BCE dicho como supuesto. Solo textos y la proyección; nunca importes del plan.
 
 ---
 
