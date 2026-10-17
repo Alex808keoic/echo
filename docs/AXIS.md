@@ -413,8 +413,13 @@ redacta y pasa la misma validación.
   puede llevar `examples` (activos, índices, sectores; nunca quien los vende):
   solo se ven en la pantalla, con el aviso de que no son recomendaciones, y
   nunca llegan al chat ni al modelo. AXIS recomienda familia y tipo, nunca un
-  producto o empresa concretos ni «cómpralo». El chat la usa cuando el mensaje
-  nombra un tipo de producto.
+  producto o empresa concretos ni «cómpralo». Cada tipo tiene además
+  escenarios ilustrativos (`scenarios.ts`: «si va mal / lo normal / si va
+  bien», percentiles 10/50/90 de un modelo lognormal con supuestos fijos, más
+  la caída de un año muy malo) para la cantidad y el plazo que elija el
+  usuario; donde no hay base razonable (cripto, apalancados, crowdfunding,
+  stablecoins) lo explica sin cifras. Solo pantalla, nunca al chat ni al
+  modelo. El chat usa la guía cuando el mensaje nombra un tipo de producto.
 - **Resumen semanal** (`brief/`): `buildWeeklyBrief` determinista + redacción
   opcional (`POST /api/axis { mode:'weekly-brief' }`) validada y cacheada por firma.
 - **Tono** (`coaching.ts`): firme, celebrar, animar o sereno, decidido por reglas.

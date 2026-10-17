@@ -1,11 +1,14 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { productFit, type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
 import { AUTHORIZED_SERVICES, EXAMPLES_NOTICE, groupRiskRange, OFFICIAL_LINKS, RISK_LABEL, type InvestmentGroupId, type ProductType } from '@/lib/axis/guide/products'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
+import { defaultYears, projectScenario, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
+import { formatWholeCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { ScenarioChart } from '../charts/scenario-chart'
 import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { ScreenLoading } from '../loading'
@@ -272,6 +275,8 @@ function TypeDetail({ type, fit, fee, onFee, onPlan }: { type: ProductType; fit:
         </button>
       </div>
 
+      <ScenarioSection type={type} />
+
       {type.examples && type.examples.length > 0 && (
         <div className="space-y-2">
           <p className="font-semibold text-grafito">Ejemplos de lo que existe</p>
@@ -309,5 +314,117 @@ function TypeDetail({ type, fit, fee, onFee, onPlan }: { type: ProductType; fit:
         </label>
       )}
     </div>
+  )
+}
+
+function Chips<T extends number>({ options, value, onChange, label }: { options: readonly T[]; value: T; onChange: (v: T) => void; label: (v: T) => string }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          aria-pressed={value === o}
+          onClick={() => onChange(o)}
+          className={cn('min-h-8 rounded-full px-3 py-1 text-[12px] font-semibold transition-colors', value === o ? 'bg-finax-dark text-white' : 'bg-muted text-muted-foreground hover:bg-graylight/70')}
+        >
+          {label(o)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const euros = (cents: number) => formatWholeCurrency(cents / 100)
+const yearsLabel = (y: number) => (y === 1 ? '1 año' : `${y} años`)
+
+/**
+ * «Cómo podría evolucionar tu dinero»: tres escenarios ilustrativos
+ * (lib/axis/guide/scenarios.ts) para la cantidad y el plazo que elijas, más
+ * lo que podría caer en un año muy malo. Nunca una previsión.
+ */
+function ScenarioSection({ type }: { type: ProductType }) {
+  const assumption = SCENARIO_ASSUMPTIONS[type.id]
+  const [amount, setAmount] = useState<(typeof SCENARIO_AMOUNTS_CENTS)[number]>(100_000)
+  const [years, setYears] = useState<(typeof SCENARIO_YEARS)[number]>(() => (assumption ? defaultYears(assumption) : 1))
+  if (!assumption) return null
+
+  const badYear =
+    assumption.badYearPct && assumption.badYearPct > 0 ? (
+      <p className="rounded-xl bg-negative/8 px-3 py-2 text-[12.5px] font-semibold leading-snug text-negative text-pretty">
+        En un año muy malo podría caer alrededor de un {assumption.badYearPct} %: {euros(amount)} se quedarían en unos {euros(Math.round((amount * (100 - assumption.badYearPct)) / 100))}.
+      </p>
+    ) : null
+
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-border bg-background/60 p-3.5">
+      <p className="font-semibold text-grafito">Cómo podría evolucionar tu dinero</p>
+      {assumption.kind === 'none' ? (
+        <>
+          <p className="text-pretty">{assumption.reason}</p>
+          {badYear && <Chips options={SCENARIO_AMOUNTS_CENTS} value={amount} onChange={setAmount} label={euros} />}
+          {badYear}
+        </>
+      ) : (
+        <ScenarioBody assumption={assumption} amount={amount} years={years} onAmount={setAmount} onYears={setYears} badYear={badYear} />
+      )}
+      <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">{SCENARIO_NOTICE}</p>
+    </div>
+  )
+}
+
+function ScenarioBody({
+  assumption,
+  amount,
+  years,
+  onAmount,
+  onYears,
+  badYear,
+}: {
+  assumption: GrowthAssumption
+  amount: (typeof SCENARIO_AMOUNTS_CENTS)[number]
+  years: (typeof SCENARIO_YEARS)[number]
+  onAmount: (v: (typeof SCENARIO_AMOUNTS_CENTS)[number]) => void
+  onYears: (v: (typeof SCENARIO_YEARS)[number]) => void
+  badYear: ReactNode
+}) {
+  const result = projectScenario(amount, assumption, years)
+  const fixed = assumption.sigma === 0
+  const rows = fixed
+    ? [{ label: 'Lo esperable', cents: result.midCents, tone: 'text-finax-dark' }]
+    : [
+        { label: 'Si va bien', cents: result.goodCents, tone: 'text-finax-dark' },
+        { label: 'Lo normal', cents: result.midCents, tone: 'text-grafito' },
+        { label: 'Si va mal', cents: result.badCents, tone: 'text-negative' },
+      ]
+  return (
+    <>
+      <div className="space-y-1.5">
+        <p className="text-[12px] font-semibold text-grafito/80">Si pones</p>
+        <Chips options={SCENARIO_AMOUNTS_CENTS} value={amount} onChange={onAmount} label={euros} />
+        <p className="pt-1 text-[12px] font-semibold text-grafito/80">Y lo dejas</p>
+        <Chips options={SCENARIO_YEARS} value={years} onChange={onYears} label={yearsLabel} />
+      </div>
+      {!fixed && <ScenarioChart series={scenarioSeries(amount, assumption, years)} />}
+      <ul className="space-y-1">
+        {rows.map((r) => {
+          const diff = r.cents - amount
+          return (
+            <li key={r.label} className="flex items-baseline justify-between gap-3">
+              <span className="text-[12.5px] font-semibold text-grafito/80">{r.label}</span>
+              <span className="text-right">
+                <span className={cn('text-[15px] font-extrabold tabular-nums', r.tone)}>{euros(r.cents)}</span>
+                <span className="ml-1.5 text-[11.5px] font-semibold tabular-nums text-muted-foreground">
+                  ({diff >= 0 ? '+' : ''}
+                  {euros(diff)})
+                </span>
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      {!fixed && <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">«Si va mal» y «si va bien»: más o menos 1 de cada 10 veces saldría peor o mejor que eso.</p>}
+      {badYear}
+    </>
   )
 }
