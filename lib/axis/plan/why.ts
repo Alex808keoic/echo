@@ -9,6 +9,7 @@ import { PROFILE_QUESTIONS, type ProfileQuestionId } from '../profile/questionna
 import type { ReconciledProfile } from '../profile/types'
 import { CUSHION_MONTHS, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
 import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS } from './mix'
+import { inflationPhrase } from './inflation'
 
 type Profile = Pick<ReconciledProfile, 'riskAttitude' | 'horizon' | 'irregularIncome' | 'minLiquidityCents' | 'adult'>
 
@@ -52,6 +53,7 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       if (step.mix.some((p) => p.key === 'risky'))
         why.push(`Tienes la parte arriesgada (como mucho el ${RISKY_MAX_PCT} %) porque se cumplen todas las condiciones: perfil dinámico, plazo largo, colchón completo, ningún objetivo cercano con retraso y dinero parado de más de ${RISKY_MIN_IDLE_MONTHS} meses de gasto.`)
       if (step.rebalance) why.push('Lo que ya tienes invertido se ha alejado de tu mezcla: en vez de vender, lo nuevo va a lo que falta.')
+      if (plan.inflation) why.push(`Con ${inflationPhrase(plan.inflation)}, el dinero quieto en la cuenta pierde poder de compra cada año; invertir a largo plazo busca crecer más que la inflación, aunque con altibajos.`)
       break
     }
     case 'idle-money':

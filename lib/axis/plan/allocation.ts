@@ -30,6 +30,7 @@
 import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
+import type { InflationRef } from './inflation'
 import { DRAWDOWN_NOTICE_PCT, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
@@ -118,6 +119,8 @@ export interface AllocationPlan {
   longTerm: { pct: number; monthlyCents: number; reason: LongTermReason }
   /** Pasos en orden: el primero es lo primero que hacer. */
   steps: PlanStep[]
+  /** Inflación de referencia, si se ha dado (solo para los textos). */
+  inflation?: InflationRef
 }
 
 const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
@@ -159,9 +162,16 @@ function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): num
 export interface PlanOptions {
   /** Notas de AXIS (memorias sin dato) que el usuario no ha convertido ni descartado. Solo las conoce el dispositivo. */
   pendingNotes?: number
+  /** Inflación de referencia (plan/inflation.ts): solo cambia textos, nunca importes. */
+  inflation?: InflationRef
 }
 
 export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions = {}): AllocationPlan {
+  const plan = buildPlanCore(decision, options)
+  return options.inflation ? { ...plan, inflation: options.inflation } : plan
+}
+
+function buildPlanCore(decision: AxisDecision, options: PlanOptions): AllocationPlan {
   const ctx = decision.context
   const profile = decision.profile.fields
   const declaredIncome = recurringIncomesOf(profile)

@@ -68,7 +68,7 @@ export function buildChatGuard(input: ChatInput): ChatGuard {
     ...guideFigures(chatGuideOf(input.message, decision)),
   ]
   // El plan sale de la misma decisión: sus importes (los de «Tu plan») se pueden citar.
-  const plan = chatPlanOf(decision)
+  const plan = chatPlanOf(decision, input.market)
   const figures = [...base.figures, ...extra, ...planFigures(plan)]
   return {
     decision,

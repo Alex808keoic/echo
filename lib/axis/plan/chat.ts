@@ -14,6 +14,8 @@ import type { AxisDecision } from '../types'
 import { buildAllocationPlan, type AllocationPlan } from './allocation'
 import { describeStep, PLAN_DISCLAIMER } from './describe'
 import { stepReasons } from './why'
+import { inflationFrom } from './inflation'
+import type { MarketContext } from '../../market/types'
 
 export interface ChatPlan {
   plan: AllocationPlan
@@ -21,8 +23,8 @@ export interface ChatPlan {
   steps: Array<{ title: string; detail?: string; warning?: string; note?: string; why?: string[] }>
 }
 
-export function chatPlanOf(decision: AxisDecision): ChatPlan {
-  const plan = buildAllocationPlan(decision)
+export function chatPlanOf(decision: AxisDecision, market?: MarketContext | null): ChatPlan {
+  const plan = buildAllocationPlan(decision, { inflation: inflationFrom(market) })
   const steps = plan.steps.map((s) => {
     const v = describeStep(s, plan, decision.context.objectives)
     const why = stepReasons(s, plan, decision.profile.fields)

@@ -72,7 +72,7 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
       // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.
       ...(history ? { historico_de_movimientos: historyForPrompt(history) } : {}),
       // Plan de reparto de Finax (fase 2d): recalculado aquí con los mismos datos; ningún dato nuevo.
-      plan_de_reparto: planForPrompt(chatPlanOf(decision)),
+      plan_de_reparto: planForPrompt(chatPlanOf(decision, market)),
       // Tono de coach decidido por Finax (coaching.ts), no por el modelo.
       tono_sugerido: TONE_GUIDE[coachingTone(decision).tone],
     },

@@ -8,7 +8,12 @@ import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
-import { usePlanChecklist } from '@/hooks/use-plan-checklist'
+import { useMonthReview, usePlanChecklist } from '@/hooks/use-plan-checklist'
+import { todayISO } from '@/lib/dates'
+import { dueReminders } from '@/lib/reminders'
+
+/** Días al principio del mes en los que Inicio anuncia la revisión del mes anterior. */
+const REVIEW_NOTICE_DAYS = 10
 import { planHeadline } from '@/lib/axis/plan/describe'
 import { Wordmark } from '../wordmark'
 import { IconButton, SectionHeader } from '../page-header'
@@ -32,6 +37,19 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const { state: axis } = useAxis(overview, { market })
   const plan = useAllocationPlan(overview)
   const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives)
+  const review = useMonthReview(overview?.axisSnapshot, plan?.plan, checklist)
+  // Los primeros días del mes, la revisión del anterior se anuncia en Inicio.
+  const showReview = review && Number(todayISO().slice(8, 10)) <= REVIEW_NOTICE_DAYS
+  const reminders =
+    overview && plan
+      ? dueReminders({
+          today: todayISO(),
+          checklist: checklist ? { items: checklist.items.length, done: checklist.doneCount } : null,
+          hasRecurringIncome: (plan.decision.profile.fields.recurringIncomes?.length ?? 0) > 0,
+          incomeThisMonth: plan.decision.context.flows.current.incomeCents,
+          positionsUpdatedAt: overview.positions.map((p) => p.updatedAt),
+        })
+      : []
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />
@@ -113,6 +131,23 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         onClick={() => onNavigate('axis')}
       />
 
+      {reminders.length > 0 && (
+        <ul className="space-y-2" aria-label="Recordatorios">
+          {reminders.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => onNavigate(r.to)}
+                className="flex w-full items-center gap-3 rounded-2xl bg-axis-soft px-4 py-3 text-left text-[13px] font-semibold leading-snug text-axis-indigo transition-opacity active:opacity-70"
+              >
+                <span className="min-w-0 flex-1 text-pretty">{r.text}</span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {plan && (
         <button
           type="button"
@@ -122,6 +157,9 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
           <span className="min-w-0 flex-1">
             <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">Tu plan del mes</span>
             <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{planHeadline(plan.plan, plan.decision.context.objectives)}</span>
+            {showReview && (
+              <span className="mt-1 block text-[12px] font-semibold text-axis-indigo">Revisión de {review.label} lista</span>
+            )}
             {checklist && checklist.items.length > 0 && (
               <span className="mt-1 block text-[12px] font-medium text-muted-foreground tabular-nums">
                 Tu decisión del mes: {checklist.doneCount} de {checklist.items.length} hechas

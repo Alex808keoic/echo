@@ -8,6 +8,7 @@ import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './allocation'
 import { RISKY_MAX_PCT, type MixPart, type SleeveKey } from './mix'
+import { idleLossSentence, inflationPhrase } from './inflation'
 
 /** Lo que la pantalla puede hacer desde un paso. */
 export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories'
@@ -51,6 +52,12 @@ function pctSentence(pct: Record<SleeveKey, number>): string {
   return parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`
 }
 
+/** El colchón no se invierte, pero puede protegerse algo de la inflación sin dejar de estar disponible. */
+function cushionInflationNote(plan: AllocationPlan): { note?: string } {
+  if (!plan.inflation) return {}
+  return { note: `Puede estar en una cuenta remunerada o en Letras del Tesoro: sigue disponible y le afecta menos ${inflationPhrase(plan.inflation)}.` }
+}
+
 function riskyWarning(mix: readonly MixPart[]): { warning?: string } {
   const risky = mix.find((p) => p.key === 'risky')
   return risky ? { warning: `La parte arriesgada (${eur(risky.cents)}) es dinero que podrías perder entero. Tu perfil lo permite, pero no hace falta: puedes ponerla también en renta variable global.` } : {}
@@ -92,6 +99,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
           plan.cushion?.source === 'months'
             ? `Son ${plural(plan.cushion.months ?? 0, 'mes', 'meses')} de tu gasto habitual: dinero para imprevistos que no se toca. Podrás cambiar la cantidad.`
             : 'Es el mínimo de dinero líquido que quieres tener siempre. Podrás cambiar la cantidad.',
+        ...cushionInflationNote(plan),
         action: { kind: 'create-cushion', label: 'Crearlo y ponerlo primero' },
       }
     case 'move-cushion-first':
@@ -104,6 +112,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       return {
         title: `${eur(step.monthlyCents)} al mes a tu colchón`,
         detail: `Te faltan ${eur(step.remainingCents)}: unos ${plural(step.months, 'mes', 'meses')} a tu ritmo de ahorro. Hasta tenerlo completo, no conviene invertir.`,
+        ...cushionInflationNote(plan),
       }
     case 'short-term-objectives': {
       const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
@@ -135,19 +144,25 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         return {
           title: `Tienes ${eur(step.idleCents)} sin destino`,
           detail:
-            'No lo necesitan ni tu colchón ni tus objetivos. Como esperas necesitar tu dinero en menos de 2 años, mejor en ahorro seguro: una cuenta remunerada, un depósito o Letras del Tesoro (mira «Ahorro seguro» en la Guía).',
+            'No lo necesitan ni tu colchón ni tus objetivos. Como esperas necesitar tu dinero en menos de 2 años, mejor en ahorro seguro: una cuenta remunerada, un depósito o Letras del Tesoro (mira «Ahorro seguro» en la Guía).' +
+            (plan.inflation ? ` Ahí rinde algo y compensa en parte ${inflationPhrase(plan.inflation)}.` : ''),
         }
+    {
+      const loss = plan.inflation ? idleLossSentence(step.idleCents, plan.inflation) : null
       return {
         title: `Tienes ${eur(step.idleCents)} sin destino`,
-        detail: `No lo necesitan ni tu colchón ni tus objetivos. Puedes invertirlo con la misma mezcla, como prefieras: de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Poco a poco reduce el riesgo de entrar justo antes de una caída; de una vez, el dinero empieza antes a trabajar. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.`,
+        detail: `No lo necesitan ni tu colchón ni tus objetivos. Puedes invertirlo con la misma mezcla, como prefieras: de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Poco a poco reduce el riesgo de entrar justo antes de una caída; de una vez, el dinero empieza antes a trabajar. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${loss ? ` ${loss}` : ''}`,
         ...riskyWarning(step.mix),
         ...minorNote(step.adult, step.mix),
       }
+    }
     case 'rest-to-objectives':
       if (step.noObjectives)
         return {
           title: `${eur(step.monthlyCents)} al mes se quedan en tu dinero líquido`,
-          detail: 'No tienes objetivos pendientes. Si creas uno, el reparto automático le llevará este dinero; si no, cuando se acumule, tu plan te propondrá qué hacer con él.',
+          detail:
+            'No tienes objetivos pendientes. Si creas uno, el reparto automático le llevará este dinero; si no, cuando se acumule, tu plan te propondrá qué hacer con él.' +
+            (plan.inflation ? ` Mientras tanto, quieto en la cuenta pierde valor con ${inflationPhrase(plan.inflation)}.` : ''),
         }
       return {
         title: `${eur(step.monthlyCents)} al mes a tus objetivos`,

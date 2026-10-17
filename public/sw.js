@@ -5,7 +5,7 @@
  * - Nunca cachea /api/* ni peticiones que no sean GET.
  * Los datos del usuario viven en IndexedDB, no pasan por aquí.
  */
-const VERSION = 'finax-sw-v1'
+const VERSION = 'finax-sw-v2'
 const SHELL = `${VERSION}-shell`
 const DATA = `${VERSION}-data`
 
@@ -69,3 +69,89 @@ self.addEventListener('fetch', (event) => {
     )
   }
 })
+
+/*
+ * Recordatorios con la app cerrada (Periodic Background Sync: Chrome para
+ * Android con Finax instalada; el sistema decide cuándo, como mucho una vez al
+ * día). Lee IndexedDB «finax» solo para leer y enseña una notificación local:
+ * nada sale del dispositivo. Repite las reglas de lib/reminders.ts: si cambias
+ * una regla allí, cámbiala también aquí. Cada recordatorio se enseña como mucho
+ * una vez por mes (inversiones: una vez por semana).
+ */
+const REMINDER_TAG = 'finax-reminders'
+const REMINDER_STATE = 'finax-reminders'
+const DAY_MS = 86400000
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === REMINDER_TAG) event.waitUntil(notifyDueReminders())
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => (windows[0] ? windows[0].focus() : self.clients.openWindow('/'))),
+  )
+})
+
+function readAll(db, store) {
+  if (!db.objectStoreNames.contains(store)) return Promise.resolve([])
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store, 'readonly').objectStore(store).getAll()
+    req.onsuccess = () => resolve(req.result || [])
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function openFinax() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('finax')
+    // Si la base aún no existe, no se crea desde aquí.
+    req.onupgradeneeded = () => req.transaction.abort()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function localToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+async function notifyDueReminders() {
+  if (self.Notification && self.Notification.permission !== 'granted') return
+  let db
+  try {
+    db = await openFinax()
+  } catch {
+    return
+  }
+  const [checks, positions, memories, movements] = await Promise.all([readAll(db, 'planChecks'), readAll(db, 'positions'), readAll(db, 'axisMemories'), readAll(db, 'movements')])
+  db.close()
+  const today = localToday()
+  const month = today.slice(0, 7)
+  const day = Number(today.slice(8, 10))
+  const entry = checks.find((c) => c.key === month)
+  const items = entry && entry.planned ? entry.planned.items : 0
+  const done = entry ? entry.done.length : 0
+  const due = []
+  if (items > 0 && done === 0 && day <= 3) due.push({ id: 'month-ready', period: month, text: `Tu decisión del mes está lista: ${items} pasos.` })
+  const hasRecurring = memories.some((m) => m.fact && m.fact.kind === 'recurringIncome')
+  const income = movements.some((m) => m.type === 'ingreso' && typeof m.date === 'string' && m.date.startsWith(month))
+  if (hasRecurring && !income && day >= 10) due.push({ id: 'income-missing', period: month, text: 'Aún no has registrado ningún ingreso este mes. Si ya te ha llegado, apúntalo.' })
+  const stale = positions.filter((p) => Date.now() - p.updatedAt > 30 * DAY_MS).length
+  if (stale > 0) due.push({ id: 'update-investments', period: null, text: stale === 1 ? 'Una inversión lleva más de 30 días sin actualizar su valor.' : `${stale} inversiones llevan más de 30 días sin actualizar su valor.` })
+  if (items > 0 && done < items && day >= 25) due.push({ id: 'month-ending', period: month, text: items - done === 1 ? 'Te queda 1 paso de tu decisión del mes.' : `Te quedan ${items - done} pasos de tu decisión del mes.` })
+  if (due.length === 0) return
+
+  const cache = await caches.open(REMINDER_STATE)
+  const saved = await cache.match('/shown')
+  const shown = saved ? await saved.json() : {}
+  for (const r of due) {
+    const last = shown[r.id]
+    const fresh = r.period ? last !== r.period : !last || Date.now() - last >= 7 * DAY_MS
+    if (!fresh) continue
+    await self.registration.showNotification('Finax', { body: r.text, tag: r.id, icon: '/icon-192.png', badge: '/icon-192.png' })
+    shown[r.id] = r.period || Date.now()
+  }
+  await cache.put('/shown', new Response(JSON.stringify(shown), { headers: { 'Content-Type': 'application/json' } }))
+}

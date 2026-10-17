@@ -6,11 +6,24 @@
  */
 import { db } from './db'
 
+/** Foto de lo que proponía el plan ese mes, para la revisión al acabar el mes. */
+export interface PlannedMonth {
+  /** Ahorro que el plan contaba como habitual. */
+  savingsCents: number
+  /** Lo que proponía invertir a largo plazo, y en qué tipos. */
+  investCents: number
+  mix: Array<{ key: string; cents: number }>
+  /** Pasos de «Tu decisión del mes». */
+  items: number
+}
+
 export interface PlanChecksEntry {
   /** Mes `YYYY-MM`. */
   key: string
   /** Ids de `monthChecklist` marcados como hechos. */
   done: string[]
+  /** La última foto del plan vista ese mes (sin ella, la revisión usa el plan actual y lo dice). */
+  planned?: PlannedMonth
   updatedAt: number
 }
 
@@ -18,11 +31,25 @@ export async function getPlanChecks(month: string): Promise<string[]> {
   return (await db.planChecks.get(month))?.done ?? []
 }
 
+export async function getPlanMonth(month: string): Promise<PlanChecksEntry | undefined> {
+  return db.planChecks.get(month)
+}
+
+/** Guarda la foto del plan del mes si ha cambiado (lo marcado se conserva). */
+export async function savePlannedMonth(month: string, planned: PlannedMonth): Promise<void> {
+  await db.transaction('rw', db.planChecks, async () => {
+    const current = await db.planChecks.get(month)
+    if (current?.planned && JSON.stringify(current.planned) === JSON.stringify(planned)) return
+    await db.planChecks.put({ key: month, done: current?.done ?? [], planned, updatedAt: Date.now() })
+  })
+}
+
 /** Marca o desmarca un paso del mes. */
 export async function setPlanCheck(month: string, id: string, done: boolean): Promise<void> {
   await db.transaction('rw', db.planChecks, async () => {
-    const current = (await db.planChecks.get(month))?.done ?? []
+    const entry = await db.planChecks.get(month)
+    const current = entry?.done ?? []
     const next = done ? [...new Set([...current, id])] : current.filter((x) => x !== id)
-    await db.planChecks.put({ key: month, done: next, updatedAt: Date.now() })
+    await db.planChecks.put({ key: month, done: next, ...(entry?.planned ? { planned: entry.planned } : {}), updatedAt: Date.now() })
   })
 }

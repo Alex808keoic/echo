@@ -1,7 +1,8 @@
 'use client'
 
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
-import { usePlanChecklist, type PlanChecklist } from '@/hooks/use-plan-checklist'
+import { useMonthReview, usePlanChecklist, type PlanChecklist } from '@/hooks/use-plan-checklist'
+import type { MonthReview, ReviewVerdict } from '@/lib/axis/plan/review'
 import type { SleeveKey } from '@/lib/axis/plan/mix'
 import { useSheet } from '../sheet'
 import { PositionForm } from '../forms/position-form'
@@ -17,6 +18,11 @@ import { useCushionActions } from '../cushion-actions'
 import { stepReasons } from '@/lib/axis/plan/why'
 import { LeafLogo } from '../icons'
 import type { ScreenProps } from './types'
+import { useState } from 'react'
+import { FilterTabs } from '../filter-tabs'
+import { projectWealth, PROJECTION_YEARS, type ProjectionYears } from '@/lib/axis/plan/projection'
+import { inflationFrom, inflationPhrase } from '@/lib/axis/plan/inflation'
+import type { FinancialContext } from '@/lib/axis/types'
 
 const SEGMENT_COLOR: Record<SegmentKind, string> = {
   cushion: 'bg-finax-dark',
@@ -36,6 +42,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const result = useAllocationPlan(overview)
   const cushion = useCushionActions()
   const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives)
+  const review = useMonthReview(overview?.axisSnapshot, result?.plan, checklist)
   if (!result) return <ScreenLoading />
   const { plan, decision } = result
   const objectives = decision.context.objectives
@@ -64,6 +71,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   return (
     <div className="space-y-5 px-5 pb-8 pt-3">
       <SubPageHeader title="Tu plan" subtitle="Qué hacer cada mes con lo que ahorras" onBack={onBack} />
+
+      {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
 
       {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} />}
 
@@ -124,6 +133,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
         })}
       </ol>
 
+      <ProjectionCard plan={plan} context={decision.context} />
+
       <Button variant="secondary" fullWidth onClick={() => onNavigate('guia')}>
         Guía para invertir
       </Button>
@@ -171,6 +182,79 @@ function MonthChecklist({ checklist }: { checklist: PlanChecklist }) {
         })}
       </ul>
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">Marcar un paso no mueve dinero: es para que lleves la cuenta. Abajo tienes el detalle y el porqué de cada uno.</p>
+    </FinancialCard>
+  )
+}
+
+const VERDICT: Record<ReviewVerdict, { label: string; className: string }> = {
+  'on-track': { label: 'Según el plan', className: 'bg-finax-soft text-finax-dark' },
+  partial: { label: 'En parte', className: 'bg-axis-soft text-axis-indigo' },
+  'off-track': { label: 'Fuera del plan', className: 'bg-negative/8 text-negative' },
+}
+
+/** Revisión del mes anterior: lo que pasó frente a lo que decía el plan. */
+function MonthReviewCard({ review, onStats }: { review: MonthReview; onStats: () => void }) {
+  const v = VERDICT[review.verdict]
+  return (
+    <FinancialCard className="space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[15px] font-bold text-grafito">Revisión de {review.label}</p>
+        <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold', v.className)}>{v.label}</span>
+      </div>
+      <ul className="list-disc space-y-1 pl-4 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+        {review.lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+      <p className="rounded-xl bg-muted px-3 py-2 text-[12.5px] font-semibold leading-snug text-grafito text-pretty">{review.next}</p>
+      {review.verdict !== 'on-track' && (
+        <button type="button" onClick={onStats} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+          Ver en qué se fue el dinero
+        </button>
+      )}
+      {review.usesCurrentPlan && (
+        <p className="text-[11.5px] font-medium leading-snug text-muted-foreground">No había plan guardado de ese mes: se compara con lo que propone tu plan ahora.</p>
+      )}
+    </FinancialCard>
+  )
+}
+
+const YEAR_LABEL = (y: number) => `${y} años`
+
+/** «Cómo podría crecer tu patrimonio»: proyección ilustrativa del plan frente a dejarlo todo quieto. */
+function ProjectionCard({ plan, context }: { plan: AllocationPlan; context: FinancialContext }) {
+  const [years, setYears] = useState<ProjectionYears>(10)
+  const inflation = plan.inflation ?? inflationFrom(null)
+  const p = projectWealth(plan, context, years, inflation)
+  if (!p) return null
+  const row = (label: string, cents: number, strong = false) => (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-[12.5px] font-medium text-grafito/80">{label}</span>
+      <span className={cn('whitespace-nowrap tabular-nums', strong ? 'text-[16px] font-bold text-grafito' : 'text-[13px] font-semibold text-grafito')}>{formatCents(cents)}</span>
+    </div>
+  )
+  return (
+    <FinancialCard className="space-y-3">
+      <div>
+        <p className="text-[15px] font-bold text-grafito">Cómo podría crecer tu patrimonio</p>
+        <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">Con lo que tienes hoy y siguiendo este plan cada mes.</p>
+      </div>
+      <FilterTabs options={PROJECTION_YEARS.map(YEAR_LABEL)} value={YEAR_LABEL(years)} onChange={(label) => setYears(Number(label.split(' ')[0]) as ProjectionYears)} size="sm" />
+      <div className="space-y-1.5">
+        {row('Si va mal', p.badCents)}
+        {row('Normal', p.midCents, true)}
+        {row('Si va bien', p.goodCents)}
+      </div>
+      <div className="space-y-1.5 rounded-xl bg-muted px-3 py-2.5">
+        {row('Normal, en euros de hoy', p.midTodayCents)}
+        {row('Todo quieto en la cuenta, en euros de hoy', p.stillTodayCents)}
+        <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
+          Habrías puesto {formatCents(p.contributedCents)}. Quieto en la cuenta seguiría siendo esa cifra, pero con {inflationPhrase(inflation)} compraría menos: eso es lo que muestra «en euros de hoy».
+        </p>
+      </div>
+      <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
+        Es una aproximación con supuestos generales, no una previsión: sin comisiones ni impuestos, y el dinero líquido no crece. «Si va mal» y «si va bien» son 1 de cada 10 casos por abajo y por arriba.
+      </p>
     </FinancialCard>
   )
 }

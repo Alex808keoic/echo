@@ -19,6 +19,7 @@ import { InitialBalanceForm } from '../forms/initial-balance-form'
 import { ChevronRight } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
+import { disableReminders, enableReminders, reminderStatus, type ReminderStatus } from '@/lib/notifications'
 
 interface RowProps {
   title: string
@@ -47,6 +48,44 @@ function Row({ title, description, onClick, tone = 'default', disabled }: RowPro
       {content}
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
     </button>
+  )
+}
+
+/** Activar o desactivar las notificaciones de recordatorio con la app cerrada. */
+function RemindersRow() {
+  const [status, setStatus] = useState<ReminderStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void reminderStatus().then(setStatus)
+  }, [])
+  if (!status) return <Row title="Notificaciones" description="Comprobando…" />
+  const inApp = 'Además, al abrir Finax verás en Inicio lo que toca: tu decisión del mes, ingresos sin registrar, inversiones sin actualizar y pasos pendientes.'
+  if (status.support === 'unsupported') return <Row title="Notificaciones no disponibles" description={`Este navegador no permite notificaciones. ${inApp}`} />
+  if (status.denied)
+    return <Row title="Notificaciones bloqueadas" description={`Has bloqueado las notificaciones de Finax: puedes permitirlas en los ajustes del navegador. ${inApp}`} />
+  if (status.support === 'in-app-only')
+    return (
+      <Row
+        title="Notificaciones con la app cerrada no disponibles"
+        description={`Necesitan Chrome en Android con Finax instalada en la pantalla de inicio. ${inApp}`}
+      />
+    )
+  const toggle = async () => {
+    setBusy(true)
+    setStatus(await (status.enabled ? disableReminders() : enableReminders()))
+    setBusy(false)
+  }
+  return (
+    <Row
+      title={status.enabled ? 'Notificaciones activadas' : 'Activar notificaciones'}
+      description={
+        status.enabled
+          ? `Finax comprueba una vez al día, en el móvil, si toca recordarte algo. Android decide la hora exacta y puede saltarse días. Nada sale del dispositivo. Toca para desactivarlas. ${inApp}`
+          : `Un aviso en el móvil cuando toque: tu decisión del mes, ingresos sin registrar, inversiones sin actualizar o pasos pendientes. Se comprueba en el móvil, sin enviar nada. ${inApp}`
+      }
+      onClick={() => void toggle()}
+      disabled={busy}
+    />
   )
 }
 
@@ -233,6 +272,10 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
           title="Qué sale del dispositivo al usar AXIS con IA"
           description="Cuando AXIS responde con IA, el contexto necesario para la respuesta se envía al servidor de Finax y a un proveedor de IA. Puede incluir tus cifras financieras, tus memorias de AXIS, la conversación y, en el chat, un resumen de tus movimientos recientes con algunos de ellos (fecha, importe, categoría y concepto). Si AXIS necesita un dato concreto para responder, consulta tus movimientos en este dispositivo y solo envía el resultado (por ejemplo, el gasto de un mes o hasta 5 movimientos, sin tus notas). Con el motor local no se envía nada fuera del dispositivo. El contexto de mercado se descarga de una fuente pública y no lleva datos tuyos."
         />
+      </Group>
+
+      <Group title="Recordatorios">
+        <RemindersRow />
       </Group>
 
       <Group title="AXIS">
