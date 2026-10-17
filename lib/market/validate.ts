@@ -125,6 +125,31 @@ export function parseAssetClass(v: unknown, i = 0): AssetClassNote {
   }
 }
 
+const STANCE_WEIGHT: Record<AssetClassNote['stance'], number> = { neutral: 0, watch: 1, caution: 2 }
+
+/**
+ * Una entrada por clase de activo. Si el modelo repite una clave (el 17-10-2026
+ * Gemma dio dos «equity-europe», una por índice), se unen: primera etiqueta,
+ * notas seguidas, alias sin repetir y la postura más prudente.
+ */
+export function mergeAssetClasses(items: AssetClassNote[]): AssetClassNote[] {
+  const byKey = new Map<string, AssetClassNote>()
+  for (const item of items) {
+    const prev = byKey.get(item.key)
+    if (!prev) {
+      byKey.set(item.key, item)
+      continue
+    }
+    byKey.set(item.key, {
+      ...prev,
+      aliases: [...new Set([...prev.aliases, ...item.aliases])].slice(0, 20),
+      note: prev.note === item.note ? prev.note : `${prev.note} ${item.note}`,
+      stance: STANCE_WEIGHT[item.stance] > STANCE_WEIGHT[prev.stance] ? item.stance : prev.stance,
+    })
+  }
+  return [...byKey.values()]
+}
+
 function parseSource(v: unknown, i: number): MarketSource {
   if (!isRecord(v)) throw new MarketValidationError(`fuente ${i} no válida`)
   const url = text(v.url, `sources[${i}].url`, { max: 300 })
@@ -159,7 +184,7 @@ export function parseMarketResearch(input: unknown): MarketResearch {
     indicators: list(input.indicators, 'indicators', parseIndicator, 20),
     events: list(input.events, 'events', parseEvent),
     trends: list(input.trends, 'trends', parseTrend, 8),
-    assetClasses: list(input.assetClasses, 'assetClasses', parseAssetClass, 10),
+    assetClasses: mergeAssetClasses(list(input.assetClasses, 'assetClasses', parseAssetClass, 20)).slice(0, 10),
     uncertainties: list(input.uncertainties, 'uncertainties', (u, i) => text(u, `uncertainties[${i}]`)),
     warnings: list(input.warnings, 'warnings', (w, i) => text(w, `warnings[${i}]`)),
     sources,

@@ -126,3 +126,24 @@ describe('AXIS + MarketContext', () => {
     assert.match(req.system, /contexto_de_mercado/)
   })
 })
+
+describe('clases de activo repetidas', () => {
+  const ac = (key: string, note: string, stance: 'neutral' | 'watch' | 'caution', aliases: string[] = [key]) => ({ key, label: key, aliases, note, stance })
+
+  it('se unen en una sola: notas seguidas, alias sin repetir y la postura más prudente', () => {
+    const r = parseMarketResearch({
+      ...research(),
+      assetClasses: [ac('equity-europe', 'El EURO STOXX 50 bajó.', 'caution', ['stoxx']), ac('cash', 'Sin noticias.', 'neutral'), ac('equity-europe', 'El IBEX 35 subió.', 'watch', ['ibex', 'stoxx'])],
+    })
+    assert.deepEqual(r.assetClasses, [
+      { key: 'equity-europe', label: 'equity-europe', aliases: ['stoxx', 'ibex'], note: 'El EURO STOXX 50 bajó. El IBEX 35 subió.', stance: 'caution' },
+      ac('cash', 'Sin noticias.', 'neutral'),
+    ])
+  })
+
+  it('una repetida no deja fuera a otra clase al recortar a 10', () => {
+    const keys = ['equity-global', 'equity-europe', 'equity-us', 'bonds-gov', 'bonds-corp', 'cash', 'gold', 'crypto', 'real-estate']
+    const items = [ac('equity-europe', 'Primera.', 'neutral'), ...keys.map((k) => ac(k, `Nota ${k}.`, 'neutral'))]
+    assert.deepEqual(parseMarketResearch({ ...research(), assetClasses: items }).assetClasses.map((a) => a.key).sort(), [...keys].sort())
+  })
+})
