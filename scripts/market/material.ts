@@ -142,4 +142,10 @@ REGLAS
 - Tono claro, tranquilo y comprensible; sin alarmismo ni jerga.
 - «warnings» debe incluir siempre: «Esta síntesis no es asesoramiento financiero» y «Datos de mercado con posible retraso».
 - «uncertainties» debe recoger lo que el material no permite saber (fuentes caídas, datos con retraso, periodos sin titulares).
+
+COBERTURA (la síntesis debe ser completa, sin inventar nada)
+- «events»: un evento por cada titular relevante del periodo (política monetaria, inflación, empleo, crecimiento, mercados, divisas, materias primas, regulación). Si hay titulares suficientes, al menos 5; agrupa en uno los titulares que traten de lo mismo.
+- «trends»: entre 2 y 4 tendencias que se apoyen en los indicadores o en varios titulares. Si el material solo permite una, pon una y explica en «uncertainties» por qué no hay más.
+- «assetClasses»: una entrada para CADA una de las 9 claves (equity-global, equity-europe, equity-us, bonds-gov, bonds-corp, cash, gold, crypto, real-estate). Si el material no dice nada de una clase, su nota lo indica con calma («sin noticias relevantes en el material de esta semana») y su stance es neutral.
+- «overview»: 3 a 5 frases que resuman los indicadores vigentes y los eventos principales.
 - Devuelve solo el JSON que exige el esquema; en «assetClasses», rellena «aliases» con palabras que puedan aparecer en el nombre de una posición de un usuario español (p. ej. «indexado», «msci world», «ibex», «bono», «cuenta remunerada», «oro», «bitcoin»).`

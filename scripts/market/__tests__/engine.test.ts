@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { AIProviderError, type AIRequest } from '../../../lib/axis/ai/provider'
 import { history, NOW, research } from '../../../lib/market/__tests__/fixtures'
-import { runDeepResearch, type DeepDeps } from '../deep'
+import { runDeepResearch, thinSynthesis, type DeepDeps } from '../deep'
 import { runLightCheck } from '../light'
 import { LIMITS } from '../limits'
 import { emptyLedger, recordAttempt } from '../budget'
@@ -11,7 +11,7 @@ import { createGroqProvider } from '../../../lib/ai/providers/groq'
 import type { Completion, MarketAIProvider } from '../../../lib/ai/providers/types'
 import { collectSources, type CollectedMaterial, type NamedSource } from '../sources'
 import { memoryStore } from '../store'
-import { compactMaterial } from '../material'
+import { compactMaterial, MARKET_SYSTEM_PROMPT } from '../material'
 import { freshnessOf } from '../../../lib/market/freshness'
 
 const ENV_OK = { MARKET_AI_ENABLED: 'true', GEMINI_API_KEY: 'k' }
@@ -32,9 +32,20 @@ function material(overrides: Partial<CollectedMaterial> = {}): CollectedMaterial
   }
 }
 
+const ALL_ASSET_KEYS = ['equity-global', 'equity-europe', 'equity-us', 'bonds-gov', 'bonds-corp', 'cash', 'gold', 'crypto', 'real-estate'] as const
+
+/** Síntesis con la cobertura mínima (`QUALITY`): las clases de activo de la fixture y el resto, neutrales. */
 function synthesis() {
   const r = research()
-  return { overview: r.overview, events: r.events, trends: r.trends, assetClasses: r.assetClasses, uncertainties: r.uncertainties, warnings: r.warnings }
+  const present = new Set(r.assetClasses.map((a) => a.key))
+  const rest = ALL_ASSET_KEYS.filter((k) => !present.has(k)).map((key) => ({ key, label: key, aliases: [key], note: 'Sin noticias relevantes en el material de esta semana.', stance: 'neutral' as const }))
+  return { overview: r.overview, events: r.events, trends: r.trends, assetClasses: [...r.assetClasses, ...rest], uncertainties: r.uncertainties, warnings: r.warnings }
+}
+
+/** Como la de Gemma el 17-10-2026: válida, pero con muy poca cobertura. */
+function thinSynthesisOutput() {
+  const s = synthesis()
+  return { ...s, events: s.events.slice(0, 1), assetClasses: s.assetClasses.slice(0, 2) }
 }
 
 function provider(id: string, impl: (req: AIRequest) => Promise<Completion>): MarketAIProvider & { calls: number } {
@@ -327,5 +338,68 @@ describe('proveedores (sin red)', () => {
     assert.match(sentBody, /"max_completion_tokens":6000/)
     const unauthorized = createGroqProvider({ apiKey: 'k', fetchImpl: fakeFetch(401, {}) })
     await assert.rejects(unauthorized.completeWithUsage(req, { maxOutputTokens: 100 }), (e: unknown) => e instanceof AIProviderError && e.kind === 'unavailable')
+  })
+})
+
+describe('investigación profunda · cobertura mínima', () => {
+  const thinProvider = (id: string) => provider(id, async () => ({ output: thinSynthesisOutput(), usage: { inputTokens: 1600, outputTokens: 500, totalTokens: 2100 } }))
+
+  it('síntesis pobre del principal → se prueba Groq y se publica la suya', async () => {
+    const store = memoryStore()
+    const primary = thinProvider('cloudflare')
+    const fallback = ok('groq')
+    const out = await runDeepResearch(deps({ store, providers: { primary, fallback } }))
+    assert.equal(out.status, 'published')
+    if (out.status !== 'published') return
+    assert.equal(out.provider, 'groq')
+    assert.equal(out.research.assetClasses.length, 9)
+    assert.equal(primary.calls, 1)
+    assert.equal(fallback.calls, 1)
+    const ledger = await store.readLedger()
+    assert.deepEqual(ledger?.attempts.map((a) => a.ok), [true, true], 'el principal sí respondió: su llamada cuenta como correcta')
+  })
+
+  it('síntesis pobre y Groq falla → se publica la pobre (mejor que la de la semana anterior)', async () => {
+    const store = memoryStore({ latest: research({ id: '2026-W36' }) })
+    const out = await runDeepResearch(deps({ store, providers: { primary: thinProvider('cloudflare'), fallback: failing('groq', 'rate-limit') } }))
+    assert.equal(out.status, 'published')
+    if (out.status !== 'published') return
+    assert.equal(out.provider, 'cloudflare')
+    assert.equal((await store.readLatest())?.id, '2026-W38')
+  })
+
+  it('síntesis pobre y el presupuesto no deja llamar a Groq → se publica la pobre, sin más llamadas', async () => {
+    let ledger = emptyLedger(NOW)
+    ledger = recordAttempt(ledger, { provider: 'x', reason: 'scheduled', newDeepResearch: false }, NOW) // queda 1 llamada
+    const store = memoryStore({ ledger })
+    const fallback = ok('groq')
+    const out = await runDeepResearch(deps({ store, providers: { primary: thinProvider('cloudflare'), fallback } }))
+    assert.equal(out.status, 'published')
+    assert.equal(fallback.calls, 0)
+  })
+
+  it('síntesis pobre sin fallback → se publica igualmente', async () => {
+    const out = await runDeepResearch(deps({ providers: { primary: thinProvider('groq'), fallback: null } }))
+    assert.equal(out.status, 'published')
+  })
+
+  it('una síntesis completa del principal no llama a Groq', async () => {
+    const fallback = ok('groq')
+    const out = await runDeepResearch(deps({ providers: { primary: ok('cloudflare'), fallback } }))
+    assert.equal(out.status === 'published' && out.provider, 'cloudflare')
+    assert.equal(fallback.calls, 0)
+  })
+
+  it('el mínimo de eventos nunca pide más que titulares haya', () => {
+    const r = { events: research().events.slice(0, 2), trends: research().trends, assetClasses: synthesis().assetClasses } as Parameters<typeof thinSynthesis>[0]
+    assert.equal(thinSynthesis(r, 2), null)
+    assert.equal(thinSynthesis(r, 40), '2/5 eventos')
+    assert.equal(thinSynthesis({ ...r, events: [], trends: [], assetClasses: [] }, 0), '0/1 tendencias, 0/6 clases de activo')
+  })
+
+  it('el prompt pide la cobertura: las 9 clases de activo y al menos 5 eventos si hay titulares, sin inventar', () => {
+    for (const key of ALL_ASSET_KEYS) assert.ok(MARKET_SYSTEM_PROMPT.includes(key), key)
+    assert.match(MARKET_SYSTEM_PROMPT, /al menos 5/)
+    assert.match(MARKET_SYSTEM_PROMPT, /sin inventar nada/)
   })
 })

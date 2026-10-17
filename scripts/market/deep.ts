@@ -16,7 +16,7 @@ import { MARKET_SYNTHESIS_SCHEMA } from '../../lib/market/schema'
 import type { MarketResearch } from '../../lib/market/types'
 import { parseMarketResearch } from '../../lib/market/validate'
 import { assertBudget, emptyLedger, isoWeek, recordAttempt, recordUsage, type BudgetLedger } from './budget'
-import { estimateTokens, LIMITS } from './limits'
+import { estimateTokens, LIMITS, QUALITY } from './limits'
 import { compactMaterial, MARKET_SYSTEM_PROMPT } from './material'
 import type { MarketAIProvider } from '../../lib/ai/providers/types'
 import { publishResearch } from './publish'
@@ -42,6 +42,17 @@ export type DeepOutcome =
 /** Material acotado también para el TPM del fallback (Groq ≈ 8K tokens/min). */
 const MAX_MATERIAL_CHARS = 20_000
 const FALLBACK_KINDS: ReadonlySet<AIProviderError['kind']> = new Set(['rate-limit', 'timeout', 'http', 'malformed', 'unavailable'])
+
+/** Qué le falta a una síntesis para la cobertura mínima (`QUALITY`); `null` si la cumple. */
+export function thinSynthesis(research: Pick<MarketResearch, 'events' | 'trends' | 'assetClasses'>, headlineCount: number): string | null {
+  const minEvents = Math.min(QUALITY.MIN_EVENTS, headlineCount)
+  const missing = [
+    research.events.length < minEvents ? `${research.events.length}/${minEvents} eventos` : null,
+    research.trends.length < QUALITY.MIN_TRENDS ? `${research.trends.length}/${QUALITY.MIN_TRENDS} tendencias` : null,
+    research.assetClasses.length < QUALITY.MIN_ASSET_CLASSES ? `${research.assetClasses.length}/${QUALITY.MIN_ASSET_CLASSES} clases de activo` : null,
+  ].filter((m): m is string => m !== null)
+  return missing.length > 0 ? missing.join(', ') : null
+}
 
 function periodFor(now: Date): { coversFrom: string; coversTo: string } {
   const to = now.toISOString().slice(0, 10)
@@ -92,6 +103,14 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
   const id = researchId(now, deps.reason, latest)
   const attempts: string[] = []
   const candidates = [primary, deps.providers.fallback].filter((p): p is MarketAIProvider => p !== null).slice(0, 1 + LIMITS.MAX_RETRIES)
+  // Síntesis válida pero por debajo de la cobertura mínima: se publica solo si el siguiente proveedor no da nada mejor.
+  let thin: { research: MarketResearch; provider: string } | null = null
+  const publishThin = async (): Promise<DeepOutcome | null> => {
+    if (!thin) return null
+    await publishResearch(store, thin.research)
+    log(`publicada ${thin.research.id} con ${thin.provider} (síntesis pobre: el siguiente proveedor no ha dado una mejor)`)
+    return { status: 'published', research: thin.research, provider: thin.provider }
+  }
 
   for (const provider of candidates) {
     // 7. Presupuesto de nuevo, con la estimación real (también para el fallback).
@@ -102,6 +121,8 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
     const decision = assertBudget(ledger, { ...check, estimatedInputTokens: estimated, newDeepResearch: first, eventResearch: isEvent && first }, now)
     if (!decision.allowed) {
       log(`bloqueado antes de ${provider.id}: ${decision.reason}`)
+      const fallbackPublished = await publishThin()
+      if (fallbackPublished) return fallbackPublished
       return attempts.length === 0 ? { status: 'blocked', reason: decision.reason } : { status: 'failed', reason: decision.reason, attempts }
     }
     // 8. Registrar el intento ANTES de llamar y persistirlo.
@@ -129,6 +150,13 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
         provider: { id: provider.id, model: provider.model },
         budget: { monthCalls: ledger.monthCalls, monthLimit: LIMITS.MAX_AI_REQUESTS_PER_MONTH },
       })
+      const missing = thinSynthesis(research, material.headlines.length)
+      if (missing && provider !== candidates[candidates.length - 1]) {
+        log(`síntesis pobre con ${provider.id} (${missing}); se prueba el siguiente proveedor`)
+        thin = { research, provider: provider.id }
+        continue
+      }
+      if (missing) log(`síntesis pobre con ${provider.id} (${missing}); no hay más proveedores`)
       // 10. Publicar.
       await publishResearch(store, research)
       log(`publicada ${research.id} con ${provider.id}`)
@@ -143,5 +171,5 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
       if (kind !== undefined && !FALLBACK_KINDS.has(kind)) break
     }
   }
-  return { status: 'failed', reason: 'todos los proveedores fallaron; se conserva la última investigación', attempts }
+  return (await publishThin()) ?? { status: 'failed', reason: 'todos los proveedores fallaron; se conserva la última investigación', attempts }
 }

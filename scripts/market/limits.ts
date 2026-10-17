@@ -27,6 +27,21 @@ export const LIMITS = Object.freeze({
   MAX_RETRIES: 1,
 })
 
+/**
+ * Cobertura mínima de una síntesis. Por debajo, se prueba el fallback (si queda
+ * y lo permite el presupuesto); si no hay fallback o falla, se publica igualmente
+ * la síntesis pobre: es mejor que conservar una de la semana anterior. El
+ * 17-10-2026 Gemma (Cloudflare) devolvió 2 eventos, 1 tendencia y 2 clases de
+ * activo, frente a 12, 3 y 9 de Groq con el mismo material.
+ */
+export const QUALITY = Object.freeze({
+  /** Eventos: al menos estos, o tantos como titulares haya si son menos. */
+  MIN_EVENTS: 5,
+  MIN_TRENDS: 1,
+  /** De las 9 clases de activo del esquema. */
+  MIN_ASSET_CLASSES: 6,
+})
+
 /** Estimación conservadora de tokens a partir de texto (≈ 3,5 caracteres/token + 20 % de margen). */
 export function estimateTokens(text: string): number {
   return Math.ceil((text.length / 3.5) * 1.2)
