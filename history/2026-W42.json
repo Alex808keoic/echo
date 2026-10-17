@@ -1,11 +1,11 @@
 {
   "id": "2026-W42",
   "kind": "deep",
-  "generatedAt": "2026-10-17T10:26:10.562Z",
+  "generatedAt": "2026-10-17T13:02:17.895Z",
   "coversFrom": "2026-10-10",
   "coversTo": "2026-10-17",
   "region": "eurozone",
-  "overview": "El periodo se caracteriza por una ligera subida del IBEX 35 y una caída en la media mensual del EURO STOXX 50. Los indicadores de inflación (IPC España y Eurozona) muestran incrementos respecto a sus valores anteriores en los datos de septiembre. La política monetaria del BCE mantiene la facilidad de depósito en el 2.5%.",
+  "overview": "El periodo muestra una presión inflacionista en España con un IPC interanual del 4.9 % en septiembre. En el ámbito monetario, la facilidad de depósito del BCE se sitúa en el 2.5 % y el Euríbor a 12 meses muestra un ligero ascenso al 3.217 %. Mientras el IBEX 35 presenta un crecimiento del 1.31 %, el EURO STOXX 50 ha experimentado una caída del 2.58 % en su media mensual de septiembre.",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -16,7 +16,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-17T10:26:10.573Z"
+      "fetchedAt": "2026-10-17T13:02:17.914Z"
     },
     {
       "key": "euribor-12m",
@@ -27,7 +27,7 @@
       "asOf": "2026-10-15",
       "changePct": 0.016,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-17T10:26:10.573Z"
+      "fetchedAt": "2026-10-17T13:02:17.914Z"
     },
     {
       "key": "ine-ipc",
@@ -38,7 +38,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-17T10:26:10.573Z"
+      "fetchedAt": "2026-10-17T13:02:17.914Z"
     },
     {
       "key": "ea-hicp",
@@ -49,7 +49,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "Eurostat",
-      "fetchedAt": "2026-10-17T10:26:10.573Z",
+      "fetchedAt": "2026-10-17T13:02:17.914Z",
       "publishedAt": "2026-10-16T21:00:00.000Z"
     },
     {
@@ -61,7 +61,7 @@
       "asOf": "2026-10-15",
       "changePct": 1.31,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-17T10:26:10.573Z"
+      "fetchedAt": "2026-10-17T13:02:17.914Z"
     },
     {
       "key": "stoxx50",
@@ -72,67 +72,188 @@
       "asOf": "2026-09",
       "changePct": -2.58,
       "source": "BCE",
-      "fetchedAt": "2026-10-17T10:26:10.573Z"
+      "fetchedAt": "2026-10-17T13:02:17.914Z"
     }
   ],
   "events": [
     {
       "date": "2026-10-17",
-      "title": "Christine Lagarde: IMFC Statement",
+      "title": "Declaración de Christine Lagarde ante el IMFC",
       "summary": "Christine Lagarde realiza una declaración ante el IMFC.",
       "impact": "medium",
-      "source": "BCE",
+      "source": "BCE · prensa",
       "affects": [
         "monetary-policy"
       ]
     },
     {
+      "date": "2026-09",
+      "title": "Aumento de la inflación en España",
+      "summary": "El IPC en España registró un incremento interanual del 4.9 %, lo que supone un aumento de 0.6 % respecto al periodo anterior.",
+      "impact": "medium",
+      "source": "INE",
+      "affects": [
+        "inflation"
+      ]
+    },
+    {
       "date": "2026-10-13",
-      "title": "Minutes of the Board's discount rate meetings",
-      "summary": "Publicación de las actas de las reuniones sobre el tipo de descuento de la Junta correspondientes a agosto y septiembre de 2026.",
-      "impact": "low",
-      "source": "Fed",
+      "title": "Publicación de actas de la Fed sobre tasas de descuento",
+      "summary": "La Reserva Federal publica las actas de las reuniones sobre la tasa de descuento de agosto y septiembre de 2026.",
+      "impact": "medium",
+      "source": "Fed · prensa",
       "affects": [
         "monetary-policy"
+      ]
+    },
+    {
+      "date": "2026-10-15",
+      "title": "Análisis de proyecciones macroeconómicas por el Banco de España",
+      "summary": "El Banco de España analiza las proyecciones macroeconómicas con agentes sociales y la comunidad académica en Valladolid.",
+      "impact": "low",
+      "source": "Banco de España · noticias",
+      "affects": [
+        "macroeconomics"
+      ]
+    },
+    {
+      "date": "2026-10-13",
+      "title": "La IA como oportunidad para Europa según Philip R. Lane",
+      "summary": "Philip R. Lane aborda la oportunidad que representa la Inteligencia Artificial para Europa.",
+      "impact": "low",
+      "source": "BCE · prensa",
+      "affects": [
+        "technology"
       ]
     }
   ],
   "trends": [
     {
-      "title": "Tendencia de la inflación",
-      "summary": "La inflación tanto en España como en la eurozona ha mostrado un aumento de 0.6 puntos porcentuales en los datos de septiembre de 2026 respecto al periodo anterior.",
+      "title": "Incremento de la inflación en la región",
+      "summary": "Tendencia al alza en los indicadores de inflación tanto en España (4.9 %) como en la eurozona (3.8 %), ambos con un incremento de 0.6 p.p. respecto al dato anterior.",
       "horizon": "months",
       "confidence": "media"
+    },
+    {
+      "title": "Comportamiento dispar en la renta variable europea",
+      "summary": "Divergencia en el comportamiento de los índices bursátiles europeos, con el IBEX 35 al alza (+1.31 %) frente a la caída del EURO STOXX 50 (-2.58 %).",
+      "horizon": "weeks",
+      "confidence": "alta"
     }
   ],
   "assetClasses": [
     {
-      "key": "equity-europe",
-      "label": "Renta Variable España",
+      "key": "equity-global",
+      "label": "Renta Variable Global",
       "aliases": [
-        "ibex",
-        "ibex 35",
-        "bolsa española"
+        "msci world",
+        "acciones globales",
+        "equity global"
       ],
-      "note": "El IBEX 35 ha subido un 1.31% según el dato del 2026-10-15.",
+      "note": "Sin noticias relevantes en el material de esta semana.",
       "stance": "neutral"
     },
     {
       "key": "equity-europe",
-      "label": "Renta Variable Europa",
+      "label": "Renta Variable Europea",
       "aliases": [
         "euro stoxx 50",
-        "msci stoxx",
-        "europa",
-        "indexado"
+        "acciones europeas",
+        "stoxx"
       ],
-      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58% respecto al periodo anterior (dato de 2026-09).",
+      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58 % respecto al dato anterior (septiembre 2026).",
       "stance": "caution"
+    },
+    {
+      "key": "equity-us",
+      "label": "Renta Variable EE. UU.",
+      "aliases": [
+        "s&p 500",
+        "nasdaq",
+        "acciones usa"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
+    },
+    {
+      "key": "equity-europe",
+      "label": "Renta Variable España",
+      "aliases": [
+        "ibex 35",
+        "acciones españa",
+        "ibex"
+      ],
+      "note": "El IBEX 35 cerró en 19177.7 pts el 15 de octubre de 2026, con un incremento del 1.31 % respecto al periodo anterior.",
+      "stance": "watch"
+    },
+    {
+      "key": "bonds-gov",
+      "label": "Renta Fija Pública",
+      "aliases": [
+        "bonos",
+        "deuda pública",
+        "soberanos"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
+    },
+    {
+      "key": "bonds-corp",
+      "label": "Renta Fija Corporativa",
+      "aliases": [
+        "bonos corporativos",
+        "deuda empresa"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
+    },
+    {
+      "key": "cash",
+      "label": "Efectivo",
+      "aliases": [
+        "cuenta remunerada",
+        "efectivo",
+        "depósitos"
+      ],
+      "note": "La facilidad de depósito del BCE se situó en el 2.5 % (dato de septiembre 2026), tras un incremento de 0.25 p.p.",
+      "stance": "neutral"
+    },
+    {
+      "key": "gold",
+      "label": "Oro",
+      "aliases": [
+        "oro",
+        "gold"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
+    },
+    {
+      "key": "crypto",
+      "label": "Criptoactivos",
+      "aliases": [
+        "bitcoin",
+        "crypto",
+        "cripto"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
+    },
+    {
+      "key": "real-estate",
+      "label": "Inmobiliario",
+      "aliases": [
+        "inmobiliario",
+        "ladrillo",
+        "real estate"
+      ],
+      "note": "Sin noticias relevantes en el material de esta semana.",
+      "stance": "neutral"
     }
   ],
   "uncertainties": [
-    "No se dispone de información actualizada sobre la evolución de la inflación para el mes de octubre.",
-    "El estado financiero consolidado del Eurosistema se reporta con fecha de 9 de octubre de 2026."
+    "No se dispone de datos actualizados sobre la evolución de la renta variable global o estadounidense en el material proporcionado.",
+    "La evolución de las tasas de interés de la Fed no se detalla más allá de la publicación de las actas."
   ],
   "warnings": [
     "Esta síntesis no es asesoramiento financiero",
@@ -142,61 +263,61 @@
     {
       "name": "BCE · Data Portal (DFR)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "official"
     },
     {
       "name": "Banco de España · mercado monetario",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_7.csv",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "official"
     },
     {
       "name": "BCE · Data Portal (Euríbor)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.RT.MM.EURIBOR1YD_.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "official"
     },
     {
       "name": "INE · IPC",
       "url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290750?nult=2&tip=A",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "official"
     },
     {
       "name": "Eurostat · HICP",
       "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=EA&coicop18=TOTAL&unit=RCH_A&lastTimePeriod=2&format=JSON",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "official"
     },
     {
       "name": "Banco de España · Bolsa de Madrid",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_6.csv",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "data"
     },
     {
       "name": "BCE · Data Portal (EURO STOXX 50)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.DS.EI.DJES50I.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "data"
     },
     {
       "name": "BCE · prensa",
       "url": "https://www.ecb.europa.eu/rss/press.html",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "news"
     },
     {
       "name": "Fed · prensa",
       "url": "https://www.federalreserve.gov/feeds/press_all.xml",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "news"
     },
     {
       "name": "Banco de España · noticias",
       "url": "https://www.bde.es/wbe/es/inicio/rss/rss-noticias/",
-      "retrievedAt": "2026-10-17T10:26:10.573Z",
+      "retrievedAt": "2026-10-17T13:02:17.914Z",
       "type": "news"
     }
   ],
@@ -206,7 +327,7 @@
     "model": "@cf/google/gemma-4-26b-a4b-it"
   },
   "budget": {
-    "monthCalls": 9,
+    "monthCalls": 10,
     "monthLimit": 20
   }
 }
