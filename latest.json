@@ -1,11 +1,11 @@
 {
   "id": "2026-W42",
   "kind": "deep",
-  "generatedAt": "2026-10-14T14:32:52.390Z",
-  "coversFrom": "2026-10-07",
-  "coversTo": "2026-10-14",
+  "generatedAt": "2026-10-17T10:26:10.562Z",
+  "coversFrom": "2026-10-10",
+  "coversTo": "2026-10-17",
   "region": "eurozone",
-  "overview": "En la última semana se ha registrado una ligera subida de la inflación en España (IPC 4,9 % interanual) y en la zona euro (HICP 3,8 % provisional). Los tipos de interés a corto plazo han aumentado modestamente (Euríbor 12 meses 3,191 %). Los principales índices bursátiles europeos mostraron retrocesos (IBEX 35 -1,2 %, Euro Stoxx 50 -2,58 %). Se han publicado múltiples comunicaciones de bancos centrales (BCE, Fed, Banco de España) centradas en la resiliencia del sistema financiero, la digitalización del euro y la política monetaria reciente.",
+  "overview": "El periodo se caracteriza por una ligera subida del IBEX 35 y una caída en la media mensual del EURO STOXX 50. Los indicadores de inflación (IPC España y Eurozona) muestran incrementos respecto a sus valores anteriores en los datos de septiembre. La política monetaria del BCE mantiene la facilidad de depósito en el 2.5%.",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -16,7 +16,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z"
     },
     {
       "key": "euribor-12m",
@@ -27,7 +27,7 @@
       "asOf": "2026-10-15",
       "changePct": 0.016,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z"
     },
     {
       "key": "ine-ipc",
@@ -38,7 +38,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z"
     },
     {
       "key": "ea-hicp",
@@ -49,8 +49,8 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "Eurostat",
-      "publishedAt": "2026-10-16T09:00:00.000Z",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z",
+      "publishedAt": "2026-10-16T21:00:00.000Z"
     },
     {
       "key": "ibex",
@@ -61,7 +61,7 @@
       "asOf": "2026-10-15",
       "changePct": 1.31,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z"
     },
     {
       "key": "stoxx50",
@@ -72,271 +72,67 @@
       "asOf": "2026-09",
       "changePct": -2.58,
       "source": "BCE",
-      "fetchedAt": "2026-10-16T12:38:06.799Z"
+      "fetchedAt": "2026-10-17T10:26:10.573Z"
     }
   ],
   "events": [
     {
-      "date": "2026-10-14",
-      "title": "Banco de España – DG Economía. CREO 2026. Incertidumbre, transformación y resiliencia",
-      "summary": "El Director General de Economía presenta la visión CREO 2026, destacando la incertidumbre macroeconómica, la transformación estructural y la necesidad de resiliencia en la economía española.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "equity-europe",
-        "bonds-gov",
-        "cash"
-      ]
-    },
-    {
-      "date": "2026-10-14",
-      "title": "Banco de España – Entrevista al director general de Operaciones, Mercados y Sistemas de Pago",
-      "summary": "Entrevista sobre la evolución de los sistemas de pago y el proyecto del euro digital en España.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "cash",
-        "crypto"
-      ]
-    },
-    {
-      "date": "2026-10-14",
-      "title": "BCE – Frank Elderson: Ensuring resilience in the face of uncertainty",
-      "summary": "Discurso del miembro del Consejo del BCE sobre la importancia de reforzar la resiliencia del sistema financiero ante la incertidumbre global.",
+      "date": "2026-10-17",
+      "title": "Christine Lagarde: IMFC Statement",
+      "summary": "Christine Lagarde realiza una declaración ante el IMFC.",
       "impact": "medium",
       "source": "BCE",
       "affects": [
-        "bonds-gov",
-        "equity-global"
+        "monetary-policy"
       ]
     },
     {
       "date": "2026-10-13",
-      "title": "BCE – Philip R. Lane: The AI opportunity for Europe",
-      "summary": "El vicepresidente del BCE analiza el potencial de la inteligencia artificial para la competitividad europea y su posible impacto macroeconómico.",
+      "title": "Minutes of the Board's discount rate meetings",
+      "summary": "Publicación de las actas de las reuniones sobre el tipo de descuento de la Junta correspondientes a agosto y septiembre de 2026.",
       "impact": "low",
-      "source": "BCE",
-      "affects": [
-        "equity-global",
-        "equity-us"
-      ]
-    },
-    {
-      "date": "2026-10-13",
-      "title": "Fed – Minutes of the Board's discount rate meetings (Aug‑Sep 2026)",
-      "summary": "Actas del Comité de la Fed que discuten la política de la tasa de descuento y posibles ajustes futuros.",
-      "impact": "high",
       "source": "Fed",
       "affects": [
-        "bonds-gov",
-        "cash",
-        "equity-us"
-      ]
-    },
-    {
-      "date": "2026-10-13",
-      "title": "Banco de España – Estado financiero consolidado del Eurosistema a 9 oct 2026",
-      "summary": "Publicación del balance consolidado del Eurosistema, mostrando la posición de liquidez y reservas del bloque.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "bonds-gov",
-        "cash"
-      ]
-    },
-    {
-      "date": "2026-10-09",
-      "title": "Fed – Survey of Consumer Finances 2025 results",
-      "summary": "Resultados de la encuesta que describen la situación financiera de los hogares estadounidenses, con énfasis en endeudamiento y ahorro.",
-      "impact": "medium",
-      "source": "Fed",
-      "affects": [
-        "equity-us",
-        "bonds-corp",
-        "cash"
-      ]
-    },
-    {
-      "date": "2026-10-09",
-      "title": "Banco de España – Proyecciones macroeconómicas de España, T3 2026",
-      "summary": "Pronósticos del Banco de España para el tercer trimestre de 2026, incluyendo crecimiento del PIB y evolución de la inflación.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "equity-europe",
-        "bonds-gov"
-      ]
-    },
-    {
-      "date": "2026-10-09",
-      "title": "Banco de España – David López Salido. Proyecciones macroeconómicas e informe trimestral",
-      "summary": "Presentación del informe trimestral con datos de actividad económica y perspectivas a corto plazo.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "equity-europe",
-        "bonds-gov"
-      ]
-    },
-    {
-      "date": "2026-10-09",
-      "title": "Banco de España – David López Salido. CREO 2026",
-      "summary": "Exposición de la estrategia CREO 2026, centrada en la innovación y la sostenibilidad económica.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "equity-europe",
-        "cash"
-      ]
-    },
-    {
-      "date": "2026-10-09",
-      "title": "Banco de España – Juan Ayuso. Conferencia: \"El euro digital\"",
-      "summary": "Debate sobre la implantación y los retos del euro digital en el sistema de pagos español.",
-      "impact": "medium",
-      "source": "Banco de España",
-      "affects": [
-        "cash",
-        "crypto"
-      ]
-    },
-    {
-      "date": "2026-10-08",
-      "title": "Fed – Enforcement action against American Express",
-      "summary": "La Fed anuncia medidas regulatorias contra American Express por fallos en la detección de actividades sospechosas de lavado de dinero.",
-      "impact": "medium",
-      "source": "Fed",
-      "affects": [
-        "equity-us",
-        "cash"
+        "monetary-policy"
       ]
     }
   ],
   "trends": [
     {
-      "title": "Inflación en España",
-      "summary": "El IPC interanual de septiembre 2026 se situó en 4,9 % (+0,6 % respecto al mes anterior), indicando una presión inflacionaria superior a la meta del BCE.",
-      "horizon": "months",
-      "confidence": "media"
-    },
-    {
-      "title": "Mercados bursátiles europeos",
-      "summary": "IBEX 35 cerró el 13 oct a 19.210,7 puntos (-1,2 %) y el Euro Stoxx 50 mensual cayó 2,58 %, reflejando una tendencia bajista en la zona euro.",
-      "horizon": "weeks",
-      "confidence": "media"
-    },
-    {
-      "title": "Tipos de interés a corto plazo",
-      "summary": "El Euríbor a 12 meses subió a 3,191 % (+0,014 p.p.) y la facilidad de depósito del BCE se mantuvo en 2,5 % (+0,25 p.p. respecto a la última revisión).",
+      "title": "Tendencia de la inflación",
+      "summary": "La inflación tanto en España como en la eurozona ha mostrado un aumento de 0.6 puntos porcentuales en los datos de septiembre de 2026 respecto al periodo anterior.",
       "horizon": "months",
       "confidence": "media"
     }
   ],
   "assetClasses": [
     {
-      "key": "equity-global",
-      "label": "Acciones globales",
+      "key": "equity-europe",
+      "label": "Renta Variable España",
       "aliases": [
-        "global",
-        "msci world",
-        "acciones globales"
+        "ibex",
+        "ibex 35",
+        "bolsa española"
       ],
-      "note": "Los principales índices globales presentan leves retrocesos, con incertidumbre por la inflación.",
-      "stance": "caution"
+      "note": "El IBEX 35 ha subido un 1.31% según el dato del 2026-10-15.",
+      "stance": "neutral"
     },
     {
       "key": "equity-europe",
-      "label": "Acciones Europa",
+      "label": "Renta Variable Europa",
       "aliases": [
-        "europe",
-        "eurostoxx",
-        "ibex",
-        "acciones europeas"
+        "euro stoxx 50",
+        "msci stoxx",
+        "europa",
+        "indexado"
       ],
-      "note": "IBEX y Euro Stoxx 50 en descenso; la política monetaria restrictiva afecta al sector.",
+      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58% respecto al periodo anterior (dato de 2026-09).",
       "stance": "caution"
-    },
-    {
-      "key": "equity-us",
-      "label": "Acciones EE.UU.",
-      "aliases": [
-        "us",
-        "s&p 500",
-        "nasdaq",
-        "acciones us"
-      ],
-      "note": "Los minutos de la Fed indican posible ajuste de tipos, lo que puede generar volatilidad.",
-      "stance": "watch"
-    },
-    {
-      "key": "bonds-gov",
-      "label": "Bonos soberanos",
-      "aliases": [
-        "bono",
-        "bonos gobierno",
-        "bonos soberanos"
-      ],
-      "note": "Rendimientos al alza por el aumento del Euríbor y la política del BCE.",
-      "stance": "neutral"
-    },
-    {
-      "key": "bonds-corp",
-      "label": "Bonos corporativos",
-      "aliases": [
-        "bono corporativo",
-        "bonos empresa"
-      ],
-      "note": "Sin cambios significativos; la encuesta SESFOD sugiere condiciones de crédito estables.",
-      "stance": "neutral"
-    },
-    {
-      "key": "cash",
-      "label": "Efectivo y depósitos",
-      "aliases": [
-        "efectivo",
-        "cuenta remunerada",
-        "depositos"
-      ],
-      "note": "Tipos de depósito del BCE al 2,5 % ofrecen rentabilidad moderada.",
-      "stance": "neutral"
-    },
-    {
-      "key": "gold",
-      "label": "Oro",
-      "aliases": [
-        "oro",
-        "gold"
-      ],
-      "note": "Sin datos específicos en el periodo analizado.",
-      "stance": "neutral"
-    },
-    {
-      "key": "crypto",
-      "label": "Criptomonedas",
-      "aliases": [
-        "bitcoin",
-        "crypto",
-        "criptomoneda"
-      ],
-      "note": "Discusión sobre el euro digital y acciones regulatorias en EE.UU. mantienen la atención en el sector.",
-      "stance": "watch"
-    },
-    {
-      "key": "real-estate",
-      "label": "Inmobiliario",
-      "aliases": [
-        "inmobiliario",
-        "real estate",
-        "bienes raíces"
-      ],
-      "note": "No se han publicado indicadores relevantes en la última semana.",
-      "stance": "neutral"
     }
   ],
   "uncertainties": [
-    "La cifra de inflación de la zona euro (HICP 3,8 %) es una estimación provisional de septiembre 2026.",
-    "Posibles cambios futuros en la facilidad de depósito del BCE tras la próxima reunión de política monetaria.",
-    "Impacto real del euro digital en la demanda de efectivo y pagos digitales aún no está cuantificado."
+    "No se dispone de información actualizada sobre la evolución de la inflación para el mes de octubre.",
+    "El estado financiero consolidado del Eurosistema se reporta con fecha de 9 de octubre de 2026."
   ],
   "warnings": [
     "Esta síntesis no es asesoramiento financiero",
@@ -346,71 +142,71 @@
     {
       "name": "BCE · Data Portal (DFR)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "official"
     },
     {
       "name": "Banco de España · mercado monetario",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_7.csv",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "official"
     },
     {
       "name": "BCE · Data Portal (Euríbor)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.RT.MM.EURIBOR1YD_.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "official"
     },
     {
       "name": "INE · IPC",
       "url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290750?nult=2&tip=A",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "official"
     },
     {
       "name": "Eurostat · HICP",
       "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=EA&coicop18=TOTAL&unit=RCH_A&lastTimePeriod=2&format=JSON",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "official"
     },
     {
       "name": "Banco de España · Bolsa de Madrid",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_6.csv",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "data"
     },
     {
       "name": "BCE · Data Portal (EURO STOXX 50)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.DS.EI.DJES50I.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "data"
     },
     {
       "name": "BCE · prensa",
       "url": "https://www.ecb.europa.eu/rss/press.html",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "news"
     },
     {
       "name": "Fed · prensa",
       "url": "https://www.federalreserve.gov/feeds/press_all.xml",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "news"
     },
     {
       "name": "Banco de España · noticias",
       "url": "https://www.bde.es/wbe/es/inicio/rss/rss-noticias/",
-      "retrievedAt": "2026-10-14T14:32:52.413Z",
+      "retrievedAt": "2026-10-17T10:26:10.573Z",
       "type": "news"
     }
   ],
   "failedSources": [],
   "provider": {
-    "id": "groq:openai/gpt-oss-120b",
-    "model": "openai/gpt-oss-120b"
+    "id": "cloudflare:@cf/google/gemma-4-26b-a4b-it",
+    "model": "@cf/google/gemma-4-26b-a4b-it"
   },
   "budget": {
-    "monthCalls": 8,
+    "monthCalls": 9,
     "monthLimit": 20
   }
 }
