@@ -406,9 +406,15 @@ redacta y pasa la misma validación.
 - **Plan de reparto** (`plan/`): `buildAllocationPlan(decision)` → colchón
   («Fondo de emergencia»), objetivos a ≤ 24 meses y un 20/40/60 % a largo plazo
   según el riesgo, solo como categoría. Pantalla «Tu plan»; el chat lo explica.
-- **Guía para invertir** (`guide/`): fichas de tipos de producto, «Revisar una
-  opción» (`fit.ts`) y cómo comprobar entidades autorizadas. Sin marcas ni
-  «cómpralo». El chat la usa cuando el mensaje nombra un tipo de producto.
+- **Guía para invertir** (`guide/`): 8 familias (ahorro seguro, renta fija,
+  fondos, ETF, compañías, materias primas, inmobiliario, cripto) con sus tipos
+  de producto (`products.ts`), encaje de cada tipo con el plan (`fit.ts`) y
+  qué familia y tipo encajan mejor (`recommend.ts`, por reglas). Cada tipo
+  puede llevar `examples` (activos, índices, sectores; nunca quien los vende):
+  solo se ven en la pantalla, con el aviso de que no son recomendaciones, y
+  nunca llegan al chat ni al modelo. AXIS recomienda familia y tipo, nunca un
+  producto o empresa concretos ni «cómpralo». El chat la usa cuando el mensaje
+  nombra un tipo de producto.
 - **Resumen semanal** (`brief/`): `buildWeeklyBrief` determinista + redacción
   opcional (`POST /api/axis { mode:'weekly-brief' }`) validada y cacheada por firma.
 - **Tono** (`coaching.ts`): firme, celebrar, animar o sereno, decidido por reglas.

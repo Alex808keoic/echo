@@ -8,7 +8,9 @@ import assert from 'node:assert/strict'
 import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
 import { productFit } from '../guide/fit'
-import { AUTHORIZED_SERVICES, matchProductTypes, OFFICIAL_LINKS, PRODUCT_TYPES, type ProductType } from '../guide/products'
+import { chatGuideOf, guideForPrompt } from '../guide/chat'
+import { AUTHORIZED_SERVICES, INVESTMENT_GROUPS, matchProductTypes, OFFICIAL_LINKS, PRODUCT_TYPES, type ProductType } from '../guide/products'
+import { recommendGuide } from '../guide/recommend'
 import { buildAllocationPlan, CUSHION_OBJECTIVE_NAME } from '../plan/allocation'
 import type { MemoryFact } from '../profile/types'
 import type { Movement, Objective } from '../../types'
@@ -89,9 +91,11 @@ describe('encaje con el plan', () => {
 })
 
 describe('sin cruzar la línea', () => {
-  const allText = JSON.stringify({ PRODUCT_TYPES, AUTHORIZED_SERVICES, OFFICIAL_LINKS }) + JSON.stringify(PRODUCT_TYPES.map((p) => productFit(p, setup(800_000, PROFILE).plan, setup(800_000, PROFILE).profile)))
+  // Todo lo que escribe Finax salvo los ejemplos, que solo enseñan qué existe (ver abajo).
+  const withoutExamples = PRODUCT_TYPES.map(({ examples: _examples, ...rest }) => rest)
+  const allText = JSON.stringify({ withoutExamples, INVESTMENT_GROUPS, AUTHORIZED_SERVICES, OFFICIAL_LINKS }) + JSON.stringify(PRODUCT_TYPES.map((p) => productFit(p, setup(800_000, PROFILE).plan, setup(800_000, PROFILE).profile)))
 
-  it('ninguna marca, gestora, bróker ni producto concreto', () => {
+  it('fuera de los ejemplos: ninguna marca, gestora, bróker ni producto concreto', () => {
     // Palabras completas: «indexa» (una gestora) no es «indexado».
     assert.doesNotMatch(allText, /\b(vanguard|ishares|amundi|blackrock|indexa|myinvestor|finizens|trade republic|degiro|revolut|binance|coinbase|nasdaq)\b|s&p 500/i)
   })
@@ -99,6 +103,24 @@ describe('sin cruzar la línea', () => {
   it('ninguna orden de compra o venta dirigida al usuario', () => {
     // «se compra y vende en bolsa» o «un fondo que invierte» describen; lo que no puede haber son órdenes.
     assert.doesNotMatch(allText, /cómpralo|véndelo|te recomiendo (comprar|invertir|vender)|deberías (comprar|invertir|vender)|\baprovecha\b|\bcompra ya\b/i)
+  })
+
+  it('los ejemplos nunca nombran a quien vende: ni gestoras, ni brókers, ni bancos, ni exchanges, ni plataformas', () => {
+    const examples = JSON.stringify(PRODUCT_TYPES.map((p) => p.examples ?? []))
+    assert.doesNotMatch(examples, /\b(vanguard|ishares|amundi|blackrock|xtrackers|spdr|indexa|myinvestor|finizens|trade republic|degiro|interactive brokers|revolut|binance|coinbase|kraken|santander|bbva|caixabank|openbank|urbanitae|housers)\b/i)
+    assert.doesNotMatch(examples, /cómpralo|te recomiendo|deberías/i)
+  })
+
+  it('los ejemplos nunca llegan al chat ni al modelo', () => {
+    const decision = decide({ context: buildFinancialContext(snapshot({ config: config(800_000), movements: history3() }), TODAY) })
+    const guide = chatGuideOf('Estoy mirando acciones de dividendo y bitcoin', decision)
+    assert.ok(guide)
+    assert.deepEqual(guide.types.map((t) => t.id), ['acciones-dividendo', 'cripto'])
+    const prompt = JSON.stringify(guideForPrompt(guide))
+    // «Bitcoin» es el nombre del propio tipo («Bitcoin y Ethereum»); lo que no puede llegar son los ejemplos de dentro.
+    const inside = guide.types.flatMap((t) => (t.examples ?? []).filter((e) => !t.name.includes(e)))
+    assert.ok(inside.length > 0)
+    for (const e of inside) assert.ok(!prompt.includes(e), e)
   })
 
   it('solo enlaces a organismos oficiales', () => {
@@ -114,5 +136,51 @@ describe('reconocer tipos de producto en un texto', () => {
     assert.deepEqual(matchProductTypes('¿Cómo voy este mes?'), [])
     // «oro» no es «ahorro»: solo palabras completas.
     assert.deepEqual(matchProductTypes('Quiero ahorrar más'), [])
+  })
+
+  it('la palabra más concreta gana: «ETF de bonos» no es también un ETF mundial ni un bono suelto', () => {
+    assert.deepEqual(matchProductTypes('¿Qué tal un ETF de bonos?').map((p) => p.id), ['etf-bonos'])
+    assert.deepEqual(matchProductTypes('Bonos de empresas o bonos del Estado').map((p) => p.id), ['bonos-estado', 'bonos-empresa'])
+    assert.deepEqual(matchProductTypes('¿Y las SOCIMI?').map((p) => p.id), ['socimi'])
+    // Un gasto en café no es una pregunta de inversión.
+    assert.deepEqual(matchProductTypes('Hoy me he gastado 3 € en café'), [])
+  })
+})
+
+describe('familias de la guía', () => {
+  it('cada tipo pertenece a una familia, cada familia tiene tipos y no hay ids repetidos', () => {
+    const ids = new Set(INVESTMENT_GROUPS.map((g) => g.id))
+    for (const p of PRODUCT_TYPES) assert.ok(ids.has(p.group), p.id)
+    for (const g of INVESTMENT_GROUPS) assert.ok(PRODUCT_TYPES.some((p) => p.group === g.id), g.id)
+    assert.equal(new Set(PRODUCT_TYPES.map((p) => p.id)).size, PRODUCT_TYPES.length)
+  })
+})
+
+describe('qué familia y qué tipo recomienda AXIS', () => {
+  const rec = (s: ReturnType<typeof setup>) => recommendGuide(s.plan, s.profile)
+
+  it('colchón completo y perfil: fondos (indexado) y, para lo cercano, ahorro seguro', () => {
+    const r = rec(setup(800_000, PROFILE))
+    assert.equal(r.lead.group.id, 'fondos')
+    assert.equal(r.lead.type.id, 'fondo-indexado')
+    assert.equal(r.lead.fit.verdict, 'fits')
+    assert.equal(r.shortTerm?.group.id, 'ahorro')
+    assert.equal(r.groups.find((g) => g.group.id === 'etf')?.best.type.id, 'etf')
+  })
+
+  it('compañías, materias primas, inmobiliario y cripto nunca llegan a «encaja contigo»', () => {
+    const r = rec(setup(800_000, PROFILE))
+    for (const id of ['acciones', 'materias', 'inmobiliario', 'cripto']) assert.notEqual(r.groups.find((g) => g.group.id === id)?.best.fit.verdict, 'fits', id)
+  })
+
+  it('colchón a medias: primero ahorro seguro', () => {
+    const r = rec(setup(100_000, PROFILE))
+    assert.equal(r.lead.group.id, 'ahorro')
+    assert.equal(r.lead.fit.verdict, 'fits-short-term')
+    assert.equal(r.shortTerm, null)
+  })
+
+  it('plan bloqueado: ninguna recomendación', () => {
+    assert.equal(rec(setup(-50_000, PROFILE)).lead.fit.verdict, 'not-now')
   })
 })

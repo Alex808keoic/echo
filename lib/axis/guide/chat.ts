@@ -8,7 +8,7 @@ import { extractFigures, type AllowedFigure } from '../core/figures'
 import { buildAllocationPlan } from '../plan/allocation'
 import type { AxisDecision } from '../types'
 import { productFit, type ProductFit } from './fit'
-import { matchProductTypes, RISK_LABEL, type ProductType } from './products'
+import { groupById, matchProductTypes, RISK_LABEL, type ProductType } from './products'
 
 /** Como mucho tantos tipos por mensaje (el resto, en la pantalla de la guía). */
 export const MAX_GUIDE_TYPES = 2
@@ -28,7 +28,8 @@ export function chatGuideOf(message: string, decision: AxisDecision): ChatGuide 
 /** Bloque `guia_para_invertir` del prompt del chat. */
 export function guideForPrompt({ types, fits }: ChatGuide) {
   return {
-    tipos: types.map((t) => ({ nombre: t.name, que_es: t.what, para_que: t.goodFor, riesgo: RISK_LABEL[t.risk], plazo: t.horizon, como_compararlo: t.compare, tener_en_cuenta: t.warnings })),
+    // Sin `examples`: los ejemplos de la guía solo se ven en la pantalla, nunca llegan al modelo.
+    tipos: types.map((t) => ({ nombre: t.name, familia: groupById(t.group).name, que_es: t.what, para_que: t.goodFor, riesgo: RISK_LABEL[t.risk], plazo: t.horizon, como_compararlo: t.compare, tener_en_cuenta: t.warnings })),
     encaje_con_su_plan: fits.map((f) => ({ producto: f.product, veredicto: f.headline, motivos: f.reasons, comprobar: f.checks })),
     como_usarlo:
       'Es la guía de Finax: información general sobre el TIPO de producto y si encaja con su plan. Explícalo con tus palabras usando solo esto. Nunca le digas que compre, venda o invierta en él, ni nombres marcas, fondos, gestoras ni brókers concretos. Si quiere una recomendación concreta, dile que solo puede dársela una entidad autorizada (CNMV o Banco de España) y que en «Guía para invertir» tiene cómo comprobarlo.',

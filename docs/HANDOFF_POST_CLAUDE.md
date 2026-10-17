@@ -116,7 +116,7 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
 
 ### Invariantes nuevas (además de §15)
 
-- **Nunca recomendar productos, entidades, marcas ni momentos de compra o venta.** Solo categorías y encaje con el plan. La guía tiene un test que lo comprueba.
+- **Nunca recomendar productos, entidades, marcas ni momentos de compra o venta.** Solo categorías y encaje con el plan. La guía tiene un test que lo comprueba. Excepción decidida por el usuario el 2026-10-17: la pantalla de la guía enseña `examples` de lo que existe (empresas, índices, criptomonedas…) con el aviso de que no son recomendaciones; nunca nombran a quien vende y nunca llegan al chat ni al modelo (tests en `investment-guide.test.ts`).
 - **Objetivos:** el reparto automático es la única fuente del progreso. Nada (ni AXIS, ni el chat, ni la UI) aporta a mano.
 - **Previsiones** (ingreso recurrente): nunca se presentan ni se suman como dinero actual.
 - **Hechos de perfil del chat:** manda el extractor determinista (`gateProposalFact`), no el modelo. `adult` solo viene del cuestionario.

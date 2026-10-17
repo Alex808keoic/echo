@@ -39,7 +39,8 @@ const ok = (text: string, i: ChatInput) => validateChatReply(asReply(text), buil
 describe('el modelo recibe la guía solo si se nombra un tipo de producto', () => {
   it('«¿Qué es un ETF?»: ficha y encaje con su plan', () => {
     const g = payloadOf(input('¿Qué es un ETF?')).guia_para_invertir
-    assert.equal(g.tipos[0].nombre, 'ETF')
+    assert.equal(g.tipos[0].nombre, 'ETF de índice mundial')
+    assert.equal(g.tipos[0].familia, 'ETF')
     assert.equal(g.encaje_con_su_plan[0].veredicto, 'Encaja con tu parte a largo plazo')
     assert.match(g.como_usarlo, /Nunca le digas que compre/)
   })
