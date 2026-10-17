@@ -122,6 +122,8 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
 - **Hechos de perfil del chat:** manda el extractor determinista (`gateProposalFact`), no el modelo. `adult` solo viene del cuestionario.
 - **Tarjetas de acción y consultas:** las calcula y ejecuta Finax. Como mucho, una consulta (dos llamadas) por mensaje.
 - **Mercado:** solo los indicadores `fresh` se presentan con valor. Las cifras de la lectura de la investigación no licencian nada.
+- **Movimientos puntuales** (2026-10-17, `Movement.puntual`): son dinero real (líquido, patrimonio, objetivos), pero no entran en el gasto ni en el ahorro habituales ni en las comparaciones entre meses (`regularExpenseCents`, `decidingChangePct` en `rules/shared.ts`). Gastar más de lo que entra solo por algo puntual da `expenses.one-off`, no `expenses.over-income`. Los meses solo llevan `oneOff*Cents` cuando hay puntuales: sin ellos, contexto y goldens no cambian.
+- **Todas las memorias cuentan en «Tu plan»** (decidido por el usuario el 2026-10-17): los 7 tipos de dato con reglas (`recurringIncome` hace un plan provisional con un solo mes cerrado y se marca como previsión; `priorities` añade un aviso, nunca reordena). Las notas de texto libre **nunca** deciden: el plan pide convertirlas en un dato con confirmación del usuario («Usar en tu plan», `chat/note-conversion.ts`, sugerencia por reglas fijas) o marcarlas con «No cuenta para el plan» (`UserMemory.planIgnored`).
 
 ---
 

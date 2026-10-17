@@ -49,6 +49,11 @@ export interface UserMemory {
    * Campo opcional y sin índice: no exige versión nueva de Dexie.
    */
   fact?: MemoryFact
+  /**
+   * Nota (sin `fact`) que el usuario ha marcado como «No cuenta para el plan»:
+   * el plan deja de pedir que la convierta. Solo se guarda cuando es `true`.
+   */
+  planIgnored?: true
 }
 
 /** Propuesta de memoria que AXIS hace en una respuesta; solo se guarda si el usuario acepta. */

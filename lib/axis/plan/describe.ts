@@ -9,7 +9,7 @@ import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, LONG_TERM_CATEGORY, type AllocationPlan, type PlanStep } from './allocation'
 
 /** Lo que la pantalla puede hacer desde un paso. */
-export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money'
+export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories'
 
 export interface StepView {
   title: string
@@ -47,7 +47,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
     case 'register-data':
       return {
         title: 'Faltan datos para preparar tu plan',
-        detail: `Necesito al menos ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos para saber cuánto gastas y ahorras. Faltan ${plural(step.monthsNeeded, 'mes', 'meses')}.`,
+        detail: `Necesito al menos ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos para saber cuánto gastas y ahorras. ${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')}.`,
         action: { kind: 'register-data', label: 'Registrar movimientos' },
       }
     case 'create-cushion':
@@ -94,6 +94,29 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         title: 'Responde «Tu perfil» para saber qué parte invertir',
         detail: 'Con tus plazos y cómo llevas el riesgo, el plan puede proponerte una parte para el largo plazo.',
         action: { kind: 'answer-profile', label: 'Responder' },
+      }
+    case 'forecast-basis':
+      return {
+        title: 'Plan provisional con tu ingreso previsto',
+        detail: `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos lo que gastaste en tu último mes completo (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`,
+        note: `${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')} para que el plan salga de tus datos reales.`,
+        action: { kind: 'register-data', label: 'Registrar movimientos' },
+      }
+    case 'follow-priority': {
+      const name = (id: string) => objectives.find((o) => o.id === id)?.name ?? 'otro objetivo'
+      const ahead = step.aheadIds.map((id) => `«${name(id)}»`)
+      return {
+        title: `Dijiste que «${name(step.objectiveId)}» es tu prioridad`,
+        detail: `En el reparto va en el ${step.rank}.º lugar: antes recibe${ahead.length === 1 ? '' : 'n'} dinero ${ahead.join(', ')}. Si sigue siendo lo primero para ti, súbelo en Objetivos.`,
+        action: { kind: 'review-objectives', label: 'Ordenar objetivos' },
+      }
+    }
+    case 'review-notes':
+      return {
+        title: step.count === 1 ? 'Tienes 1 nota que tu plan todavía no usa' : `Tienes ${step.count} notas que tu plan todavía no usa`,
+        detail:
+          'El plan solo cambia con datos concretos, no con texto libre. Convierte cada nota en un dato (ingreso, mínimo líquido, plazo, riesgo…) o en un objetivo para que cuente; si alguna no tiene que ver con tu dinero, márcala como que no cuenta.',
+        action: { kind: 'review-memories', label: 'Revisar notas' },
       }
   }
 }

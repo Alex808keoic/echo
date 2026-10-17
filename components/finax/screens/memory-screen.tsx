@@ -5,7 +5,7 @@ import { groupMemories, memoryDate, type MemoryView } from '@/lib/axis/chat/memo
 import type { UserMemory } from '@/lib/axis/chat/types'
 import { describeFact } from '@/lib/axis/profile/describe'
 import type { MemoryFact } from '@/lib/axis/profile/types'
-import { deleteUserMemory, listUserMemories } from '@/lib/db/axis-memories'
+import { deleteUserMemory, listUserMemories, setNotePlanIgnored } from '@/lib/db/axis-memories'
 import { listObjectives } from '@/lib/db/objectives'
 import { SubPageHeader, IconButton } from '../page-header'
 import { FinancialCard } from '../card'
@@ -15,6 +15,7 @@ import { Confirm } from '../confirm'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { MemoryForm } from '../forms/memory-form'
+import { ConvertNoteForm } from '../forms/convert-note-form'
 import { ProfileForm } from '../forms/profile-form'
 import { deriveProfile } from '@/lib/axis/profile/derive'
 import { answeredCount, PROFILE_QUESTIONS } from '@/lib/axis/profile/questionnaire'
@@ -39,6 +40,8 @@ export function MemoryScreen({ onBack }: ScreenProps) {
   // Los datos del cuestionario (horizonte, riesgo, ingresos, edad) se cambian desde el cuestionario.
   const openEdit = (m: UserMemory) =>
     m.fact && PROFILE_QUESTIONS.some((q) => q.id === m.fact?.kind) ? openProfile() : open('Editar memoria', <MemoryForm memory={m} memories={memories} onDone={close} />)
+  const openConvert = (m: UserMemory) => open('Usar en tu plan', <ConvertNoteForm note={m} memories={memories} onDone={close} />)
+  const togglePlan = (m: UserMemory) => void setNotePlanIgnored(m.id, m.planIgnored !== true)
   const confirmDelete = (v: MemoryView) =>
     open(
       '¿Eliminar esta memoria?',
@@ -78,7 +81,7 @@ export function MemoryScreen({ onBack }: ScreenProps) {
       ) : (
         <>
           {facts.length > 0 && <Section title="Datos que tengo en cuenta" items={facts} onEdit={openEdit} onDelete={confirmDelete} />}
-          {notes.length > 0 && <Section title="Notas" items={notes} onEdit={openEdit} onDelete={confirmDelete} />}
+          {notes.length > 0 && <Section title="Notas" items={notes} onEdit={openEdit} onDelete={confirmDelete} onConvert={openConvert} onTogglePlan={togglePlan} />}
           <Button variant="secondary" fullWidth onClick={openNew} icon={<PlusIcon className="h-4 w-4" />}>
             Añadir memoria
           </Button>
@@ -96,7 +99,17 @@ export function MemoryScreen({ onBack }: ScreenProps) {
   )
 }
 
-function Section({ title, items, onEdit, onDelete }: { title: string; items: MemoryView[]; onEdit: (m: UserMemory) => void; onDelete: (v: MemoryView) => void }) {
+interface SectionProps {
+  title: string
+  items: MemoryView[]
+  onEdit: (m: UserMemory) => void
+  onDelete: (v: MemoryView) => void
+  /** Solo en las notas: convertirlas en un dato para el plan, o marcar que no cuentan. */
+  onConvert?: (m: UserMemory) => void
+  onTogglePlan?: (m: UserMemory) => void
+}
+
+function Section({ title, items, onEdit, onDelete, onConvert, onTogglePlan }: SectionProps) {
   return (
     <section>
       <h2 className="mb-3 text-[17px] font-bold tracking-tight text-grafito">{title}</h2>
@@ -109,7 +122,12 @@ function Section({ title, items, onEdit, onDelete }: { title: string; items: Mem
                 {v.sourceLabel} · {memoryDate(v.memory)}
               </p>
               <p className="text-[12.5px] font-medium leading-snug text-grafito/75 text-pretty">{v.usage}</p>
-              <div className="flex items-center gap-4 pt-1">
+              {onConvert && v.memory.planIgnored !== true && (
+                <Button variant="secondary" fullWidth onClick={() => onConvert(v.memory)}>
+                  Usar en tu plan
+                </Button>
+              )}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
                 {v.editable && (
                   <button type="button" onClick={() => onEdit(v.memory)} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                     Editar
@@ -123,6 +141,11 @@ function Section({ title, items, onEdit, onDelete }: { title: string; items: Mem
                   <TrashIcon className="h-3.5 w-3.5" />
                   Eliminar
                 </button>
+                {onTogglePlan && (
+                  <button type="button" onClick={() => onTogglePlan(v.memory)} className="text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:underline">
+                    {v.memory.planIgnored ? 'Volver a tenerla en cuenta' : 'No cuenta para el plan'}
+                  </button>
+                )}
               </div>
             </FinancialCard>
           </li>

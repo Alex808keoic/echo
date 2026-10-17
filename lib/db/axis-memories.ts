@@ -81,6 +81,15 @@ export async function resolveMemoryProposal(
   return outcome.action === 'rejected' ? 'rejected' : 'accepted'
 }
 
+/** Marca o desmarca una nota como «No cuenta para el plan». Una memoria con dato no se marca. */
+export async function setNotePlanIgnored(id: string, ignored: boolean): Promise<void> {
+  await db.transaction('rw', db.axisMemories, async () => {
+    const memory = await db.axisMemories.get(id)
+    if (!memory || memory.fact !== undefined) return
+    await db.axisMemories.update(id, { planIgnored: ignored ? true : undefined })
+  })
+}
+
 export async function deleteUserMemory(id: string): Promise<void> {
   await db.axisMemories.delete(id)
 }

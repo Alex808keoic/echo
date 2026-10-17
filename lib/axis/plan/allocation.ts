@@ -22,7 +22,7 @@
  * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
-import { regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
+import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
 
@@ -58,12 +58,22 @@ export type PlanStep =
   | { kind: 'invest-long-term'; monthlyCents: number; pct: number; category: typeof LONG_TERM_CATEGORY; adult: boolean | null }
   | { kind: 'rest-to-objectives'; monthlyCents: number }
   | { kind: 'answer-profile' }
+  /** Plan provisional: el ahorro sale del ingreso fijo previsto, no de meses registrados. */
+  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number }
+  /** La prioridad que declaraste no va la primera del reparto (después del colchón). */
+  | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
+  /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
+  | { kind: 'review-notes'; count: number }
 
 export interface AllocationPlan {
   status: 'ready' | 'blocked'
   blocker: PlanBlocker | null
-  /** Ahorro habitual al mes (mediana de los meses cerrados) y gasto habitual; `null` sin datos suficientes. */
-  monthly: { savingsCents: number; spendingCents: number; months: number } | null
+  /**
+   * Ahorro habitual al mes (mediana de los meses cerrados) y gasto habitual; `null` sin datos suficientes.
+   * `forecast` solo existe en un plan provisional: el ahorro es el ingreso fijo previsto menos el gasto
+   * del único mes cerrado. `recurringIncomeCents` solo existe si has declarado un ingreso fijo.
+   */
+  monthly: { savingsCents: number; spendingCents: number; months: number; forecast?: true; recurringIncomeCents?: number } | null
   cushion: {
     /** Objetivo «Fondo de emergencia» activo, si existe. */
     objectiveId: string | null
@@ -85,6 +95,21 @@ const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normalize(o.name) === normalize(CUSHION_OBJECTIVE_NAME)
 
+/**
+ * Prioridad declarada (memoria `priorities`): si su primer objetivo no es el
+ * primero del reparto después del colchón, el plan lo dice. Nunca reordena: el
+ * orden lo cambia el usuario en Objetivos.
+ */
+function priorityStep(decision: AxisDecision, active: readonly ObjectiveContext[]): PlanStep[] {
+  const declared = prioritiesOf(decision.profile.fields)
+  if (!declared) return []
+  const order = active.filter((o) => !isCushionObjective(o) && !o.completed).sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
+  const index = order.findIndex((o) => o.id === declared.ids[0])
+  if (index <= 0) return []
+  const target = order[index]
+  return [{ kind: 'follow-priority', objectiveId: target.id, rank: target.rank ?? index + 1, aheadIds: order.slice(0, index).map((o) => o.id) }]
+}
+
 /** Mediana del ahorro (ingresos − gastos) de los mismos meses que el gasto habitual. */
 function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): number | null {
   if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
@@ -93,9 +118,16 @@ function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): num
   return values.length % 2 === 1 ? values[mid] : Math.floor((values[mid - 1] + values[mid]) / 2)
 }
 
-export function buildAllocationPlan(decision: AxisDecision): AllocationPlan {
+export interface PlanOptions {
+  /** Notas de AXIS (memorias sin dato) que el usuario no ha convertido ni descartado. Solo las conoce el dispositivo. */
+  pendingNotes?: number
+}
+
+export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions = {}): AllocationPlan {
   const ctx = decision.context
   const profile = decision.profile.fields
+  const declaredIncome = recurringIncomesOf(profile)
+  const notesStep: PlanStep[] = options.pendingNotes && options.pendingNotes > 0 ? [{ kind: 'review-notes', count: options.pendingNotes }] : []
   const ids = new Set(decision.signals.map((s) => s.id))
   const noLongTerm = (reason: LongTermReason) => ({ pct: 0, monthlyCents: 0, reason })
   const blocked = (blocker: PlanBlocker, steps: PlanStep[], monthly: AllocationPlan['monthly'] = null): AllocationPlan => ({
@@ -114,11 +146,23 @@ export function buildAllocationPlan(decision: AxisDecision): AllocationPlan {
   const months = usualExpenseMonths(ctx.flows.closedMonths)
   const spending = usualMonthlyExpense(ctx.flows.closedMonths)
   const savings = usualMonthlySavings(months)
+  const monthsNeeded = Math.max(1, MIN_USUAL_EXPENSE_MONTHS - months.length)
+  const leading: PlanStep[] = []
+  let monthly: NonNullable<AllocationPlan['monthly']>
   if (decision.level === 'none' || spending === null || savings === null) {
-    return blocked('insufficient-data', [{ kind: 'register-data', monthsNeeded: Math.max(1, MIN_USUAL_EXPENSE_MONTHS - months.length) }])
+    // Con un ingreso fijo declarado y al menos un mes cerrado, plan provisional: ese ingreso menos el gasto
+    // de ese mes. Es una previsión: se dice en el plan y nunca se suma al dinero real.
+    const last = months[0]
+    if (decision.level === 'none' || !declaredIncome || !last) {
+      return blocked('insufficient-data', [{ kind: 'register-data', monthsNeeded }, ...notesStep])
+    }
+    const lastSpending = Math.ceil(regularExpenseCents(last) / 100) * 100
+    monthly = { savingsCents: euros(declaredIncome.monthlyCents - lastSpending), spendingCents: lastSpending, months: months.length, forecast: true, recurringIncomeCents: declaredIncome.monthlyCents }
+    leading.push({ kind: 'forecast-basis', recurringIncomeCents: declaredIncome.monthlyCents, spendingCents: lastSpending, monthsNeeded })
+  } else {
+    monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }
-  const monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length }
-  if (monthly.savingsCents <= 0) return blocked('no-surplus', [{ kind: 'reduce-spending' }], monthly)
+  if (monthly.savingsCents <= 0) return blocked('no-surplus', [{ kind: 'reduce-spending' }, ...leading, ...notesStep], monthly)
 
   // 1. Colchón.
   const active = ctx.objectives.filter((o) => o.status !== 'achieved')
@@ -130,7 +174,7 @@ export function buildAllocationPlan(decision: AxisDecision): AllocationPlan {
   const objectiveTarget = cushionObjective?.targetCents ?? 0
   const source: NonNullable<AllocationPlan['cushion']>['source'] =
     cushionObjective && objectiveTarget >= declaredMin ? 'objective' : profile.minLiquidityCents !== undefined ? 'min-liquidity' : 'months'
-  const targetCents = source === 'objective' ? objectiveTarget : source === 'min-liquidity' ? declaredMin : spending * cushionMonths
+  const targetCents = source === 'objective' ? objectiveTarget : source === 'min-liquidity' ? declaredMin : monthly.spendingCents * cushionMonths
   const isFirst = cushionObjective !== null && cushionObjective.rank === 1
   // Con el colchón el primero del reparto, recibe el líquido antes que nada.
   const remainingCents = Math.max(0, targetCents - Math.max(0, ctx.wealth.liquidCents))
@@ -141,7 +185,9 @@ export function buildAllocationPlan(decision: AxisDecision): AllocationPlan {
   else if (!isFirst) steps.push({ kind: 'move-cushion-first', objectiveId: cushionObjective.id })
 
   const needsProfile = profile.riskAttitude === undefined || profile.horizon === undefined
-  const withProfileStep = (plan: AllocationPlan): AllocationPlan => (needsProfile ? { ...plan, steps: [...plan.steps, { kind: 'answer-profile' }] } : plan)
+  // Detrás de los importes: de dónde sale el plan si es provisional, tu prioridad, el perfil y las notas pendientes.
+  const tail: PlanStep[] = [...leading, ...priorityStep(decision, active), ...(needsProfile ? [{ kind: 'answer-profile' as const }] : []), ...notesStep]
+  const withProfileStep = (plan: AllocationPlan): AllocationPlan => (tail.length > 0 ? { ...plan, steps: [...plan.steps, ...tail] } : plan)
 
   if (remainingCents > 0) {
     const monthlyCents = Math.min(monthly.savingsCents, euros(remainingCents) || remainingCents)

@@ -13,6 +13,10 @@ import { TrashIcon } from '../icons'
 
 interface ObjectiveFormProps {
   objective?: Objective
+  /** Valores iniciales al crear (p. ej. desde una nota de AXIS). */
+  initial?: { name?: string; target?: string }
+  /** Tras crear el objetivo y antes de `onDone` (p. ej. borrar la nota que lo origina). */
+  onCreated?: () => Promise<void>
   onDone: () => void
 }
 
@@ -26,9 +30,9 @@ interface Errors {
  * Alta y edición de objetivos de ahorro: nombre, meta y fecha. No hay cantidad
  * actual: el progreso se calcula solo con tu dinero líquido y el orden.
  */
-export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
-  const [name, setName] = useState(objective?.name ?? '')
-  const [target, setTarget] = useState(objective ? centsToInputValue(objective.targetCents) : '')
+export function ObjectiveForm({ objective, initial, onCreated, onDone }: ObjectiveFormProps) {
+  const [name, setName] = useState(objective?.name ?? initial?.name ?? '')
+  const [target, setTarget] = useState(objective ? centsToInputValue(objective.targetCents) : (initial?.target ?? ''))
   const [date, setDate] = useState(objective?.targetDate ?? '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
@@ -49,7 +53,11 @@ export function ObjectiveForm({ objective, onDone }: ObjectiveFormProps) {
     const input: ObjectiveInput = { name, targetCents, targetDate: date || undefined }
     setBusy(true)
     setSaveError(null)
-    const result = await attemptWrite(() => (objective ? updateObjective(objective.id, input) : addObjective(input)))
+    const result = await attemptWrite(async () => {
+      if (objective) return updateObjective(objective.id, input)
+      await addObjective(input)
+      await onCreated?.()
+    })
     setBusy(false)
     if (result.ok) onDone()
     else setSaveError(result.message)

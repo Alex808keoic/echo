@@ -46,6 +46,10 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
         return onNavigate('estadisticas')
       case 'review-money':
         return onNavigate('dinero')
+      case 'review-objectives':
+        return onNavigate('objetivos')
+      case 'review-memories':
+        return onNavigate('memoria')
     }
   }
 
@@ -113,7 +117,13 @@ function MonthlySummary({ plan }: { plan: AllocationPlan }) {
           <p className="mt-0.5 whitespace-nowrap text-[18px] font-bold tabular-nums text-grafito">{formatCents(monthly.spendingCents)}</p>
         </div>
       </div>
-      <p className="text-[11.5px] font-medium leading-snug text-muted-foreground">Lo habitual en tus últimos {monthly.months} meses completos.</p>
+      <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
+        {monthly.forecast
+          ? 'Previsión: tu ingreso fijo previsto menos lo que gastaste en tu último mes completo.'
+          : `Lo habitual en tus últimos ${monthly.months} meses completos, sin lo puntual.`}
+        {!monthly.forecast && monthly.recurringIncomeCents !== undefined &&
+          ` Tu ingreso previsto (${formatCents(monthly.recurringIncomeCents)} al mes) no se suma: mandan tus datos registrados.`}
+      </p>
       {total > 0 && (
         <div className="space-y-2">
           <div className="flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={segments.map((s) => `${s.label}: ${formatCents(s.cents)}`).join(', ')}>

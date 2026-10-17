@@ -149,25 +149,28 @@ export const SOURCE_LABEL: Record<MemorySource, string> = { conversation: 'De un
 /**
  * Qué hace AXIS con cada tipo de memoria. Solo lo que es cierto en el código
  * actual: el ingreso recurrente solo entra en previsiones (fase 5), nunca en
- * cifras reales.
+ * cifras reales; todos los datos cuentan en «Tu plan»; las notas, no.
  */
-export function memoryUsage(fact: MemoryFact | undefined): string {
+export function memoryUsage(fact: MemoryFact | undefined, planIgnored = false): string {
   switch (fact?.kind) {
     case undefined:
-      return 'AXIS puede usar esta información como contexto cuando conversa contigo.'
+      return planIgnored
+        ? 'AXIS puede usar esta información como contexto cuando conversa contigo. Has indicado que no cuenta para tu plan.'
+        : 'AXIS puede usar esta información como contexto cuando conversa contigo, pero tu plan no cambia con texto libre: conviértela en un dato para que cuente.'
     case 'recurringIncome':
-      return 'AXIS lo usa como previsión: estima cuánto tardarías en alcanzar tus objetivos y te avisa si en el mes no hay ingresos registrados. No se suma a tu saldo ni a tus ingresos registrados; cuando recibas el dinero, regístralo en Movimientos.'
+      return 'AXIS lo usa como previsión: estima cuánto tardarías en alcanzar tus objetivos y te avisa si en el mes no hay ingresos registrados. Mientras te falten meses con datos, tu plan lo usa para un plan provisional. No se suma a tu saldo ni a tus ingresos registrados; cuando recibas el dinero, regístralo en Movimientos.'
     case 'minLiquidity':
-      return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero líquido baja de esta cifra, te propone completar ese colchón antes que otros fines.'
+      return 'AXIS lo tiene en cuenta al recomendarte: si tu dinero líquido baja de esta cifra, te propone completar ese colchón antes que otros fines. En tu plan es la meta mínima de tu «Fondo de emergencia».'
     case 'irregularIncome':
-      return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. Se cambia desde «Tu perfil».'
+      return 'AXIS lo tiene en cuenta al leer tus ingresos: compara un mes con otro con más cautela. En tu plan, con ingresos que cambian, el colchón es de 6 meses de gasto en vez de 3. Se cambia desde «Tu perfil».'
     case 'priorities':
-      return 'Ya no cambia el orden de tus objetivos: AXIS sigue el orden que tienen en Finax, que es el que usa el reparto automático. Es una memoria antigua: se puede borrar, pero no editar.'
+      return 'AXIS no cambia el orden de tus objetivos: sigue el que tienen en Finax, que es el que usa el reparto automático. Tu plan te avisa si este objetivo no va el primero, para que lo subas tú en Objetivos. Se puede borrar, pero no editar.'
     case 'horizon':
+      return 'En las lecturas de AXIS solo matiza cómo te explica la inversión. En tu plan decide si hay parte a largo plazo: con menos de 2 años, ninguna. Se cambia desde «Tu perfil».'
     case 'riskAttitude':
-      return 'AXIS solo lo usa para matizar cómo te explica algunas lecturas de inversión; no cambia sus recomendaciones. Se cambia desde «Tu perfil».'
+      return 'En las lecturas de AXIS solo matiza cómo te explica la inversión. En tu plan decide qué parte de lo que te sobra va al largo plazo: 20 % si prefieres no arriesgar, 40 % equilibrado y 60 % dinámico. Se cambia desde «Tu perfil».'
     case 'adult':
-      return 'AXIS no lo usa para decidir nada: solo para explicarte bien la parte de inversión. Se cambia desde «Tu perfil».'
+      return 'AXIS no lo usa para decidir nada: en tu plan solo cambia cómo se explica la parte de inversión (si eres menor, la haría un adulto a tu nombre). Se cambia desde «Tu perfil».'
   }
 }
 
@@ -188,7 +191,7 @@ export function groupMemories(memories: UserMemory[], describe: (fact: MemoryFac
     return {
       memory,
       title: memory.fact ? describe(memory.fact) : memory.content,
-      usage: memoryUsage(memory.fact),
+      usage: memoryUsage(memory.fact, memory.planIgnored === true),
       source,
       sourceLabel: SOURCE_LABEL[source],
       editable: editableKind(memory) !== null,

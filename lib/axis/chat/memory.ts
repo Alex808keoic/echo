@@ -170,9 +170,18 @@ export function applyProposal(memories: UserMemory[], proposal: MemoryProposal, 
 
   if (plan.mode === 'update' && plan.target) {
     // El hecho anterior no sobrevive salvo que la propuesta traiga uno: el hecho debe corresponder al texto aceptado.
-    const { fact: _previous, ...rest } = plan.target
+    // Con un dato deja de ser una nota: la marca «No cuenta para el plan» ya no aplica.
+    const { fact: _previous, planIgnored: _ignored, ...rest } = plan.target
     void _previous
-    const updated: UserMemory = { ...rest, content, category: proposal.category, importance: proposal.importance, confidence, updatedAt: now, ...(fact ? { fact } : {}) }
+    const updated: UserMemory = {
+      ...rest,
+      content,
+      category: proposal.category,
+      importance: proposal.importance,
+      confidence,
+      updatedAt: now,
+      ...(fact ? { fact } : _ignored ? { planIgnored: _ignored } : {}),
+    }
     const gone = new Set(plan.removed.map((m) => m.id))
     return {
       action: 'updated',
@@ -211,7 +220,7 @@ export function trimMemories(memories: UserMemory[], max: number = CHAT_LIMITS.M
 
 /* ---------------------- importación (copia de seguridad) ---------------------- */
 
-const MEMORY_KEYS = new Set(['id', 'content', 'category', 'importance', 'confidence', 'source', 'createdAt', 'updatedAt', 'fact'])
+const MEMORY_KEYS = new Set(['id', 'content', 'category', 'importance', 'confidence', 'source', 'createdAt', 'updatedAt', 'fact', 'planIgnored'])
 const MAX_MEMORY_ID_CHARS = 64
 
 /**
@@ -260,6 +269,7 @@ function importedMemory(v: unknown): UserMemory | null {
   if (source !== 'conversation' && source !== 'manual') return null
   if (!Number.isSafeInteger(createdAt) || !Number.isSafeInteger(updatedAt) || (createdAt as number) < 0 || (updatedAt as number) < 0) return null
   if (fact !== undefined && !isValidMemoryFact(fact)) return null
+  if (r.planIgnored !== undefined && r.planIgnored !== true) return null
   return {
     id,
     content,
@@ -270,7 +280,13 @@ function importedMemory(v: unknown): UserMemory | null {
     createdAt: createdAt as number,
     updatedAt: updatedAt as number,
     ...(fact !== undefined ? { fact: fact as MemoryFact } : {}),
+    ...(r.planIgnored === true && fact === undefined ? { planIgnored: true as const } : {}),
   }
+}
+
+/** Notas (memorias sin dato) que el plan todavía no puede usar: ni convertidas ni marcadas como «No cuenta para el plan». */
+export function pendingPlanNotes(memories: readonly UserMemory[]): UserMemory[] {
+  return memories.filter((m) => m.fact === undefined && m.planIgnored !== true)
 }
 
 /** Vista de la memoria para el modelo: solo lo necesario para razonar y para poder actualizarla (id). */

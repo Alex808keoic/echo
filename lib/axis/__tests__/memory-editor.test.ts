@@ -233,7 +233,11 @@ describe('memoria · agrupación y explicaciones', () => {
     assert.match(income, /regístralo en Movimientos/)
     assert.match(memoryUsage(LIQ(50_000)), /recomendarte/)
     assert.match(memoryUsage(undefined), /contexto cuando conversa contigo/)
-    assert.match(memoryUsage({ kind: 'horizon', value: 'long' }), /no cambia sus recomendaciones/)
+    assert.match(memoryUsage(undefined), /tu plan no cambia con texto libre/)
+    assert.match(memoryUsage(undefined, true), /no cuenta para tu plan/)
+    assert.match(memoryUsage({ kind: 'horizon', value: 'long' }), /solo matiza/)
+    assert.match(memoryUsage({ kind: 'horizon', value: 'long' }), /En tu plan decide si hay parte a largo plazo/)
+    assert.match(memoryUsage({ kind: 'riskAttitude', value: 'balanced' }), /20 %.*40 %.*60 %/)
   })
 })
 

@@ -34,6 +34,8 @@ export function planForPrompt({ plan, steps }: ChatPlan) {
   return {
     estado: plan.status === 'ready' ? 'listo' : 'bloqueado',
     ...(plan.monthly ? { ahorro_habitual_al_mes: plan.monthly.savingsCents / 100, gasto_habitual_al_mes: plan.monthly.spendingCents / 100 } : {}),
+    // Plan provisional: el ahorro es una previsión con el ingreso fijo declarado, nunca dinero real.
+    ...(plan.monthly?.forecast ? { ahorro_es_prevision: true } : {}),
     invierte_este_mes: plan.longTerm.monthlyCents > 0,
     pasos: steps.map((s, i) => ({
       orden: i + 1,
