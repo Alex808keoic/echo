@@ -131,7 +131,7 @@ export const THRESHOLDS = {
  */
 
 /** Meses cerrados con datos que hacen falta como mínimo para estimar el gasto habitual. */
-export const MIN_USUAL_EXPENSE_MONTHS = 3
+export const MIN_USUAL_EXPENSE_MONTHS = 2
 /** Meses cerrados con datos que se miran como mucho (los más recientes). */
 export const MAX_USUAL_EXPENSE_MONTHS = 6
 /** Por encima de esto, una previsión se expresa como «más de 10 años». */
@@ -153,7 +153,7 @@ export function usualExpenseMonths(closedMonths: readonly ClosedMonth[] | undefi
 
 /**
  * Gasto habitual: mediana del gasto de los últimos hasta 6 meses CERRADOS con
- * datos (el mes en curso nunca entra), con un mínimo de 3. Con un número par
+ * datos (el mes en curso nunca entra), con un mínimo de `MIN_USUAL_EXPENSE_MONTHS`. Con un número par
  * de meses, media de los dos centrales. Redondeado a euros enteros hacia
  * arriba, como `requiredMonthlyCents`. Sin meses suficientes, `null`: nunca se
  * inventa un gasto.

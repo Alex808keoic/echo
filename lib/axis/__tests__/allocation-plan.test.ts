@@ -50,11 +50,19 @@ const PROFILE: MemoryFact[] = [
 ]
 
 describe('bloqueos: lo que AXIS ya ha decidido que va primero', () => {
-  it('menos de 3 meses cerrados → registrar datos, sin reparto', () => {
+  it('menos de 2 meses cerrados → registrar datos, sin reparto', () => {
     const p = planFor({ movements: healthyMovements() })
     assert.equal(p.status, 'blocked')
     assert.equal(p.blocker, 'insufficient-data')
-    assert.deepEqual(p.steps, [{ kind: 'register-data', monthsNeeded: 2 }])
+    assert.deepEqual(p.steps, [{ kind: 'register-data', monthsNeeded: 1 }])
+  })
+
+  it('con 2 meses cerrados ya hay plan (y la guía puede usarlo)', () => {
+    const twoMonths = [...['07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 200_000), gasto(`2026-${m}-10`, 100_000)]), ingreso('2026-09-01', 200_000)]
+    const p = planFor({ movements: twoMonths, facts: PROFILE })
+    assert.equal(p.status, 'ready')
+    assert.equal(p.monthly?.months, 2)
+    assert.equal(p.monthly?.spendingCents, 100_000)
   })
 
   it('líquido negativo → volver a positivo, nada más', () => {

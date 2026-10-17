@@ -4,6 +4,7 @@
  * Nunca nombra productos: la inversión es una categoría.
  */
 import { formatCents } from '../../money'
+import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, LONG_TERM_CATEGORY, type AllocationPlan, type PlanStep } from './allocation'
 
@@ -46,7 +47,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
     case 'register-data':
       return {
         title: 'Faltan datos para preparar tu plan',
-        detail: `Necesito al menos 3 meses completos con movimientos para saber cuánto gastas y ahorras. Faltan ${plural(step.monthsNeeded, 'mes', 'meses')}.`,
+        detail: `Necesito al menos ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos para saber cuánto gastas y ahorras. Faltan ${plural(step.monthsNeeded, 'mes', 'meses')}.`,
         action: { kind: 'register-data', label: 'Registrar movimientos' },
       }
     case 'create-cushion':

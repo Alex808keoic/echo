@@ -4,7 +4,7 @@
  * permita y nunca usa el mercado.
  *
  *   0. Bloqueos (de la decisión y de los datos): líquido negativo, gasto mayor
- *      que ingresos, ahorro habitual ≤ 0 o menos de 3 meses cerrados. El plan
+ *      que ingresos, ahorro habitual ≤ 0 o menos de `MIN_USUAL_EXPENSE_MONTHS` meses cerrados. El plan
  *      no reparte nada: el primer paso es ese.
  *   1. Colchón = objetivo «Fondo de emergencia», el primero del reparto. Meta:
  *      la del objetivo si existe (editable); si no, tu mínimo líquido

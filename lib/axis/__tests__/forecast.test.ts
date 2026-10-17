@@ -83,6 +83,10 @@ describe('previsión · meses cerrados', () => {
 /* ------------------------------- gasto habitual ------------------------------ */
 
 describe('previsión · gasto habitual', () => {
+  it('mediana con 2 meses (el mínimo): media de los dos, redondeada a euros hacia arriba', () => {
+    assert.equal(usualMonthlyExpense([month('2026-08', 2_000), month('2026-07', 2_150)]), 2_100)
+  })
+
   it('mediana con 3 meses', () => {
     assert.equal(usualMonthlyExpense([month('2026-08', 2_000), month('2026-07', 2_100), month('2026-06', 1_900)]), 2_000)
   })
@@ -102,15 +106,15 @@ describe('previsión · gasto habitual', () => {
   })
 
   it('los meses sin movimientos no cuentan', () => {
-    assert.equal(usualMonthlyExpense([month('2026-08', 0, 0), month('2026-07', 0, 0), month('2026-06', 2_000), month('2026-05', 2_000)]), null)
+    assert.equal(usualMonthlyExpense([month('2026-08', 0, 0), month('2026-07', 0, 0), month('2026-06', 0, 0), month('2026-05', 2_000)]), null)
   })
 
   it('el mes en curso nunca entra (aunque tenga un gasto enorme)', () => {
     assert.equal(usualMonthlyExpense(ctx().flows.closedMonths), 2_100, 'abril–agosto: 1.900, 2.000, 2.100, 2.200, 12.000 → 21,00 €')
   })
 
-  it('menos de 3 meses → null, sin inventar gasto', () => {
-    assert.equal(usualMonthlyExpense([month('2026-08', 2_000), month('2026-07', 2_000)]), null)
+  it('menos de 2 meses → null, sin inventar gasto', () => {
+    assert.equal(usualMonthlyExpense([month('2026-08', 2_000)]), null)
     assert.equal(usualMonthlyExpense([]), null)
     assert.equal(usualMonthlyExpense(undefined), null, 'un contexto antiguo sin closedMonths')
   })
@@ -118,7 +122,7 @@ describe('previsión · gasto habitual', () => {
   it('redondeo a euros enteros hacia arriba y nunca negativo; datos raros se descartan', () => {
     assert.equal(usualMonthlyExpense([month('2026-08', 1_901), month('2026-07', 1_901), month('2026-06', 1_901)]), 2_000)
     assert.equal(usualMonthlyExpense([month('2026-08', 0), month('2026-07', 0), month('2026-06', 0)]), 0)
-    assert.equal(usualMonthlyExpense([month('2026-08', -500), month('2026-07', 1.5), month('2026-06', 2_000), month('2026-05', 2_000)]), null, 'solo 2 meses válidos')
+    assert.equal(usualMonthlyExpense([month('2026-08', -500), month('2026-07', 1.5), month('2026-06', 2_000)]), null, 'solo 1 mes válido')
   })
 })
 
