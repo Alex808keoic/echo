@@ -100,9 +100,63 @@ export function projectScenario(amountCents: number, a: GrowthAssumption, years:
   return { years, badCents: valueAt(amountCents, a, years, -Z90), midCents: valueAt(amountCents, a, years, 0), goodCents: valueAt(amountCents, a, years, Z90) }
 }
 
-/** Serie año a año (0…years) de cada escenario, para la gráfica. */
+/** Serie mes a mes (0…years·12) de cada escenario, para la gráfica y para leerla al tocar. */
 export function scenarioSeries(amountCents: number, a: GrowthAssumption, years: number): ScenarioResult[] {
-  return Array.from({ length: years + 1 }, (_, y) => projectScenario(amountCents, a, y))
+  return Array.from({ length: years * 12 + 1 }, (_, m) => projectScenario(amountCents, a, m / 12))
+}
+
+/** PRNG pequeño y determinista (mulberry32): el mismo tipo dibuja siempre el mismo camino. */
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function seedOf(text: string): number {
+  let h = 2166136261
+  for (const c of text) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
+  return h >>> 0
+}
+
+/**
+ * Un camino POSIBLE mes a mes, solo para que la gráfica se parezca a cómo se
+ * mueve de verdad una inversión (sube y baja), no una previsión. Paseo
+ * aleatorio con la volatilidad del tipo, determinista por `seedKey`, y
+ * «puente»: empieza en lo que pones y termina exactamente en «lo normal», así
+ * que no inventa un resultado distinto de los tres escenarios.
+ */
+export function scenarioPath(amountCents: number, a: GrowthAssumption, years: number, seedKey: string): number[] {
+  const months = years * 12
+  const mu = Math.log(1 + a.mu / 100)
+  const step = a.sigma / 100 / Math.sqrt(12)
+  const random = mulberry32(seedOf(`${seedKey}:${years}`))
+  const walk = [0]
+  for (let m = 1; m <= months; m++) {
+    // Normal estándar (Box-Muller); 1 - random() evita log(0).
+    const z = Math.sqrt(-2 * Math.log(1 - random())) * Math.cos(2 * Math.PI * random())
+    walk.push(walk[m - 1] + step * z)
+  }
+  const end = walk[months]
+  return walk.map((w, m) => {
+    if (m === 0) return amountCents
+    if (m === months) return projectScenario(amountCents, a, years).midCents
+    return Math.round(amountCents * Math.exp(mu * (m / 12) + w - (m / months) * end))
+  })
+}
+
+/** «Hoy», «5 meses», «2 años», «1 año y 3 meses». */
+export function monthsLabel(months: number): string {
+  if (months === 0) return 'Hoy'
+  const y = Math.floor(months / 12)
+  const m = months % 12
+  const years = y === 1 ? '1 año' : `${y} años`
+  const rest = m === 1 ? '1 mes' : `${m} meses`
+  if (y === 0) return rest
+  return m === 0 ? years : `${years} y ${rest}`
 }
 
 /** Plazo por defecto según el tipo: corto para lo seguro, largo para la renta variable. */
