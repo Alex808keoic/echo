@@ -8,10 +8,13 @@
  * lectura. Ninguna señal desaparece ni gana recomendación.
  */
 import type { Signal } from '../types'
-import { describeRecurringIncomes, eur, irregularIncomeOf, pct, recurringIncomesOf, THRESHOLDS, type Rule } from './shared'
+import { comparedAmounts, decidingChangePct, describeRecurringIncomes, eur, irregularIncomeOf, pct, recurringIncomesOf, THRESHOLDS, type Rule } from './shared'
 
 export const incomeRules: Rule = (ctx, _market, profile) => {
-  const { current, previous, incomeChangePct } = ctx.flows
+  const { current, previous } = ctx.flows
+  // Con algo puntual en este mes o en el anterior, la caída o la subida se miden sin lo puntual.
+  const incomeChangePct = decidingChangePct(current, previous, 'income', ctx.flows.incomeChangePct)
+  const shown = comparedAmounts(current, previous, 'income')
   const signals: Signal[] = []
   const irregular = irregularIncomeOf(profile)
   const declared = recurringIncomesOf(profile)
@@ -63,7 +66,7 @@ export const incomeRules: Rule = (ctx, _market, profile) => {
       id: 'income.drop',
       domain: 'income' as const,
       priority: irregular ? ('medium' as const) : ('high' as const),
-      fact: `Los ingresos de este mes (${eur(current.incomeCents)}) son un ${pct(Math.abs(incomeChangePct))} menores que los del anterior (${eur(previous.incomeCents)}).`,
+      fact: shown.sentence(`los ingresos de este mes (${eur(shown.current)}) son un ${pct(Math.abs(incomeChangePct))} menores que los del anterior (${eur(shown.previous)}).`),
       interpretation:
         'Con menos ingresos, mantener el mismo nivel de gasto reduce el margen de ahorro o lo hace negativo.',
       recommendation: {
@@ -97,7 +100,7 @@ export const incomeRules: Rule = (ctx, _market, profile) => {
       id: 'income.extraordinary',
       domain: 'income' as const,
       priority: 'low' as const,
-      fact: `Los ingresos de este mes (${eur(current.incomeCents)}) superan en un ${pct(incomeChangePct)} a los del anterior.`,
+      fact: shown.sentence(`los ingresos de este mes (${eur(shown.current)}) superan en un ${pct(incomeChangePct)} a los del anterior.`),
       interpretation: irregular
         ? 'Con ingresos irregulares, un mes alto entra dentro de lo esperable; conviene no tomarlo como el nivel habitual.'
         : 'Parte de ese ingreso puede ser extraordinario; conviene no tomarlo como el nivel habitual.',

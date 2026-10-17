@@ -28,6 +28,18 @@ export function summarize(movements: Movement[]): PeriodSummary {
   }
 }
 
+/** Parte puntual (movimientos marcados como `puntual`) de los ingresos y gastos. */
+export function oneOffTotals(movements: Movement[]): { incomeCents: number; expenseCents: number } {
+  let incomeCents = 0
+  let expenseCents = 0
+  for (const m of movements) {
+    if (!m.puntual) continue
+    if (m.type === 'ingreso') incomeCents += m.amountCents
+    else expenseCents += m.amountCents
+  }
+  return { incomeCents, expenseCents }
+}
+
 export function inMonth(movements: Movement[], monthKey: string): Movement[] {
   return movements.filter((m) => m.date.startsWith(monthKey))
 }

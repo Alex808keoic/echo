@@ -12,6 +12,7 @@ function normalize(input: MovementInput): MovementInput {
     ...input,
     motivo: requiresMotivo(input.category) && motivo ? motivo : undefined,
     nota: nota ? nota : undefined,
+    puntual: input.puntual ? true : undefined,
   }
 }
 
@@ -43,6 +44,7 @@ export async function updateMovement(id: string, input: MovementInput): Promise<
     category: n.category,
     motivo: n.motivo,
     nota: n.nota,
+    puntual: n.puntual,
     updatedAt: Date.now(),
   })
 }

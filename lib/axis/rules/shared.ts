@@ -139,6 +139,69 @@ export const FORECAST_MAX_MONTHS = 120
 
 const isCount = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0
 
+/* ------------------------------ lo puntual ------------------------------ */
+/*
+ * Un movimiento marcado como puntual es dinero real, pero no describe lo que
+ * pasa cada mes: se descuenta de lo «habitual» (gasto y ahorro habituales) y de
+ * las comparaciones entre meses. Una parte puntual inválida (el contexto puede
+ * llegar del cliente) cuenta como 0.
+ */
+type WithOneOff = { incomeCents: number; expenseCents: number; oneOffIncomeCents?: number; oneOffExpenseCents?: number }
+
+const oneOff = (n: unknown): number => (isCount(n) ? n : 0)
+
+/** Gasto del mes sin la parte puntual. */
+export function regularExpenseCents(m: WithOneOff): number {
+  return Math.max(0, m.expenseCents - oneOff(m.oneOffExpenseCents))
+}
+
+/** Ingresos del mes sin la parte puntual. */
+export function regularIncomeCents(m: WithOneOff): number {
+  return Math.max(0, m.incomeCents - oneOff(m.oneOffIncomeCents))
+}
+
+/** Hay algo puntual en el mes. */
+export function hasOneOff(m: WithOneOff): boolean {
+  return oneOff(m.oneOffIncomeCents) > 0 || oneOff(m.oneOffExpenseCents) > 0
+}
+
+/** Variación entre dos meses sin la parte puntual; `null` sin base positiva (como `pctChange`). */
+export function regularChangePct(current: WithOneOff, previous: WithOneOff, side: 'income' | 'expense'): number | null {
+  const of = side === 'income' ? regularIncomeCents : regularExpenseCents
+  const base = of(previous)
+  return base > 0 ? ((of(current) - base) / base) * 100 : null
+}
+
+/**
+ * Variación que deciden las reglas que comparan un mes con el anterior: la de
+ * siempre sin puntuales; con algo puntual en cualquiera de los dos meses, la
+ * de lo habitual. Las cifras que se enseñan siguen siendo las reales.
+ */
+export function decidingChangePct(current: WithOneOff, previous: WithOneOff, side: 'income' | 'expense', totalPct: number | null): number | null {
+  return hasOneOff(current) || hasOneOff(previous) ? regularChangePct(current, previous, side) : totalPct
+}
+
+/**
+ * Importes que acompañan a `decidingChangePct` en el texto, para que cifras y
+ * porcentaje cuadren: los reales sin puntuales; con algo puntual, los
+ * habituales y la frase empieza por «Sin lo puntual, …».
+ */
+export function comparedAmounts(current: WithOneOff, previous: WithOneOff, side: 'income' | 'expense'): { current: number; previous: number; sentence: (rest: string) => string } {
+  if (!(hasOneOff(current) || hasOneOff(previous))) {
+    const total = (m: WithOneOff) => (side === 'income' ? m.incomeCents : m.expenseCents)
+    return { current: total(current), previous: total(previous), sentence: (rest) => rest.charAt(0).toUpperCase() + rest.slice(1) }
+  }
+  const of = side === 'income' ? regularIncomeCents : regularExpenseCents
+  return { current: of(current), previous: of(previous), sentence: (rest) => `Sin lo puntual, ${rest}` }
+}
+
+/** El ahorro sin la parte puntual cae a menos de la mitad que el mes anterior. */
+export function regularSavingsFalls(current: WithOneOff, previous: WithOneOff): boolean {
+  const prev = regularIncomeCents(previous) - regularExpenseCents(previous)
+  const cur = regularIncomeCents(current) - regularExpenseCents(current)
+  return prev > 0 && cur < prev * 0.5
+}
+
 /**
  * Meses válidos para el gasto habitual: con movimientos y cifras enteras no
  * negativas (el contexto puede llegar del cliente), los más recientes primero,
@@ -154,14 +217,14 @@ export function usualExpenseMonths(closedMonths: readonly ClosedMonth[] | undefi
 /**
  * Gasto habitual: mediana del gasto de los últimos hasta 6 meses CERRADOS con
  * datos (el mes en curso nunca entra), con un mínimo de `MIN_USUAL_EXPENSE_MONTHS`. Con un número par
- * de meses, media de los dos centrales. Redondeado a euros enteros hacia
+ * de meses, media de los dos centrales. Sin los gastos puntuales. Redondeado a euros enteros hacia
  * arriba, como `requiredMonthlyCents`. Sin meses suficientes, `null`: nunca se
  * inventa un gasto.
  */
 export function usualMonthlyExpense(closedMonths: readonly ClosedMonth[] | undefined): number | null {
   const months = usualExpenseMonths(closedMonths)
   if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
-  const values = months.map((m) => m.expenseCents).sort((a, b) => a - b)
+  const values = months.map(regularExpenseCents).sort((a, b) => a - b)
   const mid = Math.floor(values.length / 2)
   const median = values.length % 2 === 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2
   return Math.max(0, Math.ceil(median / 100) * 100)

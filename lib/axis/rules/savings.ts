@@ -18,7 +18,7 @@
  * Nada más cambia (`savings.tight` y `savings.no-period-data` no leen el perfil).
  */
 import type { Signal } from '../types'
-import { eur, irregularIncomeOf, liquidityShortfall, pct, THRESHOLDS, type Rule } from './shared'
+import { eur, hasOneOff, irregularIncomeOf, liquidityShortfall, pct, regularSavingsFalls, THRESHOLDS, type Rule } from './shared'
 
 export const savingsRules: Rule = (ctx, _market, profile) => {
   const { current, previous } = ctx.flows
@@ -89,7 +89,9 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
   if (
     previous.movementCount > 0 &&
     previous.savingsCents > 0 &&
-    current.savingsCents < previous.savingsCents * 0.5
+    current.savingsCents < previous.savingsCents * 0.5 &&
+    // Si la caída solo la explica algo puntual, no es una caída del ahorro habitual.
+    (!(hasOneOff(current) || hasOneOff(previous)) || regularSavingsFalls(current, previous))
   ) {
     const fromIncome = current.incomeCents < previous.incomeCents
     // Con ingresos irregulares solo se rebaja la caída que viene de los ingresos; la que viene del gasto, no.

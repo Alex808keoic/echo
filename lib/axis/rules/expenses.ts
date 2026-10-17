@@ -1,18 +1,42 @@
 /**
  * Reglas de gastos: gasto superior a ingresos, aumento significativo,
  * concentración en una categoría.
+ *
+ * Lo puntual (movimientos marcados como puntuales) es dinero real, pero no
+ * dispara avisos de hábito: si sin lo puntual el gasto no supera a los
+ * ingresos, en lugar de `expenses.over-income` hay `expenses.one-off`; y la
+ * subida respecto al mes anterior se mide sin lo puntual.
  */
 import type { Signal } from '../types'
-import { eur, pct, THRESHOLDS, type Rule } from './shared'
+import { comparedAmounts, decidingChangePct, eur, pct, regularExpenseCents, regularIncomeCents, THRESHOLDS, type Rule } from './shared'
 
 export const expenseRules: Rule = (ctx, _market, _profile) => {
-  const { current, previous, expenseChangePct } = ctx.flows
+  const { current, previous } = ctx.flows
+  const expenseChangePct = decidingChangePct(current, previous, 'expense', ctx.flows.expenseChangePct)
+  const shown = comparedAmounts(current, previous, 'expense')
   const top = current.expensesByCategory[0]
   const signals: Signal[] = []
   // Con una tasa de ahorro sólida, las variaciones del gasto son informativas, no accionables.
   const tightMargin = current.savingsRatePct === null || current.savingsRatePct < THRESHOLDS.healthySavingsRatePct
+  const overIncome = current.expenseCents > current.incomeCents && current.expenseCents > 0
+  const regularOverIncome = regularExpenseCents(current) > regularIncomeCents(current) && regularExpenseCents(current) > 0
 
-  if (current.expenseCents > current.incomeCents && current.expenseCents > 0) {
+  if (overIncome && !regularOverIncome) {
+    const oneOffExpense = current.oneOffExpenseCents ?? 0
+    signals.push({
+      id: 'expenses.one-off',
+      domain: 'expenses',
+      priority: 'medium',
+      fact: `Este mes los gastos (${eur(current.expenseCents)}) superan a los ingresos (${eur(current.incomeCents)}) por algo puntual${oneOffExpense > 0 ? `: ${eur(oneOffExpense)} de gastos puntuales` : ''}.`,
+      interpretation: 'Sin lo puntual, tus gastos habituales no superan a tus ingresos. Tu dinero líquido baja este mes, pero tu ritmo habitual no está en negativo.',
+      alternative: {
+        name: 'Recuperarlo poco a poco',
+        summary: 'Si quieres reponer lo que ha salido, puedes gastar algo menos los próximos meses; el reparto automático irá llevando lo que ahorres a tus objetivos.',
+      },
+    })
+  }
+
+  if (overIncome && regularOverIncome) {
     signals.push({
       id: 'expenses.over-income',
       domain: 'expenses',
@@ -46,7 +70,7 @@ export const expenseRules: Rule = (ctx, _market, _profile) => {
       id: 'expenses.increase',
       domain: 'expenses',
       priority: current.savingsCents < 0 ? 'high' : tightMargin ? 'medium' : 'low',
-      fact: `Los gastos han subido un ${pct(expenseChangePct)} respecto al mes anterior: ${eur(previous.expenseCents)} → ${eur(current.expenseCents)}.`,
+      fact: shown.sentence(`los gastos han subido un ${pct(expenseChangePct)} respecto al mes anterior: ${eur(shown.previous)} → ${eur(shown.current)}.`),
       interpretation: driver,
       recommendation: tightMargin
         ? {
@@ -77,7 +101,7 @@ export const expenseRules: Rule = (ctx, _market, _profile) => {
     tightMargin &&
     current.expensesByCategory.length >= 2 &&
     top.pct >= THRESHOLDS.categoryConcentrationPct &&
-    !signals.some((s) => s.id === 'expenses.over-income')
+    !signals.some((s) => s.id === 'expenses.over-income' || s.id === 'expenses.one-off')
   ) {
     signals.push({
       id: 'expenses.concentration',

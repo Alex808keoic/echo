@@ -19,9 +19,10 @@
  *   4. El resto se queda en tu líquido: el reparto automático lo lleva a tus objetivos.
  *
  * Gasto: tu gasto habitual (mediana de los últimos meses), como referencia.
+ * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
-import { usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
+import { regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
 
@@ -87,7 +88,7 @@ export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normali
 /** Mediana del ahorro (ingresos − gastos) de los mismos meses que el gasto habitual. */
 function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): number | null {
   if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
-  const values = months.map((m) => m.incomeCents - m.expenseCents).sort((a, b) => a - b)
+  const values = months.map((m) => regularIncomeCents(m) - regularExpenseCents(m)).sort((a, b) => a - b)
   const mid = Math.floor(values.length / 2)
   return values.length % 2 === 1 ? values[mid] : Math.floor((values[mid - 1] + values[mid]) / 2)
 }

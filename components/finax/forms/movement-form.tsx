@@ -51,6 +51,7 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
   const [suggestedFor, setSuggestedFor] = useState<MovementType | null>(movement ? type : null)
   const [motivo, setMotivo] = useState(movement?.motivo ?? '')
   const [nota, setNota] = useState(movement?.nota ?? '')
+  const [puntual, setPuntual] = useState(movement?.puntual === true)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -88,7 +89,7 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
     setErrors(next)
     if (Object.keys(next).length > 0 || amountCents === null || !category) return
 
-    const input: MovementInput = { type, amountCents, date, category, motivo, nota }
+    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual ? { puntual: true as const } : {}) }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (movement ? updateMovement(movement.id, input) : addMovement(input)))
@@ -123,6 +124,23 @@ export function MovementForm({ movement, onDone }: MovementFormProps) {
           />
         </Field>
       )}
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <input
+          type="checkbox"
+          checked={puntual}
+          onChange={(e) => setPuntual(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-finax"
+        />
+        <span className="min-w-0">
+          <span className="block text-[13.5px] font-semibold text-grafito">Es puntual (no suele pasar)</span>
+          <span className="mt-0.5 block text-[12px] font-medium text-muted-foreground text-pretty">
+            {type === 'ingreso'
+              ? 'Por ejemplo, un trabajo suelto o un regalo grande. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'
+              : 'Por ejemplo, una reparación o un viaje. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'}
+          </span>
+        </span>
+      </label>
 
       <Field label="Nota (opcional)" hint="Solo se muestra en el detalle del movimiento.">
         <TextArea value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} />

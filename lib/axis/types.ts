@@ -31,6 +31,9 @@ export interface PeriodStats {
   /** Distribución por categoría, de mayor a menor; los `pct` suman 100. */
   expensesByCategory: CategoryShare[]
   incomeByCategory: CategoryShare[]
+  /** Parte puntual (incluida en `incomeCents`/`expenseCents`). Solo existe cuando es mayor que 0. */
+  oneOffIncomeCents?: number
+  oneOffExpenseCents?: number
 }
 
 export interface CategoryShare {
@@ -49,6 +52,9 @@ export interface ClosedMonth {
   incomeCents: number
   expenseCents: number
   movementCount: number
+  /** Parte puntual (incluida en `incomeCents`/`expenseCents`): no cuenta como habitual. Solo existe cuando es mayor que 0. */
+  oneOffIncomeCents?: number
+  oneOffExpenseCents?: number
 }
 
 export interface WealthPoint {

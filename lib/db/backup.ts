@@ -101,6 +101,7 @@ function isMovement(v: unknown): v is Movement {
     cats.includes(currentCategory(v.category)) &&
     isOptStr(v.motivo) &&
     isOptStr(v.nota) &&
+    (v.puntual === undefined || v.puntual === true) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

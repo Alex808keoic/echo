@@ -29,6 +29,7 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
     ['Fecha', formatFullDate(movement.date)],
   ]
   if (movement.motivo) rows.splice(2, 0, ['Motivo', movement.motivo])
+  if (movement.puntual) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
   if (movement.nota) rows.push(['Nota', movement.nota])
 
   return (

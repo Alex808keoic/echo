@@ -5,7 +5,7 @@
  * Dexie) y devuelve el contexto que consume el motor. No inventa nada: lo que
  * no existe queda como lista vacía, `null` o un flag en `quality`.
  */
-import { roundedShares, summarize, totalsByCategory, inMonth, pctChange } from '../finance/summary'
+import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctChange } from '../finance/summary'
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
@@ -48,6 +48,12 @@ function toShares(totals: ReturnType<typeof totalsByCategory>): CategoryShare[] 
   return totals.map(({ label, cents, pct }) => ({ label, cents, pct }))
 }
 
+/** Parte puntual de un mes, solo con las claves mayores que 0 (sin puntuales, el objeto queda vacío). */
+function oneOffFields(inPeriod: Movement[]): { oneOffIncomeCents?: number; oneOffExpenseCents?: number } {
+  const o = oneOffTotals(inPeriod)
+  return { ...(o.incomeCents > 0 ? { oneOffIncomeCents: o.incomeCents } : {}), ...(o.expenseCents > 0 ? { oneOffExpenseCents: o.expenseCents } : {}) }
+}
+
 function periodStats(movements: Movement[], key: string): PeriodStats {
   const inPeriod = inMonth(movements, key)
   const s = summarize(inPeriod)
@@ -60,6 +66,7 @@ function periodStats(movements: Movement[], key: string): PeriodStats {
     movementCount: s.movementCount,
     expensesByCategory: toShares(totalsByCategory(inPeriod, 'gasto')),
     incomeByCategory: toShares(totalsByCategory(inPeriod, 'ingreso')),
+    ...oneOffFields(inPeriod),
   }
 }
 
@@ -76,8 +83,9 @@ export function closedMonthsOf(movements: Movement[], asOf: string): ClosedMonth
   const currentKey = monthKeyOf(asOf)
   const keys = [...new Set(movements.map((m) => m.date.slice(0, 7)))].filter((k) => k < currentKey).sort().reverse().slice(0, MAX_CLOSED_MONTHS)
   return keys.map((key) => {
-    const s = summarize(inMonth(movements, key))
-    return { key, incomeCents: s.incomeCents, expenseCents: s.expenseCents, movementCount: s.movementCount }
+    const inPeriod = inMonth(movements, key)
+    const s = summarize(inPeriod)
+    return { key, incomeCents: s.incomeCents, expenseCents: s.expenseCents, movementCount: s.movementCount, ...oneOffFields(inPeriod) }
   })
 }
 

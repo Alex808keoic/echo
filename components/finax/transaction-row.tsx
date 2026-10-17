@@ -17,7 +17,8 @@ export function TransactionRow({ movement, onClick }: TransactionRowProps) {
   const Icon = categoryIconMap[movement.category]
   const isIncome = movement.type === 'ingreso'
   const label = movementLabel(movement)
-  const subtitle = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
+  const kind = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
+  const subtitle = movement.puntual ? `${kind} · Puntual` : kind
 
   return (
     <button

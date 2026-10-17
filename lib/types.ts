@@ -60,6 +60,12 @@ export interface Movement {
   motivo?: string
   /** Opcional en todas las categorías (D-05). Solo se muestra en el detalle. */
   nota?: string
+  /**
+   * Ingreso o gasto puntual (no suele pasar). Es dinero real (saldo, patrimonio,
+   * objetivos), pero no entra en lo «habitual» de cada mes ni en los avisos de
+   * cambio entre meses. Solo se guarda cuando es `true`.
+   */
+  puntual?: true
   createdAt: number
   updatedAt: number
 }
