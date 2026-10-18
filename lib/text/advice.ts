@@ -236,6 +236,9 @@ function citesAlternative(clause: string, alternatives: string[]): boolean {
 function targetCompatible(target: AdviceTarget, action: AxisAction): boolean {
   if (target.kind === 'none') return true
   if (target.kind === 'external') return false
+  // Una acción sin destino concreto («ajusta el gasto de este mes a tus ingresos») se puede expresar
+  // hablando de tus datos (gasto, ingresos, movimientos): no son un destino de dinero.
+  if (target.kind === 'data' && action.target === 'none') return true
   if (target.kind !== action.target) return false
   if (target.kind === 'cushion' || target.kind === 'data') return true
   if (action.targetId && target.id && normalizeForMatching(target.id) !== normalizeForMatching(action.targetId)) return false

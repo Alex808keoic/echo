@@ -73,6 +73,13 @@ describe('AXIS · consejos · licencia frente a la acción de AXIS', () => {
     assert.ok(checkAdvice('Invierte ese colchón en un ETF.', entities, reserveCushion).length === 1)
   })
 
+  it('acción sin destino (ajustar el gasto) → hablar de tu gasto o tus ingresos: permitido; un destino externo, no', () => {
+    const adjustNone = { stance: 'recommend' as const, action: { verb: 'adjust' as const, target: 'none' as const }, alternatives: [] }
+    for (const t of ['Lo mejor es ajustar tu gasto de este mes a tus ingresos.', 'Ajusta los gastos del mes al nuevo nivel de ingresos.'])
+      assert.deepEqual(checkAdvice(t, entities, adjustNone), [], t)
+    assert.equal(checkAdvice('Ajusta tu dinero hacia Tesla.', entities, adjustNone).length, 1)
+  })
+
   it('consejo negativo sobre Tesla → permitido (disuadir no crea una acción)', () => {
     for (const t of ['No compres Tesla.', 'Yo no invertiría en Tesla ahora.', 'No vendas el Fondo indexado.', 'Yo no lo movería.']) {
       assert.deepEqual(checkAdvice(t, entities, inform), [], t)
