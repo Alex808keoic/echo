@@ -44,8 +44,13 @@ export async function enableReminders(): Promise<ReminderStatus> {
       console.warn('Finax: no se ha podido activar la comprobación en segundo plano', error)
     }
   }
-  return reminderStatus()
+  const status = await reminderStatus()
+  // Confirmación en el propio móvil: así se ve en el momento que los avisos llegan.
+  if (status.enabled && reg) await reg.showNotification('Finax', { body: CONFIRMATION_TEXT, tag: 'reminders-enabled', icon: '/icon-192.png', badge: '/icon-192.png' }).catch(() => {})
+  return status
 }
+
+export const CONFIRMATION_TEXT = 'Notificaciones activadas. Te avisaré cuando toque: tu decisión del mes, ingresos sin registrar, inversiones por actualizar o tu copia de seguridad.'
 
 export async function disableReminders(): Promise<ReminderStatus> {
   const reg = await registration()
