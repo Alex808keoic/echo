@@ -20,6 +20,8 @@ import { ChevronRight } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 import { disableReminders, enableReminders, reminderStatus, type ReminderStatus } from '@/lib/notifications'
+import { getLastBackupAt, setLastBackupAt } from '@/lib/db/meta'
+import { toISODate } from '@/lib/dates'
 
 interface RowProps {
   title: string
@@ -59,7 +61,7 @@ function RemindersRow() {
     void reminderStatus().then(setStatus)
   }, [])
   if (!status) return <Row title="Notificaciones" description="Comprobando…" />
-  const inApp = 'Además, al abrir Finax verás en Inicio lo que toca: tu decisión del mes, ingresos sin registrar, inversiones sin actualizar y pasos pendientes.'
+  const inApp = 'Además, al abrir Finax verás en Inicio lo que toca: tu decisión del mes, ingresos sin registrar, inversiones sin actualizar, pasos pendientes, copia de seguridad y resumen del año.'
   if (status.support === 'unsupported') return <Row title="Notificaciones no disponibles" description={`Este navegador no permite notificaciones. ${inApp}`} />
   if (status.denied)
     return <Row title="Notificaciones bloqueadas" description={`Has bloqueado las notificaciones de Finax: puedes permitirlas en los ajustes del navegador. ${inApp}`} />
@@ -106,6 +108,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const market = useMarket()
   const memoryCount = useLiveQuery(async () => (await listUserMemories()).length, [], 0)
+  const lastBackupAt = useLiveQuery(getLastBackupAt, [], null)
   const [aiStatus, setAiStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
   useEffect(() => {
     let cancelled = false
@@ -141,6 +144,8 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
     a.download = `finax-backup-${backup.exportedAt.slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
+    // Para el recordatorio de copia: se cuenta como hecha al descargarla.
+    await setLastBackupAt().catch(() => {})
     setMessage({ text: `Copia exportada. Incluye ${backup.memories?.length ?? 0} memoria${backup.memories?.length === 1 ? '' : 's'} de AXIS: guárdala como información personal.` })
   }
 
@@ -157,7 +162,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       open(
         'Restaurar copia',
         <Confirm
-          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos y ${backup.positions.length} inversiones. Restaurarla sustituirá tus movimientos, objetivos, inversiones y saldo inicial de este dispositivo.${memoriesNote}`}
+          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos, ${backup.positions.length} inversiones${backup.debts ? ` y ${backup.debts.length} deudas` : ''}. Restaurarla sustituirá tus movimientos, objetivos, inversiones${backup.debts ? ', deudas' : ''} y saldo inicial de este dispositivo.${memoriesNote}`}
           confirmLabel="Restaurar"
           destructive
           onCancel={close}
@@ -177,7 +182,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
     open(
       'Borrar todos los datos',
       <Confirm
-        message="Se eliminarán movimientos, objetivos, inversiones, saldo inicial y toda la memoria y conversación de AXIS de este dispositivo. Exporta una copia antes si quieres conservar tus datos."
+        message="Se eliminarán movimientos, objetivos, inversiones, deudas, saldo inicial y toda la memoria y conversación de AXIS de este dispositivo. Exporta una copia antes si quieres conservar tus datos."
         confirmLabel="Borrar todo"
         destructive
         onCancel={close}
@@ -230,7 +235,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       <Group title="Tus datos">
         <Row
           title="Exportar copia de seguridad"
-          description="Descarga un archivo JSON con tus datos y las memorias que AXIS tiene guardadas sobre ti. Puede contener información personal."
+          description={`Descarga un archivo JSON con tus datos, tus deudas y las memorias que AXIS tiene guardadas sobre ti. Puede contener información personal. Tus datos solo están en este móvil: guárdala fuera de él (por ejemplo, en tu nube o tu correo). ${lastBackupAt ? `Última copia: ${formatShortDate(toISODate(new Date(lastBackupAt)))}.` : 'Aún no has hecho ninguna.'}`}
           onClick={handleExport}
           disabled={nothingStored}
         />

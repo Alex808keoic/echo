@@ -173,6 +173,12 @@ export function contextFigures(ctx: FinancialContext): AllowedFigure[] {
   for (const p of ctx.investments.positions) {
     figures.push(eur(`Posición «${p.name}»: invertido`, p.investedCents), eur(`Posición «${p.name}»: valor`, p.valueCents), pct(`Posición «${p.name}»: peso en cartera`, p.weightPct))
   }
+  // Deudas: el contexto puede venir del cliente, así que solo se aceptan cifras enteras.
+  for (const d of Array.isArray(ctx.debts) ? ctx.debts : []) {
+    if (typeof d?.name !== 'string' || !Number.isSafeInteger(d.balanceCents) || !Number.isSafeInteger(d.monthlyPaymentCents)) continue
+    figures.push(eur(`Deuda «${d.name}»: pendiente`, d.balanceCents), eur(`Deuda «${d.name}»: cuota mensual`, d.monthlyPaymentCents))
+    if (Number.isSafeInteger(d.monthsLeft) && (d.monthsLeft as number) > 0) figures.push(num(`Deuda «${d.name}»: meses restantes`, d.monthsLeft as number))
+  }
   figures.push(
     eur('Total invertido (coste)', ctx.investments.totalInvestedCents),
     eur('Total invertido (valor)', ctx.investments.totalValueCents),

@@ -150,6 +150,8 @@ export interface Position {
    * (posiciones anteriores a este campo): se deduce del nombre.
    */
   assetType?: PositionAssetType
+  /** Comisión anual (TER o gastos corrientes) en centésimas de punto: 20 = 0,20 %. Opcional. */
+  feeBp?: number
   createdAt: number
   updatedAt: number
 }
@@ -164,6 +166,29 @@ export function liquidOutflowCents(p: Pick<Position, 'investedCents' | 'fromLiqu
 }
 
 export type PositionInput = Omit<Position, 'id' | 'createdAt' | 'updatedAt'>
+
+/* --------------------------------- Deudas --------------------------------- */
+
+/**
+ * Deuda introducida a mano (préstamo, tarjeta, financiación, hipoteca). Lo que
+ * queda por devolver lo actualiza el usuario, como el valor de una inversión.
+ * La cuota se registra como gasto al pagarla: aquí solo se guarda para saber
+ * cuánto pesa y cuándo terminas.
+ */
+export interface Debt {
+  id: string
+  name: string
+  /** Lo que queda por devolver, en céntimos. */
+  balanceCents: number
+  /** Interés anual (TAE) en centésimas de punto: 850 = 8,5 %. */
+  aprBp: number
+  /** Cuota mensual en céntimos. */
+  monthlyPaymentCents: number
+  createdAt: number
+  updatedAt: number
+}
+
+export type DebtInput = Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
 
 /* ------------------------------ Configuración ----------------------------- */
 

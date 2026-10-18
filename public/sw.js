@@ -5,7 +5,7 @@
  * - Nunca cachea /api/* ni peticiones que no sean GET.
  * Los datos del usuario viven en IndexedDB, no pasan por aquí.
  */
-const VERSION = 'finax-sw-v2'
+const VERSION = 'finax-sw-v3'
 const SHELL = `${VERSION}-shell`
 const DATA = `${VERSION}-data`
 
@@ -125,7 +125,14 @@ async function notifyDueReminders() {
   } catch {
     return
   }
-  const [checks, positions, memories, movements] = await Promise.all([readAll(db, 'planChecks'), readAll(db, 'positions'), readAll(db, 'axisMemories'), readAll(db, 'movements')])
+  const [checks, positions, memories, movements, meta, config] = await Promise.all([
+    readAll(db, 'planChecks'),
+    readAll(db, 'positions'),
+    readAll(db, 'axisMemories'),
+    readAll(db, 'movements'),
+    readAll(db, 'meta'),
+    readAll(db, 'config'),
+  ])
   db.close()
   const today = localToday()
   const month = today.slice(0, 7)
@@ -141,6 +148,17 @@ async function notifyDueReminders() {
   const stale = positions.filter((p) => Date.now() - p.updatedAt > 30 * DAY_MS).length
   if (stale > 0) due.push({ id: 'update-investments', period: null, text: stale === 1 ? 'Una inversión lleva más de 30 días sin actualizar su valor.' : `${stale} inversiones llevan más de 30 días sin actualizar su valor.` })
   if (items > 0 && done < items && day >= 25) due.push({ id: 'month-ending', period: month, text: items - done === 1 ? 'Te queda 1 paso de tu decisión del mes.' : `Te quedan ${items - done} pasos de tu decisión del mes.` })
+  const created = [...movements, ...positions, ...config].map((r) => r.createdAt || r.configuredAt).filter((t) => typeof t === 'number')
+  if (created.length > 0 && !config.some((c) => c.demo)) {
+    const backup = meta.find((m) => m.key === 'backup')
+    const last = backup ? backup.at : null
+    const first = Math.min(...created)
+    if (last === null ? Date.now() - first > 7 * DAY_MS : Date.now() - last > 30 * DAY_MS)
+      due.push({ id: 'backup', period: month, text: last === null ? 'Tus datos solo están en este móvil: haz tu primera copia de seguridad.' : 'Tu última copia de seguridad tiene más de un mes: haz una nueva.' })
+  }
+  const lastYear = String(Number(today.slice(0, 4)) - 1)
+  if (today.slice(5, 7) === '01' && day <= 15 && movements.some((m) => typeof m.date === 'string' && m.date.startsWith(lastYear)))
+    due.push({ id: 'year-review', period: month, text: `Tu resumen de ${lastYear} está listo.` })
   if (due.length === 0) return
 
   const cache = await caches.open(REMINDER_STATE)

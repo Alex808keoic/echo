@@ -24,6 +24,8 @@ export interface PlanChecksEntry {
   done: string[]
   /** La última foto del plan vista ese mes (sin ella, la revisión usa el plan actual y lo dice). */
   planned?: PlannedMonth
+  /** Cuándo respondiste «¿Ha cambiado algo este mes?» (ms). */
+  checkIn?: number
   updatedAt: number
 }
 
@@ -40,7 +42,7 @@ export async function savePlannedMonth(month: string, planned: PlannedMonth): Pr
   await db.transaction('rw', db.planChecks, async () => {
     const current = await db.planChecks.get(month)
     if (current?.planned && JSON.stringify(current.planned) === JSON.stringify(planned)) return
-    await db.planChecks.put({ key: month, done: current?.done ?? [], planned, updatedAt: Date.now() })
+    await db.planChecks.put({ ...current, key: month, done: current?.done ?? [], planned, updatedAt: Date.now() })
   })
 }
 
@@ -50,6 +52,14 @@ export async function setPlanCheck(month: string, id: string, done: boolean): Pr
     const entry = await db.planChecks.get(month)
     const current = entry?.done ?? []
     const next = done ? [...new Set([...current, id])] : current.filter((x) => x !== id)
-    await db.planChecks.put({ key: month, done: next, ...(entry?.planned ? { planned: entry.planned } : {}), updatedAt: Date.now() })
+    await db.planChecks.put({ ...entry, key: month, done: next, updatedAt: Date.now() })
+  })
+}
+
+/** Guarda que este mes ya has respondido «¿Ha cambiado algo?». */
+export async function setMonthCheckIn(month: string, at: number = Date.now()): Promise<void> {
+  await db.transaction('rw', db.planChecks, async () => {
+    const entry = await db.planChecks.get(month)
+    await db.planChecks.put({ ...entry, key: month, done: entry?.done ?? [], checkIn: at, updatedAt: Date.now() })
   })
 }

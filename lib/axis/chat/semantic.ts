@@ -173,7 +173,7 @@ const CONDITIONAL = /\b(?:cuando|una vez|despues de|mas adelante|en el futuro|ma
  */
 function planForbidsInvesting({ plan }: ChatPlan): boolean {
   if (plan.status === 'blocked') return plan.blocker !== 'insufficient-data'
-  return plan.longTerm.reason === 'cushion-incomplete' || plan.longTerm.reason === 'short-horizon' || plan.longTerm.reason === 'no-room'
+  return plan.longTerm.reason === 'cushion-incomplete' || plan.longTerm.reason === 'short-horizon' || plan.longTerm.reason === 'no-room' || plan.longTerm.reason === 'debt-first'
 }
 
 function adviceViolations(text: string, clauses: AdviceClause[], decision: AxisDecision, plan?: ChatPlan): string[] {

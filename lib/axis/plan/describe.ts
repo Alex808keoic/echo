@@ -11,7 +11,7 @@ import { RISKY_MAX_PCT, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
 
 /** Lo que la pantalla puede hacer desde un paso. */
-export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories'
+export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts'
 
 export interface StepView {
   title: string
@@ -24,6 +24,15 @@ export interface StepView {
 }
 
 const eur = (cents: number) => formatCents(cents)
+/** «8,5 %» */
+export const pctText = (pct: number) => `${String(Math.round(pct * 10) / 10).replace('.', ',')} %`
+/** «2 años y 3 meses», «8 meses». */
+export function durationText(months: number): string {
+  if (months < 12) return plural(months, 'mes', 'meses')
+  const y = Math.floor(months / 12)
+  const m = months % 12
+  return m === 0 ? plural(y, 'año', 'años') : `${plural(y, 'año', 'años')} y ${plural(m, 'mes', 'meses')}`
+}
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 export const LONG_TERM_EXPLANATION =
@@ -109,6 +118,11 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         action: { kind: 'move-cushion-first', label: 'Ponerlo primero' },
       }
     case 'fill-cushion':
+      if (step.starter)
+        return {
+          title: `${eur(step.monthlyCents)} al mes a un colchón mínimo`,
+          detail: `Te faltan ${eur(step.remainingCents)} para tener un mes de gasto apartado: unos ${plural(step.months, 'mes', 'meses')}. Con eso cubierto, tu ahorro irá a devolver tus deudas caras; el colchón completo, después.`,
+        }
       return {
         title: `${eur(step.monthlyCents)} al mes a tu colchón`,
         detail: `Te faltan ${eur(step.remainingCents)}: unos ${plural(step.months, 'mes', 'meses')} a tu ritmo de ahorro. Hasta tenerlo completo, no conviene invertir.`,
@@ -168,6 +182,42 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         title: `${eur(step.monthlyCents)} al mes a tus objetivos`,
         detail: 'Se queda en tu dinero líquido y el reparto automático lo lleva a tus objetivos, en su orden.',
       }
+    case 'pay-debt': {
+      const vs =
+        step.expectedReturnPct !== null
+          ? `más de lo que cabe esperar de tu mezcla de inversión (unos ${pctText(step.expectedReturnPct)} al año, y sin garantía)`
+          : 'más de lo que suele rendir una inversión razonable, y sin garantía'
+      const effect =
+        step.months !== null
+          ? ` Así la terminas en unos ${durationText(step.months)}${step.monthsSaved ? ` (${durationText(step.monthsSaved)} antes que solo con la cuota)` : ''}${step.interestSavedCents ? `, y te ahorras unos ${eur(step.interestSavedCents)} en intereses` : ''}.`
+          : ''
+      const notes = [
+        step.lumpSumCents > 0
+          ? `Mejor aún: podrías devolver ${eur(step.lumpSumCents)} de una vez con tu dinero líquido, sin tocar tu colchón ni lo apartado para objetivos cercanos. Lo de tus objetivos lejanos rinde menos de lo que te cuesta esta deuda.`
+          : null,
+        step.otherDebts > 0 ? `Cuando termines, el plan irá a por la siguiente deuda cara (${plural(step.otherDebts, 'te queda otra', 'te quedan otras')}).` : null,
+      ].filter((n): n is string => Boolean(n))
+      return {
+        title: `${eur(step.monthlyCents)} al mes para devolver antes «${step.name}»`,
+        detail: `Además de la cuota. Te cuesta un ${pctText(step.aprPct)} al año: devolverla es ganar ese ${pctText(step.aprPct)} seguro, ${vs}. Quedan ${eur(step.balanceCents)}.${effect} Pregunta a tu banco si amortizar antes tiene comisión.`,
+        ...(step.objectivesWaiting ? { warning: 'Mientras tanto, tus objetivos no reciben ahorro nuevo y no se invierte: es lo que más te rinde ahora.' } : {}),
+        ...(notes.length > 0 ? { note: notes.join(' ') } : {}),
+        action: { kind: 'review-debts', label: 'Ver mis deudas' },
+      }
+    }
+    case 'debt-choice':
+      return {
+        title: `¿Invertir o devolver antes «${step.name}»?`,
+        detail: `Tu deuda cuesta un ${pctText(step.aprPct)} al año y tu mezcla podría rendir unos ${pctText(step.expectedReturnPct)}, sin garantía. Por eso el plan sigue invirtiendo, pero si prefieres lo seguro, puedes usar los ${eur(step.investMonthlyCents)} al mes del largo plazo para devolverla antes: es ganar un ${pctText(step.aprPct)} seguro. Las dos opciones son razonables.`,
+        action: { kind: 'review-debts', label: 'Ver mis deudas' },
+      }
+    case 'debt-load':
+      return {
+        title: `Tus cuotas se llevan el ${step.pct} % de tus ingresos`,
+        detail: `Pagas ${eur(step.paymentsCents)} al mes de cuotas con unos ingresos de ${eur(step.incomeCents)}. Por encima del 35 % es mucha carga: antes de pedir otro préstamo o financiar una compra, conviene bajarla.`,
+        warning: 'No pidas más préstamos mientras tanto.',
+        action: { kind: 'review-debts', label: 'Ver mis deudas' },
+      }
     case 'answer-profile':
       return {
         title: 'Responde «Tu perfil» para saber qué parte invertir',
@@ -200,7 +250,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
   }
 }
 
-export type SegmentKind = 'cushion' | 'short-term' | 'long-term' | 'long-term-bonds' | 'long-term-risky' | 'objectives'
+export type SegmentKind = 'cushion' | 'short-term' | 'long-term' | 'long-term-bonds' | 'long-term-risky' | 'objectives' | 'debt'
 
 const SEGMENT_OF: Record<SleeveKey, { kind: SegmentKind; label: string }> = {
   'global-equity': { kind: 'long-term', label: 'Renta variable global' },
@@ -212,7 +262,8 @@ const SEGMENT_OF: Record<SleeveKey, { kind: SegmentKind; label: string }> = {
 export function planSegments(plan: AllocationPlan): Array<{ kind: SegmentKind; label: string; cents: number }> {
   const out: Array<{ kind: SegmentKind; label: string; cents: number }> = []
   for (const s of plan.steps) {
-    if (s.kind === 'fill-cushion') out.push({ kind: 'cushion', label: 'Colchón', cents: s.monthlyCents })
+    if (s.kind === 'fill-cushion') out.push({ kind: 'cushion', label: s.starter ? 'Colchón mínimo' : 'Colchón', cents: s.monthlyCents })
+    else if (s.kind === 'pay-debt') out.push({ kind: 'debt', label: 'Devolver deudas', cents: s.monthlyCents })
     else if (s.kind === 'short-term-objectives') out.push({ kind: 'short-term', label: 'Objetivos cercanos', cents: s.monthlyCents })
     else if (s.kind === 'invest-long-term') for (const p of s.mix) out.push({ ...SEGMENT_OF[p.key], cents: p.cents })
     else if (s.kind === 'rest-to-objectives') out.push({ kind: 'objectives', label: s.noObjectives ? 'Se queda en tu líquido' : 'Tus objetivos', cents: s.monthlyCents })

@@ -17,10 +17,21 @@ import { PositionForm } from '../forms/position-form'
 import { PlusIcon, TrendUpIcon } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
+import { useAllocationPlan } from '@/hooks/use-allocation-plan'
+import { feeSummary, isHighFee, LOW_FEE_PCT, portfolioReturn, type FeeSummary, type PortfolioReturn } from '@/lib/axis/plan/returns'
+import { inflationFrom, inflationPhrase, type InflationRef } from '@/lib/axis/plan/inflation'
+import { pctText } from '@/lib/axis/plan/describe'
+import { todayISO } from '@/lib/dates'
 
 export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { open, close } = useSheet()
+  const result = useAllocationPlan(overview)
   if (!overview) return <ScreenLoading />
+  const inflation = result?.plan.inflation ?? inflationFrom(null)
+  const invest = result?.plan.steps.find((s) => s.kind === 'invest-long-term')
+  const monthlyInvest = invest?.kind === 'invest-long-term' ? invest.monthlyCents : 0
+  const ret = portfolioReturn(overview.positions, todayISO(), inflation.pct)
+  const fees = feeSummary(overview.positions, monthlyInvest)
 
   const { positions } = overview
   const invested = totalInvestedCents(positions)
@@ -71,6 +82,8 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
               Valores introducidos manualmente. Finax no consulta cotizaciones ni ejecuta operaciones.
             </p>
           </FinancialCard>
+
+          {ret && <ReturnCard ret={ret} fees={fees} inflation={inflation} monthlyInvest={monthlyInvest} />}
 
           <FinancialCard>
             <h2 className="text-[16px] font-bold tracking-tight text-grafito">Distribución</h2>
@@ -123,7 +136,9 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                         <p className="flex flex-wrap gap-x-1 text-[12px] font-medium text-muted-foreground">
                           <span className="whitespace-nowrap">{formatCents(p.investedCents)}</span>
                           <span className="whitespace-nowrap">· {formatShortDate(p.date)}</span>
+                          {p.feeBp !== undefined && <span className="whitespace-nowrap">· comisión {pctText(p.feeBp / 100)}</span>}
                         </p>
+                        {isHighFee(p) && <p className="text-[11.5px] font-semibold text-negative">Comisión alta para su tipo</p>}
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[14px] font-bold text-grafito tabular-nums">{formatCents(p.valueCents)}</p>
@@ -145,5 +160,59 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
         </>
       )}
     </div>
+  )
+}
+
+/** Rentabilidad (nominal y descontando la inflación) y lo que te cuestan las comisiones. */
+function ReturnCard({ ret, fees, inflation, monthlyInvest }: { ret: PortfolioReturn; fees: FeeSummary | null; inflation: InflationRef; monthlyInvest: number }) {
+  return (
+    <FinancialCard className="space-y-3">
+      <h2 className="text-[16px] font-bold tracking-tight text-grafito">Rentabilidad real y comisiones</h2>
+      {ret.annualPct !== null && ret.realAnnualPct !== null ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-[12px] font-semibold text-muted-foreground">Al año</p>
+            <p className={cn('mt-0.5 text-[18px] font-bold tabular-nums', ret.annualPct >= 0 ? 'text-finax-dark' : 'text-negative')}>{formatPct(ret.annualPct, true)}</p>
+          </div>
+          <div>
+            <p className="text-[12px] font-semibold text-muted-foreground">Descontando la inflación</p>
+            <p className={cn('mt-0.5 text-[18px] font-bold tabular-nums', ret.realAnnualPct >= 0 ? 'text-finax-dark' : 'text-negative')}>{formatPct(ret.realAnnualPct, true)}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+          Tu primera aportación tiene menos de un año: todavía no se calcula la rentabilidad anual, porque unos meses buenos o malos engañan.
+        </p>
+      )}
+      <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
+        {ret.annualPct !== null
+          ? `Teniendo en cuenta cuándo pusiste cada euro, desde hace ${String(ret.years).replace('.', ',')} años. Descontada ${inflationPhrase(inflation)}: lo que de verdad ganas en poder de compra.`
+          : `Con ${inflationPhrase(inflation)}, para ganar poder de compra tus inversiones tienen que crecer más que eso cada año.`}{' '}
+        Depende de que actualices el valor de cada inversión.
+      </p>
+      {fees ? (
+        <div className="space-y-1.5 rounded-xl bg-muted px-3 py-2.5 text-[12.5px] leading-snug text-pretty">
+          <p className="font-semibold text-grafito">
+            Pagas de media un {pctText(fees.avgPct)} al año: unos {formatCents(fees.yearlyCents)} con lo que tienes hoy.
+          </p>
+          {fees.longRun && (
+            <p className="font-medium text-grafito/85">
+              En {fees.longRun.years} años, con lo de hoy{monthlyInvest > 0 ? ` y los ${formatCents(monthlyInvest)} al mes de tu plan` : ''}, tus comisiones se llevarían unos {formatCents(fees.longRun.yoursCents)}
+              {fees.avgPct > LOW_FEE_PCT ? `; con un ${pctText(LOW_FEE_PCT)}, unos ${formatCents(fees.longRun.lowCents)}` : ''}.
+            </p>
+          )}
+          {fees.highFeeCount > 0 && (
+            <p className="font-semibold text-negative">
+              {fees.highFeeCount === 1 ? 'Una inversión tiene' : `${fees.highFeeCount} inversiones tienen`} una comisión alta para su tipo: compara con alternativas del mismo tipo más baratas.
+            </p>
+          )}
+          {fees.coveredPct < 100 && <p className="font-medium text-muted-foreground">Solo cuenta el {fees.coveredPct} % de tu dinero invertido: indica la comisión del resto al editar cada inversión.</p>}
+        </div>
+      ) : (
+        <p className="rounded-xl bg-muted px-3 py-2.5 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+          Indica la comisión anual de cada inversión (al editarla) y te diré cuánto te cuesta a largo plazo: es de lo poco que puedes controlar.
+        </p>
+      )}
+    </FinancialCard>
   )
 }

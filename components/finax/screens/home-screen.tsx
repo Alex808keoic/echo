@@ -11,6 +11,8 @@ import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { useMonthReview, usePlanChecklist } from '@/hooks/use-plan-checklist'
 import { todayISO } from '@/lib/dates'
 import { dueReminders } from '@/lib/reminders'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { getLastBackupAt } from '@/lib/db/meta'
 
 /** Días al principio del mes en los que Inicio anuncia la revisión del mes anterior. */
 const REVIEW_NOTICE_DAYS = 10
@@ -38,16 +40,23 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const plan = useAllocationPlan(overview)
   const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives)
   const review = useMonthReview(overview?.axisSnapshot, plan?.plan, checklist)
+  const lastBackupAt = useLiveQuery(getLastBackupAt, [], undefined)
+  const today = todayISO()
+  const created = overview ? [...overview.movements, ...overview.positions].map((r) => r.createdAt).concat(overview.config ? [overview.config.configuredAt] : []) : []
   // Los primeros días del mes, la revisión del anterior se anuncia en Inicio.
   const showReview = review && Number(todayISO().slice(8, 10)) <= REVIEW_NOTICE_DAYS
   const reminders =
     overview && plan
       ? dueReminders({
-          today: todayISO(),
+          today,
           checklist: checklist ? { items: checklist.items.length, done: checklist.doneCount } : null,
           hasRecurringIncome: (plan.decision.profile.fields.recurringIncomes?.length ?? 0) > 0,
           incomeThisMonth: plan.decision.context.flows.current.incomeCents,
           positionsUpdatedAt: overview.positions.map((p) => p.updatedAt),
+          // Mientras carga la fecha de la última copia, no se avisa.
+          firstDataAt: lastBackupAt === undefined || created.length === 0 || overview.config?.demo ? null : Math.min(...created),
+          lastBackupAt: lastBackupAt ?? null,
+          hasLastYearData: overview.movements.some((m) => m.date.startsWith(String(Number(today.slice(0, 4)) - 1))),
         })
       : []
   const { open, close } = useSheet()

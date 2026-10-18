@@ -23,6 +23,17 @@ import { FilterTabs } from '../filter-tabs'
 import { projectWealth, PROJECTION_YEARS, type ProjectionYears } from '@/lib/axis/plan/projection'
 import { inflationFrom, inflationPhrase } from '@/lib/axis/plan/inflation'
 import type { FinancialContext } from '@/lib/axis/types'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { listUserMemories } from '@/lib/db/axis-memories'
+import { ProfileForm } from '../forms/profile-form'
+import { reviewYear, yearsWithData } from '@/lib/axis/plan/year-review'
+import { todayISO } from '@/lib/dates'
+import type { FinancialOverview } from '@/hooks/use-financial-overview'
+import type { UserMemory } from '@/lib/axis/chat/types'
+
+const PROFILE_KINDS = new Set(['riskAttitude', 'horizon', 'irregularIncome', 'adult'])
+/** Hasta este mes (incluido), el resumen que se enseña primero es el del año anterior. */
+const LAST_YEAR_UNTIL_MONTH = 3
 
 const SEGMENT_COLOR: Record<SegmentKind, string> = {
   cushion: 'bg-finax-dark',
@@ -31,6 +42,7 @@ const SEGMENT_COLOR: Record<SegmentKind, string> = {
   'long-term-bonds': 'bg-axis-indigo',
   'long-term-risky': 'bg-negative',
   objectives: 'bg-finax',
+  debt: 'bg-grafito',
 }
 
 /**
@@ -43,7 +55,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const cushion = useCushionActions()
   const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives)
   const review = useMonthReview(overview?.axisSnapshot, result?.plan, checklist)
-  if (!result) return <ScreenLoading />
+  const memories = useLiveQuery(listUserMemories, [], undefined)
+  if (!result || !overview || memories === undefined) return <ScreenLoading />
   const { plan, decision } = result
   const objectives = decision.context.objectives
 
@@ -65,6 +78,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
         return onNavigate('objetivos')
       case 'review-memories':
         return onNavigate('memoria')
+      case 'review-debts':
+        return onNavigate('deudas')
     }
   }
 
@@ -75,6 +90,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
       {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
 
       {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} />}
+
+      {checklist && !checklist.checkedIn && <MonthCheckIn checklist={checklist} memories={memories} onSimulate={() => onNavigate('simulador')} />}
 
       {plan.monthly && <MonthlySummary plan={plan} />}
 
@@ -134,6 +151,17 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
       </ol>
 
       <ProjectionCard plan={plan} context={decision.context} />
+
+      <YearReviewCard overview={overview} plan={plan} memories={memories} onStats={() => onNavigate('estadisticas')} />
+
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="secondary" fullWidth onClick={() => onNavigate('simulador')}>
+          ¿Y si…?
+        </Button>
+        <Button variant="secondary" fullWidth onClick={() => onNavigate('deudas')}>
+          Mis deudas
+        </Button>
+      </div>
 
       <Button variant="secondary" fullWidth onClick={() => onNavigate('guia')}>
         Guía para invertir
@@ -215,6 +243,94 @@ function MonthReviewCard({ review, onStats }: { review: MonthReview; onStats: ()
       {review.usesCurrentPlan && (
         <p className="text-[11.5px] font-medium leading-snug text-muted-foreground">No había plan guardado de ese mes: se compara con lo que propone tu plan ahora.</p>
       )}
+    </FinancialCard>
+  )
+}
+
+/** Una vez al mes: ¿ha cambiado algo que deba cambiar tu plan? Lo respondido se guarda solo para no volver a preguntar este mes. */
+function MonthCheckIn({ checklist, memories, onSimulate }: { checklist: PlanChecklist; memories: UserMemory[]; onSimulate: () => void }) {
+  const { open, close } = useSheet()
+  const reviewProfile = () =>
+    open(
+      'Tu perfil',
+      <ProfileForm
+        memories={memories}
+        onDone={() => {
+          close()
+          void checklist.checkIn()
+        }}
+      />,
+    )
+  return (
+    <FinancialCard className="space-y-3">
+      <div>
+        <p className="text-[15px] font-bold text-grafito">¿Ha cambiado algo este mes?</p>
+        <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
+          Un cambio de trabajo o de sueldo, un gasto nuevo, otros plazos, o cómo llevas el riesgo. Tu plan es tan bueno como lo que sabe de ti.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="secondary" fullWidth onClick={() => void checklist.checkIn()}>
+          Nada
+        </Button>
+        <Button fullWidth onClick={reviewProfile}>
+          Revisar mi perfil
+        </Button>
+      </div>
+      <button type="button" onClick={onSimulate} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+        ¿Un cambio que aún no ha pasado? Pruébalo en «¿Y si…?»
+      </button>
+    </FinancialCard>
+  )
+}
+
+/** Resumen del año (el anterior hasta marzo; después, lo que va de año), con lo que conviene hacer. */
+function YearReviewCard({ overview, plan, memories, onStats }: { overview: FinancialOverview; plan: AllocationPlan; memories: UserMemory[]; onStats: () => void }) {
+  const { open, close } = useSheet()
+  const today = todayISO()
+  const years = yearsWithData(overview.movements).slice(0, 3)
+  const lastYear = String(Number(today.slice(0, 4)) - 1)
+  const preferred = Number(today.slice(5, 7)) <= LAST_YEAR_UNTIL_MONTH && years.includes(lastYear) ? lastYear : years[0]
+  const [year, setYear] = useState<string | undefined>(undefined)
+  const shown = year && years.includes(year) ? year : preferred
+  if (!shown) return null
+  const answers = memories.filter((m) => m.fact && PROFILE_KINDS.has(m.fact.kind))
+  const r = reviewYear({
+    snapshot: overview.axisSnapshot,
+    year: shown,
+    asOf: today,
+    inflation: plan.inflation ?? inflationFrom(null),
+    profileAnsweredAt: answers.length > 0 ? Math.max(...answers.map((m) => m.updatedAt)) : null,
+  })
+  if (!r) return null
+  return (
+    <FinancialCard className="space-y-3">
+      <div>
+        <p className="text-[15px] font-bold text-grafito">{r.partial ? `Tu ${r.year} hasta ahora` : `Tu ${r.year}`}</p>
+        <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground">Resumen del año, con {r.months === 1 ? '1 mes' : `${r.months} meses`} de datos.</p>
+      </div>
+      {years.length > 1 && <FilterTabs options={years} value={shown} onChange={setYear} size="sm" />}
+      <ul className="list-disc space-y-1 pl-4 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+        {r.lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+      <div className="space-y-1.5 rounded-xl bg-muted px-3 py-2.5">
+        <p className="text-[12.5px] font-bold text-grafito">{r.partial ? 'Para lo que queda de año' : 'Para el año que viene'}</p>
+        <ul className="list-disc space-y-1 pl-4 text-[12px] font-medium leading-snug text-grafito/85 text-pretty">
+          {r.next.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="secondary" fullWidth onClick={onStats}>
+          Ver estadísticas
+        </Button>
+        <Button variant={r.profileStale ? 'primary' : 'secondary'} fullWidth onClick={() => open('Tu perfil', <ProfileForm memories={memories} onDone={close} />)}>
+          {r.profileStale ? 'Repetir mi perfil' : 'Ver mi perfil'}
+        </Button>
+      </div>
     </FinancialCard>
   )
 }

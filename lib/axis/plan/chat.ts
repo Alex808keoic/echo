@@ -79,7 +79,7 @@ export function planFigures({ steps }: ChatPlan): AllowedFigure[] {
  * ahorrar al mes?») la responde mejor la lectura de AXIS.
  */
 export const PLAN_QUESTION =
-  /(?:\b(?:mi|tu|el|este) plan\b|\bplan de reparto\b|\brepart\w*|\binvert\w*|\binviert\w*|\binversi[oó]n\w*|\bfondo de emergencia\b|\brenta (?:fija|variable)\b|\bparte arriesgada\b|\bdinero parado\b|\bqu[eé] (?:hago|hacer) con (?:mi |el )?(?:dinero|ahorro)\b|\bd[oó]nde (?:meto|pongo|guardo) (?:mi |el )?(?:dinero|ahorro)\b)/i
+  /(?:\b(?:mi|tu|el|este) plan\b|\bplan de reparto\b|\brepart\w*|\binvert\w*|\binviert\w*|\binversi[oó]n\w*|\bfondo de emergencia\b|\brenta (?:fija|variable)\b|\bparte arriesgada\b|\bdinero parado\b|\bdeudas?\b|\bamortiz\w*|\bpr[eé]stamos?\b|\bqu[eé] (?:hago|hacer) con (?:mi |el )?(?:dinero|ahorro)\b|\bd[oó]nde (?:meto|pongo|guardo) (?:mi |el )?(?:dinero|ahorro)\b)/i
 
 /** El plan en texto, para la respuesta sin IA. */
 export function planLocalReply({ steps }: ChatPlan): string {

@@ -112,6 +112,20 @@ export interface PositionContext {
   weightPct: number
   /** Tipo de inversión (el guardado o, si no hay, el deducido del nombre). */
   assetType?: PositionAssetType
+  /** Comisión anual en %, si la has indicado. */
+  feePct?: number
+}
+
+export interface DebtContext {
+  id: string
+  name: string
+  /** Lo que queda por devolver. */
+  balanceCents: number
+  /** Interés anual (TAE), en %. */
+  aprPct: number
+  monthlyPaymentCents: number
+  /** Meses que faltan con la cuota actual; `null` si con ella no se termina. */
+  monthsLeft: number | null
 }
 
 export type ContextLevel = 'none' | 'limited' | 'sufficient'
@@ -167,6 +181,8 @@ export interface FinancialContext {
     /** Peso de las inversiones sobre el patrimonio total, 0–100. */
     shareOfWealthPct: number
   }
+  /** Deudas, de la más cara a la más barata. Solo existe si hay alguna (contextos anteriores no la traen). */
+  debts?: DebtContext[]
   quality: ContextQuality
 }
 

@@ -11,6 +11,13 @@
  *      declarado; si no, 3 meses de gasto habitual (6 con ingresos irregulares).
  *      Hasta completarlo recibe TODO el ahorro: es lo que hace el reparto
  *      automático con el colchón en primer lugar.
+ *   1b. Deudas caras (interés ≥ lo que cabe esperar de tu mezcla, o ≥ 7 % sin
+ *      perfil; nunca por debajo del 3 %): con un colchón mínimo de 1 mes de
+ *      gasto, TODO el ahorro va a devolverlas antes, de la más cara a la más
+ *      barata; después se completa el colchón. Devolver una deuda al 8 % es
+ *      ganar un 8 % seguro. Las de interés medio no frenan el plan: se explica
+ *      que amortizar o invertir es elección tuya. Si las cuotas pasan del 35 %
+ *      de tus ingresos, se avisa.
  *   2. Con el colchón completo: lo que necesitan al mes los objetivos con fecha
  *      en ≤ 24 meses (dinero que no se arriesga).
  *   3. De lo que sobra, un porcentaje a largo plazo según tu perfil de riesgo
@@ -31,7 +38,9 @@ import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCen
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
-import { DRAWDOWN_NOTICE_PCT, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
+import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
+import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
+import type { DebtContext } from '../types'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 export const CUSHION_MONTHS = { regular: 3, irregular: 6 } as const
@@ -44,6 +53,8 @@ export const LONG_TERM_PCT_NO_OBJECTIVES: Record<RiskAttitude, number> = { conse
 export const IDLE_SPREAD_MONTHS = 6
 /** Dinero parado mínimo para mencionarlo: 100 € y al menos un mes de gasto habitual. */
 export const IDLE_MIN_CENTS = 10_000
+/** Con deudas caras, el colchón mínimo antes de ir a por ellas: meses de gasto habitual. */
+export const DEBT_STARTER_CUSHION_MONTHS = 1
 /** La única categoría de inversión del plan. Nunca un producto concreto. */
 export const LONG_TERM_CATEGORY = { key: 'global-diversified-equity', label: 'Renta variable global diversificada y de bajo coste' } as const
 
@@ -59,6 +70,8 @@ export type LongTermReason =
   | 'short-horizon'
   /** Los objetivos a corto plazo ya se llevan todo el ahorro. */
   | 'no-room'
+  /** Primero, devolver deudas caras. */
+  | 'debt-first'
 
 export type PlanStep =
   | { kind: 'fix-negative-liquidity' }
@@ -66,7 +79,33 @@ export type PlanStep =
   | { kind: 'register-data'; monthsNeeded: number }
   | { kind: 'create-cushion'; targetCents: number }
   | { kind: 'move-cushion-first'; objectiveId: string }
-  | { kind: 'fill-cushion'; monthlyCents: number; remainingCents: number; months: number }
+  /** `starter`: con deudas caras, solo el colchón mínimo (1 mes de gasto) antes de ir a por ellas. */
+  | { kind: 'fill-cushion'; monthlyCents: number; remainingCents: number; months: number; starter?: true }
+  /**
+   * Deuda cara: todo el ahorro del mes a devolverla antes (además de la cuota).
+   * `lumpSumCents`: líquido por encima del colchón completo y de tus objetivos cercanos, para devolverla de una vez. `expectedReturnPct`: lo que cabe
+   * esperar de tu mezcla (`null` sin perfil). `objectivesWaiting`: tus objetivos no reciben ahorro nuevo mientras tanto.
+   */
+  | {
+      kind: 'pay-debt'
+      debtId: string
+      name: string
+      aprPct: number
+      monthlyCents: number
+      balanceCents: number
+      /** Meses hasta terminarla pagando además `monthlyCents` (`null` si no se puede calcular). */
+      months: number | null
+      monthsSaved: number | null
+      interestSavedCents: number | null
+      lumpSumCents: number
+      expectedReturnPct: number | null
+      otherDebts: number
+      objectivesWaiting: boolean
+    }
+  /** Deuda de interés medio con inversión a largo plazo: amortizar o invertir, decides tú. */
+  | { kind: 'debt-choice'; debtId: string; name: string; aprPct: number; investMonthlyCents: number; expectedReturnPct: number }
+  /** Las cuotas de tus deudas se llevan demasiado de tus ingresos. */
+  | { kind: 'debt-load'; paymentsCents: number; incomeCents: number; pct: number }
   | { kind: 'short-term-objectives'; monthlyCents: number; objectiveIds: string[]; atRisk: boolean }
   | {
       kind: 'invest-long-term'
@@ -127,6 +166,37 @@ const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normalize(o.name) === normalize(CUSHION_OBJECTIVE_NAME)
 
+/** Deudas con forma válida y algo pendiente (el contexto puede venir de fuera: nunca se confía en su forma). */
+function debtsOf(debts: unknown): DebtContext[] {
+  if (!Array.isArray(debts)) return []
+  return debts
+    .filter(
+      (d): d is DebtContext =>
+        typeof d === 'object' &&
+        d !== null &&
+        typeof d.id === 'string' &&
+        typeof d.name === 'string' &&
+        Number.isSafeInteger(d.balanceCents) &&
+        d.balanceCents > 0 &&
+        typeof d.aprPct === 'number' &&
+        Number.isFinite(d.aprPct) &&
+        d.aprPct >= 0 &&
+        d.aprPct <= 100 &&
+        Number.isSafeInteger(d.monthlyPaymentCents) &&
+        d.monthlyPaymentCents >= 0,
+    )
+    .sort((a, b) => b.aprPct - a.aprPct)
+}
+
+/** Paso «cuotas demasiado altas», si lo son. Ingresos habituales = ahorro + gasto habituales. */
+function debtLoadStep(debts: readonly DebtContext[], monthly: { savingsCents: number; spendingCents: number }): PlanStep[] {
+  const payments = debts.reduce((t, d) => t + d.monthlyPaymentCents, 0)
+  const income = monthly.savingsCents + monthly.spendingCents
+  if (payments <= 0 || income <= 0) return []
+  const pct = Math.round((payments / income) * 100)
+  return pct > DEBT_LOAD_MAX_PCT ? [{ kind: 'debt-load', paymentsCents: payments, incomeCents: income, pct }] : []
+}
+
 const sameMix = (a: readonly MixPart[], b: readonly MixPart[]) => a.length === b.length && a.every((p, i) => p.key === b[i].key && p.cents === b[i].cents)
 
 /** Tipos de inversión que el plan propone este mes (largo plazo y dinero parado). */
@@ -175,6 +245,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const ctx = decision.context
   const profile = decision.profile.fields
   const declaredIncome = recurringIncomesOf(profile)
+  const debts = debtsOf(ctx.debts)
   const notesStep: PlanStep[] = options.pendingNotes && options.pendingNotes > 0 ? [{ kind: 'review-notes', count: options.pendingNotes }] : []
   const ids = new Set(decision.signals.map((s) => s.id))
   const noLongTerm = (reason: LongTermReason) => ({ pct: 0, monthlyCents: 0, reason })
@@ -210,7 +281,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   } else {
     monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }
-  if (monthly.savingsCents <= 0) return blocked('no-surplus', [{ kind: 'reduce-spending' }, ...leading, ...notesStep], monthly)
+  if (monthly.savingsCents <= 0) return blocked('no-surplus', [{ kind: 'reduce-spending' }, ...debtLoadStep(debts, monthly), ...leading, ...notesStep], monthly)
 
   // 1. Colchón.
   const active = ctx.objectives.filter((o) => o.status !== 'achieved')
@@ -234,8 +305,47 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
 
   const needsProfile = profile.riskAttitude === undefined || profile.horizon === undefined
   // Detrás de los importes: de dónde sale el plan si es provisional, tu prioridad, el perfil y las notas pendientes.
-  const tail: PlanStep[] = [...leading, ...priorityStep(decision, active), ...(needsProfile ? [{ kind: 'answer-profile' as const }] : []), ...notesStep]
+  const tail: PlanStep[] = [...debtLoadStep(debts, monthly), ...leading, ...priorityStep(decision, active), ...(needsProfile ? [{ kind: 'answer-profile' as const }] : []), ...notesStep]
   const withProfileStep = (plan: AllocationPlan): AllocationPlan => (tail.length > 0 ? { ...plan, steps: [...plan.steps, ...tail] } : plan)
+
+  // 1b. Deudas caras: más que lo que cabe esperar de tu mezcla (o del 7 % sin perfil), nunca por debajo del 3 %.
+  const investable = !needsProfile && profile.horizon !== 'short'
+  const expectedReturnPct = investable ? expectedMixReturnPct(mixWeights(profile.riskAttitude as RiskAttitude, profile.horizon as 'medium' | 'long', false)) : null
+  const payFirstPct = expectedReturnPct === null ? DEBT_EXPENSIVE_PCT : Math.min(DEBT_EXPENSIVE_PCT, Math.max(DEBT_CHEAP_PCT, expectedReturnPct))
+  const expensive = debts.filter((d) => d.aprPct >= payFirstPct)
+  if (expensive.length > 0) {
+    const starter = Math.min(targetCents, monthly.spendingCents * DEBT_STARTER_CUSHION_MONTHS)
+    const starterRemaining = Math.max(0, starter - Math.max(0, ctx.wealth.liquidCents))
+    if (starterRemaining > 0) {
+      const monthlyCents = Math.min(monthly.savingsCents, euros(starterRemaining) || starterRemaining)
+      steps.push({ kind: 'fill-cushion', monthlyCents, remainingCents: starterRemaining, months: Math.ceil(starterRemaining / monthly.savingsCents), starter: true })
+      return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm: noLongTerm('debt-first'), steps })
+    }
+    const debt = expensive[0]
+    const effect = extraPaymentEffect(debt.balanceCents, debt.aprPct, debt.monthlyPaymentCents, monthly.savingsCents)
+    // Líquido por encima del colchón COMPLETO y de lo apartado para objetivos cercanos (≤ 24 meses): podría ir a
+    // la deuda de una vez. Lo apartado para objetivos lejanos sí cuenta: rinde menos de lo que cuesta la deuda.
+    const nearReserved = active
+      .filter((o) => !isCushionObjective(o) && o.monthsLeft !== undefined && o.monthsLeft <= SHORT_TERM_MONTHS)
+      .reduce((t, o) => t + Math.max(0, o.currentCents), 0)
+    const spare = euros(ctx.wealth.liquidCents - targetCents - nearReserved)
+    steps.push({
+      kind: 'pay-debt',
+      debtId: debt.id,
+      name: debt.name,
+      aprPct: debt.aprPct,
+      monthlyCents: monthly.savingsCents,
+      balanceCents: debt.balanceCents,
+      months: effect?.months ?? null,
+      monthsSaved: effect?.monthsSaved ?? null,
+      interestSavedCents: effect?.interestSavedCents ?? null,
+      lumpSumCents: Math.max(0, Math.min(spare, euros(debt.balanceCents))),
+      expectedReturnPct,
+      otherDebts: expensive.length - 1,
+      objectivesWaiting: active.some((o) => !isCushionObjective(o) && !o.completed),
+    })
+    return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm: noLongTerm('debt-first'), steps })
+  }
 
   if (remainingCents > 0) {
     const monthlyCents = Math.min(monthly.savingsCents, euros(remainingCents) || remainingCents)
@@ -299,6 +409,12 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       ...(rebalance && plainFor && !sameMix(mix, plainFor(longTerm.monthlyCents)) ? { rebalance } : {}),
       ...(drawdownPct >= DRAWDOWN_NOTICE_PCT ? { drawdownPct } : {}),
     })
+  }
+
+  // Deuda de interés medio: el plan sigue invirtiendo, pero amortizar es una opción segura que eliges tú.
+  const moderate = debts.find((d) => d.aprPct >= DEBT_CHEAP_PCT)
+  if (moderate && longTerm.monthlyCents > 0 && expectedReturnPct !== null) {
+    steps.push({ kind: 'debt-choice', debtId: moderate.id, name: moderate.name, aprPct: moderate.aprPct, investMonthlyCents: longTerm.monthlyCents, expectedReturnPct })
   }
 
   // 4. El resto se queda en el líquido y el reparto automático lo lleva a los objetivos.

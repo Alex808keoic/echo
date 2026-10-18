@@ -74,3 +74,17 @@ export function centsToInputValue(cents: number): string {
   const fraction = String(abs % 100).padStart(2, '0')
   return `${sign}${whole},${fraction}`
 }
+
+/**
+ * Porcentaje que escribe el usuario en centésimas de punto ("8,5" → 850,
+ * "0,2" → 20). Admite 0; como mucho dos decimales y hasta `maxPct`.
+ */
+export function parsePercentToBp(raw: string, maxPct = 100): number | null {
+  const cents = parseDecimalToCents(raw.replace('%', '').trim())
+  return cents !== null && cents >= 0 && cents <= maxPct * 100 ? cents : null
+}
+
+/** Representación editable de un porcentaje en centésimas de punto (850 → "8,5"). */
+export function bpToInputValue(bp: number): string {
+  return String(bp / 100).replace('.', ',')
+}

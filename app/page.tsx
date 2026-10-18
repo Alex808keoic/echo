@@ -16,6 +16,8 @@ import { MemoryScreen } from '@/components/finax/screens/memory-screen'
 import { PlanScreen } from '@/components/finax/screens/plan-screen'
 import { BriefScreen } from '@/components/finax/screens/brief-screen'
 import { GuideScreen } from '@/components/finax/screens/guide-screen'
+import { DebtsScreen } from '@/components/finax/screens/debts-screen'
+import { SimulatorScreen } from '@/components/finax/screens/simulator-screen'
 import { Wordmark } from '@/components/finax/wordmark'
 import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
@@ -127,6 +129,8 @@ function App() {
           {screen === 'plan' && <PlanScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'resumen' && <BriefScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'guia' && <GuideScreen overview={overview} onNavigate={navigate} onBack={back} />}
+          {screen === 'deudas' && <DebtsScreen overview={overview} onNavigate={navigate} onBack={back} />}
+          {screen === 'simulador' && <SimulatorScreen overview={overview} onNavigate={navigate} onBack={back} />}
         </PhoneFrame>
       </div>
     </main>

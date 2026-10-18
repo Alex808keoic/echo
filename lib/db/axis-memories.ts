@@ -90,6 +90,11 @@ export async function setNotePlanIgnored(id: string, ignored: boolean): Promise<
   })
 }
 
+/** Marca como revisadas (fecha de hoy) unas memorias que siguen igual, p. ej. las respuestas de «Tu perfil». */
+export async function touchUserMemories(ids: readonly string[], now: number = Date.now()): Promise<void> {
+  await db.axisMemories.where('id').anyOf([...ids]).modify({ updatedAt: now })
+}
+
 export async function deleteUserMemory(id: string): Promise<void> {
   await db.axisMemories.delete(id)
 }

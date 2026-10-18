@@ -9,7 +9,8 @@
 import { formatCents } from '../../money'
 import { formatMonthYear } from '../../dates'
 import { computeLiquidCents } from '../../finance/patrimonio'
-import type { AppConfig, Movement, Position } from '../../types'
+import type { AppConfig, Debt, Movement, Position } from '../../types'
+import { inMonth, totalsByCategory } from '../../finance/summary'
 import { closedMonthsOf, monthKeyOf } from '../context'
 import { regularExpenseCents, regularIncomeCents } from '../rules/shared'
 import type { AllocationPlan } from './allocation'
@@ -46,7 +47,7 @@ export function plannedFromPlan(plan: AllocationPlan, items: number): PlannedSna
 }
 
 export function reviewMonth(input: {
-  snapshot: { config: AppConfig | null; movements: Movement[]; positions: Position[] }
+  snapshot: { config: AppConfig | null; movements: Movement[]; positions: Position[]; debts?: Debt[] }
   asOf: string
   planned: PlannedSnapshot | null
   currentPlanned: PlannedSnapshot
@@ -70,6 +71,8 @@ export function reviewMonth(input: {
       : `Gastaste ${eur(-saved)} más de lo que ingresaste.`,
   )
   if (oneOff !== 0) lines.push(`Aparte, lo puntual del mes ${oneOff > 0 ? `sumó ${eur(oneOff)}` : `restó ${eur(-oneOff)}`}.`)
+  const top = totalsByCategory(inMonth(input.snapshot.movements, month), 'gasto')[0]
+  if (top) lines.push(`Donde más gastaste: «${top.label}», ${eur(top.cents)} (el ${top.pct} % de tus gastos).`)
 
   // Inversiones apuntadas con fecha de ese mes, por tipo.
   const investedThere = input.snapshot.positions.filter((p) => p.date.startsWith(month)).reduce((t, p) => t + Math.max(0, p.investedCents), 0)
@@ -100,6 +103,9 @@ export function reviewMonth(input: {
   const idle = Math.max(0, Math.round((before + after) / 2))
   const loss = Math.round((idle * input.inflation.pct) / 100 / 12 / 100) * 100
   if (loss > 0) lines.push(`Con ${inflationPhrase(input.inflation)}, tu dinero quieto perdió unos ${eur(loss)} de poder de compra este mes.`)
+
+  const owed = (input.snapshot.debts ?? []).reduce((t, d) => t + Math.max(0, d.balanceCents), 0)
+  if (owed > 0) lines.push(`Debes ${eur(owed)} en total: actualiza lo que queda de cada deuda.`)
 
   const verdict: ReviewVerdict = savedOk && investOk ? 'on-track' : savedOk || investOk ? 'partial' : 'off-track'
   const next =

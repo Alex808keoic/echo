@@ -13,6 +13,7 @@ import { getConfig } from '@/lib/db/config'
 import { listMovements } from '@/lib/db/movements'
 import { listObjectives } from '@/lib/db/objectives'
 import { listPositions } from '@/lib/db/positions'
+import { listDebts } from '@/lib/db/debts'
 import {
   buildWealthSeries,
   computeLiquidCents,
@@ -23,13 +24,15 @@ import { inMonth, onDate, pctChange, summarize, type PeriodSummary } from '@/lib
 import { allocateObjectives, totalValueCents, type ObjectivesAllocation } from '@/lib/finance/objectives'
 import type { FinancialSnapshot } from '@/lib/axis/context'
 import { currentMonthKey, shiftedMonthKey, todayISO } from '@/lib/dates'
-import type { AppConfig, Movement, Objective, Position } from '@/lib/types'
+import type { AppConfig, Debt, Movement, Objective, Position } from '@/lib/types'
 
 export interface FinancialOverview {
   config: AppConfig | null
   movements: Movement[]
   objectives: Objective[]
   positions: Position[]
+  /** Deudas, de la más cara a la más barata. */
+  debts: Debt[]
   initialBalanceCents: number
   /** Saldo inicial + movimientos − inversiones que salieron del líquido. */
   liquidCents: number
@@ -62,6 +65,7 @@ export function useFinancialOverview(): FinancialOverview | undefined {
   const movements = useLiveQuery(listMovements, [])
   const objectives = useLiveQuery(listObjectives, [])
   const positions = useLiveQuery(listPositions, [])
+  const debts = useLiveQuery(listDebts, [])
 
   // Identidad estable mientras no cambien los datos: evita recalcular (y
   // relanzar el análisis de AXIS) en cada render del shell.
@@ -70,12 +74,13 @@ export function useFinancialOverview(): FinancialOverview | undefined {
       config === undefined ||
       movements === undefined ||
       objectives === undefined ||
-      positions === undefined
+      positions === undefined ||
+      debts === undefined
     ) {
       return undefined
     }
-    return buildOverview(config, movements, objectives, positions)
-  }, [config, movements, objectives, positions])
+    return buildOverview(config, movements, objectives, positions, debts)
+  }, [config, movements, objectives, positions, debts])
 }
 
 function buildOverview(
@@ -83,6 +88,7 @@ function buildOverview(
   movements: Movement[],
   objectives: Objective[],
   positions: Position[],
+  debts: Debt[],
 ): FinancialOverview {
   const initialBalanceCents = config?.initialBalanceCents ?? 0
   const liquidCents = computeLiquidCents(initialBalanceCents, movements, positions)
@@ -104,6 +110,7 @@ function buildOverview(
     movements,
     objectives,
     positions,
+    debts,
     initialBalanceCents,
     liquidCents,
     investedCents,
@@ -115,7 +122,7 @@ function buildOverview(
     today: summarize(onDate(movements, todayISO())),
     series,
     objectivesAllocation: allocateObjectives(objectives, liquidCents),
-    axisSnapshot: { config, movements, objectives, positions },
+    axisSnapshot: { config, movements, objectives, positions, debts },
     isEmpty: movements.length === 0 && config === null,
   }
 }

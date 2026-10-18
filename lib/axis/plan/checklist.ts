@@ -40,7 +40,17 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
         items.push({ id: s.kind, text: `Pon tu «${CUSHION_OBJECTIVE_NAME}» el primero de tus objetivos` })
         break
       case 'fill-cushion':
-        items.push({ id: s.kind, text: `Deja ${eur(s.monthlyCents)} en tu cuenta para el colchón, sin gastarlos` })
+        items.push({ id: s.kind, text: `Deja ${eur(s.monthlyCents)} en tu cuenta para el colchón${s.starter ? ' mínimo' : ''}, sin gastarlos` })
+        break
+      case 'pay-debt':
+        items.push({ id: `pay-debt:${s.debtId}`, text: `Paga ${eur(s.monthlyCents)} de más de «${s.name}» (además de la cuota) y actualiza lo que queda en Deudas` })
+        if (s.lumpSumCents > 0) items.push({ id: 'pay-debt-lump', text: `Decide si devuelves ${eur(s.lumpSumCents)} de «${s.name}» de una vez con tu dinero líquido` })
+        break
+      case 'debt-choice':
+        items.push({ id: `debt-choice:${s.debtId}`, text: `Decide si los ${eur(s.investMonthlyCents)} del largo plazo van a invertir o a devolver antes «${s.name}»` })
+        break
+      case 'debt-load':
+        items.push({ id: s.kind, text: 'No pidas ningún préstamo nuevo este mes' })
         break
       case 'short-term-objectives':
         items.push({ id: s.kind, text: `Deja ${eur(s.monthlyCents)} en tu cuenta para ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}` })

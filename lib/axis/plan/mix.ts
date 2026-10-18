@@ -17,6 +17,7 @@
 import type { Horizon, RiskAttitude } from '../profile/types'
 import type { PositionAssetType } from '../../types'
 import { matchProductTypes, type ProductFamily } from '../guide/products'
+import { SCENARIO_ASSUMPTIONS } from '../guide/scenarios'
 
 export type SleeveKey = 'global-equity' | 'bonds' | 'risky'
 
@@ -87,6 +88,21 @@ export function mixWeights(riskAttitude: RiskAttitude, horizon: Exclude<Horizon,
   const bonds = BONDS_PCT[horizon][riskAttitude]
   const riskyPct = risky ? RISKY_MAX_PCT : 0
   return { 'global-equity': 100 - bonds - riskyPct, bonds, risky: riskyPct }
+}
+
+const SLEEVE_ASSUMPTION: Record<SleeveKey, string> = { 'global-equity': 'fondo-indexado', bonds: 'fondo-renta-fija', risky: 'acciones' }
+
+/**
+ * Rentabilidad anual que cabe esperar de una mezcla a largo plazo, con los
+ * supuestos generales de la Guía (antes de comisiones, impuestos e
+ * inflación), con un decimal. Es un orden de magnitud, nunca una promesa.
+ */
+export function expectedMixReturnPct(weights: Record<SleeveKey, number>): number {
+  const total = ORDER.reduce((t, k) => {
+    const a = SCENARIO_ASSUMPTIONS[SLEEVE_ASSUMPTION[k]]
+    return t + (a?.kind === 'growth' ? (weights[k] * a.mu) / 100 : 0)
+  }, 0)
+  return Math.round(total * 10) / 10
 }
 
 /**

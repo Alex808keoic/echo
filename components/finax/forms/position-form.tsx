@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Position, PositionAssetType, PositionInput } from '@/lib/types'
 import { guessAssetType } from '@/lib/axis/plan/mix'
-import { centsToInputValue, parseAmountToCents, parseBalanceToCents } from '@/lib/money'
+import { bpToInputValue, centsToInputValue, parseAmountToCents, parseBalanceToCents, parsePercentToBp } from '@/lib/money'
 import { isValidISODate, todayISO } from '@/lib/dates'
 import { addPosition, deletePosition, updatePosition } from '@/lib/db/positions'
 import { Button } from '../button'
@@ -34,6 +34,7 @@ interface Errors {
   invested?: string
   value?: string
   date?: string
+  fee?: string
 }
 
 /**
@@ -50,6 +51,7 @@ export function PositionForm({ position, initial, onDone }: PositionFormProps) {
   // Tipo para comparar tu mezcla con la del plan: el guardado o, si no lo has elegido, el que sugiere el nombre.
   const [assetType, setAssetType] = useState<PositionAssetType | null>(position?.assetType ?? initial?.assetType ?? null)
   const shownType = assetType ?? guessAssetType(name)
+  const [fee, setFee] = useState(position?.feeBp !== undefined ? bpToInputValue(position.feeBp) : '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -67,10 +69,13 @@ export function PositionForm({ position, initial, onDone }: PositionFormProps) {
     if (investedCents === null) next.invested = 'Introduce un importe mayor que cero.'
     if (valueCents === null) next.value = 'Valor no válido.'
     if (!isValidISODate(date)) next.date = 'Fecha no válida.'
+    // Opcional: vacío = no la sé. Hasta un 10 % anual.
+    const feeBp = fee.trim() ? parsePercentToBp(fee, 10) : undefined
+    if (feeBp === null) next.fee = 'Introduce un porcentaje entre 0 y 10, p. ej. 0,2.'
     setErrors(next)
-    if (Object.keys(next).length > 0 || investedCents === null || valueCents === null) return
+    if (Object.keys(next).length > 0 || investedCents === null || valueCents === null || feeBp === null) return
 
-    const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid, assetType: shownType }
+    const input: PositionInput = { name, investedCents, valueCents, date, fromLiquid, assetType: shownType, ...(feeBp !== undefined ? { feeBp } : {}) }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (position ? updatePosition(position.id, input) : addPosition(input)))
@@ -120,6 +125,13 @@ export function PositionForm({ position, initial, onDone }: PositionFormProps) {
         hint="Sin cotizaciones conectadas. Si lo dejas vacío, se usa el importe invertido."
       >
         <AmountInput value={value} onChange={(e) => setValue(e.target.value)} />
+      </Field>
+      <Field
+        label="Comisión anual, en % (opcional)"
+        error={errors.fee}
+        hint="La «TER» o «gastos corrientes» del fondo, o lo que cobre tu plataforma. Sirve para decirte cuánto te cuestan tus comisiones."
+      >
+        <TextInput inputMode="decimal" value={fee} onChange={(e) => setFee(e.target.value)} placeholder="Ej. 0,2" />
       </Field>
       <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
         <input

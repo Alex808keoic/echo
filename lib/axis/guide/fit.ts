@@ -50,6 +50,9 @@ export function productFit(product: ProductType, plan: AllocationPlan, profile: 
   } else if (profile.horizon === 'short') {
     verdict = 'not-for-horizon'
     reasons.push('Indicaste que necesitarás tu dinero en menos de 2 años, y este tipo de producto puede estar en pérdidas justo entonces.')
+  } else if (plan.longTerm.reason === 'debt-first') {
+    verdict = 'not-now'
+    reasons.push('Tu plan dice que primero conviene devolver tus deudas caras: devolverlas es una rentabilidad segura, y esta no lo es.')
   } else if (plan.longTerm.reason === 'cushion-incomplete') {
     verdict = 'not-now'
     reasons.push('Tu plan dice que primero conviene completar el colchón; después, una parte puede ir a largo plazo.')

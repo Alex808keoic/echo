@@ -10,11 +10,13 @@ import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
 import { guessAssetType } from './plan/mix'
-import type { AppConfig, Movement, Objective, Position } from '../types'
+import { aprPctOf, payoffMonths } from '../finance/debts'
+import type { AppConfig, Debt, Movement, Objective, Position } from '../types'
 import type {
   CategoryShare,
   ClosedMonth,
   ContextLevel,
+  DebtContext,
   FinancialContext,
   ObjectiveContext,
   PeriodStats,
@@ -27,6 +29,8 @@ export interface FinancialSnapshot {
   movements: Movement[]
   objectives: Objective[]
   positions: Position[]
+  /** Deudas (opcional: las instantáneas anteriores no las traen). */
+  debts?: Debt[]
 }
 
 const DAY_MS = 86_400_000
@@ -140,7 +144,23 @@ function positionContexts(positions: Position[]): PositionContext[] {
     valueCents: p.valueCents,
     weightPct: weights[i],
     assetType: p.assetType ?? guessAssetType(p.name),
+    ...(p.feeBp !== undefined ? { feePct: p.feeBp / 100 } : {}),
   }))
+}
+
+/** Deudas con algo pendiente, de la más cara a la más barata. */
+function debtContexts(debts: Debt[]): DebtContext[] {
+  return debts
+    .filter((d) => d.balanceCents > 0)
+    .map((d) => ({
+      id: d.id,
+      name: d.name,
+      balanceCents: d.balanceCents,
+      aprPct: aprPctOf(d.aprBp),
+      monthlyPaymentCents: d.monthlyPaymentCents,
+      monthsLeft: payoffMonths(d.balanceCents, aprPctOf(d.aprBp), d.monthlyPaymentCents),
+    }))
+    .sort((a, b) => b.aprPct - a.aprPct)
 }
 
 /**
@@ -182,6 +202,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
   const history = buildPatrimonioSeries(initialBalanceCents, movements, positions)
   const monthsWithData = new Set(movements.map((m) => m.date.slice(0, 7))).size
   const hasPreviousPeriod = previous.movementCount > 0
+  const debts = debtContexts(snapshot.debts ?? [])
 
   return {
     asOf,
@@ -208,6 +229,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       totalValueCents: investedCents,
       shareOfWealthPct: totalCents > 0 ? Math.round((investedCents / totalCents) * 100) : 0,
     },
+    ...(debts.length > 0 ? { debts } : {}),
     quality: {
       level: contextLevel(movements.length, hasPreviousPeriod),
       hasInitialBalance: config !== null,

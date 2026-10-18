@@ -10,7 +10,7 @@ import type { FinancialSnapshot } from '@/lib/axis/context'
 import { monthKeyOf } from '@/lib/axis/context'
 import type { ObjectiveContext } from '@/lib/axis/types'
 import { todayISO } from '@/lib/dates'
-import { getPlanMonth, savePlannedMonth, setPlanCheck } from '@/lib/db/plan-checks'
+import { getPlanMonth, savePlannedMonth, setMonthCheckIn, setPlanCheck } from '@/lib/db/plan-checks'
 
 export interface PlanChecklist {
   items: ChecklistItem[]
@@ -18,6 +18,9 @@ export interface PlanChecklist {
   /** Hechos entre los pasos de ESTE plan (lo marcado de pasos que ya no están no cuenta). */
   doneCount: number
   toggle: (id: string) => Promise<void>
+  /** Ya has respondido «¿Ha cambiado algo este mes?». */
+  checkedIn: boolean
+  checkIn: () => Promise<void>
 }
 
 /**
@@ -37,6 +40,8 @@ export function usePlanChecklist(plan: AllocationPlan | undefined, objectives: r
       done,
       doneCount: items.filter((i) => done.has(i.id)).length,
       toggle: (id: string) => setPlanCheck(month, id, !done.has(id)),
+      checkedIn: entry?.checkIn !== undefined,
+      checkIn: () => setMonthCheckIn(month),
     }
   }, [plan, objectives, entry, month])
 

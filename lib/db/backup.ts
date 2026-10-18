@@ -5,14 +5,16 @@
  *   v1  configuración, movimientos, objetivos e inversiones.
  *   v2  lo mismo + las memorias de AXIS (`axisMemories`). Nada más de AXIS:
  *       ni conversación, ni conclusiones, ni mercado, ni estado derivado.
+ *   v3  lo mismo + las deudas (`debts`).
  *
  * Objetivos: `priority` y `achievedAt` son opcionales (las copias anteriores
  * no los tienen). `currentCents` sigue siendo obligatorio por compatibilidad,
  * pero ya no es fuente de verdad: al exportar lleva el progreso calculado en
  * ese momento (`withDerivedCurrentCents`), y al importar se ignora.
  *
- * Se importan las dos. Restaurar una v1 conserva las memorias del dispositivo;
- * restaurar una v2 las sustituye. Todo o nada: una copia con algo no válido se
+ * Se importan las tres. Restaurar una v1 conserva las memorias del dispositivo;
+ * restaurar una v2 o v3 las sustituye. Igual con las deudas: una copia anterior
+ * a la v3 conserva las del dispositivo; una v3 las sustituye. Todo o nada: una copia con algo no válido se
  * rechaza entera y restaurar es una única transacción.
  */
 import { CONFIG_KEY, db } from './db'
@@ -22,6 +24,7 @@ import {
   INCOME_CATEGORIES,
   POSITION_ASSET_TYPES,
   type AppConfig,
+  type Debt,
   type Movement,
   type Objective,
   type Position,
@@ -33,9 +36,9 @@ import { validateImportedMemories } from '../axis/chat/memory'
 import type { UserMemory } from '../axis/chat/types'
 
 export const BACKUP_FORMAT = 'finax-backup'
-export const BACKUP_VERSION = 2
+export const BACKUP_VERSION = 3
 /** Versiones que se pueden importar. */
-export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2]
+export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2, 3]
 
 export interface Backup {
   format: typeof BACKUP_FORMAT
@@ -47,15 +50,18 @@ export interface Backup {
   positions: Position[]
   /** Memorias de AXIS (solo v2). Ausente en una copia v1: al restaurarla se conservan las del dispositivo. */
   memories?: UserMemory[]
+  /** Deudas (solo v3). Ausente en una copia anterior: al restaurarla se conservan las del dispositivo. */
+  debts?: Debt[]
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [config, movements, objectives, positions, memories] = await Promise.all([
+  const [config, movements, objectives, positions, memories, debts] = await Promise.all([
     db.config.get(CONFIG_KEY),
     db.movements.toArray(),
     db.objectives.toArray(),
     db.positions.toArray(),
     db.axisMemories.toArray(),
+    db.debts.toArray(),
   ])
   return {
     format: BACKUP_FORMAT,
@@ -66,6 +72,7 @@ export async function exportBackup(): Promise<Backup> {
     objectives: withDerivedCurrentCents(objectives, computeLiquidCents(config?.initialBalanceCents ?? 0, movements, positions)),
     positions,
     memories,
+    debts,
   }
 }
 
@@ -134,6 +141,24 @@ function isPosition(v: unknown): v is Position {
     isValidISODate(v.date) &&
     (v.fromLiquid === undefined || typeof v.fromLiquid === 'boolean') &&
     (v.assetType === undefined || (POSITION_ASSET_TYPES as readonly unknown[]).includes(v.assetType)) &&
+    (v.feeBp === undefined || (isInt(v.feeBp) && v.feeBp >= 0 && v.feeBp <= 1000)) &&
+    isInt(v.createdAt) &&
+    isInt(v.updatedAt)
+  )
+}
+
+function isDebt(v: unknown): v is Debt {
+  return (
+    isRecord(v) &&
+    isStr(v.id) &&
+    isStr(v.name) &&
+    isInt(v.balanceCents) &&
+    v.balanceCents >= 0 &&
+    isInt(v.aprBp) &&
+    v.aprBp >= 0 &&
+    v.aprBp <= 10_000 &&
+    isInt(v.monthlyPaymentCents) &&
+    v.monthlyPaymentCents >= 0 &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )
@@ -183,6 +208,12 @@ export function parseBackup(text: string): Backup {
     if (!checked.ok) throw new Error(checked.error)
     memories = checked.memories
   }
+  // v3: las deudas son obligatorias (puede ser una lista vacía).
+  let debts: Debt[] | undefined
+  if (raw.version >= 3) {
+    if (!Array.isArray(raw.debts) || !raw.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
+    debts = raw.debts
+  }
   return {
     format: BACKUP_FORMAT,
     version: raw.version,
@@ -192,6 +223,7 @@ export function parseBackup(text: string): Backup {
     objectives,
     positions,
     ...(memories !== undefined ? { memories } : {}),
+    ...(debts !== undefined ? { debts } : {}),
   }
 }
 
@@ -206,29 +238,32 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     const checked = validateImportedMemories(backup.memories)
     if (!checked.ok) throw new Error(checked.error)
   }
-  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories], async () => {
+  if (backup.debts !== undefined && !backup.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
+  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts], async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
       db.objectives.clear(),
       db.positions.clear(),
       ...(backup.memories !== undefined ? [db.axisMemories.clear()] : []),
+      ...(backup.debts !== undefined ? [db.debts.clear()] : []),
     ])
     if (backup.config) await db.config.put(backup.config)
     await db.movements.bulkAdd(backup.movements)
     await db.objectives.bulkAdd(backup.objectives)
     await db.positions.bulkAdd(backup.positions)
     if (backup.memories !== undefined) await db.axisMemories.bulkAdd(backup.memories)
+    if (backup.debts !== undefined) await db.debts.bulkAdd(backup.debts)
   })
 }
 
 /**
- * Borra todos los datos locales: datos financieros, caché de mercado y todo
+ * Borra todos los datos locales: datos financieros y deudas, caché de mercado y todo
  * lo de AXIS (conclusiones, memorias aceptadas, historial y resumen de la
  * conversación). Nada sobrevive al borrado completo.
  */
 export async function clearAllData(): Promise<void> {
-  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks]
+  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks, db.debts, db.meta]
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()))
   })

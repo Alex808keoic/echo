@@ -8,6 +8,9 @@
  *   income-missing      desde el día 10: has declarado un ingreso fijo y no hay ningún ingreso este mes
  *   update-investments  alguna inversión lleva más de 30 días sin actualizar su valor
  *   month-ending        desde el día 25: te quedan pasos de tu decisión del mes
+ *   backup              tus datos solo están en el móvil: ninguna copia y datos de hace más de 7 días,
+ *                       o la última copia tiene más de 30 días
+ *   year-review         del 1 al 15 de enero, si hay movimientos del año anterior: tu resumen del año
  */
 import { formatMonthYear } from './dates'
 
@@ -16,15 +19,18 @@ export const REMINDER_RULES = Object.freeze({
   INCOME_MISSING_FROM_DAY: 10,
   STALE_INVESTMENT_DAYS: 30,
   MONTH_ENDING_FROM_DAY: 25,
+  FIRST_BACKUP_AFTER_DAYS: 7,
+  BACKUP_EVERY_DAYS: 30,
+  YEAR_REVIEW_LAST_DAY: 15,
 })
 
-export type ReminderId = 'month-ready' | 'income-missing' | 'update-investments' | 'month-ending'
+export type ReminderId = 'month-ready' | 'income-missing' | 'update-investments' | 'month-ending' | 'backup' | 'year-review'
 
 export interface Reminder {
   id: ReminderId
   text: string
   /** Pantalla a la que lleva. */
-  to: 'plan' | 'movimientos' | 'inversiones'
+  to: 'plan' | 'movimientos' | 'inversiones' | 'ajustes'
 }
 
 export interface ReminderInput {
@@ -38,6 +44,12 @@ export interface ReminderInput {
   incomeThisMonth: number
   /** `updatedAt` (ms) de cada inversión. */
   positionsUpdatedAt: number[]
+  /** Cuándo exportaste la última copia (ms), o `null` si nunca. */
+  lastBackupAt?: number | null
+  /** `createdAt` (ms) del primer dato guardado, o `null` si no hay datos. */
+  firstDataAt?: number | null
+  /** Hay movimientos del año anterior. */
+  hasLastYearData?: boolean
   now?: number
 }
 
@@ -63,5 +75,16 @@ export function dueReminders(input: ReminderInput): Reminder[] {
     const left = c.items - c.done
     out.push({ id: 'month-ending', text: left === 1 ? 'Te queda 1 paso de tu decisión del mes.' : `Te quedan ${left} pasos de tu decisión del mes.`, to: 'plan' })
   }
+  if (input.firstDataAt != null) {
+    const last = input.lastBackupAt ?? null
+    if (last === null ? now - input.firstDataAt > REMINDER_RULES.FIRST_BACKUP_AFTER_DAYS * DAY_MS : now - last > REMINDER_RULES.BACKUP_EVERY_DAYS * DAY_MS)
+      out.push({
+        id: 'backup',
+        text: last === null ? 'Tus datos solo están en este móvil: haz tu primera copia de seguridad.' : 'Tu última copia de seguridad tiene más de un mes: haz una nueva.',
+        to: 'ajustes',
+      })
+  }
+  if (input.hasLastYearData && input.today.slice(5, 7) === '01' && day <= REMINDER_RULES.YEAR_REVIEW_LAST_DAY)
+    out.push({ id: 'year-review', text: `Tu resumen de ${Number(input.today.slice(0, 4)) - 1} está listo.`, to: 'plan' })
   return out
 }

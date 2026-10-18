@@ -6,7 +6,7 @@ import { CHAT_LIMITS, type UserMemory } from '@/lib/axis/chat/types'
 import { deriveProfile } from '@/lib/axis/profile/derive'
 import { describeFact } from '@/lib/axis/profile/describe'
 import { answersFromProfile, PROFILE_QUESTIONS, profileProposals, type ProfileAnswers } from '@/lib/axis/profile/questionnaire'
-import { listUserMemories, saveMemoryProposals } from '@/lib/db/axis-memories'
+import { listUserMemories, saveMemoryProposals, touchUserMemories } from '@/lib/db/axis-memories'
 import { writeErrorMessage } from '@/lib/db/storage-errors'
 import { cn } from '@/lib/utils'
 import { Button } from '../button'
@@ -29,6 +29,19 @@ export function ProfileForm({ memories, onDone }: ProfileFormProps) {
   const [busy, setBusy] = useState(false)
 
   const proposals = profileProposals(answers, current)
+  // Respuestas guardadas: si al revisarlas siguen igual, se marcan como revisadas (para el resumen del año).
+  const answered = memories.filter((m) => m.fact && PROFILE_QUESTIONS.some((q) => q.id === m.fact?.kind))
+  async function keep() {
+    setBusy(true)
+    try {
+      await touchUserMemories(answered.map((m) => m.id))
+      onDone()
+    } catch (error) {
+      setSaveError(writeErrorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
   const choose = (id: keyof ProfileAnswers, index: number) => {
     // Actualización funcional: dos pulsaciones seguidas no se pisan.
     setAnswers((prev) => ({ ...prev, [id]: index }))
@@ -115,6 +128,10 @@ export function ProfileForm({ memories, onDone }: ProfileFormProps) {
             </Button>
           </div>
         </div>
+      ) : proposals.length === 0 && answered.length > 0 ? (
+        <Button type="button" fullWidth disabled={busy} onClick={() => void keep()}>
+          Sigue todo igual
+        </Button>
       ) : (
         <Button type="submit" fullWidth disabled={busy || proposals.length === 0}>
           Guardar respuestas

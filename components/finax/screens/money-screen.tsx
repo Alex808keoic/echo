@@ -48,6 +48,7 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
   const breakdown = breakdownView.kind === 'parts' ? breakdownView.parts.map((b) => ({ ...b, color: brandColor(b.key) })) : []
 
   const monthUp = (overview.monthChangeCents ?? 0) >= 0
+  const owedCents = overview.debts.reduce((t, d) => t + Math.max(0, d.balanceCents), 0)
 
   return (
     <div className="space-y-6 px-5 pb-8 pt-3">
@@ -208,6 +209,19 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
               </p>
             </div>
             <span className="text-[15px] font-bold text-grafito tabular-nums">{formatCents(investedCents)}</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          </button>
+          <button type="button" onClick={() => onNavigate('deudas')} className="flex w-full items-center gap-3.5 py-4 text-left">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-negative-soft text-negative">
+              <ArrowDown className="h-[22px] w-[22px]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold text-grafito">Deudas</p>
+              <p className="text-[12px] font-medium text-muted-foreground">
+                {owedCents > 0 ? `Tu patrimonio menos deudas: ${formatCents(patrimonioCents - owedCents)}` : 'Préstamos, tarjetas, financiaciones'}
+              </p>
+            </div>
+            <span className="text-[15px] font-bold text-grafito tabular-nums">{formatCents(owedCents)}</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </button>
           <button

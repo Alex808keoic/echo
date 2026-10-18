@@ -33,6 +33,11 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
     case 'create-cushion':
     case 'fill-cushion':
     case 'move-cushion-first': {
+      if (step.kind === 'fill-cushion' && step.starter) {
+        why.push('Tienes deudas caras: cada mes que tardas en devolverlas te cuesta intereses, así que de momento basta con un mes de gasto apartado para imprevistos.')
+        why.push('Sin ese mínimo, un imprevisto te obligaría a endeudarte otra vez.')
+        break
+      }
       const c = plan.cushion
       if (c?.source === 'min-liquidity' && profile.minLiquidityCents !== undefined)
         why.push(`Dijiste que quieres tener siempre al menos ${formatCents(profile.minLiquidityCents)} líquidos.`)
@@ -60,6 +65,19 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       why.push('Tu colchón está completo y tus objetivos tienen lo que necesitan: este dinero no tiene ningún destino.')
       if (step.safe && horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}: por eso no se invierte.`)
       else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
+      break
+    case 'pay-debt':
+      why.push(`Una deuda al ${String(step.aprPct).replace('.', ',')} % te cuesta ese interés cada año, pase lo que pase. Devolverla antes es una rentabilidad segura; invertir no lo es.`)
+      if (step.expectedReturnPct !== null && risk)
+        why.push(`Con tu respuesta sobre el riesgo (${risk}), tu mezcla podría rendir unos ${String(step.expectedReturnPct).replace('.', ',')} % al año: menos de lo que te cuesta la deuda.`)
+      why.push('Antes de ir a por la deuda se aparta un mes de gasto, para que un imprevisto no te obligue a endeudarte otra vez.')
+      break
+    case 'debt-choice':
+      why.push('Con un interés medio, ninguna de las dos opciones es claramente mejor: invertir puede rendir más a largo plazo, pero devolver la deuda es seguro y te quita una cuota.')
+      if (risk) why.push(`Si sobre el riesgo respondiste ${risk} y te quita el sueño deber dinero, devolverla antes también es una buena decisión.`)
+      break
+    case 'debt-load':
+      why.push('Los bancos consideran sano que las cuotas no pasen del 30–35 % de tus ingresos: por encima, cualquier imprevisto te aprieta.')
       break
     case 'forecast-basis':
       why.push('Declaraste un ingreso fijo, así que no hace falta esperar a tener dos meses completos para empezar.')

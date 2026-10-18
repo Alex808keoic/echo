@@ -4,7 +4,7 @@
  * Índices declarados: solo los que se consultan. `id` es la clave primaria.
  */
 import Dexie, { type EntityTable } from 'dexie'
-import { currentCategory, type AppConfig, type Movement, type Objective, type Position } from '../types'
+import { currentCategory, type AppConfig, type Debt, type Movement, type Objective, type Position } from '../types'
 import type { MarketCacheEntry } from './market'
 import type { AxisMemoryEntry } from './axis-memory'
 import type { ConversationEntry } from './axis-conversation'
@@ -12,6 +12,12 @@ import type { UserMemory } from '../axis/chat/types'
 import type { PlanChecksEntry } from './plan-checks'
 
 export const CONFIG_KEY = 'config' as const
+
+/** Registro de `meta`: `backup` guarda cuándo exportaste la última copia (`at`, ms). */
+export interface MetaEntry {
+  key: 'backup'
+  at: number
+}
 
 export const db = new Dexie('finax') as Dexie & {
   movements: EntityTable<Movement, 'id'>
@@ -28,6 +34,10 @@ export const db = new Dexie('finax') as Dexie & {
   axisConversation: EntityTable<ConversationEntry, 'key'>
   /** «Tu decisión del mes»: qué pasos has marcado como hechos, por mes (no entra en el backup). */
   planChecks: EntityTable<PlanChecksEntry, 'key'>
+  /** Deudas introducidas a mano (entran en el backup desde la v3). */
+  debts: EntityTable<Debt, 'id'>
+  /** Datos de funcionamiento (p. ej. cuándo hiciste la última copia). No entra en el backup. */
+  meta: EntityTable<MetaEntry, 'key'>
 }
 
 db.version(1).stores({
@@ -70,6 +80,11 @@ db.version(5)
 
 db.version(6).stores({
   planChecks: 'key',
+})
+
+db.version(7).stores({
+  debts: 'id',
+  meta: 'key',
 })
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */
