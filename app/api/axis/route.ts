@@ -120,6 +120,6 @@ export async function POST(request: Request) {
  */
 function failureOf(error: unknown): string {
   if (!(error instanceof AIProviderError)) return error instanceof Error && error.name === 'AbortError' ? 'aborted' : 'unknown'
-  const invariants = /\(([a-z0-9_, -]+)\)$/i.exec(error.message)?.[1]
-  return invariants && error.kind === 'malformed' ? `malformed: ${invariants}`.slice(0, 120) : error.kind
+  const m = /\(([a-z0-9_, -]+)\)(?: \[(.*)\])?$/i.exec(error.message)
+  return m && error.kind === 'malformed' ? `malformed: ${m[1]}${m[2] ? ` [${m[2]}]` : ''}`.slice(0, 400) : error.kind
 }

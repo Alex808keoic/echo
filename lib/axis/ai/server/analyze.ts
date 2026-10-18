@@ -282,7 +282,11 @@ export async function analyzeDecisionFirst(model: AxisLanguageModel, input: Axis
   if (!verdict.ok) {
     const summary = verdict.violations.map((v) => `${v.invariant}@${v.field}: ${v.detail}`).join(' | ')
     console.warn('[axis] decision-first: expresión rechazada:', summary)
-    throw new AIProviderError('malformed', `expresión no válida (${verdict.violations.map((v) => v.invariant).join(', ')})`)
+    // Para el diagnóstico externo: el verbo y la clase de cada consejo rechazado, nunca nombres ni cifras.
+    const advice = verdict.violations
+      .filter((v) => v.invariant === 'advice')
+      .map((v) => `${v.field.replace(/\[.*\]/, '[]')} «${/«([^»]{1,30})»/.exec(v.detail)?.[1] ?? '?'}» ${/\((\S+ → \S+)/.exec(v.detail)?.[1] ?? ''}`)
+    throw new AIProviderError('malformed', `expresión no válida (${verdict.violations.map((v) => v.invariant).join(', ')})${advice.length > 0 ? ` [${advice.join('; ')}]` : ''}`)
   }
   // Si respondió el fallback de la cadena, la etiqueta dice cuál.
   return parseAxisAnalysis(mergeExpression(decision, expression, answeredBy === model.id ? engine : aiEngine(answeredBy)))
