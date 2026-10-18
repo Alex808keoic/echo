@@ -109,6 +109,17 @@ export async function POST(request: Request) {
     // Clasificación sin detalles: el cliente solo necesita saber que debe usar el motor local.
     const status = error instanceof AIProviderError && error.kind === 'rate-limit' ? 429 : 502
     console.warn('[axis] fallback al motor local:', error instanceof Error ? error.message : 'error desconocido')
-    return NextResponse.json({ error: 'ai-failed' }, { status, headers: NO_STORE })
+    return NextResponse.json({ error: 'ai-failed', failure: failureOf(error) }, { status, headers: NO_STORE })
   }
+}
+
+/**
+ * Tipo de fallo para diagnosticar desde fuera, sin datos del usuario ni del
+ * proveedor: la clase de error y, si la respuesta no pasó las comprobaciones,
+ * qué invariantes falló (nombres fijos, p. ej. «figures»).
+ */
+function failureOf(error: unknown): string {
+  if (!(error instanceof AIProviderError)) return error instanceof Error && error.name === 'AbortError' ? 'aborted' : 'unknown'
+  const invariants = /\(([a-z0-9_, -]+)\)$/i.exec(error.message)?.[1]
+  return invariants && error.kind === 'malformed' ? `malformed: ${invariants}`.slice(0, 120) : error.kind
 }
