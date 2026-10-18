@@ -495,6 +495,8 @@ Para añadir una regla: función `Rule` en `lib/axis/rules/`, registrarla en `RU
 - **invest, buy y sell nunca se licencian.**
 - **Solo se aplica en Decision First** (ni en legacy ni en el chat).
 - **Limitación:** solo detecta verbos del léxico («Podrías plantearte un ETF» pasa).
+- Una acción sin destino (`target: 'none'`, p. ej. `income.drop` → «ajusta el gasto») acepta cláusulas sobre tus datos (gasto, ingresos): antes se rechazaban y el análisis de Inicio caía al motor local en torno a la mitad de las veces (arreglado el 2026-10-18).
+- **Diagnóstico:** un 502 de `/api/axis` lleva `failure` (clase del error y, si la expresión no pasó, los invariantes y el verbo/clase de cada consejo rechazado; nunca nombres ni cifras). Probar con un contexto de prueba gasta cupo diario (40).
 - El arreglo de nombres cortos está **sin commit** (§1).
 
 ### 6.6 Chat conversacional (`lib/axis/chat/`, `hooks/use-axis-chat.ts`, `components/finax/axis-conversation.tsx`)
