@@ -23,7 +23,7 @@
 | Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
 | IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
 | IA de Market Research | Desde el 2026-10-13, Cloudflare → Groq (`scripts/market/providers/select.ts`). Necesita los secrets `CF_ACCOUNT_ID` y `CF_API_TOKEN` en GitHub (los añade el usuario; sin ellos, solo Groq). Gemini ya no se usa: fallaba siempre (HTTP 403) |
-| Tests | `pnpm test` → **1.206 pasan, 0 fallan** (277 suites, también con `TZ=UTC`) |
+| Tests | `pnpm test` → **1.403 pasan, 0 fallan** (2026-10-19, también con `TZ=UTC`) |
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
 | Lint | No existe |
@@ -141,6 +141,13 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - Rentabilidad real y comisiones (`plan/returns.ts`, Inversiones): TIR de tus aportaciones con ≥ 1 año, también descontando la inflación; `Position.feeBp` opcional, coste a 20 años frente al 0,2 % y aviso de comisión alta por tipo (umbrales de `guide/fit.ts`).
   - Copia de seguridad: Dexie tabla `meta` (`backup.at`, fuera del backup). Recordatorio `backup` (sin copia y datos de > 7 días, o copia de > 30 días; nunca con demo) y `year-review` (1–15 de enero). Repetidos en `sw.js`, que pasa a `finax-sw-v3`.
   - Revisión mensual ampliada (mayor gasto del mes, lo que debes) y «¿Ha cambiado algo este mes?» (`planChecks.checkIn`; «Revisar mi perfil» o «Nada»). Resumen del año (`plan/year-review.ts`; el año anterior hasta marzo, luego el actual) con propuesta de repetir «Tu perfil» si la respuesta más reciente tiene > 330 días; «Sigue todo igual» refresca la fecha (`touchUserMemories`).
+
+- **Movimientos fijos y primer uso guiado (2026-10-19; el usuario descartó importar extractos del banco):**
+  - `RecurringMovement` (Dexie **v8**, tabla `recurring`; backup **v4**; `lib/finance/recurring.ts`, `lib/db/recurring.ts`, pantalla `fijos`). Es una plantilla, **nunca dinero**: cada vez que toca se PROPONE (tarjeta «Por confirmar» en Inicio, Movimientos y Fijos) y el usuario la confirma (crea un `Movement` normal con `recurringId` y `occurrence`), la cambia antes de confirmar o la omite. Sin confirmar no cuenta en líquido, patrimonio, objetivos ni AXIS.
+  - Calendario: día (y mes, si es anual) de `startDate`; si el mes no tiene ese día, el último. Lo hecho se guarda como `doneThrough` + `handled` (sueltas fuera de orden); confirmar es una transacción que no duplica con doble toque. Como mucho 24 pendientes por fijo. Al crear, la próxima vez no puede ser pasada (el saldo inicial ya incluye lo anterior); cambiar la próxima vez o la frecuencia reprograma desde esa fecha.
+  - Recordatorio `recurring-pending` solo con la app cerrada (`sw.js` → `finax-sw-v4`, que repite el calendario de `recurring.ts`: cambiarlo en los dos sitios). Inicio no lo pasa porque ya enseña la tarjeta.
+  - Primer uso (`forms/onboarding.tsx`, botón «Empezar» de Inicio vacío): saldo inicial → fijos (atajos) → «Tu perfil»; los dos últimos se pueden saltar. Quien ya tenía datos ve en Inicio la tarjeta «¿Tienes ingresos o gastos fijos?» hasta que añade uno o la cierra (`meta` `recurring-hint`).
+  - En el historial y el detalle se ve el nombre del fijo («Spotify») en lugar de la categoría. Pendiente natural: ampliar las categorías (punto 2 del plan acordado con el usuario).
 
 ---
 
