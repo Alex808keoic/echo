@@ -66,12 +66,12 @@ beforeEach(async () => {
   await clearAllData()
 })
 
-describe('copia v3 · exportación', () => {
-  it('es v3 e incluye las memorias campo a campo, sin transformarlas', async () => {
+describe('copia v4 · exportación', () => {
+  it('es v4 e incluye las memorias campo a campo, sin transformarlas', async () => {
     await seedDevice()
     const backup = await exportBackup()
-    assert.equal(backup.version, 3)
-    assert.equal(BACKUP_VERSION, 3)
+    assert.equal(backup.version, 4)
+    assert.equal(BACKUP_VERSION, 4)
     assert.deepEqual(backup.memories, await db.axisMemories.toArray())
     const paga = backup.memories?.find((m) => m.fact)
     assert.deepEqual(Object.keys(paga ?? {}).sort(), ['category', 'confidence', 'content', 'createdAt', 'fact', 'id', 'importance', 'source', 'updatedAt'])
@@ -87,7 +87,7 @@ describe('copia v3 · exportación', () => {
     for (const forbidden of ['mensaje de conversación', 'resumen secreto', 'previousConclusions', 'dato de mercado', 'profileFacts', 'conversation":{']) {
       assert.ok(!text.includes(forbidden), `la copia contiene «${forbidden}»`)
     }
-    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'positions', 'version'])
+    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'positions', 'recurring', 'version'])
   })
 })
 
@@ -150,7 +150,7 @@ describe('copia v1 · compatibilidad', () => {
   })
 
   it('una versión desconocida se rechaza', () => {
-    assert.throws(() => parseBackup(file({ version: 4 })), /Versión de copia no compatible/)
+    assert.throws(() => parseBackup(file({ version: 5 })), /Versión de copia no compatible/)
     assert.throws(() => parseBackup(file({ version: '2' })), /Versión de copia no compatible/)
   })
 })

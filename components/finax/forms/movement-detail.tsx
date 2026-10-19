@@ -9,6 +9,8 @@ import { useSheet } from '../sheet'
 import { MovementForm } from './movement-form'
 import { useConfirmMovementDeletion } from './delete-movement'
 import { cn } from '@/lib/utils'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { getRecurring } from '@/lib/db/recurring'
 
 export const MOVEMENT_DETAIL_TITLE = 'Detalle del movimiento'
 
@@ -21,6 +23,8 @@ interface MovementDetailProps {
 export function MovementDetail({ movement, onDone }: MovementDetailProps) {
   const { open } = useSheet()
   const confirmDeletion = useConfirmMovementDeletion()
+  const recurringId = movement.recurringId
+  const fixed = useLiveQuery(() => (recurringId ? getRecurring(recurringId) : undefined), [recurringId])
 
   const isIncome = movement.type === 'ingreso'
   const rows: Array<[string, string]> = [
@@ -29,13 +33,14 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
     ['Fecha', formatFullDate(movement.date)],
   ]
   if (movement.motivo) rows.splice(2, 0, ['Motivo', movement.motivo])
+  if (fixed) rows.push(['Fijo', fixed.name])
   if (movement.puntual) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
   if (movement.nota) rows.push(['Nota', movement.nota])
 
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[13px] font-medium text-muted-foreground">{movementLabel(movement)}</p>
+        <p className="text-[13px] font-medium text-muted-foreground">{fixed?.name ?? movementLabel(movement)}</p>
         <p
           className={cn(
             'mt-1 text-[32px] font-extrabold leading-none tracking-tight tabular-nums',

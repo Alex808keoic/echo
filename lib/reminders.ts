@@ -11,6 +11,8 @@
  *   backup              tus datos solo están en el móvil: ninguna copia y datos de hace más de 7 días,
  *                       o la última copia tiene más de 30 días
  *   year-review         del 1 al 15 de enero, si hay movimientos del año anterior: tu resumen del año
+ *   recurring-pending   algún movimiento fijo ya tocaba y está sin confirmar (solo con la app cerrada:
+ *                       Inicio ya enseña cada uno con su botón para confirmarlo, y no lo pasa)
  */
 import { formatMonthYear } from './dates'
 
@@ -24,7 +26,7 @@ export const REMINDER_RULES = Object.freeze({
   YEAR_REVIEW_LAST_DAY: 15,
 })
 
-export type ReminderId = 'month-ready' | 'income-missing' | 'update-investments' | 'month-ending' | 'backup' | 'year-review'
+export type ReminderId = 'month-ready' | 'income-missing' | 'update-investments' | 'month-ending' | 'backup' | 'year-review' | 'recurring-pending'
 
 export interface Reminder {
   id: ReminderId
@@ -50,6 +52,8 @@ export interface ReminderInput {
   firstDataAt?: number | null
   /** Hay movimientos del año anterior. */
   hasLastYearData?: boolean
+  /** Veces de movimientos fijos que ya tocaban y están sin confirmar ni omitir. */
+  recurringPending?: number
   now?: number
 }
 
@@ -86,5 +90,12 @@ export function dueReminders(input: ReminderInput): Reminder[] {
   }
   if (input.hasLastYearData && input.today.slice(5, 7) === '01' && day <= REMINDER_RULES.YEAR_REVIEW_LAST_DAY)
     out.push({ id: 'year-review', text: `Tu resumen de ${Number(input.today.slice(0, 4)) - 1} está listo.`, to: 'plan' })
+  const pending = input.recurringPending ?? 0
+  if (pending > 0)
+    out.push({
+      id: 'recurring-pending',
+      text: pending === 1 ? 'Tienes 1 movimiento fijo por confirmar.' : `Tienes ${pending} movimientos fijos por confirmar.`,
+      to: 'movimientos',
+    })
   return out
 }

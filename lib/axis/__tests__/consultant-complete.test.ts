@@ -308,10 +308,10 @@ describe('datos: deudas en la copia, última copia y «¿Ha cambiado algo?»', (
     await clearAllData()
   })
 
-  it('la copia v3 lleva las deudas; restaurar una v2 conserva las del dispositivo', async () => {
+  it('la copia (v3 en adelante) lleva las deudas; restaurar una v2 conserva las del dispositivo', async () => {
     await addDebt({ name: 'Tarjeta', balanceCents: 200_000, aprBp: 2_200, monthlyPaymentCents: 10_000 })
     const backup = await exportBackup()
-    assert.equal(backup.version, 3)
+    assert.equal(backup.version, 4)
     assert.deepEqual(backup.debts?.map((d) => d.name), ['Tarjeta'])
     const parsed = parseBackup(JSON.stringify(backup))
     await clearAllData()

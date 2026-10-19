@@ -6,6 +6,7 @@
  *   v2  lo mismo + las memorias de AXIS (`axisMemories`). Nada más de AXIS:
  *       ni conversación, ni conclusiones, ni mercado, ni estado derivado.
  *   v3  lo mismo + las deudas (`debts`).
+ *   v4  lo mismo + los movimientos fijos (`recurring`).
  *
  * Objetivos: `priority` y `achievedAt` son opcionales (las copias anteriores
  * no los tienen). `currentCents` sigue siendo obligatorio por compatibilidad,
@@ -14,7 +15,8 @@
  *
  * Se importan las tres. Restaurar una v1 conserva las memorias del dispositivo;
  * restaurar una v2 o v3 las sustituye. Igual con las deudas: una copia anterior
- * a la v3 conserva las del dispositivo; una v3 las sustituye. Todo o nada: una copia con algo no válido se
+ * a la v3 conserva las del dispositivo; una v3 las sustituye. Y con los fijos: una
+ * copia anterior a la v4 conserva los del dispositivo; una v4 los sustituye. Todo o nada: una copia con algo no válido se
  * rechaza entera y restaurar es una única transacción.
  */
 import { CONFIG_KEY, db } from './db'
@@ -23,11 +25,13 @@ import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   POSITION_ASSET_TYPES,
+  RECURRING_FREQUENCIES,
   type AppConfig,
   type Debt,
   type Movement,
   type Objective,
   type Position,
+  type RecurringMovement,
 } from '../types'
 import { isValidISODate } from '../dates'
 import { computeLiquidCents } from '../finance/patrimonio'
@@ -36,9 +40,9 @@ import { validateImportedMemories } from '../axis/chat/memory'
 import type { UserMemory } from '../axis/chat/types'
 
 export const BACKUP_FORMAT = 'finax-backup'
-export const BACKUP_VERSION = 3
+export const BACKUP_VERSION = 4
 /** Versiones que se pueden importar. */
-export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2, 3]
+export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2, 3, 4]
 
 export interface Backup {
   format: typeof BACKUP_FORMAT
@@ -52,16 +56,19 @@ export interface Backup {
   memories?: UserMemory[]
   /** Deudas (solo v3). Ausente en una copia anterior: al restaurarla se conservan las del dispositivo. */
   debts?: Debt[]
+  /** Movimientos fijos (solo v4). Ausente en una copia anterior: al restaurarla se conservan los del dispositivo. */
+  recurring?: RecurringMovement[]
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [config, movements, objectives, positions, memories, debts] = await Promise.all([
+  const [config, movements, objectives, positions, memories, debts, recurring] = await Promise.all([
     db.config.get(CONFIG_KEY),
     db.movements.toArray(),
     db.objectives.toArray(),
     db.positions.toArray(),
     db.axisMemories.toArray(),
     db.debts.toArray(),
+    db.recurring.toArray(),
   ])
   return {
     format: BACKUP_FORMAT,
@@ -73,6 +80,7 @@ export async function exportBackup(): Promise<Backup> {
     positions,
     memories,
     debts,
+    recurring,
   }
 }
 
@@ -110,6 +118,8 @@ function isMovement(v: unknown): v is Movement {
     isOptStr(v.motivo) &&
     isOptStr(v.nota) &&
     (v.puntual === undefined || v.puntual === true) &&
+    isOptStr(v.recurringId) &&
+    (v.occurrence === undefined || (isStr(v.occurrence) && isValidISODate(v.occurrence))) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )
@@ -159,6 +169,27 @@ function isDebt(v: unknown): v is Debt {
     v.aprBp <= 10_000 &&
     isInt(v.monthlyPaymentCents) &&
     v.monthlyPaymentCents >= 0 &&
+    isInt(v.createdAt) &&
+    isInt(v.updatedAt)
+  )
+}
+
+function isRecurring(v: unknown): v is RecurringMovement {
+  if (!isRecord(v)) return false
+  const cats: readonly string[] = v.type === 'gasto' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
+  return (
+    isStr(v.id) &&
+    isStr(v.name) &&
+    (v.type === 'ingreso' || v.type === 'gasto') &&
+    isInt(v.amountCents) &&
+    v.amountCents > 0 &&
+    isStr(v.category) &&
+    cats.includes(v.category) &&
+    (RECURRING_FREQUENCIES as readonly unknown[]).includes(v.frequency) &&
+    isStr(v.startDate) &&
+    isValidISODate(v.startDate) &&
+    (v.doneThrough === undefined || (isStr(v.doneThrough) && isValidISODate(v.doneThrough))) &&
+    (v.handled === undefined || (Array.isArray(v.handled) && v.handled.every((d) => isStr(d) && isValidISODate(d)))) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )
@@ -214,6 +245,12 @@ export function parseBackup(text: string): Backup {
     if (!Array.isArray(raw.debts) || !raw.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
     debts = raw.debts
   }
+  // v4: los fijos son obligatorios (puede ser una lista vacía).
+  let recurring: RecurringMovement[] | undefined
+  if (raw.version >= 4) {
+    if (!Array.isArray(raw.recurring) || !raw.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
+    recurring = raw.recurring
+  }
   return {
     format: BACKUP_FORMAT,
     version: raw.version,
@@ -224,6 +261,7 @@ export function parseBackup(text: string): Backup {
     positions,
     ...(memories !== undefined ? { memories } : {}),
     ...(debts !== undefined ? { debts } : {}),
+    ...(recurring !== undefined ? { recurring } : {}),
   }
 }
 
@@ -239,7 +277,8 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     if (!checked.ok) throw new Error(checked.error)
   }
   if (backup.debts !== undefined && !backup.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
-  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts], async () => {
+  if (backup.recurring !== undefined && !backup.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
+  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts, db.recurring], async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
@@ -247,6 +286,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
       db.positions.clear(),
       ...(backup.memories !== undefined ? [db.axisMemories.clear()] : []),
       ...(backup.debts !== undefined ? [db.debts.clear()] : []),
+      ...(backup.recurring !== undefined ? [db.recurring.clear()] : []),
     ])
     if (backup.config) await db.config.put(backup.config)
     await db.movements.bulkAdd(backup.movements)
@@ -254,16 +294,17 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     await db.positions.bulkAdd(backup.positions)
     if (backup.memories !== undefined) await db.axisMemories.bulkAdd(backup.memories)
     if (backup.debts !== undefined) await db.debts.bulkAdd(backup.debts)
+    if (backup.recurring !== undefined) await db.recurring.bulkAdd(backup.recurring)
   })
 }
 
 /**
- * Borra todos los datos locales: datos financieros y deudas, caché de mercado y todo
+ * Borra todos los datos locales: datos financieros, deudas y fijos, caché de mercado y todo
  * lo de AXIS (conclusiones, memorias aceptadas, historial y resumen de la
  * conversación). Nada sobrevive al borrado completo.
  */
 export async function clearAllData(): Promise<void> {
-  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks, db.debts, db.meta]
+  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks, db.debts, db.meta, db.recurring]
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()))
   })

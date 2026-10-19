@@ -12,7 +12,8 @@ import { useMonthReview, usePlanChecklist } from '@/hooks/use-plan-checklist'
 import { todayISO } from '@/lib/dates'
 import { dueReminders } from '@/lib/reminders'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { getLastBackupAt } from '@/lib/db/meta'
+import { dismissRecurringHint, getLastBackupAt, getRecurringHintDismissedAt } from '@/lib/db/meta'
+import { useRecurring } from '@/hooks/use-recurring'
 
 /** Días al principio del mes en los que Inicio anuncia la revisión del mes anterior. */
 const REVIEW_NOTICE_DAYS = 10
@@ -28,7 +29,9 @@ import { EmptyState } from '../empty-state'
 import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
-import { InitialBalanceForm } from '../forms/initial-balance-form'
+import { Onboarding, ONBOARDING_TITLE } from '../forms/onboarding'
+import { RecurringForm } from '../forms/recurring-form'
+import { RecurringPending } from '../recurring-pending'
 import { ObjectiveForm } from '../forms/objective-form'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
@@ -41,6 +44,8 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives)
   const review = useMonthReview(overview?.axisSnapshot, plan?.plan, checklist)
   const lastBackupAt = useLiveQuery(getLastBackupAt, [], undefined)
+  const fixed = useRecurring()
+  const hintDismissedAt = useLiveQuery(getRecurringHintDismissedAt, [], undefined)
   const today = todayISO()
   const created = overview ? [...overview.movements, ...overview.positions].map((r) => r.createdAt).concat(overview.config ? [overview.config.configuredAt] : []) : []
   // Los primeros días del mes, la revisión del anterior se anuncia en Inicio.
@@ -62,6 +67,9 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const { open, close } = useSheet()
 
   if (!overview) return <ScreenLoading />
+
+  // Quien ya usaba Finax antes de los fijos (o se saltó ese paso): una tarjeta que se puede cerrar.
+  const showFixedHint = !overview.isEmpty && !overview.config?.demo && fixed?.recurring.length === 0 && hintDismissedAt === null
 
   const delta = seriesDelta(seriesForRange(overview.series, range))
   // El primero del reparto que aún no está cubierto; si no, el primero de la lista.
@@ -120,7 +128,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
           description="Indica tu saldo inicial y registra tu primer movimiento."
           action={
             <Button
-              onClick={() => open('Saldo inicial', <InitialBalanceForm onDone={close} />)}
+              onClick={() => open(ONBOARDING_TITLE, <Onboarding />)}
             >
               Empezar
             </Button>
@@ -155,6 +163,27 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             </li>
           ))}
         </ul>
+      )}
+
+      {fixed && <RecurringPending pending={fixed.pending} onSeeAll={() => onNavigate('fijos')} />}
+
+      {showFixedHint && (
+        <FinancialCard className="space-y-3">
+          <div>
+            <p className="text-[15px] font-bold text-grafito">¿Tienes ingresos o gastos fijos?</p>
+            <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
+              Tu nómina, el alquiler, las suscripciones… Apúntalos una vez y te los propondremos cada vez que toquen, para confirmarlos con un toque.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1 px-4 py-2.5 text-[13px]" onClick={() => open('Nuevo fijo', <RecurringForm onDone={close} />)}>
+              Añadir un fijo
+            </Button>
+            <Button variant="ghost" className="px-4 py-2.5 text-[13px] text-muted-foreground" onClick={() => void dismissRecurringHint()}>
+              Ahora no
+            </Button>
+          </div>
+        </FinancialCard>
       )}
 
       {plan && (

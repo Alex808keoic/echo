@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 
 interface TransactionRowProps {
   movement: Movement
+  /** Nombre del movimiento fijo del que salió, si sigue existiendo: sustituye a la etiqueta. */
+  fixedName?: string
   onClick?: () => void
 }
 
@@ -13,10 +15,10 @@ interface TransactionRowProps {
  * Fila de movimiento: chip de icono, etiqueta + categoría,
  * importe (verde ingreso / rojo gasto) y fecha.
  */
-export function TransactionRow({ movement, onClick }: TransactionRowProps) {
+export function TransactionRow({ movement, fixedName, onClick }: TransactionRowProps) {
   const Icon = categoryIconMap[movement.category]
   const isIncome = movement.type === 'ingreso'
-  const label = movementLabel(movement)
+  const label = fixedName ?? movementLabel(movement)
   const kind = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
   const subtitle = movement.puntual ? `${kind} · Puntual` : kind
 

@@ -11,6 +11,8 @@ import { attemptWrite } from '@/lib/db/storage-errors'
 interface InitialBalanceFormProps {
   /** Saldo actual; ausente en el primer arranque. */
   currentCents?: number
+  /** Texto del botón en el primer arranque (por defecto, «Empezar»). */
+  submitLabel?: string
   onDone: () => void
 }
 
@@ -18,7 +20,7 @@ interface InitialBalanceFormProps {
  * Saldo inicial (D-14): punto de partida del patrimonio. No es un movimiento.
  * Modificarlo después exige confirmación explícita.
  */
-export function InitialBalanceForm({ currentCents, onDone }: InitialBalanceFormProps) {
+export function InitialBalanceForm({ currentCents, submitLabel = 'Empezar', onDone }: InitialBalanceFormProps) {
   const [value, setValue] = useState(currentCents !== undefined ? centsToInputValue(currentCents) : '')
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState<number | null>(null)
@@ -71,7 +73,7 @@ export function InitialBalanceForm({ currentCents, onDone }: InitialBalanceFormP
         </p>
       )}
       <Button type="submit" fullWidth>
-        {currentCents === undefined ? 'Empezar' : 'Guardar'}
+        {currentCents === undefined ? submitLabel : 'Guardar'}
       </Button>
     </form>
   )

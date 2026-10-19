@@ -15,7 +15,9 @@ import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { MOVEMENT_DETAIL_TITLE, MovementDetail } from '../forms/movement-detail'
 import { MovementForm } from '../forms/movement-form'
-import { SettingsIcon, SearchIcon } from '../icons'
+import { ChevronRight, SettingsIcon, SearchIcon } from '../icons'
+import { RecurringPending } from '../recurring-pending'
+import { useRecurring } from '@/hooks/use-recurring'
 import type { ScreenProps } from './types'
 
 const FILTERS = ['Todos', 'Ingresos', 'Gastos'] as const
@@ -24,8 +26,11 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
   const [filter, setFilter] = useState<string>('Todos')
   const [query, setQuery] = useState('')
   const { open, close } = useSheet()
+  const fixed = useRecurring()
 
   const movements = overview?.movements
+  // Nombre de cada fijo, para enseñar «Spotify» en lugar de su categoría.
+  const fixedNames = useMemo(() => new Map((fixed?.recurring ?? []).map((r) => [r.id, r.name])), [fixed])
   const filtered = useMemo(() => {
     if (!movements) return []
     const q = query.trim().toLowerCase()
@@ -37,10 +42,11 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
       const byQuery =
         q === '' ||
         movementLabel(m).toLowerCase().includes(q) ||
+        (m.recurringId !== undefined && fixedNames.get(m.recurringId)?.toLowerCase().includes(q)) ||
         m.category.toLowerCase().includes(q)
       return byType && byQuery
     })
-  }, [movements, filter, query])
+  }, [movements, filter, query, fixedNames])
   const groups = useMemo(() => groupByDay(filtered), [filtered])
 
   /** Lo que el usuario está viendo ahora mismo: cuántos y cuánto suman. */
@@ -64,6 +70,24 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
           </IconButton>
         }
       />
+
+      {fixed && <RecurringPending pending={fixed.pending} onSeeAll={() => onNavigate('fijos')} />}
+
+      <button
+        type="button"
+        onClick={() => onNavigate('fijos')}
+        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13.5px] font-bold text-grafito">Movimientos fijos</span>
+          <span className="block text-[12px] font-medium text-muted-foreground text-pretty">
+            {!fixed || fixed.recurring.length === 0
+              ? 'Nómina, alquiler, suscripciones: te los proponemos cada vez'
+              : `${fixed.recurring.length} fijo${fixed.recurring.length === 1 ? '' : 's'}${fixed.pending.length > 0 ? ` · ${fixed.pending.length} por confirmar` : ''}`}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+      </button>
 
       <FilterTabs options={FILTERS} value={filter} onChange={setFilter} />
 
@@ -110,6 +134,7 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
                     <TransactionRow
                       key={m.id}
                       movement={m}
+                      fixedName={m.recurringId ? fixedNames.get(m.recurringId) : undefined}
                       onClick={() => open(MOVEMENT_DETAIL_TITLE, <MovementDetail movement={m} onDone={close} />)}
                     />
                   ))}

@@ -193,4 +193,11 @@ describe('recordatorios', () => {
     assert.deepEqual(dueReminders({ ...base, today: '2026-10-26', checklist: { items: 4, done: 3 } }).map((r) => r.text), ['Te queda 1 paso de tu decisión del mes.'])
     assert.deepEqual(ids('2026-10-26', { checklist: { items: 4, done: 4 } }), [])
   })
+
+  it('movimientos fijos por confirmar', () => {
+    const texts = (recurringPending: number) => dueReminders({ ...base, today: '2026-10-17', recurringPending }).map((r) => r.text)
+    assert.deepEqual(texts(0), [])
+    assert.deepEqual(texts(1), ['Tienes 1 movimiento fijo por confirmar.'])
+    assert.deepEqual(texts(3), ['Tienes 3 movimientos fijos por confirmar.'])
+  })
 })

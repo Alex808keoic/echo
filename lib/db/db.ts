@@ -4,7 +4,7 @@
  * Índices declarados: solo los que se consultan. `id` es la clave primaria.
  */
 import Dexie, { type EntityTable } from 'dexie'
-import { currentCategory, type AppConfig, type Debt, type Movement, type Objective, type Position } from '../types'
+import { currentCategory, type AppConfig, type Debt, type Movement, type Objective, type Position, type RecurringMovement } from '../types'
 import type { MarketCacheEntry } from './market'
 import type { AxisMemoryEntry } from './axis-memory'
 import type { ConversationEntry } from './axis-conversation'
@@ -13,9 +13,12 @@ import type { PlanChecksEntry } from './plan-checks'
 
 export const CONFIG_KEY = 'config' as const
 
-/** Registro de `meta`: `backup` guarda cuándo exportaste la última copia (`at`, ms). */
+/**
+ * Registro de `meta`: `backup` guarda cuándo exportaste la última copia (`at`, ms);
+ * `recurring-hint`, cuándo cerraste la tarjeta de Inicio que propone añadir tus fijos.
+ */
 export interface MetaEntry {
-  key: 'backup'
+  key: 'backup' | 'recurring-hint'
   at: number
 }
 
@@ -38,6 +41,8 @@ export const db = new Dexie('finax') as Dexie & {
   debts: EntityTable<Debt, 'id'>
   /** Datos de funcionamiento (p. ej. cuándo hiciste la última copia). No entra en el backup. */
   meta: EntityTable<MetaEntry, 'key'>
+  /** Movimientos fijos (plantillas que se proponen cada vez que tocan; entran en el backup desde la v4). */
+  recurring: EntityTable<RecurringMovement, 'id'>
 }
 
 db.version(1).stores({
@@ -85,6 +90,10 @@ db.version(6).stores({
 db.version(7).stores({
   debts: 'id',
   meta: 'key',
+})
+
+db.version(8).stores({
+  recurring: 'id',
 })
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */

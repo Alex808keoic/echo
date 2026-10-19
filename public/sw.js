@@ -5,7 +5,7 @@
  * - Nunca cachea /api/* ni peticiones que no sean GET.
  * Los datos del usuario viven en IndexedDB, no pasan por aquí.
  */
-const VERSION = 'finax-sw-v3'
+const VERSION = 'finax-sw-v4'
 const SHELL = `${VERSION}-shell`
 const DATA = `${VERSION}-data`
 
@@ -76,7 +76,8 @@ self.addEventListener('fetch', (event) => {
  * día). Lee IndexedDB «finax» solo para leer y enseña una notificación local:
  * nada sale del dispositivo. Repite las reglas de lib/reminders.ts: si cambias
  * una regla allí, cámbiala también aquí. Cada recordatorio se enseña como mucho
- * una vez por mes (inversiones: una vez por semana).
+ * una vez por mes (inversiones: una vez por semana; fijos: una vez por cada vez nueva
+ * que toca). El calendario de los fijos repite lib/finance/recurring.ts.
  */
 const REMINDER_TAG = 'finax-reminders'
 const REMINDER_STATE = 'finax-reminders'
@@ -112,6 +113,25 @@ function openFinax() {
   })
 }
 
+/** Las veces de un fijo que ya tocaban (hasta `today`) sin confirmar ni omitir (lib/finance/recurring.ts). */
+function pendingOccurrences(r, today) {
+  if (typeof r.startDate !== 'string') return []
+  const [y, m, d] = r.startDate.split('-').map(Number)
+  const handled = Array.isArray(r.handled) ? r.handled : []
+  const out = []
+  for (let step = 0; step < 1200; step++) {
+    const index = r.frequency === 'monthly' ? m - 1 + step : m - 1
+    const year = r.frequency === 'monthly' ? y + Math.floor(index / 12) : y + step
+    const month = (index % 12) + 1
+    const day = Math.min(d, new Date(year, month, 0).getDate())
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    if (date > today) break
+    if ((r.doneThrough && date <= r.doneThrough) || handled.includes(date)) continue
+    out.push(date)
+  }
+  return out.slice(-24)
+}
+
 function localToday() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -125,13 +145,14 @@ async function notifyDueReminders() {
   } catch {
     return
   }
-  const [checks, positions, memories, movements, meta, config] = await Promise.all([
+  const [checks, positions, memories, movements, meta, config, recurring] = await Promise.all([
     readAll(db, 'planChecks'),
     readAll(db, 'positions'),
     readAll(db, 'axisMemories'),
     readAll(db, 'movements'),
     readAll(db, 'meta'),
     readAll(db, 'config'),
+    readAll(db, 'recurring'),
   ])
   db.close()
   const today = localToday()
@@ -159,6 +180,13 @@ async function notifyDueReminders() {
   const lastYear = String(Number(today.slice(0, 4)) - 1)
   if (today.slice(5, 7) === '01' && day <= 15 && movements.some((m) => typeof m.date === 'string' && m.date.startsWith(lastYear)))
     due.push({ id: 'year-review', period: month, text: `Tu resumen de ${lastYear} está listo.` })
+  const pending = recurring.flatMap((r) => pendingOccurrences(r, today)).sort()
+  if (pending.length > 0)
+    due.push({
+      id: 'recurring-pending',
+      period: pending[pending.length - 1],
+      text: pending.length === 1 ? 'Tienes 1 movimiento fijo por confirmar.' : `Tienes ${pending.length} movimientos fijos por confirmar.`,
+    })
   if (due.length === 0) return
 
   const cache = await caches.open(REMINDER_STATE)

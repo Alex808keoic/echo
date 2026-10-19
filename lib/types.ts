@@ -66,6 +66,10 @@ export interface Movement {
    * cambio entre meses. Solo se guarda cuando es `true`.
    */
   puntual?: true
+  /** Movimiento fijo del que salió al confirmarlo (`RecurringMovement.id`). */
+  recurringId?: string
+  /** Vez del movimiento fijo que cubre (`YYYY-MM-DD` previsto; `date` es cuándo pasó de verdad). */
+  occurrence?: string
   createdAt: number
   updatedAt: number
 }
@@ -189,6 +193,38 @@ export interface Debt {
 }
 
 export type DebtInput = Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
+
+/* ---------------------------- Movimientos fijos ---------------------------- */
+
+export const RECURRING_FREQUENCIES = ['monthly', 'yearly'] as const
+export type RecurringFrequency = (typeof RECURRING_FREQUENCIES)[number]
+
+/**
+ * Movimiento fijo (nómina, alquiler, una suscripción): una plantilla, no
+ * dinero. Cada vez que toca, Finax la PROPONE y el usuario la confirma (se
+ * crea un `Movement` normal) o la omite. Hasta entonces no cuenta en nada:
+ * ni líquido, ni patrimonio, ni AXIS.
+ */
+export interface RecurringMovement {
+  id: string
+  /** Cómo lo llamas: «Nómina», «Alquiler», «Spotify». */
+  name: string
+  type: MovementType
+  /** Importe habitual en céntimos; al confirmar cada vez se puede cambiar. */
+  amountCents: number
+  category: Category
+  frequency: RecurringFrequency
+  /** Primera vez `YYYY-MM-DD`: de aquí salen el día (y el mes, si es anual) de las siguientes. */
+  startDate: string
+  /** Todas las veces hasta esta fecha (incluida) ya están confirmadas u omitidas. */
+  doneThrough?: string
+  /** Veces posteriores a `doneThrough` ya confirmadas u omitidas (fuera de orden). */
+  handled?: string[]
+  createdAt: number
+  updatedAt: number
+}
+
+export type RecurringMovementInput = Pick<RecurringMovement, 'name' | 'type' | 'amountCents' | 'category' | 'frequency' | 'startDate'>
 
 /* ------------------------------ Configuración ----------------------------- */
 
