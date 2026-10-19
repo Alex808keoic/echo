@@ -16,18 +16,18 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-17T13:02:17.914Z"
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.217,
+      "value": 3.215,
       "unit": "%",
-      "asOf": "2026-10-15",
-      "changePct": 0.016,
+      "asOf": "2026-10-16",
+      "changePct": -0.002,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-17T13:02:17.914Z"
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     },
     {
       "key": "ine-ipc",
@@ -38,7 +38,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-17T13:02:17.914Z"
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     },
     {
       "key": "ea-hicp",
@@ -49,19 +49,19 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "Eurostat",
-      "fetchedAt": "2026-10-17T13:02:17.914Z",
-      "publishedAt": "2026-10-16T21:00:00.000Z"
+      "publishedAt": "2026-10-16T21:00:00.000Z",
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19177.7,
+      "value": 19326.3,
       "unit": "pts",
-      "asOf": "2026-10-15",
-      "changePct": 1.31,
+      "asOf": "2026-10-16",
+      "changePct": 1.54,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-17T13:02:17.914Z"
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     },
     {
       "key": "stoxx50",
@@ -72,7 +72,7 @@
       "asOf": "2026-09",
       "changePct": -2.58,
       "source": "BCE",
-      "fetchedAt": "2026-10-17T13:02:17.914Z"
+      "fetchedAt": "2026-10-19T14:51:41.186Z"
     }
   ],
   "events": [
@@ -159,9 +159,12 @@
       "aliases": [
         "euro stoxx 50",
         "acciones europeas",
-        "stoxx"
+        "stoxx",
+        "ibex 35",
+        "acciones españa",
+        "ibex"
       ],
-      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58 % respecto al dato anterior (septiembre 2026).",
+      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58 % respecto al dato anterior (septiembre 2026). El IBEX 35 cerró en 19177.7 pts el 15 de octubre de 2026, con un incremento del 1.31 % respecto al periodo anterior.",
       "stance": "caution"
     },
     {
@@ -174,17 +177,6 @@
       ],
       "note": "Sin noticias relevantes en el material de esta semana.",
       "stance": "neutral"
-    },
-    {
-      "key": "equity-europe",
-      "label": "Renta Variable España",
-      "aliases": [
-        "ibex 35",
-        "acciones españa",
-        "ibex"
-      ],
-      "note": "El IBEX 35 cerró en 19177.7 pts el 15 de octubre de 2026, con un incremento del 1.31 % respecto al periodo anterior.",
-      "stance": "watch"
     },
     {
       "key": "bonds-gov",
