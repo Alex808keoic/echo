@@ -96,7 +96,7 @@ const isOptStr = (v: unknown): v is string | undefined => v === undefined || isS
  * exportada antes de un renombrado sigue siendo importable; se migra al leerla,
  * igual que se migra la base local. No muta la entrada.
  */
-function withCurrentCategories(movements: Movement[]): Movement[] {
+function withCurrentCategories<T extends Movement | RecurringMovement>(movements: T[]): T[] {
   return movements.map((m) => {
     const category = currentCategory(m.category)
     return category === m.category ? m : { ...m, category: category as Movement['category'] }
@@ -184,7 +184,7 @@ function isRecurring(v: unknown): v is RecurringMovement {
     isInt(v.amountCents) &&
     v.amountCents > 0 &&
     isStr(v.category) &&
-    cats.includes(v.category) &&
+    cats.includes(currentCategory(v.category)) &&
     (RECURRING_FREQUENCIES as readonly unknown[]).includes(v.frequency) &&
     isStr(v.startDate) &&
     isValidISODate(v.startDate) &&
@@ -249,7 +249,7 @@ export function parseBackup(text: string): Backup {
   let recurring: RecurringMovement[] | undefined
   if (raw.version >= 4) {
     if (!Array.isArray(raw.recurring) || !raw.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
-    recurring = raw.recurring
+    recurring = withCurrentCategories(raw.recurring)
   }
   return {
     format: BACKUP_FORMAT,

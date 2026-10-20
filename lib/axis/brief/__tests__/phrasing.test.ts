@@ -274,7 +274,7 @@ describe('entrada del modelo: solo el Brief', () => {
     assert.deepEqual(sent, briefPayload(b))
     assert.deepEqual(Object.keys(sent), ['mercado', 'para_ti', 'conclusion_de_axis', 'incertidumbres'])
     // healthyMovements usa categorías y motivos que nunca deben salir.
-    assert.doesNotMatch(seen.user ?? '', /Comida|motivo|memoria|generatedAt|ageDays|2026-09-15/)
+    assert.doesNotMatch(seen.user ?? '', /Supermercado|motivo|memoria|generatedAt|ageDays|2026-09-15/)
   })
 
   it('tamaño acotado', () => {

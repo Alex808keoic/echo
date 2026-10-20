@@ -295,18 +295,133 @@ export function TrendUpIcon(props: IconProps) {
   )
 }
 
+export function BoltIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M13 3 5.5 13.5H12L11 21l7.5-10.5H12L13 3Z" />
+    </Base>
+  )
+}
+
+export function CarIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M5 16v-4.5l1.8-4.2a1.5 1.5 0 0 1 1.4-.8h7.6a1.5 1.5 0 0 1 1.4.8l1.8 4.2V16" />
+      <path d="M3.5 16h17M5 11.5h14" />
+      <circle cx="7.5" cy="18" r="1.5" />
+      <circle cx="16.5" cy="18" r="1.5" />
+    </Base>
+  )
+}
+
+export function RepeatIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="m17 3.5 3 3-3 3" />
+      <path d="M4 11.5v-1a4 4 0 0 1 4-4h12" />
+      <path d="m7 20.5-3-3 3-3" />
+      <path d="M20 12.5v1a4 4 0 0 1-4 4H4" />
+    </Base>
+  )
+}
+
+export function HealthIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </Base>
+  )
+}
+
+export function DumbbellIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M8.5 12h7" />
+      <rect x="5" y="7.5" width="3.5" height="9" rx="1" />
+      <rect x="15.5" y="7.5" width="3.5" height="9" rx="1" />
+      <path d="M3 10v4M21 10v4" />
+    </Base>
+  )
+}
+
+export function BookIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2Z" />
+      <path d="M12 6.5v14" />
+    </Base>
+  )
+}
+
+export function PlaneIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M20.5 3.5 3.5 10.5l6.5 2.5 2.5 6.5 8-16Z" />
+      <path d="m10 13 4-4" />
+    </Base>
+  )
+}
+
+export function ShieldIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M12 3.5 5 6v5.5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6l-7-2.5Z" />
+      <path d="m9 12 2 2 4-4" />
+    </Base>
+  )
+}
+
+export function BriefcaseIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <rect x="3.5" y="7" width="17" height="12" rx="2" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3.5 12.5h17" />
+    </Base>
+  )
+}
+
+export function TagIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M3.5 12.2V5A1.5 1.5 0 0 1 5 3.5h7.2a1.5 1.5 0 0 1 1 .4l7.4 7.4a1.5 1.5 0 0 1 0 2.1l-7.2 7.2a1.5 1.5 0 0 1-2.1 0l-7.4-7.4a1.5 1.5 0 0 1-.4-1Z" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+    </Base>
+  )
+}
+
+export function ReturnIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+    </Base>
+  )
+}
+
 /* --------------------------- Mapa de categorías --------------------------- */
 
 import type { Category } from '@/lib/types'
 
 export const categoryIconMap: Record<Category, (props: IconProps) => React.ReactElement> = {
-  Comida: GroceriesIcon,
+  Supermercado: GroceriesIcon,
   Restaurantes: RestaurantIcon,
-  Salidas: TicketIcon,
+  Vivienda: HomeIcon,
+  Facturas: BoltIcon,
+  Transporte: CarIcon,
+  Suscripciones: RepeatIcon,
   Caprichos: SparkIcon,
   Ropa: ShoppingBagIcon,
+  Salud: HealthIcon,
+  Deporte: DumbbellIcon,
+  Educación: BookIcon,
+  Viajes: PlaneIcon,
+  Regalos: GiftIcon,
+  'Seguros y banco': ShieldIcon,
   Otros: DotsIcon,
   Paga: SalaryIcon,
-  Regalos: GiftIcon,
+  'Trabajos extra': BriefcaseIcon,
+  Ventas: TagIcon,
+  Deuda: ReturnIcon,
 }
 

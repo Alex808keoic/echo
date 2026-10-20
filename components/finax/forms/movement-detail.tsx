@@ -1,6 +1,6 @@
 'use client'
 
-import { movementLabel, type Movement } from '@/lib/types'
+import { isOneOff, movementLabel, type Movement } from '@/lib/types'
 import { formatCents } from '@/lib/money'
 import { formatFullDate } from '@/lib/dates'
 import { Button } from '../button'
@@ -34,7 +34,7 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
   ]
   if (movement.motivo) rows.splice(2, 0, ['Motivo', movement.motivo])
   if (fixed) rows.push(['Fijo', fixed.name])
-  if (movement.puntual) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
+  if (isOneOff(movement)) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
   if (movement.nota) rows.push(['Nota', movement.nota])
 
   return (

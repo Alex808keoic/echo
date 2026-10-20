@@ -31,9 +31,9 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
         config: config(50_000),
         movements: [
           ingreso('2026-08-01', 200_000),
-          gasto('2026-08-10', 50_000, 'Comida'),
+          gasto('2026-08-10', 50_000, 'Supermercado'),
           ingreso('2026-09-01', 200_000),
-          gasto('2026-09-05', 50_000, 'Comida'),
+          gasto('2026-09-05', 50_000, 'Supermercado'),
           gasto('2026-09-08', 60_000, 'Otros', 'Reparación coche'),
         ],
       }),
@@ -60,10 +60,10 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
         config: config(50_000),
         movements: [
           ingreso('2026-08-01', 200_000),
-          gasto('2026-08-10', 50_000, 'Comida'),
+          gasto('2026-08-10', 50_000, 'Supermercado'),
           ingreso('2026-09-01', 150_000),
-          gasto('2026-09-05', 120_000, 'Comida'),
-          gasto('2026-09-08', 60_000, 'Salidas'),
+          gasto('2026-09-05', 120_000, 'Supermercado'),
+          gasto('2026-09-08', 60_000, 'Transporte'),
         ],
         objectives: [objective({ name: 'Viaje', targetCents: 180_000 })], // líquido 170.000: cerca de la meta (94 %)
       }),

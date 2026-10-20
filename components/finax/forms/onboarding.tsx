@@ -6,7 +6,8 @@ import { formatCents } from '@/lib/money'
 import { describeSchedule } from '@/lib/finance/recurring'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { useRecurring } from '@/hooks/use-recurring'
-import type { RecurringMovementInput } from '@/lib/types'
+import { ADULT_EXPENSE_CATEGORIES, type RecurringMovementInput } from '@/lib/types'
+import { useIsMinor } from '@/hooks/use-minor'
 import { Button } from '../button'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from './initial-balance-form'
@@ -18,19 +19,20 @@ import { cn } from '@/lib/utils'
 export const ONBOARDING_TITLE = 'Empezar en Finax'
 
 type Step = 'balance' | 'fixed' | 'profile' | 'done'
-const STEPS: readonly Step[] = ['balance', 'fixed', 'profile']
+const STEPS: readonly Step[] = ['balance', 'profile', 'fixed']
 
 /** Atajos del paso de fijos: rellenan lo típico y el resto lo eliges tú. */
 const PRESETS: ReadonlyArray<{ label: string; preset: Partial<RecurringMovementInput> }> = [
   { label: 'Nómina o paga', preset: { name: 'Nómina', type: 'ingreso', category: 'Paga' } },
-  { label: 'Alquiler', preset: { name: 'Alquiler', type: 'gasto', category: 'Otros' } },
-  { label: 'Suscripción', preset: { type: 'gasto' } },
-  { label: 'Factura (luz, móvil…)', preset: { type: 'gasto', category: 'Otros' } },
+  { label: 'Alquiler', preset: { name: 'Alquiler', type: 'gasto', category: 'Vivienda' } },
+  { label: 'Suscripción', preset: { type: 'gasto', category: 'Suscripciones' } },
+  { label: 'Factura (luz, móvil…)', preset: { type: 'gasto', category: 'Facturas' } },
   { label: 'Otro', preset: {} },
 ]
 
 /**
- * Primer uso guiado, en la misma hoja: saldo inicial → fijos → «Tu perfil».
+ * Primer uso guiado, en la misma hoja: saldo inicial → «Tu perfil» → fijos
+ * (la edad del perfil decide qué categorías se ven en los fijos).
  * Solo el saldo es obligatorio (sin él no hay punto de partida); los otros dos
  * pasos se pueden saltar y hacer después.
  */
@@ -44,11 +46,11 @@ export function Onboarding() {
       {step === 'balance' && (
         <section className="space-y-4">
           <StepIntro title="Tu dinero de hoy" text="¿Cuánto tienes ahora mismo en tus cuentas? Es tu punto de partida. Las inversiones no: esas se añaden en Mi Dinero." />
-          <InitialBalanceForm submitLabel="Siguiente" onDone={() => setStep('fixed')} />
+          <InitialBalanceForm submitLabel="Siguiente" onDone={() => setStep('profile')} />
         </section>
       )}
-      {step === 'fixed' && <FixedStep onNext={() => setStep('profile')} />}
-      {step === 'profile' && <ProfileStep onNext={() => setStep('done')} />}
+      {step === 'profile' && <ProfileStep onNext={() => setStep('fixed')} />}
+      {step === 'fixed' && <FixedStep onNext={() => setStep('done')} />}
       {step === 'done' && <DoneStep onClose={close} />}
     </div>
   )
@@ -83,6 +85,9 @@ function FixedStep({ onNext }: { onNext: () => void }) {
   const fixed = useRecurring()
   const [adding, setAdding] = useState<Partial<RecurringMovementInput> | null>(null)
   const list = fixed?.recurring ?? []
+  // Un menor no ve los atajos de categorías de adulto (alquiler, facturas, suscripciones).
+  const minor = useIsMinor()
+  const presets = PRESETS.filter((p) => !minor || !p.preset.category || !(ADULT_EXPENSE_CATEGORIES as readonly string[]).includes(p.preset.category))
 
   if (adding) {
     return (
@@ -118,7 +123,7 @@ function FixedStep({ onNext }: { onNext: () => void }) {
         </ul>
       )}
       <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
+        {presets.map((p) => (
           <button
             key={p.label}
             type="button"

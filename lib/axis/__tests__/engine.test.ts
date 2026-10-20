@@ -49,7 +49,7 @@ describe('AxisEngine (motor local de reglas)', () => {
     assert.equal(ctx.flows.current.expenseCents, 70_000)
     assert.equal(ctx.flows.current.savingsCents, 130_000)
     assert.equal(ctx.flows.current.savingsRatePct, 65)
-    assert.equal(ctx.flows.current.expensesByCategory[0].label, 'Comida')
+    assert.equal(ctx.flows.current.expensesByCategory[0].label, 'Supermercado')
     assert.equal(ctx.wealth.liquidCents, 100_000 + 200_000 - 75_000 + 200_000 - 70_000)
 
     const analysis = analysisOf(run({ config: config(100_000), movements: healthyMovements() }))
@@ -62,9 +62,9 @@ describe('AxisEngine (motor local de reglas)', () => {
   it('caso 4 · aumento de gastos → AXIS detecta la señal y la conecta con la categoría', () => {
     const movements = [
       ingreso('2026-08-01', 200_000),
-      gasto('2026-08-10', 50_000, 'Comida'),
+      gasto('2026-08-10', 50_000, 'Supermercado'),
       ingreso('2026-09-01', 200_000),
-      gasto('2026-09-05', 50_000, 'Comida'),
+      gasto('2026-09-05', 50_000, 'Supermercado'),
       gasto('2026-09-08', 60_000, 'Otros', 'Reparación coche'),
     ]
     const analysis = analysisOf(run({ config: config(50_000), movements }))
@@ -147,10 +147,10 @@ describe('AxisEngine (motor local de reglas)', () => {
   it('caso 10 · múltiples señales → prioriza la crítica y limita el ruido', () => {
     const movements = [
       ingreso('2026-08-01', 200_000),
-      gasto('2026-08-10', 50_000, 'Comida'),
+      gasto('2026-08-10', 50_000, 'Supermercado'),
       ingreso('2026-09-01', 150_000),
-      gasto('2026-09-05', 120_000, 'Comida'),
-      gasto('2026-09-08', 60_000, 'Salidas'),
+      gasto('2026-09-05', 120_000, 'Supermercado'),
+      gasto('2026-09-08', 60_000, 'Transporte'),
     ]
     // Líquido 170.000 de una meta de 180.000: cerca de la meta (94 %).
     const goal = objective({ name: 'Viaje', targetCents: 180_000 })
@@ -167,7 +167,7 @@ describe('AxisEngine (motor local de reglas)', () => {
     const analysis = analysisOf(analyzeLocally({ context: ctx }, NOW))
     assert.match(analysis.headline, /superan a los ingresos/)
     assert.ok(analysis.recommendation)
-    assert.match(analysis.recommendation.what, /Comida/)
+    assert.match(analysis.recommendation.what, /Supermercado/)
     assert.ok(analysis.interpretation.signals.length <= 4)
     assert.ok(analysis.data.facts.length <= 5)
     assert.ok(analysis.alternatives.length <= 2)

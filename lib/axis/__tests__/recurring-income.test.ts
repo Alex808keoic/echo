@@ -35,10 +35,10 @@ const income = (cents: number, category: 'Paga' | 'Regalos' | 'Otros' = 'Paga'):
 const mem = (id: string, updatedAt: number, fact?: MemoryFact, content = `Memoria ${id}.`): UserMemory => ({ id, content, category: 'financial_plan', importance: 'high', confidence: 0.9, source: 'conversation', createdAt: 0, updatedAt, ...(fact ? { fact } : {}) })
 
 describe('recurringIncome · validación', () => {
-  it('es un tipo de hecho conocido y sus categorías son las de ingreso de Finax', () => {
+  it('es un tipo de hecho conocido y sus categorías son paga, regalos u otros (las nuevas de ingreso no se declaran)', () => {
     assert.ok((MEMORY_FACT_KINDS as readonly string[]).includes('recurringIncome'))
     assert.deepEqual([...RECURRING_INCOME_CATEGORIES], ['Paga', 'Regalos', 'Otros'])
-    assert.deepEqual([...RECURRING_INCOME_CATEGORIES], [...INCOME_CATEGORIES])
+    assert.ok(RECURRING_INCOME_CATEGORIES.every((c) => (INCOME_CATEGORIES as readonly string[]).includes(c)))
   })
 
   it('acepta un ingreso mensual en céntimos enteros en cada categoría permitida', () => {
@@ -58,7 +58,7 @@ describe('recurringIncome · validación', () => {
   })
 
   it('solo admite Paga, Regalos u Otros', () => {
-    for (const category of ['Trabajo', 'Comida', 'paga', 'Nómina', '', null]) assert.equal(isValidMemoryFact({ ...PAGA, category }), false, String(category))
+    for (const category of ['Trabajo', 'Supermercado', 'paga', 'Nómina', '', null]) assert.equal(isValidMemoryFact({ ...PAGA, category }), false, String(category))
   })
 
   it('exige exactamente sus campos', () => {

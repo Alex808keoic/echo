@@ -43,7 +43,7 @@ const PACE_E = () => objective({ id: 'obj-e', name: 'Épsilon', targetCents: 1_5
 const PACE_F = () => objective({ id: 'obj-f', name: 'Fi', targetCents: 1_500_000, targetDate: '2027-03-15' })
 
 const ctxWith = (objectives: ReturnType<typeof objective>[], movements = healthyMovements()) => buildFinancialContext(snapshot({ config: config(100_000), movements, objectives }), TODAY)
-const criticalMovements = () => [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Comida'), gasto('2026-09-08', 60_000, 'Salidas')]
+const criticalMovements = () => [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Supermercado'), gasto('2026-09-08', 60_000, 'Transporte')]
 
 /** Sano, tres objetivos pendientes sin fecha (equivalentes: los tres `objectives.no-date`, low). */
 const three = () => ctxWith([A(), B(), C()])

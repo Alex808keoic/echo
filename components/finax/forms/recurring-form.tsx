@@ -12,6 +12,7 @@ import { FilterTabs } from '../filter-tabs'
 import { AmountInput, ChipGroup, Field, TextInput } from '../field'
 import { Confirm } from '../confirm'
 import { TrashIcon } from '../icons'
+import { useIsMinor } from '@/hooks/use-minor'
 
 const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
 const FREQUENCY_OPTIONS = ['Cada mes', 'Cada año'] as const
@@ -55,14 +56,17 @@ export function RecurringForm({ recurring, preset, onDone }: RecurringFormProps)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  const categories = categoriesFor(type)
+  const minor = useIsMinor()
+  const categories = categoriesFor(type, { minor, keep: recurring?.category })
+  // Una categoría que ya no se ofrece (atajo de adulto, o al cambiar la edad) cuenta como sin elegir.
+  const chosen = category && categories.includes(category) ? category : null
   // Solo se puede elegir una fecha pasada si es la que ya estaba (una vez pendiente).
   const minDate = initialDate < today ? initialDate : today
 
   function changeType(label: string) {
     const next = typeFromLabel(label)
     setType(next)
-    if (category && !categoriesFor(next).includes(category)) setCategory(null)
+    if (category && !categoriesFor(next, { minor, keep: recurring?.category }).includes(category)) setCategory(null)
   }
 
   async function submit(e: FormEvent) {
@@ -71,12 +75,12 @@ export function RecurringForm({ recurring, preset, onDone }: RecurringFormProps)
     const next: Errors = {}
     if (!name.trim()) next.name = 'Ponle un nombre (p. ej. «Nómina» o «Alquiler»).'
     if (amountCents === null) next.amount = 'Introduce el importe habitual (ej. 12,50).'
-    if (!category) next.category = 'Elige una categoría.'
+    if (!chosen) next.category = 'Elige una categoría.'
     if (!isValidISODate(date) || (date < today && date !== initialDate)) next.date = 'Elige hoy o una fecha futura.'
     setErrors(next)
-    if (Object.keys(next).length > 0 || amountCents === null || !category) return
+    if (Object.keys(next).length > 0 || amountCents === null || !chosen) return
 
-    const input: RecurringMovementInput = { name, type, amountCents, category, frequency, startDate: date }
+    const input: RecurringMovementInput = { name, type, amountCents, category: chosen, frequency, startDate: date }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (recurring ? updateRecurring(recurring.id, input) : addRecurring(input)))
@@ -123,7 +127,7 @@ export function RecurringForm({ recurring, preset, onDone }: RecurringFormProps)
       </Field>
 
       <Field label="Categoría" error={errors.category} group>
-        <ChipGroup options={categories} value={category} onChange={setCategory} />
+        <ChipGroup options={categories} value={chosen} onChange={setCategory} />
       </Field>
 
       <Field label="Cada cuánto" group>

@@ -13,7 +13,7 @@ const gasto = (monthOffset: number, amountCents = 1000): Movement => ({
   type: 'gasto',
   amountCents,
   date: `${shiftedMonthKey(monthOffset)}-15`,
-  category: 'Comida',
+  category: 'Supermercado',
   createdAt: 0,
   updatedAt: 0,
 })

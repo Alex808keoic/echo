@@ -45,20 +45,20 @@ export function brandColor(key: keyof typeof BRAND_COLORS): string {
 }
 
 /**
- * Las categorías cerradas tienen siempre el mismo color (Comida siempre verde),
- * así que al cambiar de mes una categoría no cambia de color. «Otros» no tiene
- * color propio: cada motivo («Luz», «Gasolina») toma los libres por tamaño.
+ * Orden de las categorías cerradas para repartir los colores: el de su lista
+ * (Supermercado antes que Restaurantes). Con 15 categorías y 5 colores ya no
+ * cabe un color fijo por categoría; repartirlos en este orden, y no por
+ * tamaño, hace que una categoría cambie de color solo si cambia qué
+ * categorías salen ese mes. «Otros» no tiene puesto: cada motivo («Luz»,
+ * «Gasolina») va detrás, por tamaño.
  */
-const FIXED_SLOTS: Record<MovementType, readonly string[]> = {
+const ORDER: Record<MovementType, readonly string[]> = {
   gasto: EXPENSE_CATEGORIES.filter((c) => c !== 'Otros'),
   ingreso: INCOME_CATEGORIES.filter((c) => c !== 'Otros'),
 }
 
-/**
- * Porciones como mucho en el donut (con «Resto»): tantas como colores, así que
- * nunca se repite uno (las cerradas que no salen dejan su color a los motivos).
- */
-export const MAX_DONUT_SLICES = CHART_COLORS.length
+/** Categorías con porción propia como mucho; si hay más, las demás van a «Resto» (decisión del usuario, 2026-10-20). */
+export const MAX_NAMED_SLICES = CHART_COLORS.length
 
 export interface DonutSlice extends CategoryTotal {
   color: string
@@ -66,29 +66,25 @@ export interface DonutSlice extends CategoryTotal {
 
 /**
  * Porciones del donut de categorías. Recibe las categorías ordenadas de mayor
- * a menor (`totalsByCategory`). Si hay más de `MAX_DONUT_SLICES`, las más
- * pequeñas se juntan en «Resto» (gris): todo lo dibujado tiene su fila en la
- * leyenda y la suma sigue siendo el total.
+ * a menor (`totalsByCategory`). Las `MAX_NAMED_SLICES` mayores tienen porción
+ * y color propios (nunca repetidos); el resto se junta en «Resto» (gris):
+ * todo lo dibujado tiene su fila en la leyenda y la suma sigue siendo el total.
  */
 export function donutSlices(categories: readonly CategoryTotal[], type: MovementType): DonutSlice[] {
-  const fixed = FIXED_SLOTS[type]
-  const shown = categories.length > MAX_DONUT_SLICES ? categories.slice(0, MAX_DONUT_SLICES - 1) : categories
+  const order = ORDER[type]
+  const shown = categories.slice(0, MAX_NAMED_SLICES)
   const rest = categories.slice(shown.length)
-
-  // Para los motivos de «Otros»: primero los colores sin categoría cerrada y, si no bastan, los de
-  // categorías cerradas que no salen en este donut. Nunca dos porciones con el mismo color.
-  const usedSlots = new Set(shown.map((c) => fixed.indexOf(c.label)).filter((i) => i >= 0))
-  const free: string[] = [
-    ...CHART_COLORS.filter((_, i) => i >= fixed.length),
-    ...CHART_COLORS.filter((_, i) => i < fixed.length && !usedSlots.has(i)),
-  ]
-  const slices: DonutSlice[] = shown.map((c) => {
-    const slot = fixed.indexOf(c.label)
-    return { ...c, color: slot >= 0 ? CHART_COLORS[slot] : (free.shift() ?? REST_COLOR) }
-  })
+  const rank = (label: string) => {
+    const i = order.indexOf(label)
+    return i >= 0 ? i : order.length
+  }
+  // Colores por orden de categoría; los motivos de «Otros», detrás y por tamaño (orden estable).
+  const byOrder = shown.map((c, i) => ({ c, i })).sort((a, b) => rank(a.c.label) - rank(b.c.label) || a.i - b.i)
+  const colorOf = new Map(byOrder.map(({ c }, i) => [c.key, CHART_COLORS[i]]))
+  const slices: DonutSlice[] = shown.map((c) => ({ ...c, color: colorOf.get(c.key) ?? REST_COLOR }))
   if (rest.length > 0) {
     slices.push({
-      key: '__resto__',
+      key: REST_KEY,
       label: 'Resto',
       cents: rest.reduce((t, c) => t + c.cents, 0),
       pct: rest.reduce((t, c) => t + c.pct, 0),
@@ -97,3 +93,6 @@ export function donutSlices(categories: readonly CategoryTotal[], type: Movement
   }
   return slices
 }
+
+/** Clave de la porción «Resto». */
+export const REST_KEY = '__resto__'

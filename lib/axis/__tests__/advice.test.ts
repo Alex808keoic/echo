@@ -26,7 +26,7 @@ import type { MarketAIProvider } from '../../ai/providers/types'
 import { checkAdvice, COMPATIBLE, EXECUTABLE_CLASSES, extractAdvice, licenseAdvice, type AdviceVerbClass, type KnownEntities } from '../../text/advice'
 import { config, healthyMovements, NOW, objective, snapshot, TODAY } from './fixtures'
 
-const entities: KnownEntities = { objectives: [{ id: 'obj-viaje', name: 'Viaje' }, { id: 'obj-coche', name: 'Coche' }], positions: [{ id: 'p1', name: 'Fondo indexado' }], categories: ['Restaurantes', 'Comida'] }
+const entities: KnownEntities = { objectives: [{ id: 'obj-viaje', name: 'Viaje' }, { id: 'obj-coche', name: 'Coche' }], positions: [{ id: 'p1', name: 'Fondo indexado' }], categories: ['Restaurantes', 'Supermercado'] }
 const allocateViaje = { stance: 'recommend' as const, action: { verb: 'allocate', target: 'objective', targetId: 'obj-viaje' } as AxisAction, alternatives: ['Mantener liquidez'] }
 const reserveCushion = { stance: 'recommend' as const, action: { verb: 'complete-cushion', target: 'cushion' } as AxisAction, alternatives: [] }
 const inform = { stance: 'inform' as const, alternatives: [] }

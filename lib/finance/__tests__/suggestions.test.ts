@@ -28,28 +28,28 @@ describe('categoría sugerida', () => {
   })
 
   it('por debajo del mínimo de historial no sugiere: acertar una vez no autoriza a decidir', () => {
-    const pocos = Array.from({ length: MIN_HISTORY_FOR_SUGGESTION - 1 }, () => gasto('Comida'))
+    const pocos = Array.from({ length: MIN_HISTORY_FOR_SUGGESTION - 1 }, () => gasto('Supermercado'))
     assert.equal(suggestedCategory(pocos, 'gasto', TODAY), null)
-    assert.equal(suggestedCategory([...pocos, gasto('Comida')], 'gasto', TODAY), 'Comida', 'alcanzado el mínimo, ya sugiere')
+    assert.equal(suggestedCategory([...pocos, gasto('Supermercado')], 'gasto', TODAY), 'Supermercado', 'alcanzado el mínimo, ya sugiere')
   })
 
   it('sugiere la categoría más usada, no la más reciente', () => {
-    const movimientos = [gasto('Comida', '2026-09-01'), gasto('Comida', '2026-09-02'), gasto('Comida', '2026-09-03'), gasto('Ropa', '2026-09-14')]
-    assert.equal(suggestedCategory(movimientos, 'gasto', TODAY), 'Comida')
+    const movimientos = [gasto('Supermercado', '2026-09-01'), gasto('Supermercado', '2026-09-02'), gasto('Supermercado', '2026-09-03'), gasto('Ropa', '2026-09-14')]
+    assert.equal(suggestedCategory(movimientos, 'gasto', TODAY), 'Supermercado')
   })
 
   it('a igual número de usos gana la más reciente; a igual fecha, orden alfabético (determinista)', () => {
-    const empate = [gasto('Ropa', '2026-09-01'), gasto('Ropa', '2026-09-02'), gasto('Salidas', '2026-09-10'), gasto('Salidas', '2026-09-11'), gasto('Comida', '2026-09-05')]
-    assert.equal(suggestedCategory(empate, 'gasto', TODAY), 'Salidas')
-    const mismaFecha = [gasto('Ropa', '2026-09-02'), gasto('Ropa', '2026-09-02'), gasto('Comida', '2026-09-02'), gasto('Comida', '2026-09-02')]
-    assert.equal(suggestedCategory(mismaFecha, 'gasto', TODAY), 'Comida')
+    const empate = [gasto('Ropa', '2026-09-01'), gasto('Ropa', '2026-09-02'), gasto('Transporte', '2026-09-10'), gasto('Transporte', '2026-09-11'), gasto('Supermercado', '2026-09-05')]
+    assert.equal(suggestedCategory(empate, 'gasto', TODAY), 'Transporte')
+    const mismaFecha = [gasto('Ropa', '2026-09-02'), gasto('Ropa', '2026-09-02'), gasto('Supermercado', '2026-09-02'), gasto('Supermercado', '2026-09-02')]
+    assert.equal(suggestedCategory(mismaFecha, 'gasto', TODAY), 'Ropa')
     // Determinista: el orden de entrada no cambia el resultado.
-    assert.equal(suggestedCategory([...mismaFecha].reverse(), 'gasto', TODAY), 'Comida')
+    assert.equal(suggestedCategory([...mismaFecha].reverse(), 'gasto', TODAY), 'Ropa')
   })
 
   it('cada tipo tiene su propia sugerencia y no se contaminan', () => {
-    const mezcla = [gasto('Comida'), gasto('Comida'), gasto('Comida'), ingreso('Paga'), ingreso('Paga'), ingreso('Paga')]
-    assert.equal(suggestedCategory(mezcla, 'gasto', TODAY), 'Comida')
+    const mezcla = [gasto('Supermercado'), gasto('Supermercado'), gasto('Supermercado'), ingreso('Paga'), ingreso('Paga'), ingreso('Paga')]
+    assert.equal(suggestedCategory(mezcla, 'gasto', TODAY), 'Supermercado')
     assert.equal(suggestedCategory(mezcla, 'ingreso', TODAY), 'Paga')
   })
 
@@ -57,8 +57,8 @@ describe('categoría sugerida', () => {
     const viejo = '2026-01-01'
     const movimientos = [gasto('Ropa', viejo), gasto('Ropa', viejo), gasto('Ropa', viejo), gasto('Ropa', viejo)]
     assert.equal(suggestedCategory(movimientos, 'gasto', TODAY), null, `fuera de los ${SUGGESTION_WINDOW_DAYS} días`)
-    const dentro = [...movimientos, gasto('Comida', '2026-09-10'), gasto('Comida', '2026-09-11'), gasto('Comida', '2026-09-12')]
-    assert.equal(suggestedCategory(dentro, 'gasto', TODAY), 'Comida')
+    const dentro = [...movimientos, gasto('Supermercado', '2026-09-10'), gasto('Supermercado', '2026-09-11'), gasto('Supermercado', '2026-09-12')]
+    assert.equal(suggestedCategory(dentro, 'gasto', TODAY), 'Supermercado')
   })
 
   it('ignora movimientos con fecha futura', () => {
@@ -67,7 +67,7 @@ describe('categoría sugerida', () => {
   })
 
   it('no muta la lista recibida', () => {
-    const movimientos = [gasto('Comida'), gasto('Comida'), gasto('Comida')]
+    const movimientos = [gasto('Supermercado'), gasto('Supermercado'), gasto('Supermercado')]
     const antes = JSON.parse(JSON.stringify(movimientos))
     suggestedCategory(movimientos, 'gasto', TODAY)
     assert.deepEqual(JSON.parse(JSON.stringify(movimientos)), antes)

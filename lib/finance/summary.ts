@@ -3,7 +3,7 @@
  * Todo en céntimos enteros. No inventa nada: sin movimientos no hay resumen.
  */
 import { formatMonthLabel, shiftedMonthKey, toISODate } from '../dates'
-import { movementLabel, type Movement, type MovementType } from '../types'
+import { expenseNeed, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
 
 export interface PeriodSummary {
   incomeCents: number
@@ -28,12 +28,12 @@ export function summarize(movements: Movement[]): PeriodSummary {
   }
 }
 
-/** Parte puntual (movimientos marcados como `puntual`) de los ingresos y gastos. */
+/** Parte puntual (marcados como `puntual` e ingresos por deudas, `isOneOff`) de los ingresos y gastos. */
 export function oneOffTotals(movements: Movement[]): { incomeCents: number; expenseCents: number } {
   let incomeCents = 0
   let expenseCents = 0
   for (const m of movements) {
-    if (!m.puntual) continue
+    if (!isOneOff(m)) continue
     if (m.type === 'ingreso') incomeCents += m.amountCents
     else expenseCents += m.amountCents
   }
@@ -103,6 +103,31 @@ export function totalsByCategory(movements: Movement[], type: MovementType): Cat
   const entries = [...byKey.entries()].sort(([, a], [, b]) => b - a)
   const shares = roundedShares(entries.map(([, cents]) => cents))
   return entries.map(([label, cents], i) => ({ key: label, label, cents, pct: shares[i] }))
+}
+
+/** Gasto partido según para qué sirve cada categoría (`EXPENSE_NEED`). `otherCents`: «Otros», sin clasificar. */
+export interface NeedSplit {
+  necesarioCents: number
+  prescindibleCents: number
+  otherCents: number
+  /** Porcentajes enteros de las tres partes, en el mismo orden; suman 100 (o 0 sin gasto). */
+  pcts: [number, number, number]
+}
+
+/** Lo necesario frente a lo prescindible de los gastos dados (solo para mayores de edad o sin edad dicha). */
+export function needSplit(movements: Movement[]): NeedSplit {
+  let necesarioCents = 0
+  let prescindibleCents = 0
+  let otherCents = 0
+  for (const m of movements) {
+    if (m.type !== 'gasto') continue
+    const need = expenseNeed(m.category)
+    if (need === 'necesario') necesarioCents += m.amountCents
+    else if (need === 'prescindible') prescindibleCents += m.amountCents
+    else otherCents += m.amountCents
+  }
+  const [a, b, c] = roundedShares([necesarioCents, prescindibleCents, otherCents])
+  return { necesarioCents, prescindibleCents, otherCents, pcts: [a, b, c] }
 }
 
 /* -------------------------------- Periodos ------------------------------- */

@@ -19,11 +19,11 @@ import { config, gasto, ingreso, movement, NOW, snapshot, TODAY } from './fixtur
 
 const MOVEMENTS: Movement[] = [
   ingreso('2026-08-01', 200_000),
-  gasto('2026-08-05', 4_000, 'Comida'),
+  gasto('2026-08-05', 4_000, 'Supermercado'),
   gasto('2026-08-12', 2_550, 'Restaurantes'),
   gasto('2026-08-20', 6_000, 'Ropa'),
   ingreso('2026-09-01', 200_000),
-  gasto('2026-09-04', 4_200, 'Comida'),
+  gasto('2026-09-04', 4_200, 'Supermercado'),
   gasto('2026-09-10', 1_800, 'Restaurantes'),
   movement({ type: 'gasto', amountCents: 1_500, date: '2026-09-11', category: 'Otros', motivo: 'Gimnasio', nota: 'nota privada que no debe salir' }),
   movement({ type: 'gasto', amountCents: 999, date: '2026-09-12', category: 'Otros', motivo: 'PIN 1234 de la tarjeta' }),
@@ -92,7 +92,7 @@ describe('ejecución en el dispositivo (runChatTool)', () => {
       mes: '2026-08',
       por_categoria: [
         { categoria: 'Ropa', gasto: '60,00 €' },
-        { categoria: 'Comida', gasto: '40,00 €' },
+        { categoria: 'Supermercado', gasto: '40,00 €' },
         { categoria: 'Restaurantes', gasto: '25,50 €' },
       ],
     })

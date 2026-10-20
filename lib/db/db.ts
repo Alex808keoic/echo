@@ -96,6 +96,25 @@ db.version(8).stores({
   recurring: 'id',
 })
 
+/**
+ * Categorías del 2026-10-20: «Comida» pasa a «Supermercado» y «Salidas» se
+ * junta con «Restaurantes» (`LEGACY_CATEGORIES`), en movimientos y en fijos.
+ * Solo cambia la etiqueta, como en la v5.
+ */
+db.version(9)
+  .stores({})
+  .upgrade(async (tx) => {
+    for (const table of ['movements', 'recurring'] as const) {
+      await tx
+        .table<Movement | RecurringMovement, string>(table)
+        .toCollection()
+        .modify((m) => {
+          const current = currentCategory(m.category)
+          if (current !== m.category) m.category = current as Movement['category']
+        })
+    }
+  })
+
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */
 export function newId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()

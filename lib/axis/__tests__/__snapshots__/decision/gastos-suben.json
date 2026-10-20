@@ -23,7 +23,7 @@
             "pct": 55
           },
           {
-            "label": "Comida",
+            "label": "Supermercado",
             "cents": 50000,
             "pct": 45
           }
@@ -45,7 +45,7 @@
         "movementCount": 2,
         "expensesByCategory": [
           {
-            "label": "Comida",
+            "label": "Supermercado",
             "cents": 50000,
             "pct": 100
           }

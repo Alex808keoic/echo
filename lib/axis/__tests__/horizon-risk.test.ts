@@ -72,7 +72,7 @@ const concentrated = () => ctxOf({ objectives: [A(), B()], positions: [position(
 const balanced = () => ctxOf({ positions: [position({ id: 'p1', name: 'Uno', investedCents: 100_000, valueCents: 100_000 }), position({ id: 'p2', name: 'Dos', investedCents: 100_000, valueCents: 100_000 })] })
 /** Critical (gastos > ingresos) con concentración y caída de ingresos. */
 const critical = () =>
-  ctxOf({ objectives: [A(), B()], positions: [position({ id: 'p-big', name: 'Grande', investedCents: 400_000, valueCents: 400_000 }), position({ id: 'p-small', name: 'Pequeña', investedCents: 100_000, valueCents: 100_000 })] }, [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Comida'), gasto('2026-09-08', 60_000, 'Salidas')])
+  ctxOf({ objectives: [A(), B()], positions: [position({ id: 'p-big', name: 'Grande', investedCents: 400_000, valueCents: 400_000 }), position({ id: 'p-small', name: 'Pequeña', investedCents: 100_000, valueCents: 100_000 })] }, [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Supermercado'), gasto('2026-09-08', 60_000, 'Transporte')])
 
 const CONTEXTS: Array<[string, FinancialContext]> = [
   ['sin posiciones', noPositions()],

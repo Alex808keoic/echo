@@ -41,9 +41,9 @@ const dropOnly = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10'
 /** Caída de ingresos (−40 %) y del ahorro (1.500 € → 600 €) por los ingresos. */
 const fallingFromIncome = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 120_000), gasto('2026-09-10', 60_000)])
 /** Mismos ingresos; el ahorro cae (1.500 € → 200 €) por el gasto. Margen ajustado (10 %). */
-const fallingFromExpenses = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 200_000), gasto('2026-09-10', 100_000, 'Comida'), gasto('2026-09-12', 80_000, 'Salidas')])
+const fallingFromExpenses = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 200_000), gasto('2026-09-10', 100_000, 'Supermercado'), gasto('2026-09-12', 80_000, 'Transporte')])
 /** Gastos por encima de los ingresos (critical) + caída de ingresos + caída del ahorro por ingresos. */
-const critical = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Comida'), gasto('2026-09-08', 60_000, 'Salidas')])
+const critical = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Supermercado'), gasto('2026-09-08', 60_000, 'Transporte')])
 /** Sin ingresos este mes, con ingresos el mes pasado. */
 const noneWithPrevious = () => ctxOf([ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000), gasto('2026-09-10', 30_000)])
 /** Sin ingresos este mes ni el anterior (solo un mes de datos). */

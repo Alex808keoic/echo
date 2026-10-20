@@ -16,7 +16,7 @@ export function movement(input: MovementInput & { createdAt?: number }): Movemen
   return { id: id(), createdAt, updatedAt: createdAt, ...input }
 }
 
-export const gasto = (date: string, amountCents: number, category: Movement['category'] = 'Comida', motivo?: string) =>
+export const gasto = (date: string, amountCents: number, category: Movement['category'] = 'Supermercado', motivo?: string) =>
   movement({ type: 'gasto', amountCents, date, category, motivo })
 
 export const ingreso = (date: string, amountCents: number) =>
@@ -44,12 +44,12 @@ export function snapshot(partial: Partial<FinancialSnapshot> = {}): FinancialSna
 export function healthyMovements(): Movement[] {
   return [
     ingreso('2026-08-01', 200_000),
-    gasto('2026-08-05', 40_000, 'Comida'),
+    gasto('2026-08-05', 40_000, 'Supermercado'),
     gasto('2026-08-12', 20_000, 'Restaurantes'),
     gasto('2026-08-20', 15_000, 'Ropa'),
     ingreso('2026-09-01', 200_000),
-    gasto('2026-09-04', 42_000, 'Comida'),
+    gasto('2026-09-04', 42_000, 'Supermercado'),
     gasto('2026-09-10', 18_000, 'Restaurantes'),
-    gasto('2026-09-12', 10_000, 'Salidas'),
+    gasto('2026-09-12', 10_000, 'Transporte'),
   ]
 }

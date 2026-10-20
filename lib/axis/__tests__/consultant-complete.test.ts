@@ -285,7 +285,7 @@ describe('resumen del año y revisión del mes', () => {
     assert.equal(r.incomeCents, 800_000)
     assert.equal(r.expenseCents, 300_000)
     assert.equal(r.savingsRatePct, 63)
-    assert.ok(r.lines.some((l) => /Donde más gastaste: «Comida»/.test(l)))
+    assert.ok(r.lines.some((l) => /Donde más gastaste: «Supermercado»/.test(l)))
     assert.ok(r.lines.some((l) => /Hoy debes 6\.000,00 € en total/.test(l)))
     assert.equal(r.profileStale, true)
     assert.ok(r.next.some((n) => /«Tu perfil»/.test(n)))
@@ -297,7 +297,7 @@ describe('resumen del año y revisión del mes', () => {
   it('la revisión del mes dice dónde más gastaste y lo que debes', () => {
     const snap = baseSnapshot(800_000, [], [debt('Coche', 600_000, 5, 15_000)])
     const r = reviewMonth({ snapshot: snap, asOf: TODAY, planned: null, currentPlanned: { savingsCents: 100_000, investCents: 0, items: 0 }, doneCount: 0, inflation: INFLATION })!
-    assert.ok(r.lines.includes('Donde más gastaste: «Comida», 1.000,00 € (el 100 % de tus gastos).'))
+    assert.ok(r.lines.includes('Donde más gastaste: «Supermercado», 1.000,00 € (el 100 % de tus gastos).'))
     assert.ok(r.lines.includes('Debes 6.000,00 € en total: actualiza lo que queda de cada deuda.'))
   })
 })

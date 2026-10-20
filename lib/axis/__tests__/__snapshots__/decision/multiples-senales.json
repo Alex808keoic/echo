@@ -18,12 +18,12 @@
         "movementCount": 3,
         "expensesByCategory": [
           {
-            "label": "Comida",
+            "label": "Supermercado",
             "cents": 120000,
             "pct": 67
           },
           {
-            "label": "Salidas",
+            "label": "Transporte",
             "cents": 60000,
             "pct": 33
           }
@@ -45,7 +45,7 @@
         "movementCount": 2,
         "expensesByCategory": [
           {
-            "label": "Comida",
+            "label": "Supermercado",
             "cents": 50000,
             "pct": 100
           }
@@ -132,14 +132,14 @@
       "domain": "expenses",
       "priority": "critical",
       "fact": "Este mes los gastos (1.800,00 €) superan a los ingresos (1.500,00 €): balance -300,00 €.",
-      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 1.200,00 € (67% del gasto).",
+      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Supermercado», con 1.200,00 € (67% del gasto).",
       "recommendation": {
-        "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+        "what": "Revisa «Supermercado» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
         "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
         "action": {
           "verb": "adjust",
           "target": "category",
-          "targetId": "Comida"
+          "targetId": "Supermercado"
         },
         "nextStep": {
           "label": "Ver gastos por categoría",
@@ -167,9 +167,9 @@
       "domain": "expenses",
       "priority": "high",
       "fact": "Los gastos han subido un 260% respecto al mes anterior: 500,00 € → 1.800,00 €.",
-      "interpretation": "El aumento viene sobre todo de «Comida» (1.200,00 € este mes).",
+      "interpretation": "El aumento viene sobre todo de «Supermercado» (1.200,00 € este mes).",
       "recommendation": {
-        "what": "Revisa «Comida» antes de asumir nuevos compromisos.",
+        "what": "Revisa «Supermercado» antes de asumir nuevos compromisos.",
         "why": "Si la subida se consolida, el margen de ahorro del mes que viene será menor.",
         "nextStep": {
           "label": "Ver gastos por categoría",
@@ -178,7 +178,7 @@
         "action": {
           "verb": "review",
           "target": "category",
-          "targetId": "Comida"
+          "targetId": "Supermercado"
         }
       },
       "alternative": {
@@ -237,14 +237,14 @@
     "domain": "expenses",
     "priority": "critical",
     "fact": "Este mes los gastos (1.800,00 €) superan a los ingresos (1.500,00 €): balance -300,00 €.",
-    "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 1.200,00 € (67% del gasto).",
+    "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Supermercado», con 1.200,00 € (67% del gasto).",
     "recommendation": {
-      "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+      "what": "Revisa «Supermercado» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
       "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
       "action": {
         "verb": "adjust",
         "target": "category",
-        "targetId": "Comida"
+        "targetId": "Supermercado"
       },
       "nextStep": {
         "label": "Ver gastos por categoría",
@@ -262,14 +262,14 @@
       "domain": "expenses",
       "priority": "critical",
       "fact": "Este mes los gastos (1.800,00 €) superan a los ingresos (1.500,00 €): balance -300,00 €.",
-      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Comida», con 1.200,00 € (67% del gasto).",
+      "interpretation": "El patrimonio líquido está bajando. La partida que más pesa es «Supermercado», con 1.200,00 € (67% del gasto).",
       "recommendation": {
-        "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+        "what": "Revisa «Supermercado» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
         "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
         "action": {
           "verb": "adjust",
           "target": "category",
-          "targetId": "Comida"
+          "targetId": "Supermercado"
         },
         "nextStep": {
           "label": "Ver gastos por categoría",
@@ -297,9 +297,9 @@
       "domain": "expenses",
       "priority": "high",
       "fact": "Los gastos han subido un 260% respecto al mes anterior: 500,00 € → 1.800,00 €.",
-      "interpretation": "El aumento viene sobre todo de «Comida» (1.200,00 € este mes).",
+      "interpretation": "El aumento viene sobre todo de «Supermercado» (1.200,00 € este mes).",
       "recommendation": {
-        "what": "Revisa «Comida» antes de asumir nuevos compromisos.",
+        "what": "Revisa «Supermercado» antes de asumir nuevos compromisos.",
         "why": "Si la subida se consolida, el margen de ahorro del mes que viene será menor.",
         "nextStep": {
           "label": "Ver gastos por categoría",
@@ -308,7 +308,7 @@
         "action": {
           "verb": "review",
           "target": "category",
-          "targetId": "Comida"
+          "targetId": "Supermercado"
         }
       },
       "alternative": {
@@ -352,12 +352,12 @@
     "Los gastos han subido un 260% respecto al mes anterior: 500,00 € → 1.800,00 €."
   ],
   "recommendation": {
-    "what": "Revisa «Comida» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
+    "what": "Revisa «Supermercado» antes que ninguna otra partida: es donde un ajuste tiene más efecto.",
     "why": "Con balance negativo, cualquier objetivo o inversión se financia con patrimonio anterior, no con ahorro.",
     "action": {
       "verb": "adjust",
       "target": "category",
-      "targetId": "Comida"
+      "targetId": "Supermercado"
     },
     "nextStep": {
       "label": "Ver gastos por categoría",

@@ -169,7 +169,7 @@ async function allocationNow(): Promise<ObjectivesAllocation> {
   return allocateObjectives(objectives, computeLiquidCents(config?.initialBalanceCents ?? 0, movements, positions))
 }
 const stored = async (id: string) => db.objectives.get(id)
-const gasto = (amountCents: number) => addMovement({ type: 'gasto', amountCents, date: '2026-09-10', category: 'Comida' })
+const gasto = (amountCents: number) => addMovement({ type: 'gasto', amountCents, date: '2026-09-10', category: 'Supermercado' })
 const ingreso = (amountCents: number) => addMovement({ type: 'ingreso', amountCents, date: '2026-09-01', category: 'Paga' })
 
 describe('integración: los movimientos cambian el progreso sin escribir el objetivo', () => {
@@ -199,7 +199,7 @@ describe('integración: los movimientos cambian el progreso sin escribir el obje
     const saved = await stored(o.id)
     const g = await gasto(100 * EUR)
     assert.equal((await allocationNow()).allocatedCents, 200 * EUR)
-    await updateMovement(g.id, { type: 'gasto', amountCents: 250 * EUR, date: '2026-09-10', category: 'Comida' })
+    await updateMovement(g.id, { type: 'gasto', amountCents: 250 * EUR, date: '2026-09-10', category: 'Supermercado' })
     assert.equal((await allocationNow()).allocatedCents, 50 * EUR)
     await deleteMovement(g.id)
     assert.equal((await allocationNow()).allocatedCents, 300 * EUR)

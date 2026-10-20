@@ -46,7 +46,7 @@ const healthyWithObjective = () =>
 /** Contexto crítico: gastos (1.800 €) por encima de los ingresos (1.500 €). */
 const critical = () =>
   buildFinancialContext(
-    snapshot({ config: config(50_000), movements: [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000, 'Comida'), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Comida'), gasto('2026-09-08', 60_000, 'Salidas')] }),
+    snapshot({ config: config(50_000), movements: [ingreso('2026-08-01', 200_000), gasto('2026-08-10', 50_000, 'Supermercado'), ingreso('2026-09-01', 150_000), gasto('2026-09-05', 120_000, 'Supermercado'), gasto('2026-09-08', 60_000, 'Transporte')] }),
     TODAY,
   )
 

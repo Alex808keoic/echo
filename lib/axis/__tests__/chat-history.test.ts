@@ -28,21 +28,21 @@ import { config, gasto, ingreso, NOW, snapshot, TODAY } from './fixtures'
 function movements(): Movement[] {
   return [
     ingreso('2026-06-01', 150_000),
-    gasto('2026-06-10', 30_000, 'Comida'),
+    gasto('2026-06-10', 30_000, 'Supermercado'),
     ingreso('2026-07-01', 200_000),
-    gasto('2026-07-03', 60_000, 'Comida'),
+    gasto('2026-07-03', 60_000, 'Supermercado'),
     gasto('2026-07-08', 8_000, 'Restaurantes'),
     gasto('2026-07-15', 22_000, 'Otros', 'Gasolina'),
     gasto('2026-07-21', 45_000, 'Ropa'),
     ingreso('2026-08-01', 200_000),
-    gasto('2026-08-05', 40_000, 'Comida'),
+    gasto('2026-08-05', 40_000, 'Supermercado'),
     gasto('2026-08-12', 20_000, 'Restaurantes'),
     gasto('2026-08-20', 15_000, 'Ropa'),
     gasto('2026-08-25', 45_000, 'Otros', 'Portátil'),
     ingreso('2026-09-01', 200_000),
-    gasto('2026-09-04', 42_000, 'Comida'),
+    gasto('2026-09-04', 42_000, 'Supermercado'),
     gasto('2026-09-10', 18_000, 'Restaurantes'),
-    gasto('2026-09-12', 10_000, 'Salidas'),
+    gasto('2026-09-12', 10_000, 'Transporte'),
   ]
 }
 
@@ -68,7 +68,7 @@ describe('histórico compacto · construcción', () => {
     const july = month(h, '2026-07')!
     assert.deepEqual([july.incomeCents, july.expenseCents, july.movementCount], [200_000, 135_000, 5])
     assert.deepEqual(july.topExpenses, [
-      { label: 'Comida', cents: 60_000 },
+      { label: 'Supermercado', cents: 60_000 },
       { label: 'Ropa', cents: 45_000 },
       { label: 'Gasolina', cents: 22_000 },
       { label: 'Restaurantes', cents: 8_000 },
@@ -89,9 +89,9 @@ describe('histórico compacto · construcción', () => {
     assert.equal(h.largestMovements.currentMonth.key, '2026-09')
     assert.deepEqual(h.largestMovements.currentMonth.movements.map((m) => [m.date, m.label, m.amountCents]), [
       ['2026-09-01', 'Paga', 200_000],
-      ['2026-09-04', 'Comida', 42_000],
+      ['2026-09-04', 'Supermercado', 42_000],
       ['2026-09-10', 'Restaurantes', 18_000],
-      ['2026-09-12', 'Salidas', 10_000],
+      ['2026-09-12', 'Transporte', 10_000],
     ])
     assert.equal(h.largestMovements.previousMonth.key, '2026-08')
     assert.deepEqual(h.largestMovements.previousMonth.movements[1], { date: '2026-08-25', label: 'Portátil', category: 'Otros', type: 'gasto', amountCents: 45_000 })
@@ -99,7 +99,7 @@ describe('histórico compacto · construcción', () => {
 
   it('el mayor gasto y el mayor ingreso del mes están siempre, aunque los ingresos llenen el top', () => {
     const many = [1, 2, 3, 4, 5, 6].map((d) => ingreso(`2026-09-0${d}`, 300_000 + d))
-    const h = history([...many, gasto('2026-09-09', 5_000, 'Comida')])
+    const h = history([...many, gasto('2026-09-09', 5_000, 'Supermercado')])
     const current = h.largestMovements.currentMonth.movements
     assert.equal(current.length, HISTORY_LIMITS.LARGEST_MOVEMENTS)
     assert.ok(current.some((m) => m.type === 'gasto' && m.amountCents === 5_000))
@@ -111,7 +111,7 @@ describe('histórico compacto · construcción', () => {
   })
 
   it('como mucho 6 meses cerrados y categorías limitadas', () => {
-    const long = Array.from({ length: 10 }, (_, i) => gasto(`2025-${String(i + 1).padStart(2, '0')}-10`, 1_000 * (i + 1), 'Comida'))
+    const long = Array.from({ length: 10 }, (_, i) => gasto(`2025-${String(i + 1).padStart(2, '0')}-10`, 1_000 * (i + 1), 'Supermercado'))
     const h = history([...long, ...movements()])
     assert.equal(h.closedMonths.length, HISTORY_LIMITS.MONTHS)
     assert.ok(h.closedMonths.every((m) => m.topExpenses.length <= HISTORY_LIMITS.EXPENSE_CATEGORIES && m.topIncomes.length <= HISTORY_LIMITS.INCOME_CATEGORIES))
@@ -151,7 +151,7 @@ describe('histórico compacto · forma, límites y privacidad', () => {
 
 describe('histórico compacto · preguntas que ahora se pueden responder', () => {
   it('1 · «¿Cuánto gasté en julio?»', () => {
-    accepts('En julio gastaste 1.350,00 €, sobre todo en Comida (600,00 €).', chatInput('¿Cuánto gasté en julio?'))
+    accepts('En julio gastaste 1.350,00 €, sobre todo en Supermercado (600,00 €).', chatInput('¿Cuánto gasté en julio?'))
   })
   it('2 · «¿Cuánto ingresé el mes pasado?»', () => {
     accepts('El mes pasado, en agosto, ingresaste 2.000,00 €.', chatInput('¿Cuánto ingresé el mes pasado?'))
@@ -160,7 +160,7 @@ describe('histórico compacto · preguntas que ahora se pueden responder', () =>
     accepts('Tu mayor gasto reciente fue «Portátil», de 450,00 €, el 25 de agosto.', chatInput('¿Cuál fue mi mayor gasto?'))
   })
   it('4 · «¿En qué gasté más el mes pasado?»', () => {
-    accepts('El mes pasado lo que más pesó fue «Portátil» (450,00 €), seguido de Comida (400,00 €).', chatInput('¿En qué gasté más el mes pasado?'))
+    accepts('El mes pasado lo que más pesó fue «Portátil» (450,00 €), seguido de Supermercado (400,00 €).', chatInput('¿En qué gasté más el mes pasado?'))
   })
   it('5 · «¿Cuánto gasté este mes frente al anterior?»', () => {
     accepts('Este mes llevas 700,00 € de gastos, frente a 1.200,00 € el mes anterior.', chatInput('¿Cuánto gasté este mes frente al anterior?'))

@@ -116,9 +116,9 @@ describe('guardar y copiar', () => {
   })
 
   it('se guarda solo cuando es true y se puede quitar al editar', async () => {
-    const m = await addMovement({ type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Comida', puntual: true })
+    const m = await addMovement({ type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Supermercado', puntual: true })
     assert.equal((await listMovements())[0].puntual, true)
-    await updateMovement(m.id, { type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Comida' })
+    await updateMovement(m.id, { type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Supermercado' })
     assert.equal('puntual' in (await listMovements())[0], false)
   })
 
@@ -129,7 +129,7 @@ describe('guardar y copiar', () => {
         version: 2,
         exportedAt: '2026-10-04T10:00:00.000Z',
         config: null,
-        movements: [{ id: 'm1', type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Comida', puntual, createdAt: 1, updatedAt: 1 }],
+        movements: [{ id: 'm1', type: 'gasto', amountCents: 1_000, date: TODAY, category: 'Supermercado', puntual, createdAt: 1, updatedAt: 1 }],
         objectives: [],
         positions: [],
         memories: [],

@@ -24,7 +24,7 @@ function fakeSheet() {
   }
 }
 
-const gasto = { type: 'gasto' as const, amountCents: 8_640, date: '2026-10-06', category: 'Comida' as const, motivo: '', nota: '' }
+const gasto = { type: 'gasto' as const, amountCents: 8_640, date: '2026-10-06', category: 'Supermercado' as const, motivo: '', nota: '' }
 
 describe('Eliminar movimiento · confirmación', () => {
   let movement: Movement
@@ -78,7 +78,7 @@ describe('Eliminar movimiento · confirmación', () => {
     const c = deletionConfirmation(movement)
     assert.equal(c.title, 'Eliminar movimiento')
     assert.equal(c.confirmLabel, 'Eliminar')
-    assert.match(c.message, /^¿Eliminar «Comida» \(-86,40 €, /)
+    assert.match(c.message, /^¿Eliminar «Supermercado» \(-86,40 €, /)
     assert.match(c.message, /6 de octubre de 2026|6 oct/)
     assert.match(c.message, /no se puede deshacer/)
     assert.match(deletionConfirmation({ ...movement, type: 'ingreso' }).message, /\(\+86,40 €, /)

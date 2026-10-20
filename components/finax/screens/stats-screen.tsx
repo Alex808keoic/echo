@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
+import { formatPct } from '@/lib/format'
 import { currentMonthKey, formatMonthLabel, formatMonthYear } from '@/lib/dates'
-import { historyMonthCount, inMonth, monthlyTotals, totalsByCategory, type PeriodId } from '@/lib/finance/summary'
+import { historyMonthCount, inMonth, monthlyTotals, needSplit, totalsByCategory, type NeedSplit, type PeriodId } from '@/lib/finance/summary'
+import { useIsMinor } from '@/hooks/use-minor'
 import { seriesDelta } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
@@ -13,7 +15,7 @@ import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
 import { BarChart } from '../charts/bar-chart'
 import { EvolutionChart, seriesForRange } from '../charts/evolution-chart'
-import { donutSlices } from '@/lib/ui/chart-colors'
+import { CHART_COLORS, donutSlices, REST_COLOR, REST_KEY } from '@/lib/ui/chart-colors'
 import { LegendRow, CategoryRow } from '../category-row'
 import { AxisCard } from '../axis-card'
 import { categoryIconMap, DotsIcon } from '../icons'
@@ -40,6 +42,10 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const [range, setRange] = useState<string>('6M')
   // Mes tocado en las barras: el donut y las categorías pasan a ese mes.
   const [pickedMonth, setPickedMonth] = useState<string | null>(null)
+  // «Resto» abierto en el donut y lista de categorías completa: valen para un filtro y un mes concretos.
+  const [restOpenFor, setRestOpenFor] = useState<string | null>(null)
+  const [allCategoriesFor, setAllCategoriesFor] = useState<string | null>(null)
+  const minor = useIsMinor()
   const { market } = useMarketContext(overview)
   const { state: axis } = useAxis(overview, { market })
   const { open, close } = useSheet()
@@ -76,8 +82,14 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const monthMovements = inMonth(overview.movements, month)
   const categories = totalsByCategory(monthMovements, type)
   const monthTotal = categories.reduce((t, c) => t + c.cents, 0)
-  // Donut y leyenda salen de las mismas porciones: cada color tiene su fila y cada categoría su color fijo.
+  // Donut y leyenda salen de las mismas porciones: cada color tiene su fila; lo que no cabe va a «Resto».
   const slices = donutSlices(categories, type)
+  const viewKey = `${type}:${month}`
+  const restOpen = restOpenFor === viewKey
+  const rest = categories.slice(slices.filter((s) => s.key !== REST_KEY).length)
+  const showAllCategories = allCategoriesFor === viewKey
+  // Necesario frente a prescindible: solo en gastos y nunca para menores de edad.
+  const need = type === 'gasto' && !minor && categories.length > 0 ? needSplit(monthMovements) : null
   const monthPhrase = isThisMonth ? 'este mes' : `en ${formatMonthYear(month)}`
   const hasBars = bars.some((b) => b.value > 0)
   const patrimonioRange: PeriodId = rangeKey === 'Todo' ? 'Todo' : rangeKey
@@ -143,13 +155,41 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
                   <ul className="min-w-0 flex-1 space-y-2.5">
                     {slices.map((c) => (
                       <li key={c.key}>
-                        <LegendRow color={c.color} label={c.label} pct={c.pct} />
+                        {c.key === REST_KEY ? (
+                          <button
+                            type="button"
+                            aria-expanded={restOpen}
+                            onClick={() => setRestOpenFor(restOpen ? null : viewKey)}
+                            className="block w-full text-left"
+                          >
+                            <LegendRow color={c.color} label={restOpen ? 'Resto ▴' : 'Resto ▾'} pct={c.pct} />
+                          </button>
+                        ) : (
+                          <LegendRow color={c.color} label={c.label} pct={c.pct} />
+                        )}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
+              {restOpen && rest.length > 0 && (
+                <ul className="mt-4 space-y-2 border-t border-border pt-3" aria-label="Detalle de «Resto»">
+                  {rest.map((c) => (
+                    <li key={c.key} className="flex items-center justify-between gap-3 text-[13px]">
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: REST_COLOR }} />
+                        <span className="min-w-0 break-words font-medium text-grafito">{c.label}</span>
+                      </span>
+                      <span className="shrink-0 font-semibold text-muted-foreground tabular-nums">
+                        {formatCents(c.cents)} · {formatPct(c.pct)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </FinancialCard>
+
+            {need && <NeedCard need={need} monthPhrase={monthPhrase} />}
 
             <FinancialCard>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -178,9 +218,13 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
 
       {!isPatrimonio && categories.length > 0 && (
         <section>
-          <SectionHeader title={isThisMonth ? 'Categorías' : `Categorías · ${formatMonthLabel(month)}`} actionLabel="Ver todas" onAction={() => onNavigate('movimientos')} />
+          <SectionHeader
+            title={isThisMonth ? 'Categorías' : `Categorías · ${formatMonthLabel(month)}`}
+            actionLabel={categories.length > 5 ? (showAllCategories ? 'Ver menos' : `Ver las ${categories.length}`) : 'Ver movimientos'}
+            onAction={() => (categories.length > 5 ? setAllCategoriesFor(showAllCategories ? null : viewKey) : onNavigate('movimientos'))}
+          />
           <FinancialCard className="space-y-4">
-            {categories.slice(0, 5).map((c) => (
+            {(showAllCategories ? categories : categories.slice(0, 5)).map((c) => (
               <CategoryRow
                 key={c.key}
                 icon={iconFor(c.label)}
@@ -193,5 +237,45 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
         </section>
       )}
     </div>
+  )
+}
+
+/**
+ * Gasto del mes partido en necesario y prescindible (categorías fijas,
+ * `EXPENSE_NEED`). Lo de «Otros» va aparte: su motivo puede ser cualquier cosa.
+ */
+function NeedCard({ need, monthPhrase }: { need: NeedSplit; monthPhrase: string }) {
+  const parts = [
+    { label: 'Necesario', cents: need.necesarioCents, pct: need.pcts[0], color: CHART_COLORS[0] },
+    { label: 'Prescindible', cents: need.prescindibleCents, pct: need.pcts[1], color: CHART_COLORS[1] },
+    { label: 'Otros, sin clasificar', cents: need.otherCents, pct: need.pcts[2], color: REST_COLOR },
+  ].filter((p) => p.cents > 0)
+  return (
+    <FinancialCard className="space-y-3">
+      <div>
+        <h2 className="text-[16px] font-bold tracking-tight text-grafito">Necesario y prescindible</h2>
+        <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
+          Lo prescindible es lo primero que puedes recortar si necesitas ahorrar más.
+        </p>
+      </div>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
+        {parts.map((p) => (
+          <span key={p.label} className="h-full" style={{ width: `${p.pct}%`, background: p.color }} />
+        ))}
+      </div>
+      <ul className="space-y-1.5" aria-label={`Gasto ${monthPhrase}`}>
+        {parts.map((p) => (
+          <li key={p.label} className="flex items-center justify-between gap-3 text-[13px]">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} />
+              <span className="min-w-0 font-medium text-grafito">{p.label}</span>
+            </span>
+            <span className="shrink-0 font-semibold text-muted-foreground tabular-nums">
+              {formatCents(p.cents)} · {formatPct(p.pct)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </FinancialCard>
   )
 }

@@ -10,7 +10,7 @@
  * El perfil es contexto para decidir (umbrales y preferencias), no fuente
  * de verdad financiera: no contiene ni sustituye cifras del FinancialContext.
  */
-import { INCOME_CATEGORIES, type IncomeCategory } from '../../types'
+import type { IncomeCategory } from '../../types'
 
 export const HORIZONS = ['short', 'medium', 'long'] as const
 /** < 2 años · 2–5 años · > 5 años. */
@@ -23,13 +23,15 @@ export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'ir
 export type MemoryFactKind = (typeof MEMORY_FACT_KINDS)[number]
 
 /**
- * Ingreso recurrente declarado: por ahora solo mensual y solo en las
- * categorías de ingreso de Finax (las mismas que un movimiento de ingreso).
+ * Ingreso recurrente declarado: por ahora solo mensual y solo en paga,
+ * regalos u otros (categorías de ingreso de Finax). Las que se añadieron el
+ * 2026-10-20 (trabajos extra, ventas, deuda) no se declaran como ingreso de
+ * cada mes: son solo para movimientos.
  */
 export const RECURRING_INCOME_FREQUENCIES = ['monthly'] as const
 export type RecurringIncomeFrequency = (typeof RECURRING_INCOME_FREQUENCIES)[number]
-export const RECURRING_INCOME_CATEGORIES = INCOME_CATEGORIES
-export type RecurringIncomeCategory = IncomeCategory
+export const RECURRING_INCOME_CATEGORIES = ['Paga', 'Regalos', 'Otros'] as const satisfies readonly IncomeCategory[]
+export type RecurringIncomeCategory = (typeof RECURRING_INCOME_CATEGORIES)[number]
 
 export const PROFILE_LIMITS = Object.freeze({
   /** Liquidez mínima deseada: entero en céntimos, de 1 céntimo a 1 M€. */

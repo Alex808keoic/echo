@@ -14,7 +14,7 @@ import { attemptWrite, exportErrorMessage, isStorageError, writeErrorMessage } f
 import { requestObjectiveAchievement, type AchievementPrompt } from '../../objectives/confirm-achievement'
 
 const STORAGE_MESSAGE = /el almacenamiento de este navegador ha fallado/
-const gasto = { type: 'gasto' as const, amountCents: 1_250, date: '2026-10-01', category: 'Comida' as const, motivo: '', nota: '' }
+const gasto = { type: 'gasto' as const, amountCents: 1_250, date: '2026-10-01', category: 'Supermercado' as const, motivo: '', nota: '' }
 
 /** Silencia el console.error esperado de attemptWrite (el error no se oculta: se registra). */
 function captureConsole() {

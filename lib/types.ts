@@ -9,24 +9,65 @@
 
 export type MovementType = 'ingreso' | 'gasto'
 
-/** Categorías de gasto (D-04). No añadir, renombrar ni reordenar. */
+/**
+ * Categorías de gasto (D-04, ampliadas el 2026-10-20 por decisión del usuario).
+ * El orden es el de los selectores y el de los colores del donut. No renombrar
+ * ni quitar sin añadir la equivalencia a `LEGACY_CATEGORIES`.
+ */
 export const EXPENSE_CATEGORIES = [
-  'Comida',
+  'Supermercado',
   'Restaurantes',
-  'Salidas',
+  'Vivienda',
+  'Facturas',
+  'Transporte',
+  'Suscripciones',
   'Caprichos',
   'Ropa',
+  'Salud',
+  'Deporte',
+  'Educación',
+  'Viajes',
+  'Regalos',
+  'Seguros y banco',
   'Otros',
 ] as const
 
-/** Categorías de ingreso (D-13). Lista independiente de la de gastos. */
-export const INCOME_CATEGORIES = ['Paga', 'Regalos', 'Otros'] as const
+/**
+ * Las que solo se ofrecen a mayores de edad (o a quien no ha dicho su edad).
+ * Un menor ve Supermercado, Restaurantes, Caprichos, Ropa, Regalos y Otros.
+ */
+export const ADULT_EXPENSE_CATEGORIES: readonly ExpenseCategory[] = Object.freeze([
+  'Vivienda',
+  'Facturas',
+  'Transporte',
+  'Suscripciones',
+  'Salud',
+  'Deporte',
+  'Educación',
+  'Viajes',
+  'Seguros y banco',
+])
+
+/** Categorías de ingreso (D-13). Lista independiente de la de gastos; las mismas para todas las edades. */
+export const INCOME_CATEGORIES = ['Paga', 'Trabajos extra', 'Ventas', 'Regalos', 'Deuda', 'Otros'] as const
+
+/**
+ * Ingreso por una deuda: te devuelven lo que te debían. Es dinero real, pero
+ * nunca un ingreso «de cada mes»: cuenta como puntual (`isOneOff`).
+ */
+export const CATEGORY_DEUDA = 'Deuda'
 
 /**
  * Categorías que existieron y ya no: al leer datos antiguos (base local o
  * copia de seguridad) se traducen a la actual. Nunca se ofrecen al usuario.
+ * «Comida» se renombró a «Supermercado» y «Salidas» se juntó con
+ * «Restaurantes» el 2026-10-20 (decisión del usuario).
  */
-export const LEGACY_CATEGORIES: Readonly<Record<string, Category>> = Object.freeze({ Trabajo: 'Paga' })
+export const LEGACY_CATEGORIES: Readonly<Record<string, Category>> = Object.freeze({
+  Trabajo: 'Paga',
+  Comida: 'Supermercado',
+  Salidas: 'Restaurantes',
+})
 
 /** Categoría vigente equivalente a una guardada antes, o la misma si ya lo es. */
 export function currentCategory(category: string): string {
@@ -40,8 +81,42 @@ export type Category = ExpenseCategory | IncomeCategory
 /** Categoría que obliga a introducir un motivo, en ingresos y en gastos. */
 export const CATEGORY_OTROS = 'Otros'
 
-export function categoriesFor(type: MovementType): readonly Category[] {
-  return type === 'gasto' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
+/**
+ * Categorías que se ofrecen. `minor` (dijo en «Tu perfil» que es menor de
+ * edad) quita las de adulto; sin respuesta se ofrecen todas. `keep` sigue
+ * ofreciendo la que ya tenía un movimiento al editarlo, aunque ya no toque.
+ */
+export function categoriesFor(type: MovementType, options: { minor?: boolean; keep?: string | null } = {}): readonly Category[] {
+  if (type === 'ingreso') return INCOME_CATEGORIES
+  if (!options.minor) return EXPENSE_CATEGORIES
+  return EXPENSE_CATEGORIES.filter((c) => !ADULT_EXPENSE_CATEGORIES.includes(c) || c === options.keep)
+}
+
+/**
+ * Para qué sirve cada gasto (solo se usa con mayores de edad o sin edad
+ * dicha): lo necesario para vivir o lo que se puede recortar. «Otros» no se
+ * clasifica: su motivo puede ser cualquier cosa.
+ */
+export type ExpenseNeed = 'necesario' | 'prescindible'
+export const EXPENSE_NEED: Readonly<Record<Exclude<ExpenseCategory, 'Otros'>, ExpenseNeed>> = Object.freeze({
+  Supermercado: 'necesario',
+  Vivienda: 'necesario',
+  Facturas: 'necesario',
+  Transporte: 'necesario',
+  Salud: 'necesario',
+  Educación: 'necesario',
+  'Seguros y banco': 'necesario',
+  Restaurantes: 'prescindible',
+  Suscripciones: 'prescindible',
+  Caprichos: 'prescindible',
+  Ropa: 'prescindible',
+  Deporte: 'prescindible',
+  Viajes: 'prescindible',
+  Regalos: 'prescindible',
+})
+
+export function expenseNeed(category: string): ExpenseNeed | null {
+  return (EXPENSE_NEED as Record<string, ExpenseNeed>)[category] ?? null
 }
 
 export function requiresMotivo(category: string): boolean {
@@ -81,6 +156,14 @@ export type MovementInput = Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>
 export function movementLabel(movement: Movement): string {
   if (requiresMotivo(movement.category) && movement.motivo) return movement.motivo
   return movement.category
+}
+
+/**
+ * No describe lo «de cada mes»: marcado como puntual, o un ingreso por una
+ * deuda que te devuelven. Sigue siendo dinero real.
+ */
+export function isOneOff(movement: Pick<Movement, 'type' | 'category' | 'puntual'>): boolean {
+  return movement.puntual === true || (movement.type === 'ingreso' && movement.category === CATEGORY_DEUDA)
 }
 
 /** Aportación del movimiento al patrimonio, con signo, en céntimos. */

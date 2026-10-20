@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react'
 import {
+  CATEGORY_DEUDA,
   categoriesFor,
   requiresMotivo,
   type Category,
@@ -21,6 +22,7 @@ import { attemptWrite } from '@/lib/db/storage-errors'
 import { TrashIcon } from '../icons'
 import { useSheet } from '../sheet'
 import { useConfirmMovementDeletion } from './delete-movement'
+import { useIsMinor } from '@/hooks/use-minor'
 
 const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
 const typeFromLabel = (label: string): MovementType => (label === 'Ingreso' ? 'ingreso' : 'gasto')
@@ -65,7 +67,10 @@ export function MovementForm({ movement, initial, onSave, submitLabel, onDone }:
   const { open } = useSheet()
   const confirmDeletion = useConfirmMovementDeletion()
 
-  const categories = categoriesFor(type)
+  const minor = useIsMinor()
+  const categories = categoriesFor(type, { minor, keep: start?.category })
+  // Lo que te devuelven de una deuda ya cuenta siempre como puntual.
+  const isDebtRepayment = type === 'ingreso' && category === CATEGORY_DEUDA
   const needsMotivo = category !== null && requiresMotivo(category)
 
   // Valor por defecto inteligente: la categoría que el usuario más usa para este tipo.
@@ -81,7 +86,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, onDone }:
     const next = typeFromLabel(label)
     setType(next)
     // Al cambiar de tipo, la categoría anterior deja de valer: se vacía y se vuelve a sugerir.
-    if (category && !categoriesFor(next).includes(category)) setCategory(null)
+    if (category && !categoriesFor(next, { minor, keep: start?.category }).includes(category)) setCategory(null)
   }
 
   async function submit(e: FormEvent) {
@@ -95,7 +100,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, onDone }:
     setErrors(next)
     if (Object.keys(next).length > 0 || amountCents === null || !category) return
 
-    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual ? { puntual: true as const } : {}) }
+    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual && !isDebtRepayment ? { puntual: true as const } : {}) }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (movement ? updateMovement(movement.id, input) : onSave ? onSave(input) : addMovement(input)))
@@ -131,22 +136,28 @@ export function MovementForm({ movement, initial, onSave, submitLabel, onDone }:
         </Field>
       )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
-        <input
-          type="checkbox"
-          checked={puntual}
-          onChange={(e) => setPuntual(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 accent-finax"
-        />
-        <span className="min-w-0">
-          <span className="block text-[13.5px] font-semibold text-grafito">Es puntual (no suele pasar)</span>
-          <span className="mt-0.5 block text-[12px] font-medium text-muted-foreground text-pretty">
-            {type === 'ingreso'
-              ? 'Por ejemplo, un trabajo suelto o un regalo grande. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'
-              : 'Por ejemplo, una reparación o un viaje. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'}
+      {isDebtRepayment ? (
+        <p className="rounded-2xl border border-border bg-background px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
+          Lo que te devuelven de una deuda cuenta en tu dinero, pero AXIS y tu plan no lo toman como un ingreso de cada mes.
+        </p>
+      ) : (
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+          <input
+            type="checkbox"
+            checked={puntual}
+            onChange={(e) => setPuntual(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-finax"
+          />
+          <span className="min-w-0">
+            <span className="block text-[13.5px] font-semibold text-grafito">Es puntual (no suele pasar)</span>
+            <span className="mt-0.5 block text-[12px] font-medium text-muted-foreground text-pretty">
+              {type === 'ingreso'
+                ? 'Por ejemplo, un trabajo suelto o un regalo grande. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'
+                : 'Por ejemplo, una reparación o un viaje. Cuenta en tu dinero, pero AXIS y tu plan no lo toman como algo de cada mes.'}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       <Field label="Nota (opcional)" hint="Solo se muestra en el detalle del movimiento.">
         <TextArea value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} />

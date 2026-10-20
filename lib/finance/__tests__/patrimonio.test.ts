@@ -13,7 +13,7 @@ const mov = (type: MovementType, amountCents: number, date: string): Movement =>
   type,
   amountCents,
   date,
-  category: type === 'ingreso' ? 'Paga' : 'Comida',
+  category: type === 'ingreso' ? 'Paga' : 'Supermercado',
   createdAt: 0,
   updatedAt: 0,
 })

@@ -205,7 +205,7 @@ describe('copia v2 · atomicidad', () => {
     const before = await tables()
     const bad = file({
       config: { key: 'config', initialBalanceCents: 1, configuredAt: 1, updatedAt: 1 },
-      movements: [{ id: 'nuevo', type: 'gasto', amountCents: 1, date: '2026-01-01', category: 'Comida', createdAt: 1, updatedAt: 1 }],
+      movements: [{ id: 'nuevo', type: 'gasto', amountCents: 1, date: '2026-01-01', category: 'Supermercado', createdAt: 1, updatedAt: 1 }],
       memories: [memory('ok'), memory('mala', { fact: { kind: 'invest', value: true } as never })],
     })
     assert.throws(() => parseBackup(bad), /memorias de AXIS/)
@@ -224,7 +224,7 @@ describe('copia v2 · atomicidad', () => {
     await seedDevice()
     const before = await tables()
     // Dos movimientos con la misma id: falla al escribir, después de vaciar las tablas dentro de la transacción.
-    const duplicated = { id: 'dup', type: 'gasto', amountCents: 1, date: '2026-01-01', category: 'Comida', createdAt: 1, updatedAt: 1 } as const
+    const duplicated = { id: 'dup', type: 'gasto', amountCents: 1, date: '2026-01-01', category: 'Supermercado', createdAt: 1, updatedAt: 1 } as const
     const forged: Backup = { format: BACKUP_FORMAT, version: 2, exportedAt: '', config: null, movements: [duplicated, duplicated], objectives: [], positions: [], memories: [memory('nueva')] }
     await assert.rejects(restoreBackup(forged))
     assert.deepEqual(await tables(), before)
