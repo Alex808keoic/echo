@@ -155,6 +155,11 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - Ingreso (6, para todas las edades): Paga, Trabajos extra, Ventas, Regalos, Deuda, Otros. «Deuda» = te devuelven lo que te debían: siempre cuenta como puntual (`isOneOff`, que usa `oneOffTotals`), el formulario no ofrece la casilla. Las memorias de ingreso recurrente siguen limitadas a Paga, Regalos y Otros (`RECURRING_INCOME_CATEGORIES`).
   - Donut: las 5 mayores con color propio y «Resto» (se toca para ver el detalle). Con 15 categorías y 5 colores validados ya no hay color fijo por categoría: se reparten por el orden de la lista (`chart-colors.ts`).
   - Primer uso: saldo → «Tu perfil» → fijos (la edad decide las categorías; un menor no ve los atajos de adulto).
+- **Evolución del dinero (2026-10-20):**
+  - `Position.valueHistory` (sin cambio de versión de Dexie ni del backup: campo opcional, validado en `isPosition`): cada valor apuntado con su fecha, uno por día, como mucho 400 (`lib/finance/position-values.ts`). Se apunta al crear, al cambiar el valor (`updatePosition`) y en «Actualizar valores» (`setPositionValues`, hoja `forms/update-values-form.tsx`, botón en Inversiones), que lo apunta aunque no cambie.
+  - `buildWealthSeries`: lo que suben o bajan las inversiones entra el día en que se apuntó cada valor (`revaluationDeltas`); lo que el historial no explica (posiciones de antes) entra en `asOf`, como antes. La curva sigue terminando en el patrimonio. AXIS no usa esta serie (usa la del líquido): goldens sin cambios.
+  - Estadísticas → Patrimonio: «Lo que has ahorrado» y «Lo que han hecho tus inversiones» (`wealthSources`), el mismo periodo que la curva; suman su cambio. Lo aportado desde fuera de Finax cuenta como ahorro.
+  - «Tu decisión del mes»: con inversiones, Finax añade «Actualiza el valor de tus inversiones» (`UPDATE_INVESTMENTS_ITEM`, fuera de `monthChecklist`, lo añade `usePlanChecklist`). No se marca a mano: se tacha solo cuando todas tienen un valor apuntado ese mes (`investmentsUpToDate`).
 
 ---
 
