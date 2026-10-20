@@ -23,7 +23,7 @@
 | Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
 | IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
 | IA de Market Research | Desde el 2026-10-13, Cloudflare → Groq (`scripts/market/providers/select.ts`). Necesita los secrets `CF_ACCOUNT_ID` y `CF_API_TOKEN` en GitHub (los añade el usuario; sin ellos, solo Groq). Gemini ya no se usa: fallaba siempre (HTTP 403) |
-| Tests | `pnpm test` → **1.403 pasan, 0 fallan** (2026-10-19, también con `TZ=UTC`) |
+| Tests | `pnpm test` → **1.410 pasan, 0 fallan** (2026-10-20, también con `TZ=UTC`) |
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
 | Lint | No existe |
@@ -147,7 +147,14 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - Calendario: día (y mes, si es anual) de `startDate`; si el mes no tiene ese día, el último. Lo hecho se guarda como `doneThrough` + `handled` (sueltas fuera de orden); confirmar es una transacción que no duplica con doble toque. Como mucho 24 pendientes por fijo. Al crear, la próxima vez no puede ser pasada (el saldo inicial ya incluye lo anterior); cambiar la próxima vez o la frecuencia reprograma desde esa fecha.
   - Recordatorio `recurring-pending` solo con la app cerrada (`sw.js` → `finax-sw-v4`, que repite el calendario de `recurring.ts`: cambiarlo en los dos sitios). Inicio no lo pasa porque ya enseña la tarjeta.
   - Primer uso (`forms/onboarding.tsx`, botón «Empezar» de Inicio vacío): saldo inicial → fijos (atajos) → «Tu perfil»; los dos últimos se pueden saltar. Quien ya tenía datos ve en Inicio la tarjeta «¿Tienes ingresos o gastos fijos?» hasta que añade uno o la cierra (`meta` `recurring-hint`).
-  - En el historial y el detalle se ve el nombre del fijo («Spotify») en lugar de la categoría. Pendiente natural: ampliar las categorías (punto 2 del plan acordado con el usuario).
+  - En el historial y el detalle se ve el nombre del fijo («Spotify») en lugar de la categoría.
+- **Categorías nuevas (2026-10-20, todas decididas por el usuario):**
+  - Gasto (15): Supermercado, Restaurantes, Vivienda, Facturas, Transporte, Suscripciones, Caprichos, Ropa, Salud, Deporte, Educación, Viajes, Regalos, Seguros y banco, Otros. «Comida» → «Supermercado» y «Salidas» se junta con «Restaurantes» (`LEGACY_CATEGORIES`, Dexie **v9** migra movimientos y fijos; las copias antiguas se migran al leerlas).
+  - Edad: un menor (respuesta `adult: false` en «Tu perfil») solo ve Supermercado, Restaurantes, Caprichos, Ropa, Regalos y Otros (`ADULT_EXPENSE_CATEGORIES`, `categoriesFor(type, { minor, keep })`; al editar se conserva la que ya tenía). **Sin respuesta cuenta como mayor de edad.** `hooks/use-minor.ts`.
+  - Necesario / prescindible (`EXPENSE_NEED`, `needSplit`): solo para mayores o sin edad dicha; tarjeta en Estadísticas. «Otros» queda sin clasificar. De momento AXIS y el simulador no lo usan (sería tocar `decide()` y goldens).
+  - Ingreso (6, para todas las edades): Paga, Trabajos extra, Ventas, Regalos, Deuda, Otros. «Deuda» = te devuelven lo que te debían: siempre cuenta como puntual (`isOneOff`, que usa `oneOffTotals`), el formulario no ofrece la casilla. Las memorias de ingreso recurrente siguen limitadas a Paga, Regalos y Otros (`RECURRING_INCOME_CATEGORIES`).
+  - Donut: las 5 mayores con color propio y «Resto» (se toca para ver el detalle). Con 15 categorías y 5 colores validados ya no hay color fijo por categoría: se reparten por el orden de la lista (`chart-colors.ts`).
+  - Primer uso: saldo → «Tu perfil» → fijos (la edad decide las categorías; un menor no ve los atajos de adulto).
 
 ---
 
