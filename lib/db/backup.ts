@@ -152,6 +152,9 @@ function isPosition(v: unknown): v is Position {
     (v.fromLiquid === undefined || typeof v.fromLiquid === 'boolean') &&
     (v.assetType === undefined || (POSITION_ASSET_TYPES as readonly unknown[]).includes(v.assetType)) &&
     (v.feeBp === undefined || (isInt(v.feeBp) && v.feeBp >= 0 && v.feeBp <= 1000)) &&
+    (v.valueHistory === undefined ||
+      (Array.isArray(v.valueHistory) &&
+        v.valueHistory.every((h) => isRecord(h) && isStr(h.date) && isValidISODate(h.date) && isInt(h.valueCents) && h.valueCents >= 0))) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

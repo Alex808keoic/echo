@@ -85,3 +85,16 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
   }
   return items
 }
+
+/** Paso «Actualiza el valor de tus inversiones»: lo añade Finax (no el plan) si tienes alguna. */
+export const UPDATE_INVESTMENTS_ID = 'update-investments'
+
+export const UPDATE_INVESTMENTS_ITEM: ChecklistItem = Object.freeze({ id: UPDATE_INVESTMENTS_ID, text: 'Actualiza el valor de tus inversiones' })
+
+/**
+ * Se da por hecho solo cuando todas tus inversiones tienen un valor apuntado
+ * en `month` (`YYYY-MM`): no hace falta marcarlo.
+ */
+export function investmentsUpToDate(positions: ReadonlyArray<{ valueHistory?: ReadonlyArray<{ date: string }> }>, month: string): boolean {
+  return positions.length > 0 && positions.every((p) => (p.valueHistory ?? []).some((h) => h.date.startsWith(month)))
+}

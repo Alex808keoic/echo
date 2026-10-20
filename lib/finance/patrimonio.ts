@@ -11,6 +11,7 @@
  */
 import { liquidOutflowCents, signedAmountCents, type Movement, type Position } from '../types'
 import { shiftedISO } from '../dates'
+import { revaluationDeltas } from './position-values'
 
 /**
  * Líquido = saldo inicial + movimientos − lo invertido que salió del líquido
@@ -73,9 +74,10 @@ export function buildPatrimonioSeries(
  *   real de partida, no un punto inventado.
  * - Cada inversión cuenta por su importe aportado desde su fecha. Si salió del
  *   líquido, ese día el total no cambia (sale del líquido y entra invertido).
- * - Como no hay cotizaciones históricas, solo el último punto usa el valor
- *   actual de las posiciones; si ese valor difiere de lo aportado, se añade un
- *   punto `asOf` para que la curva termine en la misma cifra que el patrimonio.
+ * - No hay cotizaciones: lo que suben o bajan las inversiones entra el día en
+ *   que apuntaste cada valor (`Position.valueHistory`). Lo que el historial no
+ *   explica (posiciones anteriores a él) entra en `asOf`, así que la curva
+ *   termina siempre en la misma cifra que el patrimonio.
  */
 export function buildWealthSeries(
   initialBalanceCents: number,
@@ -90,19 +92,40 @@ export function buildWealthSeries(
     // Aunque no cambie el total, el día de la inversión es un dato real.
     addDelta(deltaByDate, p.date, net)
   }
+  // Sin otros datos, un cambio de valor solo no dibuja curva (no hay de dónde partir).
+  if (deltaByDate.size === 0) return []
+  for (const p of positions) for (const d of revaluationDeltas(p, asOf)) addDelta(deltaByDate, d.date, d.cents)
   const series = runningSeries(initialBalanceCents, deltaByDate)
-  if (series.length === 0) return series
-
   const start = { date: shiftedISO(series[0].date, -1), cents: initialBalanceCents }
-  const revaluation = positions.reduce((t, p) => t + p.valueCents - p.investedCents, 0)
-  if (revaluation === 0) return [start, ...series]
+  return [start, ...series]
+}
 
-  const last = series[series.length - 1]
-  const tail =
-    last.date >= asOf
-      ? [{ ...last, cents: last.cents + revaluation }]
-      : [last, { date: asOf, cents: last.cents + revaluation }]
-  return [start, ...series.slice(0, -1), ...tail]
+/** De dónde viene el cambio del patrimonio en un periodo. */
+export interface WealthSources {
+  /** Ingresos menos gastos (lo que ahorraste o gastaste de más). */
+  savingsCents: number
+  /** Lo que subieron o bajaron tus inversiones (según los valores que apuntaste). */
+  investmentsCents: number
+}
+
+/**
+ * Reparte el cambio del patrimonio entre lo ahorrado y lo que hicieron las
+ * inversiones, con las mismas reglas que `buildWealthSeries`: desde `fromISO`
+ * (incluido, como `seriesForRange`; `null` = todo, sin el saldo inicial) hasta
+ * `asOf`. Invertir desde el líquido no cuenta en ninguna de las dos: solo
+ * cambia de sitio el dinero. Suman lo mismo que la curva en ese periodo.
+ */
+export function wealthSources(movements: Movement[], positions: Position[], fromISO: string | null, asOf: string): WealthSources {
+  const after = (date: string) => fromISO === null || date >= fromISO
+  let savingsCents = 0
+  let investmentsCents = 0
+  for (const m of movements) if (after(m.date)) savingsCents += signedAmountCents(m)
+  for (const p of positions) {
+    // Lo aportado desde fuera de Finax es dinero nuevo en tu patrimonio: cuenta como ahorro.
+    if (after(p.date)) savingsCents += p.investedCents - liquidOutflowCents(p)
+    for (const d of revaluationDeltas(p, asOf)) if (after(d.date)) investmentsCents += d.cents
+  }
+  return { savingsCents, investmentsCents }
 }
 
 export function hasEnoughHistory(series: PatrimonioPoint[]): boolean {

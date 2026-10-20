@@ -41,7 +41,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const { market } = useMarketContext(overview)
   const { state: axis } = useAxis(overview, { market })
   const plan = useAllocationPlan(overview)
-  const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives)
+  const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives, overview?.positions)
   const review = useMonthReview(overview?.axisSnapshot, plan?.plan, checklist)
   const lastBackupAt = useLiveQuery(getLastBackupAt, [], undefined)
   const fixed = useRecurring()

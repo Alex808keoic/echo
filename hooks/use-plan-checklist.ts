@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { monthChecklist, type ChecklistItem } from '@/lib/axis/plan/checklist'
+import { investmentsUpToDate, monthChecklist, UPDATE_INVESTMENTS_ID, UPDATE_INVESTMENTS_ITEM, type ChecklistItem } from '@/lib/axis/plan/checklist'
+import type { Position } from '@/lib/types'
 import type { AllocationPlan } from '@/lib/axis/plan/allocation'
 import { plannedFromPlan, reviewMonth, type MonthReview } from '@/lib/axis/plan/review'
 import { inflationFrom } from '@/lib/axis/plan/inflation'
@@ -26,15 +27,22 @@ export interface PlanChecklist {
 /**
  * «Tu decisión del mes» del plan actual y lo que llevas hecho este mes. De paso
  * guarda la foto del plan del mes, que usará la revisión cuando el mes acabe.
+ * Con inversiones, añade «Actualiza el valor de tus inversiones», que se marca
+ * solo cuando todas tienen un valor apuntado este mes.
  * `undefined` mientras carga.
  */
-export function usePlanChecklist(plan: AllocationPlan | undefined, objectives: readonly ObjectiveContext[] | undefined): PlanChecklist | undefined {
+export function usePlanChecklist(
+  plan: AllocationPlan | undefined,
+  objectives: readonly ObjectiveContext[] | undefined,
+  positions: readonly Position[] | undefined,
+): PlanChecklist | undefined {
   const month = todayISO().slice(0, 7)
   const entry = useLiveQuery(async () => (await getPlanMonth(month)) ?? null, [month], undefined)
   const checklist = useMemo(() => {
-    if (!plan || !objectives || entry === undefined) return undefined
-    const items = monthChecklist(plan, objectives)
+    if (!plan || !objectives || !positions || entry === undefined) return undefined
+    const items = [...monthChecklist(plan, objectives), ...(positions.length > 0 ? [UPDATE_INVESTMENTS_ITEM] : [])]
     const done = new Set(entry?.done ?? [])
+    if (investmentsUpToDate(positions, month)) done.add(UPDATE_INVESTMENTS_ID)
     return {
       items,
       done,
@@ -43,7 +51,7 @@ export function usePlanChecklist(plan: AllocationPlan | undefined, objectives: r
       checkedIn: entry?.checkIn !== undefined,
       checkIn: () => setMonthCheckIn(month),
     }
-  }, [plan, objectives, entry, month])
+  }, [plan, objectives, positions, entry, month])
 
   // Foto del plan de este mes (solo se escribe si cambia).
   useEffect(() => {

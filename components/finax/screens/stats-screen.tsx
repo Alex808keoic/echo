@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { currentMonthKey, formatMonthLabel, formatMonthYear } from '@/lib/dates'
-import { historyMonthCount, inMonth, monthlyTotals, needSplit, totalsByCategory, type NeedSplit, type PeriodId } from '@/lib/finance/summary'
+import { currentMonthKey, formatMonthLabel, formatMonthYear, todayISO } from '@/lib/dates'
+import { historyMonthCount, inMonth, monthlyTotals, needSplit, periodStartISO, totalsByCategory, type NeedSplit, type PeriodId } from '@/lib/finance/summary'
 import { useIsMinor } from '@/hooks/use-minor'
-import { seriesDelta } from '@/lib/finance/patrimonio'
+import { seriesDelta, wealthSources } from '@/lib/finance/patrimonio'
 import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { PageHeader, SectionHeader } from '../page-header'
@@ -94,6 +94,8 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
   const hasBars = bars.some((b) => b.value > 0)
   const patrimonioRange: PeriodId = rangeKey === 'Todo' ? 'Todo' : rangeKey
   const delta = seriesDelta(seriesForRange(overview.series, patrimonioRange))
+  // El mismo periodo que la curva: ahorro e inversiones suman lo que cambia la línea.
+  const sources = wealthSources(overview.movements, overview.positions, periodStartISO(patrimonioRange), todayISO())
   const noun = type === 'gasto' ? 'Gastos' : 'Ingresos'
 
   return (
@@ -124,9 +126,23 @@ export function StatsScreen({ overview, onNavigate }: ScreenProps) {
               <Segmented options={RANGES} value={range} onChange={setRange} />
             </div>
             <EvolutionChart series={overview.series} range={patrimonioRange} className="h-[150px] w-full" />
+            {delta && (
+              <dl className="mt-4 space-y-1.5 border-t border-border pt-3 text-[13px]">
+                <div className="flex justify-between gap-3">
+                  <dt className="font-medium text-muted-foreground">Lo que has ahorrado</dt>
+                  <dd className={cn('font-bold tabular-nums', sources.savingsCents >= 0 ? 'text-finax-dark' : 'text-negative')}>{formatCents(sources.savingsCents, true)}</dd>
+                </div>
+                {overview.positions.length > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="font-medium text-muted-foreground">Lo que han hecho tus inversiones</dt>
+                    <dd className={cn('font-bold tabular-nums', sources.investmentsCents >= 0 ? 'text-finax-dark' : 'text-negative')}>{formatCents(sources.investmentsCents, true)}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
             <p className="mt-3 text-[11.5px] font-medium text-muted-foreground text-pretty">
-              Parte de tu saldo inicial. Cada punto es tu patrimonio total al cierre de un día con movimientos; las
-              inversiones cuentan por lo aportado y, en el último punto, por su valor actual.
+              Parte de tu saldo inicial. Cada punto es tu patrimonio total al cierre de un día con datos. Lo que suben o
+              bajan tus inversiones entra el día en que apuntas su valor: actualízalo cada mes en Inversiones.
             </p>
           </FinancialCard>
         ) : (

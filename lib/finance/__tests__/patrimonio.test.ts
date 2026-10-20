@@ -4,7 +4,8 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildPatrimonioSeries, buildWealthSeries, computeLiquidCents, wealthBeforeMonth } from '../patrimonio'
+import { buildPatrimonioSeries, buildWealthSeries, computeLiquidCents, wealthBeforeMonth, wealthSources } from '../patrimonio'
+import { lastValueDate, MAX_VALUE_HISTORY, revaluationDeltas, withValue } from '../position-values'
 import type { Movement, MovementType, Position } from '../../types'
 
 let seq = 0
@@ -116,5 +117,71 @@ describe('buildWealthSeries (gráfica)', () => {
     const series = buildWealthSeries(INITIAL, movements, [pos(10_000, 8_000, '2026-09-10', true)], '2026-09-10')
     assert.equal(series.at(-1)?.date, '2026-09-10')
     assert.equal(series.at(-1)?.cents, 128_000)
+  })
+})
+
+describe('historial del valor de las inversiones', () => {
+  it('apuntar un valor sustituye el del mismo día y mantiene el orden', () => {
+    let h = withValue(undefined, '2026-10-10', 31_000)
+    h = withValue(h, '2026-09-30', 30_500)
+    h = withValue(h, '2026-10-10', 31_500)
+    assert.deepEqual(h, [
+      { date: '2026-09-30', valueCents: 30_500 },
+      { date: '2026-10-10', valueCents: 31_500 },
+    ])
+    assert.equal(lastValueDate({ valueHistory: h }), '2026-10-10')
+    assert.equal(lastValueDate({}), null)
+  })
+
+  it('guarda como mucho los más recientes', () => {
+    let h = withValue(undefined, '2000-01-01', 1)
+    for (let i = 1; i <= MAX_VALUE_HISTORY + 5; i++) h = withValue(h, `2001-01-01T${i}`, i)
+    assert.equal(h.length, MAX_VALUE_HISTORY)
+  })
+
+  it('cada valor apuntado entra el día en que se apuntó, frente al anterior', () => {
+    const p = { ...pos(30_000, 33_000, '2026-08-01', true), valueHistory: [{ date: '2026-09-01', valueCents: 31_000 }, { date: '2026-10-01', valueCents: 33_000 }] }
+    assert.deepEqual(revaluationDeltas(p, '2026-10-20'), [
+      { date: '2026-09-01', cents: 1_000 },
+      { date: '2026-10-01', cents: 2_000 },
+    ])
+  })
+
+  it('sin historial (posiciones antiguas), la diferencia entra hoy, como antes', () => {
+    assert.deepEqual(revaluationDeltas(pos(30_000, 32_000, '2026-08-01'), '2026-10-20'), [{ date: '2026-10-20', cents: 2_000 }])
+    assert.deepEqual(revaluationDeltas(pos(30_000, 30_000, '2026-08-01'), '2026-10-20'), [])
+  })
+
+  it('la curva sube y baja con los valores apuntados y termina en el patrimonio', () => {
+    const p = { ...pos(30_000, 29_000, '2026-09-05', true), valueHistory: [{ date: '2026-09-20', valueCents: 32_000 }, { date: '2026-10-05', valueCents: 29_000 }] }
+    const series = buildWealthSeries(INITIAL, movements, [p], '2026-10-20')
+    assert.deepEqual(series.map((x) => [x.date, x.cents]), [
+      ['2026-08-31', 100_000],
+      ['2026-09-01', 150_000],
+      ['2026-09-05', 150_000],
+      ['2026-09-10', 130_000],
+      ['2026-09-20', 132_000],
+      ['2026-10-05', 129_000],
+    ])
+    assert.equal(series.at(-1)?.cents, computeLiquidCents(INITIAL, movements, [p]) + p.valueCents)
+  })
+})
+
+describe('de dónde viene el cambio del patrimonio', () => {
+  const p = { ...pos(30_000, 33_000, '2026-09-05', true), valueHistory: [{ date: '2026-09-20', valueCents: 31_000 }, { date: '2026-10-05', valueCents: 33_000 }] }
+
+  it('ahorro (ingresos − gastos) e inversiones por separado; invertir desde el líquido no cuenta', () => {
+    assert.deepEqual(wealthSources(movements, [p], null, '2026-10-20'), { savingsCents: 30_000, investmentsCents: 3_000 })
+    assert.deepEqual(wealthSources(movements, [p], '2026-10-01', '2026-10-20'), { savingsCents: 0, investmentsCents: 2_000 })
+  })
+
+  it('lo aportado desde fuera de Finax cuenta como ahorro', () => {
+    assert.deepEqual(wealthSources([], [pos(10_000, 10_000, '2026-09-05', false)], null, '2026-10-20'), { savingsCents: 10_000, investmentsCents: 0 })
+  })
+
+  it('suma lo mismo que la curva en el periodo', () => {
+    const series = buildWealthSeries(INITIAL, movements, [p], '2026-10-20')
+    const s = wealthSources(movements, [p], null, '2026-10-20')
+    assert.equal(series.at(-1)!.cents - series[0].cents, s.savingsCents + s.investmentsCents)
   })
 })

@@ -239,8 +239,21 @@ export interface Position {
   assetType?: PositionAssetType
   /** Comisión anual (TER o gastos corrientes) en centésimas de punto: 20 = 0,20 %. Opcional. */
   feeBp?: number
+  /**
+   * Valores que ha tenido, de antiguo a reciente y uno por día: se apunta cada
+   * vez que cambias el valor (desde el 2026-10-20; lo anterior no se conoce).
+   * El último es siempre `valueCents`. La gráfica del patrimonio los usa para
+   * enseñar cómo han ido tus inversiones con el tiempo.
+   */
+  valueHistory?: PositionValue[]
   createdAt: number
   updatedAt: number
+}
+
+export interface PositionValue {
+  /** `YYYY-MM-DD` */
+  date: string
+  valueCents: number
 }
 
 /** Tipos de inversión del plan (plan/mix.ts) más ahorro seguro y «otro». */
@@ -252,7 +265,7 @@ export function liquidOutflowCents(p: Pick<Position, 'investedCents' | 'fromLiqu
   return p.fromLiquid === true ? p.investedCents : 0
 }
 
-export type PositionInput = Omit<Position, 'id' | 'createdAt' | 'updatedAt'>
+export type PositionInput = Omit<Position, 'id' | 'createdAt' | 'updatedAt' | 'valueHistory'>
 
 /* --------------------------------- Deudas --------------------------------- */
 

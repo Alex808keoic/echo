@@ -14,6 +14,7 @@ import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { PositionForm } from '../forms/position-form'
+import { UpdateValuesForm } from '../forms/update-values-form'
 import { PlusIcon, TrendUpIcon } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
@@ -81,6 +82,9 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
             <p className="mt-3 text-[11.5px] font-medium text-muted-foreground text-pretty">
               Valores introducidos manualmente. Finax no consulta cotizaciones ni ejecuta operaciones.
             </p>
+            <Button variant="secondary" fullWidth className="mt-4" onClick={() => open('Actualizar valores', <UpdateValuesForm positions={positions} onDone={close} />)}>
+              Actualizar valores
+            </Button>
           </FinancialCard>
 
           {ret && <ReturnCard ret={ret} fees={fees} inflation={inflation} monthlyInvest={monthlyInvest} />}

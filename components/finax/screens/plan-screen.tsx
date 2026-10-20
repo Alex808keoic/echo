@@ -26,6 +26,9 @@ import type { FinancialContext } from '@/lib/axis/types'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { ProfileForm } from '../forms/profile-form'
+import { UpdateValuesForm } from '../forms/update-values-form'
+import { UPDATE_INVESTMENTS_ID } from '@/lib/axis/plan/checklist'
+import type { Position } from '@/lib/types'
 import { reviewYear, yearsWithData } from '@/lib/axis/plan/year-review'
 import { todayISO } from '@/lib/dates'
 import type { FinancialOverview } from '@/hooks/use-financial-overview'
@@ -53,7 +56,7 @@ const SEGMENT_COLOR: Record<SegmentKind, string> = {
 export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const result = useAllocationPlan(overview)
   const cushion = useCushionActions()
-  const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives)
+  const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives, overview?.positions)
   const review = useMonthReview(overview?.axisSnapshot, result?.plan, checklist)
   const memories = useLiveQuery(listUserMemories, [], undefined)
   if (!result || !overview || memories === undefined) return <ScreenLoading />
@@ -89,7 +92,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
 
       {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
 
-      {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} />}
+      {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} positions={overview?.positions ?? []} />}
 
       {checklist && !checklist.checkedIn && <MonthCheckIn checklist={checklist} memories={memories} onSimulate={() => onNavigate('simulador')} />}
 
@@ -178,7 +181,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
 const POSITION_NAME: Record<SleeveKey, string> = { 'global-equity': 'Renta variable global', bonds: 'Renta fija', risky: 'Parte arriesgada' }
 
 /** «Tu decisión del mes»: el plan como lista de cosas que hacer, marcables. Marcar no mueve dinero. */
-function MonthChecklist({ checklist }: { checklist: PlanChecklist }) {
+function MonthChecklist({ checklist, positions }: { checklist: PlanChecklist; positions: Position[] }) {
   const { open, close } = useSheet()
   const { items, done, doneCount, toggle } = checklist
   const register = (sleeve: SleeveKey, cents: number) =>
@@ -194,12 +197,19 @@ function MonthChecklist({ checklist }: { checklist: PlanChecklist }) {
       <ul className="space-y-2">
         {items.map((item) => {
           const checked = done.has(item.id)
+          // Este paso lo marca Finax al apuntar el valor de todas tus inversiones este mes.
+          const auto = item.id === UPDATE_INVESTMENTS_ID
           return (
             <li key={item.id} className="space-y-1">
               <label className="flex cursor-pointer items-start gap-3">
-                <input type="checkbox" checked={checked} onChange={() => void toggle(item.id)} className="mt-0.5 h-4 w-4 shrink-0 accent-finax" />
+                <input type="checkbox" checked={checked} disabled={auto} onChange={() => void toggle(item.id)} className="mt-0.5 h-4 w-4 shrink-0 accent-finax" />
                 <span className={cn('text-[13.5px] font-semibold leading-snug text-pretty', checked ? 'text-muted-foreground line-through' : 'text-grafito')}>{item.text}</span>
               </label>
+              {auto && !checked && (
+                <button type="button" onClick={() => open('Actualizar valores', <UpdateValuesForm positions={positions} onDone={close} />)} className="ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+                  Actualizar valores
+                </button>
+              )}
               {checked && item.invest && (
                 <button type="button" onClick={() => register(item.invest!.sleeve, item.invest!.cents)} className="ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                   Apuntarlo en Inversiones
