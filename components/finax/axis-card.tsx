@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { AxisSphere } from './axis-sphere'
 import { LeafLogo, ChevronRight } from './icons'
@@ -7,6 +8,8 @@ interface AxisCardProps {
   title?: string
   tone?: 'lavender' | 'green'
   onClick?: () => void
+  /** Líneas debajo del texto (p. ej. cómo va la decisión del mes). */
+  extra?: ReactNode
 }
 
 /**
@@ -14,7 +17,7 @@ interface AxisCardProps {
  * - lavender: identidad AXIS (violeta/azul), con la esfera.
  * - green: integrada en Finax, con hoja verde.
  */
-export function AxisCard({ text, title, tone = 'lavender', onClick }: AxisCardProps) {
+export function AxisCard({ text, title, tone = 'lavender', onClick, extra }: AxisCardProps) {
   const isLavender = tone === 'lavender'
   return (
     <button
@@ -49,6 +52,7 @@ export function AxisCard({ text, title, tone = 'lavender', onClick }: AxisCardPr
         <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">
           {text}
         </p>
+        {extra}
       </div>
       <ChevronRight
         className={cn(

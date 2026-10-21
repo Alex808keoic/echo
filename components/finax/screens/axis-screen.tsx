@@ -1,34 +1,23 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { formatCents } from '@/lib/money'
-import { useAxis } from '@/hooks/use-axis'
+import { axisHeadline, useAxis } from '@/hooks/use-axis'
 import { useAxisChat } from '@/hooks/use-axis-chat'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { useWeeklyBrief } from '@/hooks/use-weekly-brief'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
 import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
-import type { FinancialOverview } from '@/hooks/use-financial-overview'
 import { AxisSphere } from '../axis-sphere'
 import { AxisConversation } from '../axis-conversation'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
 import { IconButton } from '../page-header'
 import { ScreenLoading } from '../loading'
-import {
-  LeafLogo,
-  SettingsIcon,
-  MoneyIcon,
-  ArrowUp,
-  ArrowDown,
-  TargetIcon,
-  LightbulbIcon,
-  ArrowUpRight,
-  ChevronRight,
-} from '../icons'
+import { LeafLogo, SettingsIcon, LightbulbIcon, ArrowUpRight, ChevronRight } from '../icons'
 import type { ScreenKey } from '../bottom-navigation'
 import { cn } from '@/lib/utils'
+import { PlanPanel } from './plan-panel'
 import type { ScreenProps } from './types'
 
 type Navigate = (screen: ScreenKey) => void
@@ -38,16 +27,6 @@ function greeting(): string {
   if (hour < 6 || hour >= 21) return 'Buenas noches'
   if (hour < 13) return 'Buenos días'
   return 'Buenas tardes'
-}
-
-/** Bloque de una capa del análisis, con etiqueta de texto explícita (D-26). */
-function Layer({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <FinancialCard>
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <div className="mt-2">{children}</div>
-    </FinancialCard>
-  )
 }
 
 function Bullets({ items }: { items: string[] }) {
@@ -84,134 +63,88 @@ const PRIORITY_LABEL: Record<Priority, string> = {
   low: 'Informativo',
 }
 
-function SituationCard({ overview, onNavigate }: { overview: FinancialOverview; onNavigate: Navigate }) {
-  const active = overview.objectivesAllocation.activeCount
-  const rows: Array<{ key: string; label: string; value: string; icon: ReactNode; to: ScreenKey }> = [
-    { key: 'patrimonio', label: 'Patrimonio', value: formatCents(overview.patrimonioCents), icon: <MoneyIcon className="h-[18px] w-[18px]" />, to: 'dinero' },
-    { key: 'ingresos', label: 'Ingresos (mes)', value: formatCents(overview.month.incomeCents), icon: <ArrowUp className="h-[18px] w-[18px]" />, to: 'movimientos' },
-    { key: 'gastos', label: 'Gastos (mes)', value: formatCents(overview.month.expenseCents), icon: <ArrowDown className="h-[18px] w-[18px]" />, to: 'estadisticas' },
-    { key: 'objetivos', label: 'Objetivos', value: `${active} activo${active === 1 ? '' : 's'}`, icon: <TargetIcon className="h-[18px] w-[18px]" />, to: 'objetivos' },
-  ]
+/**
+ * «Lo que veo en tus números»: la lectura de AXIS (señales, datos e
+ * incertidumbre) como explicación del plan. No da una recomendación propia:
+ * la única es «Tu plan»; el siguiente paso solo lleva a donde mirarlo.
+ */
+function Insight({ analysis, onNavigate, footer }: { analysis: AxisAnalysis; onNavigate: Navigate; footer: ReactNode }) {
+  const { data, interpretation, uncertainty, conclusion } = analysis
+  const step = conclusion.nextStep
   return (
-    <FinancialCard padded={false} className="overflow-hidden">
-      <div className="border-b border-border px-5 py-3.5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Datos</p>
-        <h2 className="mt-0.5 text-[15px] font-bold tracking-tight text-grafito">Tu situación actual</h2>
+    <FinancialCard className="space-y-3">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-axis-indigo/70">AXIS</p>
+        <p className="mt-0.5 text-[15px] font-bold text-grafito">Lo que veo en tus números</p>
       </div>
-      <ul>
-        {rows.map((item, i) => (
-          <li key={item.key} className={i !== rows.length - 1 ? 'border-b border-border' : ''}>
-            <button
-              type="button"
-              onClick={() => onNavigate(item.to)}
-              className="flex w-full items-center gap-3 px-5 py-3.5 text-left"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-grafito">
-                {item.icon}
+      {analysis.basedOnDemoData && (
+        <p className="rounded-xl bg-axis-soft px-3 py-2 text-[12px] font-semibold text-axis-indigo">
+          Sobre datos de demostración: no describe tu situación real.
+        </p>
+      )}
+      <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{interpretation.summary}</p>
+      {interpretation.signals.length > 1 && (
+        <ul className="space-y-3">
+          {interpretation.signals.slice(1).map((s) => (
+            <li key={s.id} className="flex flex-col items-start gap-1 text-[12.5px] font-medium text-muted-foreground">
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                  s.priority === 'critical' || s.priority === 'high'
+                    ? 'bg-negative-soft text-negative'
+                    : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {PRIORITY_LABEL[s.priority]}
               </span>
-              <span className="flex-1 text-[13.5px] font-medium text-muted-foreground">{item.label}</span>
-              <span className="text-[14px] font-bold text-grafito tabular-nums">{item.value}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </button>
-          </li>
-        ))}
-      </ul>
+              <span className="text-pretty">{s.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <details className="rounded-xl border border-border px-3 py-2">
+        <summary className="cursor-pointer text-[12.5px] font-semibold text-axis-indigo">Datos y lo que no sé</summary>
+        <div className="mt-2 space-y-3">
+          {data.facts.length > 0 && <Bullets items={data.facts} />}
+          <ul className="space-y-2">
+            {uncertainty.items.map((u) => (
+              <li key={u.title}>
+                <p className="text-[12.5px] font-bold text-grafito">{u.title}</p>
+                <p className="mt-0.5 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">{u.detail}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[12px] font-semibold text-muted-foreground">
+            Confianza: <span className="text-grafito">{uncertainty.confidence}</span>
+          </p>
+        </div>
+      </details>
+      {step?.to && step.to !== 'plan' && (
+        <button
+          type="button"
+          onClick={() => step.to && onNavigate(step.to)}
+          className="flex items-center gap-1 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline"
+        >
+          {step.label}
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+      {footer}
     </FinancialCard>
   )
 }
 
-function Analysis({ analysis, onNavigate }: { analysis: AxisAnalysis; onNavigate: Navigate }) {
-  const { data, interpretation, recommendation, alternatives, uncertainty, conclusion } = analysis
-  return (
-    <>
-      {data.facts.length > 0 && (
-        <Layer label="Datos">
-          <Bullets items={data.facts} />
-        </Layer>
-      )}
-
-      <Layer label="Interpretación">
-        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{interpretation.summary}</p>
-        {interpretation.signals.length > 1 && (
-          <ul className="mt-3 space-y-3">
-            {interpretation.signals.slice(1).map((s) => (
-              <li key={s.id} className="flex flex-col items-start gap-1 text-[12.5px] font-medium text-muted-foreground">
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                    s.priority === 'critical' || s.priority === 'high'
-                      ? 'bg-negative-soft text-negative'
-                      : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {PRIORITY_LABEL[s.priority]}
-                </span>
-                <span className="text-pretty">{s.text}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Layer>
-
-      <div className="rounded-3xl border border-axis-violet/15 bg-axis-soft p-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-axis-indigo/70">Recomendación</p>
-        <div className="mt-1.5 flex items-center gap-2 text-axis-indigo">
-          <LightbulbIcon className="h-5 w-5 shrink-0" />
-          <p className="text-[14px] font-bold text-pretty">
-            {recommendation ? recommendation.what : 'No hace falta actuar ahora'}
-          </p>
-        </div>
-        <p className="mt-2 text-[13px] font-medium leading-snug text-grafito/80 text-pretty">
-          {recommendation ? recommendation.why : conclusion.summary}
-        </p>
-      </div>
-
-      {alternatives.length > 0 && (
-        <Layer label="Alternativas">
-          <ul className="space-y-3">
-            {alternatives.map((a) => (
-              <li key={a.name}>
-                <p className="text-[13.5px] font-bold text-grafito">{a.name}</p>
-                <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{a.summary}</p>
-              </li>
-            ))}
-          </ul>
-        </Layer>
-      )}
-
-      <Layer label="Incertidumbre">
-        <ul className="space-y-3">
-          {uncertainty.items.map((u) => (
-            <li key={u.title}>
-              <p className="text-[13.5px] font-bold text-grafito">{u.title}</p>
-              <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{u.detail}</p>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-[12px] font-semibold text-muted-foreground">
-          Confianza: <span className="text-grafito">{uncertainty.confidence}</span>
-        </p>
-      </Layer>
-
-      <Layer label="Conclusión / siguiente paso">
-        <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{conclusion.summary}</p>
-        {conclusion.nextStep && <NextStepButton step={conclusion.nextStep} onNavigate={onNavigate} />}
-      </Layer>
-    </>
-  )
-}
-
 function engineNote(engine: AxisEngineInfo | null): string {
-  if (!engine) return 'AXIS analiza y recomienda; nunca ejecuta operaciones.'
+  if (!engine) return 'AXIS te aconseja; nunca ejecuta operaciones.'
   return engine.isAI
-    ? `Análisis generado por ${engine.label} a partir de tus datos locales.`
-    : `${engine.label} (sin IA). AXIS analiza y recomienda; nunca ejecuta operaciones.`
+    ? `Lectura redactada por ${engine.label} a partir de tus datos locales.`
+    : `${engine.label} (sin IA). AXIS te aconseja; nunca ejecuta operaciones.`
 }
 
-type AxisTab = 'analisis' | 'conversacion'
+export type AxisTab = 'plan' | 'conversacion'
 
 const TABS: ReadonlyArray<{ key: AxisTab; label: string }> = [
-  { key: 'analisis', label: 'Análisis' },
+  { key: 'plan', label: 'Tu plan' },
   { key: 'conversacion', label: 'Conversación' },
 ]
 
@@ -219,7 +152,12 @@ const TABS: ReadonlyArray<{ key: AxisTab; label: string }> = [
  * Pestaña recordada mientras la app siga abierta: si una tarjeta del chat lleva a
  * otra pantalla, al volver se sigue en la conversación.
  */
-let lastTab: AxisTab = 'analisis'
+let lastTab: AxisTab = 'plan'
+
+/** Para entrar en AXIS por una pestaña concreta (la pantalla «plan» es AXIS en «Tu plan»). */
+export function openAxisTab(tab: AxisTab) {
+  lastTab = tab
+}
 
 function AxisTabs({ value, onChange }: { value: AxisTab; onChange: (tab: AxisTab) => void }) {
   return (
@@ -260,6 +198,8 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
     lastTab = next
     setTabState(next)
   }
+  // Desde la conversación, «Ver tu plan» cambia de pestaña sin salir de AXIS.
+  const navigate: Navigate = (screen) => (screen === 'plan' ? setTab('plan') : onNavigate(screen))
   const { market, marketState } = useMarketContext(overview)
   const { state: axis, refresh } = useAxis(overview, { ai: true, market, remember: true })
   const chat = useAxisChat(overview, market)
@@ -268,6 +208,62 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
   if (!overview) return <ScreenLoading />
 
   const engine = axis.status === 'analysis' ? axis.analysis.engine : axis.status === 'no-analysis' ? axis.engine : null
+
+  const footer = (
+    <div className="space-y-2 border-t border-border pt-3">
+      {market && marketState.freshness && (
+        <p className="text-[11.5px] font-medium text-muted-foreground text-pretty">
+          Mercado · {formatShortDate(market.asOf.slice(0, 10))} · {FRESHNESS_LABEL[marketState.freshness]}
+          {market.sources.length > 0 && ` · fuentes: ${market.sources.slice(0, 4).join(', ')}`}
+        </p>
+      )}
+      <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground text-pretty">
+        <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />
+        {engineNote(engine)}
+      </p>
+      {axis.status === 'analysis' && (
+        <button type="button" onClick={refresh} className="text-[12px] font-semibold text-axis-violet transition-colors hover:text-axis-indigo">
+          Actualizar lectura
+        </button>
+      )}
+    </div>
+  )
+
+  const insight =
+    axis.status === 'loading' ? (
+      <FinancialCard>
+        <p className="text-[13.5px] font-medium leading-snug text-muted-foreground text-pretty">Leyendo tus números…</p>
+      </FinancialCard>
+    ) : axis.status === 'no-analysis' ? (
+      <FinancialCard>
+        <p className="text-[15px] font-bold text-grafito">Lo que veo en tus números</p>
+        <p className="mt-2 text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{axis.message}</p>
+        {axis.facts.length > 0 && (
+          <div className="mt-3">
+            <Bullets items={axis.facts} />
+          </div>
+        )}
+        <p className="mt-3 text-[12.5px] font-semibold text-grafito">Para empezar a razonar necesito:</p>
+        <ul className="mt-1.5 space-y-1.5">
+          {axis.needs.map((n) => (
+            <li key={n.label}>
+              <button
+                type="button"
+                onClick={() => n.to && navigate(n.to)}
+                className="flex w-full items-center gap-2 text-left text-[12.5px] font-medium text-muted-foreground"
+              >
+                <span className="mt-[1px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                <span className="flex-1 text-pretty">{n.label}</span>
+                {n.to && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <NextStepButton step={axis.nextStep} onNavigate={navigate} />
+      </FinancialCard>
+    ) : (
+      <Insight analysis={axis.analysis} onNavigate={navigate} footer={footer} />
+    )
 
   return (
     <div className="pb-8">
@@ -279,7 +275,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
           </span>
           <div>
             <p className="text-[17px] font-extrabold leading-none tracking-tight text-grafito">AXIS</p>
-            <p className="mt-1 text-[12px] font-medium text-muted-foreground">Tu gestor financiero</p>
+            <p className="mt-1 text-[12px] font-medium text-muted-foreground">Tu consultor financiero</p>
           </div>
         </div>
         <IconButton label="Ajustes" onClick={() => onNavigate('ajustes')}>
@@ -296,9 +292,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         <AxisSphere size={60} className="shrink-0" />
         <div className="relative min-w-0">
           <h1 className="text-[22px] font-extrabold leading-tight tracking-tight text-grafito">{greeting()}</h1>
-          <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
-            Analizo tu situación financiera para ayudarte a tomar mejores decisiones.
-          </p>
+          <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{axisHeadline(axis)}</p>
         </div>
       </div>
 
@@ -317,92 +311,35 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
             onResolveProposal={chat.resolveProposal}
             onClear={chat.clear}
             onForget={chat.forget}
-            onNavigate={onNavigate}
+            onNavigate={navigate}
           />
         </div>
       ) : (
-      <div id="axis-panel-analisis" role="tabpanel" aria-labelledby="axis-tab-analisis" className="content-swap mt-5 space-y-5 px-5">
-        {axis.status === 'analysis' && axis.analysis.basedOnDemoData && (
-          <p className="rounded-2xl border border-axis-violet/20 bg-axis-soft px-4 py-2.5 text-[12px] font-semibold text-axis-indigo">
-            Análisis sobre datos de demostración: no describe tu situación real.
-          </p>
-        )}
-
-        <SituationCard overview={overview} onNavigate={onNavigate} />
-
-        {brief && (
-          <button
-            type="button"
-            onClick={() => onNavigate('resumen')}
-            className="flex w-full items-center gap-3 rounded-3xl border border-axis-violet/20 bg-axis-soft p-4 text-left transition-[background-color,scale] duration-150 active:scale-[0.99]"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-axis-indigo">Resumen semanal</span>
-              <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{brief.view.title}</span>
-              {brief.view.researchLine && <span className="mt-0.5 block text-[11.5px] font-medium text-muted-foreground">{brief.view.researchLine}</span>}
-            </span>
-            <ChevronRight className="h-5 w-5 shrink-0 text-axis-indigo/70" />
-          </button>
-        )}
-
-        {market && marketState.freshness && (
-          <p className="px-1 text-[11.5px] font-medium text-muted-foreground text-pretty">
-            Mercado · {formatShortDate(market.asOf.slice(0, 10))} · {FRESHNESS_LABEL[marketState.freshness]}
-            {market.sources.length > 0 && ` · fuentes: ${market.sources.slice(0, 4).join(', ')}`}
-          </p>
-        )}
-
-        {axis.status === 'loading' ? (
-          <Layer label="Análisis">
-            <p className="text-[13.5px] font-medium leading-snug text-muted-foreground text-pretty">
-              Preparando el análisis de tus datos…
-            </p>
-          </Layer>
-        ) : axis.status === 'no-analysis' ? (
-          <Layer label="Sin análisis">
-            <p className="text-[13.5px] font-medium leading-snug text-grafito/85 text-pretty">{axis.message}</p>
-            {axis.facts.length > 0 && (
-              <div className="mt-3">
-                <Bullets items={axis.facts} />
-              </div>
-            )}
-            <p className="mt-3 text-[12.5px] font-semibold text-grafito">Para empezar a razonar necesito:</p>
-            <ul className="mt-1.5 space-y-1.5">
-              {axis.needs.map((n) => (
-                <li key={n.label}>
+        <div id="axis-panel-plan" role="tabpanel" aria-labelledby="axis-tab-plan" className="content-swap mt-5 space-y-5 px-5">
+          <PlanPanel
+            overview={overview}
+            onNavigate={navigate}
+            insight={
+              <>
+                {insight}
+                {brief && (
                   <button
                     type="button"
-                    onClick={() => n.to && onNavigate(n.to)}
-                    className="flex w-full items-center gap-2 text-left text-[12.5px] font-medium text-muted-foreground"
+                    onClick={() => onNavigate('resumen')}
+                    className="flex w-full items-center gap-3 rounded-3xl border border-axis-violet/20 bg-axis-soft p-4 text-left transition-[background-color,scale] duration-150 active:scale-[0.99]"
                   >
-                    <span className="mt-[1px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                    <span className="flex-1 text-pretty">{n.label}</span>
-                    {n.to && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-axis-indigo">Resumen semanal</span>
+                      <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{brief.view.title}</span>
+                      {brief.view.researchLine && <span className="mt-0.5 block text-[11.5px] font-medium text-muted-foreground">{brief.view.researchLine}</span>}
+                    </span>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-axis-indigo/70" />
                   </button>
-                </li>
-              ))}
-            </ul>
-            <NextStepButton step={axis.nextStep} onNavigate={onNavigate} />
-          </Layer>
-        ) : (
-          <Analysis analysis={axis.analysis} onNavigate={onNavigate} />
-        )}
-
-        <p className="flex items-center justify-center gap-1.5 px-4 text-center text-[11.5px] font-medium text-muted-foreground text-pretty">
-          <LightbulbIcon className="h-4 w-4 shrink-0 text-axis-violet" />
-          {engineNote(engine)}
-        </p>
-
-        {axis.status === 'analysis' && (
-          <button
-            type="button"
-            onClick={refresh}
-            className="mx-auto block text-[12px] font-semibold text-axis-violet transition-colors hover:text-axis-indigo"
-          >
-            Actualizar análisis
-          </button>
-        )}
-      </div>
+                )}
+              </>
+            }
+          />
+        </div>
       )}
     </div>
   )

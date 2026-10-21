@@ -8,12 +8,11 @@ import { HomeScreen } from '@/components/finax/screens/home-screen'
 import { MoneyScreen } from '@/components/finax/screens/money-screen'
 import { TransactionsScreen } from '@/components/finax/screens/transactions-screen'
 import { StatsScreen } from '@/components/finax/screens/stats-screen'
-import { AxisScreen } from '@/components/finax/screens/axis-screen'
+import { AxisScreen, openAxisTab } from '@/components/finax/screens/axis-screen'
 import { ObjectivesScreen } from '@/components/finax/screens/objectives-screen'
 import { InvestmentsScreen } from '@/components/finax/screens/investments-screen'
 import { SettingsScreen } from '@/components/finax/screens/settings-screen'
 import { MemoryScreen } from '@/components/finax/screens/memory-screen'
-import { PlanScreen } from '@/components/finax/screens/plan-screen'
 import { BriefScreen } from '@/components/finax/screens/brief-screen'
 import { GuideScreen } from '@/components/finax/screens/guide-screen'
 import { DebtsScreen } from '@/components/finax/screens/debts-screen'
@@ -69,7 +68,10 @@ function App() {
       }),
     )
   }
-  const navigate = (next: ScreenKey) => {
+  const navigate = (target: ScreenKey) => {
+    // «Tu plan» es la pestaña principal de AXIS: se entra en AXIS por ella.
+    if (target === 'plan') openAxisTab('plan')
+    const next = target === 'plan' ? 'axis' : target
     if (next === screen) return
     // Entre pestañas, hacia el lado de la pestaña; a una secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
     const direction: NavDirection = isTab(next)
@@ -127,7 +129,6 @@ function App() {
           {screen === 'inversiones' && <InvestmentsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'ajustes' && <SettingsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'memoria' && <MemoryScreen overview={overview} onNavigate={navigate} onBack={back} />}
-          {screen === 'plan' && <PlanScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'resumen' && <BriefScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'guia' && <GuideScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'deudas' && <DebtsScreen overview={overview} onNavigate={navigate} onBack={back} />}

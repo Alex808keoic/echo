@@ -6,7 +6,7 @@ import { AxisSphere } from './axis-sphere'
 
 export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'axis'
 
-/** Pantallas secundarias accesibles desde las pestañas principales. */
+/** Pantallas secundarias accesibles desde las pestañas principales. «plan» no es una pantalla: abre AXIS en «Tu plan». */
 export type ScreenKey = TabKey | 'objetivos' | 'inversiones' | 'ajustes' | 'memoria' | 'plan' | 'resumen' | 'guia' | 'deudas' | 'simulador' | 'fijos'
 
 interface Tab {

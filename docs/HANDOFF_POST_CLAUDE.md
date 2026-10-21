@@ -171,6 +171,11 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - Deudas: botón «Eliminar» con texto en el formulario y directo en las ya devueltas (antes solo la papelera dentro de «Editar deuda»).
   - **Local:** `.env.local` apunta a `/market-data-local` (datos de prueba de la semana 37); producción usa la rama `market-data`.
 
+- **AXIS como tu consultor (2026-10-21, decidido con el usuario):** objetivo, que AXIS sea el asesor de la persona, siempre a nivel de tipo (CNMV). El usuario descartó de momento seguros, jubilación, impuestos y presupuesto, y mantener «Resumen de hoy» en Inicio.
+  - **Una sola voz:** la pestaña AXIS es «Tu plan» + «Conversación». La antigua pestaña «Análisis» ya no da recomendación, alternativas ni conclusión propias: su lectura (resumen, señales, datos, incertidumbre y confianza) es la tarjeta «Lo que veo en tus números» dentro del plan (`axis-screen.tsx` `Insight`), después de los pasos. `PlanPanel` (`screens/plan-panel.tsx`) es el antiguo `PlanScreen` sin cabecera. La pantalla `plan` ya no existe: `navigate('plan')` abre AXIS en «Tu plan» (`openAxisTab`, `app/page.tsx`); dentro de AXIS cambia de pestaña. Las rutas `to: 'plan'` (recordatorios, chat, guía…) siguen igual.
+  - Inicio: una sola tarjeta «AXIS · Tu plan del mes» (titular del plan, revisión y pasos hechos). Ya no pide el análisis de AXIS.
+  - AXIS se presenta como «Tu consultor financiero» (no «gestor»: gestionar carteras es otra actividad regulada).
+
 ---
 
 ## ✅ Actualización 2026-10-02: Cloudflare → Groq desplegado en producción

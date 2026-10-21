@@ -5,8 +5,6 @@ import { formatCents } from '@/lib/money'
 import { PERIODS, type PeriodId } from '@/lib/finance/summary'
 import { useSlidingIndicator } from '../use-sliding-indicator'
 import { seriesDelta } from '@/lib/finance/patrimonio'
-import { axisHeadline, useAxis } from '@/hooks/use-axis'
-import { useMarketContext } from '@/hooks/use-market-context'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { useMonthReview, usePlanChecklist } from '@/hooks/use-plan-checklist'
 import { todayISO } from '@/lib/dates'
@@ -38,8 +36,6 @@ import type { ScreenProps } from './types'
 
 export function HomeScreen({ overview, onNavigate }: ScreenProps) {
   const [range, setRange] = useState<PeriodId>('1A')
-  const { market } = useMarketContext(overview)
-  const { state: axis } = useAxis(overview, { market })
   const plan = useAllocationPlan(overview)
   const checklist = usePlanChecklist(plan?.plan, plan?.decision.context.objectives, overview?.positions)
   const review = useMonthReview(overview?.axisSnapshot, plan?.plan, checklist)
@@ -142,10 +138,21 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         </>
       )}
 
+      {/* Una sola voz: lo que AXIS te dice en Inicio es tu plan del mes. */}
       <AxisCard
-        title="AXIS"
-        text={axisHeadline(axis)}
-        onClick={() => onNavigate('axis')}
+        title="AXIS · Tu plan del mes"
+        text={plan ? planHeadline(plan.plan, plan.decision.context.objectives) : 'Preparando tu plan…'}
+        onClick={() => onNavigate('plan')}
+        extra={
+          <>
+            {showReview && <span className="mt-1 block text-[12px] font-semibold text-axis-indigo">Revisión de {review.label} lista</span>}
+            {checklist && checklist.items.length > 0 && (
+              <span className="mt-1 block text-[12px] font-medium text-muted-foreground tabular-nums">
+                Tu decisión del mes: {checklist.doneCount} de {checklist.items.length} hechas
+              </span>
+            )}
+          </>
+        }
       />
 
       {reminders.length > 0 && (
@@ -184,28 +191,6 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             </Button>
           </div>
         </FinancialCard>
-      )}
-
-      {plan && (
-        <button
-          type="button"
-          onClick={() => onNavigate('plan')}
-          className="flex w-full items-center gap-3 rounded-3xl border border-border bg-card p-4 text-left shadow-[0_2px_14px_-8px_rgba(31,41,55,0.14)] transition-[background-color,scale] duration-150 hover:bg-muted/40 active:scale-[0.99]"
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">Tu plan del mes</span>
-            <span className="mt-0.5 block text-[13.5px] font-semibold leading-snug text-grafito text-pretty">{planHeadline(plan.plan, plan.decision.context.objectives)}</span>
-            {showReview && (
-              <span className="mt-1 block text-[12px] font-semibold text-axis-indigo">Revisión de {review.label} lista</span>
-            )}
-            {checklist && checklist.items.length > 0 && (
-              <span className="mt-1 block text-[12px] font-medium text-muted-foreground tabular-nums">
-                Tu decisión del mes: {checklist.doneCount} de {checklist.items.length} hechas
-              </span>
-            )}
-          </span>
-          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-        </button>
       )}
 
       <section>

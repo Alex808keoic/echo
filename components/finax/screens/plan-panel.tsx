@@ -10,15 +10,13 @@ import type { AllocationPlan } from '@/lib/axis/plan/allocation'
 import { describeStep, PLAN_DISCLAIMER, planSegments, SLEEVE_EXPLANATION, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
 import { formatCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
-import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
-import { ScreenLoading } from '../loading'
 import { useCushionActions } from '../cushion-actions'
 import { stepReasons } from '@/lib/axis/plan/why'
 import { LeafLogo } from '../icons'
 import type { ScreenProps } from './types'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { FilterTabs } from '../filter-tabs'
 import { projectWealth, PROJECTION_YEARS, type ProjectionYears } from '@/lib/axis/plan/projection'
 import { inflationFrom, inflationPhrase } from '@/lib/axis/plan/inflation'
@@ -50,19 +48,30 @@ const SEGMENT_COLOR: Record<SegmentKind, string> = {
   debt: 'bg-grafito',
 }
 
+interface PlanPanelProps extends Pick<ScreenProps, 'overview' | 'onNavigate'> {
+  /** Lo que AXIS lee en tus números: va después de los pasos, como explicación (nunca otra recomendación). */
+  insight?: ReactNode
+}
+
 /**
  * «Tu plan»: qué hacer cada mes con lo que ahorras (`buildAllocationPlan`).
- * Calculado en el dispositivo, sin IA ni mercado. Las únicas escrituras son
- * crear el «Fondo de emergencia» o ponerlo el primero, siempre con confirmación.
+ * Es la pestaña principal de AXIS: la única recomendación que da. Calculado en
+ * el dispositivo, sin IA ni mercado. Las únicas escrituras son crear el «Fondo
+ * de emergencia» o ponerlo el primero, siempre con confirmación.
  */
-export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
+export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
   const result = useAllocationPlan(overview)
   const cushion = useCushionActions()
   const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives, overview?.positions)
   const review = useMonthReview(overview?.axisSnapshot, result?.plan, checklist)
   const memories = useLiveQuery(listUserMemories, [], undefined)
   const market = useMarketSignals(overview, result?.plan)
-  if (!result || !overview || memories === undefined) return <ScreenLoading />
+  if (!result || !overview || memories === undefined)
+    return (
+      <FinancialCard>
+        <p className="text-[13.5px] font-medium leading-snug text-muted-foreground">Preparando tu plan…</p>
+      </FinancialCard>
+    )
   const { plan, decision } = result
   const objectives = decision.context.objectives
 
@@ -90,9 +99,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   }
 
   return (
-    <div className="space-y-5 px-5 pb-8 pt-3">
-      <SubPageHeader title="Tu plan" subtitle="Qué hacer cada mes con lo que ahorras" onBack={onBack} />
-
+    <div className="space-y-5">
       {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
 
       {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} positions={overview?.positions ?? []} />}
@@ -157,6 +164,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
           )
         })}
       </ol>
+
+      {insight}
 
       <ProjectionCard plan={plan} context={decision.context} safeRatePct={market.safeRatePct} />
 
