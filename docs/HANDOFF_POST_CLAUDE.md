@@ -182,6 +182,8 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
     - Riesgo aplicado (`planRisk`): dinámico con `lossCapacity: 'low'` se invierte como equilibrado (porcentaje, mezcla, rentabilidad esperada para las deudas) y por tanto sin parte arriesgada.
     - Parte arriesgada: además, exige no haber respondido «Nunca» a la experiencia (`riskyAllowed.noExperience`).
     - El «¿Por qué?» cita cada una de estas respuestas. Sin responderlas, el plan es el de antes.
+  - **«¿Me lo puedo permitir?» y «Me ha pasado algo»** arriba de Tu plan. El primero abre «¿Y si…?» en compra (`openSimulator`). El segundo es una hoja con cambios de vida (`plan/life-events.ts`: trabajo o sueldo, sin trabajo, alguien depende de ti, mudarse, dinero extra, compra grande, deuda nueva), con el consejo y lo que hay que revisar: Tu perfil, Fijos, Deudas, un ingreso puntual (`MovementForm oneOffIncome`) o el simulador. Nunca guarda ni mueve nada por su cuenta.
+  - **Pendiente de decidir con el usuario:** objetivos por plazo (el dinero de un objetivo a más de 5 años podría invertirse). Choca con la invariante de que el progreso de los objetivos sale solo del líquido: hay que decidir cómo cuenta lo invertido para un objetivo antes de tocarlo.
 
 ---
 

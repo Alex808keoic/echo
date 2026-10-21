@@ -36,6 +36,8 @@ interface MovementFormProps {
   /** Guarda en lugar de añadir un movimiento nuevo (p. ej. confirmar un fijo). */
   onSave?: (input: MovementInput) => Promise<unknown>
   submitLabel?: string
+  /** Un movimiento nuevo que empieza como ingreso puntual (p. ej. «He recibido un dinero extra»). */
+  oneOffIncome?: boolean
   onDone: () => void
 }
 
@@ -47,11 +49,11 @@ interface Errors {
 }
 
 /** Alta y edición de movimientos. Importes en céntimos, fecha sin hora. */
-export function MovementForm({ movement, initial, onSave, submitLabel, onDone }: MovementFormProps) {
+export function MovementForm({ movement, initial, onSave, submitLabel, oneOffIncome = false, onDone }: MovementFormProps) {
   const start = movement ?? initial
   // Historial propio para sugerir categoría al crear (nunca al editar: ahí manda lo guardado).
   const history = useLiveQuery(listMovements, [], undefined)
-  const [type, setType] = useState<MovementType>(start?.type ?? 'gasto')
+  const [type, setType] = useState<MovementType>(start?.type ?? (oneOffIncome ? 'ingreso' : 'gasto'))
   const [amount, setAmount] = useState(start ? centsToInputValue(start.amountCents) : '')
   const [date, setDate] = useState(start?.date ?? todayISO())
   const [category, setCategory] = useState<Category | null>(start?.category ?? null)
@@ -59,7 +61,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, onDone }:
   const [suggestedFor, setSuggestedFor] = useState<MovementType | null>(start ? type : null)
   const [motivo, setMotivo] = useState(start?.motivo ?? '')
   const [nota, setNota] = useState(start?.nota ?? '')
-  const [puntual, setPuntual] = useState(start?.puntual === true)
+  const [puntual, setPuntual] = useState(start ? start.puntual === true : oneOffIncome)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */

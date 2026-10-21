@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getAxisMemory } from '@/lib/db/axis-memory'
 import { useMarketContext } from '@/hooks/use-market-context'
@@ -105,6 +105,13 @@ function scenarioOf(kind: ScenarioKind, v: Values): Scenario | null {
   }
 }
 
+/** Escenario con el que se abre la próxima vez («¿Me lo puedo permitir?», «Me ha pasado algo»). */
+let nextKind: ScenarioKind | null = null
+
+export function openSimulator(kind: ScenarioKind) {
+  nextKind = kind
+}
+
 /**
  * «¿Y si…?»: simula una decisión con tus datos antes de tomarla. Se calcula en
  * el dispositivo sobre una copia: no guarda nada ni usa la IA.
@@ -112,7 +119,11 @@ function scenarioOf(kind: ScenarioKind, v: Values): Scenario | null {
 export function SimulatorScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const memory = useLiveQuery(getAxisMemory, [], undefined)
   const { market } = useMarketContext(overview)
-  const [kind, setKind] = useState<ScenarioKind>('purchase')
+  const [kind, setKind] = useState<ScenarioKind>(nextKind ?? 'purchase')
+  // Solo para esta apertura: la siguiente vuelve a empezar por la compra.
+  useEffect(() => {
+    nextKind = null
+  }, [])
   const [values, setValues] = useState<Values>({})
   const [scenario, setScenario] = useState<Scenario | null>(null)
   const [error, setError] = useState<string | null>(null)
