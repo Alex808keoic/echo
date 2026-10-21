@@ -13,7 +13,7 @@
  *   safe-vs-inflation          lo que paga el ahorro seguro (tipo del BCE) frente a la inflación
  *   variable-debt:<id>         cuota estimada de una deuda variable con el Euríbor de hoy
  *   idle-loss                  lo que pierde con la inflación tu dinero sin destino (solo si se pasa
- *                              `idleCents`: «Tu plan» ya lo explica en su paso, el resumen semanal no)
+ *                              `idleCents`: «Tu plan» ya lo explica en su paso; no se usa en la app)
  */
 import { formatCents } from '../../money'
 import { repricing } from '../../finance/debts'

@@ -20,9 +20,8 @@ export interface MarketSignalsState {
   safeRatePct: number | null
 }
 
-/** `withIdle`: añade lo que pierde tu dinero sin destino (en el resumen semanal; «Tu plan» ya lo dice en su paso). */
-export function useMarketSignals(overview: FinancialOverview | undefined, plan: AllocationPlan | undefined, options: { withIdle?: boolean } = {}): MarketSignalsState {
-  const withIdle = options.withIdle === true
+/** Lo que pierde el dinero sin destino no va aquí: «Tu plan» ya lo dice en su paso. */
+export function useMarketSignals(overview: FinancialOverview | undefined, plan: AllocationPlan | undefined): MarketSignalsState {
   const { market, marketState } = useMarketContext(overview)
   return useMemo(() => {
     const indicators = market?.keyIndicators ?? []
@@ -39,13 +38,7 @@ export function useMarketSignals(overview: FinancialOverview | undefined, plan: 
       invests: investsMonthly || holdsEquity,
       inflation: plan?.inflation ?? inflationFrom(market),
       debts: overview.debts,
-      ...(withIdle ? { idleCents: idleCentsOf(plan) } : {}),
     })
     return { signals, safeRatePct: safeRatePct(indicators) }
-  }, [overview, plan, market, marketState.research, marketState.baseline, withIdle])
-}
-
-function idleCentsOf(plan: AllocationPlan | undefined): number {
-  const idle = plan?.steps.find((s) => s.kind === 'idle-money')
-  return idle?.kind === 'idle-money' ? idle.idleCents : 0
+  }, [overview, plan, market, marketState.research, marketState.baseline])
 }
