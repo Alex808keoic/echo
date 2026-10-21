@@ -23,7 +23,7 @@
 | Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
 | IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
 | IA de Market Research | Desde el 2026-10-13, Cloudflare → Groq (`scripts/market/providers/select.ts`). Necesita los secrets `CF_ACCOUNT_ID` y `CF_API_TOKEN` en GitHub (los añade el usuario; sin ellos, solo Groq). Gemini ya no se usa: fallaba siempre (HTTP 403) |
-| Tests | `pnpm test` → **1.410 pasan, 0 fallan** (2026-10-20, también con `TZ=UTC`) |
+| Tests | `pnpm test` → **1.437 pasan, 0 fallan** (2026-10-21, también con `TZ=UTC`) |
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
 | Lint | No existe |
@@ -159,7 +159,17 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
   - `Position.valueHistory` (sin cambio de versión de Dexie ni del backup: campo opcional, validado en `isPosition`): cada valor apuntado con su fecha, uno por día, como mucho 400 (`lib/finance/position-values.ts`). Se apunta al crear, al cambiar el valor (`updatePosition`) y en «Actualizar valores» (`setPositionValues`, hoja `forms/update-values-form.tsx`, botón en Inversiones), que lo apunta aunque no cambie.
   - `buildWealthSeries`: lo que suben o bajan las inversiones entra el día en que se apuntó cada valor (`revaluationDeltas`); lo que el historial no explica (posiciones de antes) entra en `asOf`, como antes. La curva sigue terminando en el patrimonio. AXIS no usa esta serie (usa la del líquido): goldens sin cambios.
   - Estadísticas → Patrimonio: «Lo que has ahorrado» y «Lo que han hecho tus inversiones» (`wealthSources`), el mismo periodo que la curva; suman su cambio. Lo aportado desde fuera de Finax cuenta como ahorro.
-  - «Tu decisión del mes»: con inversiones, Finax añade «Actualiza el valor de tus inversiones» (`UPDATE_INVESTMENTS_ITEM`, fuera de `monthChecklist`, lo añade `usePlanChecklist`). No se marca a mano: se tacha solo cuando todas tienen un valor apuntado ese mes (`investmentsUpToDate`).
+  - «Tu decisión del mes» (ver abajo el mercado): con inversiones, Finax añade «Actualiza el valor de tus inversiones» (`UPDATE_INVESTMENTS_ITEM`, fuera de `monthChecklist`, lo añade `usePlanChecklist`). No se marca a mano: se tacha solo cuando todas tienen un valor apuntado ese mes (`investmentsUpToDate`).
+
+- **El mercado en tu plan (2026-10-21, decidido con el usuario; nunca adivina el mercado ni cambia importes):**
+  - Comparación de la bolsa (`lib/market/moves.ts`): la app descarga además `history/<id>.json` de la investigación con ≥ 21 días respecto a la actual (`pickBaselineId`) y guarda sus indicadores en la caché de mercado (`MarketCacheEntry.baseline`). `strongEquityMove`: un índice (`stoxx50`, `ibex`, `spx`, `ndq`) vigente que ha caído ≥ 8 % o subido ≥ 10 % frente a esa base, con 20–50 días entre observaciones del mismo tipo (día con día, mes con mes).
+  - Señales (`lib/axis/plan/market-signals.ts`, `hooks/use-market-signals.ts`, tarjeta «El mercado y tu plan» en Tu plan y en «Qué significa para ti» del resumen semanal): `equity-drop`/`equity-rise` (solo si el plan invierte o tienes bolsa; «tu plan no cambia»), `safe-vs-inflation` (tipo de depósito del BCE frente al IPC del INE, ambos vigentes; da el tipo del BCE como referencia para comparar la TAE), `variable-debt:<id>` y, solo en el resumen, `idle-loss` (lo que pierde con la inflación el dinero sin destino; Tu plan ya lo dice en su paso).
+  - Notificación con la app cerrada `equity-move` (`sw.js` → `finax-sw-v5`, que repite `strongEquityMove`: cambiarlo en los dos sitios). Una vez por base y dirección; solo si tienes inversiones o tu plan del mes invierte.
+  - Proyección: con el tipo del BCE vigente, el ahorro seguro crece a ese tipo (`projectWealth(…, safeRatePct)`); sin él, el supuesto de la Guía.
+  - Deudas variables: `Debt.variableSpreadBp` (opcional, validado en el backup, sin cambio de versión). `repricing`: Euríbor 12 m vigente + diferencial, mismo plazo que queda hoy → cuota estimada en Deudas y aviso en el plan si cambia ≥ 2 %. El plan sigue usando `aprBp` para decidir.
+  - Simulador de vivienda: con Euríbor vigente propone Euríbor + 1 punto (`HOME_SPREAD_PCT`), dicho en pantalla.
+  - Deudas: botón «Eliminar» con texto en el formulario y directo en las ya devueltas (antes solo la papelera dentro de «Editar deuda»).
+  - **Local:** `.env.local` apunta a `/market-data-local` (datos de prueba de la semana 37); producción usa la rama `market-data`.
 
 ---
 
