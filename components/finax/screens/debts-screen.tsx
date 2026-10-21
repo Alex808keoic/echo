@@ -2,7 +2,11 @@
 
 import { formatCents } from '@/lib/money'
 import { formatShortDate, toISODate } from '@/lib/dates'
-import { aprPctOf, DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, payoffMonths, remainingInterestCents } from '@/lib/finance/debts'
+import { aprPctOf, DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, payoffMonths, remainingInterestCents, repricing } from '@/lib/finance/debts'
+import { useMarketContext } from '@/hooks/use-market-context'
+import { freshValue } from '@/lib/axis/plan/market-signals'
+import { deleteDebt } from '@/lib/db/debts'
+import { Confirm } from '../confirm'
 import { durationText, pctText } from '@/lib/axis/plan/describe'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { SubPageHeader, IconButton } from '../page-header'
@@ -12,7 +16,7 @@ import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { DebtForm } from '../forms/debt-form'
-import { MoneyIcon, PlusIcon } from '../icons'
+import { MoneyIcon, PlusIcon, TrashIcon } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -34,7 +38,24 @@ function costTag(aprPct: number): { label: string; className: string } {
 export function DebtsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { open, close } = useSheet()
   const result = useAllocationPlan(overview)
+  const { market } = useMarketContext(overview)
   if (!overview) return <ScreenLoading />
+  // Euríbor 12 meses vigente: para estimar la próxima revisión de las deudas variables.
+  const euribor = freshValue(market?.keyIndicators ?? [], 'euribor-12m')
+  const confirmDelete = (id: string, name: string) =>
+    open(
+      'Eliminar deuda',
+      <Confirm
+        message={`¿Eliminar «${name}»? Ya está devuelta: deja de aparecer en tus deudas y en tu plan.`}
+        confirmLabel="Eliminar"
+        destructive
+        onCancel={close}
+        onConfirm={async () => {
+          await deleteDebt(id)
+          close()
+        }}
+      />,
+    )
 
   const debts = overview.debts.filter((d) => d.balanceCents > 0)
   const paid = overview.debts.filter((d) => d.balanceCents <= 0)
@@ -105,30 +126,47 @@ export function DebtsScreen({ overview, onNavigate, onBack }: ScreenProps) {
                   const months = payoffMonths(d.balanceCents, apr, d.monthlyPaymentCents)
                   const interest = remainingInterestCents(d.balanceCents, apr, d.monthlyPaymentCents)
                   const stale = d.balanceCents > 0 && Date.now() - d.updatedAt > STALE_DEBT_DAYS * DAY_MS
+                  const next = euribor !== null ? repricing(d, euribor) : null
                   return (
-                    <button key={d.id} type="button" onClick={() => open('Editar deuda', <DebtForm debt={d} onDone={close} />)} className="block w-full space-y-1 py-3 text-left">
+                    <div key={d.id}>
+                    <button type="button" onClick={() => open('Editar deuda', <DebtForm debt={d} onDone={close} />)} className="block w-full space-y-1 py-3 text-left">
                       <div className="flex items-start justify-between gap-3">
                         <p className="min-w-0 break-words text-[14px] font-bold text-grafito">{d.name}</p>
                         <p className="shrink-0 text-[14px] font-bold text-grafito tabular-nums">{formatCents(d.balanceCents)}</p>
                       </div>
                       {d.balanceCents <= 0 ? (
-                        <p className="text-[12px] font-semibold text-finax-dark">Devuelta. Puedes eliminarla.</p>
+                        <p className="text-[12px] font-semibold text-finax-dark">Devuelta.</p>
                       ) : (
                         <>
                           <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-medium text-muted-foreground">
                             <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', tag.className)}>{tag.label}</span>
                             <span className="whitespace-nowrap">{pctText(apr)} al año</span>
                             <span className="whitespace-nowrap">· {formatCents(d.monthlyPaymentCents)}/mes</span>
+                            {d.variableSpreadBp !== undefined && <span className="whitespace-nowrap">· variable</span>}
                           </p>
                           <p className="text-[12px] font-medium leading-snug text-grafito/80 text-pretty">
                             {months !== null
                               ? `Con esta cuota terminas en unos ${durationText(months)}${interest ? ` y pagas unos ${formatCents(Math.round(interest / 100) * 100)} de intereses` : ''}.`
                               : 'Con esta cuota no llegas a cubrir los intereses: la deuda no baja. Habla con tu banco.'}
                           </p>
+                          {next && (
+                            <p className="text-[12px] font-semibold leading-snug text-axis-indigo text-pretty">
+                              Con el Euríbor de hoy ({String(euribor).replace(".", ",")} %) + {pctText((d.variableSpreadBp ?? 0) / 100)}, en la próxima revisión pagarías unos {formatCents(Math.round(next.newPaymentCents / 100) * 100)}/mes.
+                            </p>
+                          )}
+                          {d.variableSpreadBp !== undefined && euribor === null && (
+                            <p className="text-[12px] font-medium text-muted-foreground">Sin un Euríbor reciente: no se puede estimar la próxima revisión.</p>
+                          )}
                           {stale && <p className="text-[12px] font-semibold text-axis-indigo">Actualizada el {formatShortDate(toISODate(new Date(d.updatedAt)))}: revisa lo que queda.</p>}
                         </>
                       )}
                     </button>
+                    {d.balanceCents <= 0 && (
+                      <Button variant="secondary" className="mb-3 px-4 py-2 text-[12.5px] text-negative" icon={<TrashIcon className="h-4 w-4" />} onClick={() => confirmDelete(d.id, d.name)}>
+                        Eliminar
+                      </Button>
+                    )}
+                    </div>
                   )
                 })}
               </div>

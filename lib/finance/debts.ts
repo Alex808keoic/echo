@@ -66,3 +66,27 @@ export function extraPaymentEffect(
     interestSavedCents: now ? Math.max(0, Math.round((now.interestCents - faster.interestCents) / 100) * 100) : null,
   }
 }
+
+/** Revisión de una deuda variable con el Euríbor de hoy. */
+export interface Repricing {
+  /** Interés que tendría: Euríbor + diferencial. */
+  newAprPct: number
+  /** Cuota para terminar en los mismos meses que ahora, con ese interés. */
+  newPaymentCents: number
+  /** Meses que quedan con la cuota de ahora. */
+  months: number
+}
+
+/**
+ * Cuota estimada en la próxima revisión de una deuda variable: el mismo plazo
+ * que le queda hoy, con Euríbor + diferencial. Es una estimación: el banco
+ * usa el Euríbor del mes de la revisión. `null` si no es variable o si con la
+ * cuota de hoy no se termina nunca.
+ */
+export function repricing(debt: { balanceCents: number; aprBp: number; monthlyPaymentCents: number; variableSpreadBp?: number }, euriborPct: number): Repricing | null {
+  if (debt.variableSpreadBp === undefined || debt.balanceCents <= 0 || !Number.isFinite(euriborPct)) return null
+  const months = payoffMonths(debt.balanceCents, aprPctOf(debt.aprBp), debt.monthlyPaymentCents)
+  if (months === null || months === 0) return null
+  const newAprPct = Math.round((euriborPct + debt.variableSpreadBp / 100) * 1000) / 1000
+  return { newAprPct, newPaymentCents: annuityPaymentCents(debt.balanceCents, Math.max(0, newAprPct), months), months }
+}

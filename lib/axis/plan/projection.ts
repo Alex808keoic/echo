@@ -62,9 +62,15 @@ const euros = (cents: number) => Math.round(cents / 100) * 100
 
 /**
  * Proyección del plan. `null` si el plan no reparte (bloqueado o sin ahorro):
- * sin un ritmo de ahorro no hay nada que proyectar.
+ * sin un ritmo de ahorro no hay nada que proyectar. `safeRatePct`: lo que
+ * paga hoy el ahorro seguro (el tipo del BCE, si está vigente); sin él, el
+ * supuesto de la Guía.
  */
-export function projectWealth(plan: AllocationPlan, ctx: Pick<FinancialContext, 'wealth' | 'investments'>, years: number, inflation: InflationRef): Projection | null {
+export function projectWealth(plan: AllocationPlan, ctx: Pick<FinancialContext, 'wealth' | 'investments'>, years: number, inflation: InflationRef, safeRatePct?: number): Projection | null {
+  const assumption: Record<PositionAssetType | 'liquid', GrowthAssumption> =
+    safeRatePct !== undefined && Number.isFinite(safeRatePct) && safeRatePct >= 0 && safeRatePct < 15
+      ? { ...ASSUMPTION, safe: { kind: 'growth', mu: safeRatePct, sigma: 0, badYearPct: 0 } }
+      : ASSUMPTION
   if (plan.status !== 'ready' || !plan.monthly) return null
   const today: Record<PositionAssetType | 'liquid', number> = { 'global-equity': 0, bonds: 0, risky: 0, safe: 0, other: 0, liquid: Math.max(0, ctx.wealth.liquidCents) }
   for (const p of ctx.investments.positions) today[p.assetType ?? 'other'] += Math.max(0, p.valueCents)
@@ -74,7 +80,7 @@ export function projectWealth(plan: AllocationPlan, ctx: Pick<FinancialContext, 
   monthly.liquid = Math.max(0, plan.monthly.savingsCents - invested)
 
   const keys = Object.keys(today) as Array<PositionAssetType | 'liquid'>
-  const at = (z: number) => keys.reduce((t, k) => t + future(today[k], monthly[k], ASSUMPTION[k], years, z), 0)
+  const at = (z: number) => keys.reduce((t, k) => t + future(today[k], monthly[k], assumption[k], years, z), 0)
   const contributed = keys.reduce((t, k) => t + today[k] + monthly[k] * years * 12, 0)
   const mid = at(0)
   return {

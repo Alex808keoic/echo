@@ -172,6 +172,7 @@ function isDebt(v: unknown): v is Debt {
     v.aprBp <= 10_000 &&
     isInt(v.monthlyPaymentCents) &&
     v.monthlyPaymentCents >= 0 &&
+    (v.variableSpreadBp === undefined || (isInt(v.variableSpreadBp) && v.variableSpreadBp >= 0 && v.variableSpreadBp <= 1000)) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

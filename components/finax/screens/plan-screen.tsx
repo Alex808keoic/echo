@@ -27,6 +27,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { ProfileForm } from '../forms/profile-form'
 import { UpdateValuesForm } from '../forms/update-values-form'
+import { useMarketSignals } from '@/hooks/use-market-signals'
+import { MarketSignalsCard } from '../market-signals-card'
 import { UPDATE_INVESTMENTS_ID } from '@/lib/axis/plan/checklist'
 import type { Position } from '@/lib/types'
 import { reviewYear, yearsWithData } from '@/lib/axis/plan/year-review'
@@ -59,6 +61,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const checklist = usePlanChecklist(result?.plan, result?.decision.context.objectives, overview?.positions)
   const review = useMonthReview(overview?.axisSnapshot, result?.plan, checklist)
   const memories = useLiveQuery(listUserMemories, [], undefined)
+  const market = useMarketSignals(overview, result?.plan)
   if (!result || !overview || memories === undefined) return <ScreenLoading />
   const { plan, decision } = result
   const objectives = decision.context.objectives
@@ -93,6 +96,8 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
       {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
 
       {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} positions={overview?.positions ?? []} />}
+
+      {market.signals.length > 0 && <MarketSignalsCard signals={market.signals} onDebts={() => onNavigate('deudas')} />}
 
       {checklist && !checklist.checkedIn && <MonthCheckIn checklist={checklist} memories={memories} onSimulate={() => onNavigate('simulador')} />}
 
@@ -153,7 +158,7 @@ export function PlanScreen({ overview, onNavigate, onBack }: ScreenProps) {
         })}
       </ol>
 
-      <ProjectionCard plan={plan} context={decision.context} />
+      <ProjectionCard plan={plan} context={decision.context} safeRatePct={market.safeRatePct} />
 
       <YearReviewCard overview={overview} plan={plan} memories={memories} onStats={() => onNavigate('estadisticas')} />
 
@@ -348,10 +353,11 @@ function YearReviewCard({ overview, plan, memories, onStats }: { overview: Finan
 const YEAR_LABEL = (y: number) => `${y} años`
 
 /** «Cómo podría crecer tu patrimonio»: proyección ilustrativa del plan frente a dejarlo todo quieto. */
-function ProjectionCard({ plan, context }: { plan: AllocationPlan; context: FinancialContext }) {
+function ProjectionCard({ plan, context, safeRatePct }: { plan: AllocationPlan; context: FinancialContext; safeRatePct: number | null }) {
   const [years, setYears] = useState<ProjectionYears>(10)
   const inflation = plan.inflation ?? inflationFrom(null)
-  const p = projectWealth(plan, context, years, inflation)
+  // El ahorro seguro crece con lo que paga hoy (tipo del BCE vigente); sin dato, con el supuesto de la Guía.
+  const p = projectWealth(plan, context, years, inflation, safeRatePct ?? undefined)
   if (!p) return null
   const row = (label: string, cents: number, strong = false) => (
     <div className="flex items-baseline justify-between gap-3">
@@ -379,7 +385,7 @@ function ProjectionCard({ plan, context }: { plan: AllocationPlan; context: Fina
         </p>
       </div>
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
-        Es una aproximación con supuestos generales, no una previsión: sin comisiones ni impuestos, y el dinero líquido no crece. «Si va mal» y «si va bien» son 1 de cada 10 casos por abajo y por arriba.
+        Es una aproximación con supuestos generales, no una previsión: sin comisiones ni impuestos, y el dinero líquido no crece.{safeRatePct !== null ? ` El ahorro seguro, al ${String(safeRatePct).replace('.', ',')} % que paga hoy el BCE.` : ''} «Si va mal» y «si va bien» son 1 de cada 10 casos por abajo y por arriba.
       </p>
     </FinancialCard>
   )

@@ -5,7 +5,8 @@ import { db, newId } from './db'
 import type { Debt, DebtInput } from '../types'
 
 function normalize(input: DebtInput): DebtInput {
-  return { ...input, name: input.name.trim() }
+  const { variableSpreadBp, ...rest } = input
+  return { ...rest, name: input.name.trim(), ...(variableSpreadBp !== undefined ? { variableSpreadBp } : {}) }
 }
 
 /** Deudas de la más cara a la más barata (el orden en que conviene devolverlas). */
@@ -23,7 +24,7 @@ export async function addDebt(input: DebtInput): Promise<Debt> {
 
 export async function updateDebt(id: string, input: DebtInput): Promise<void> {
   const n = normalize(input)
-  await db.debts.update(id, { name: n.name, balanceCents: n.balanceCents, aprBp: n.aprBp, monthlyPaymentCents: n.monthlyPaymentCents, updatedAt: Date.now() })
+  await db.debts.update(id, { name: n.name, balanceCents: n.balanceCents, aprBp: n.aprBp, monthlyPaymentCents: n.monthlyPaymentCents, variableSpreadBp: n.variableSpreadBp, updatedAt: Date.now() })
 }
 
 export async function deleteDebt(id: string): Promise<void> {

@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react'
 import { useMarketContext } from '@/hooks/use-market-context'
 import { useWeeklyBrief } from '@/hooks/use-weekly-brief'
+import { useAllocationPlan } from '@/hooks/use-allocation-plan'
+import { useMarketSignals } from '@/hooks/use-market-signals'
 import { cn } from '@/lib/utils'
 import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
@@ -32,6 +34,8 @@ const Text = ({ children, muted }: { children: ReactNode; muted?: boolean }) => 
 export function BriefScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { market } = useMarketContext(overview)
   const state = useWeeklyBrief(overview, market, { phrase: true })
+  const plan = useAllocationPlan(overview)
+  const { signals } = useMarketSignals(overview, plan?.plan, { withIdle: true })
   if (!state) return <ScreenLoading />
   const { view, phrasing, phrasingPending } = state
 
@@ -117,6 +121,16 @@ export function BriefScreen({ overview, onNavigate, onBack }: ScreenProps) {
             {view.personal.fact && <Text>{view.personal.fact}</Text>}
             {view.personal.interpretation && <Text muted>{view.personal.interpretation}</Text>}
           </>
+        )}
+        {signals.length > 0 && (
+          <ul className="space-y-2 border-t border-border pt-2">
+            {signals.map((s) => (
+              <li key={s.id}>
+                <p className="text-[13px] font-bold leading-snug text-grafito text-pretty">{s.title}</p>
+                <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">{s.text}</p>
+              </li>
+            ))}
+          </ul>
         )}
         <p className="rounded-xl bg-axis-soft px-3 py-2 text-[12.5px] font-semibold leading-snug text-axis-indigo text-pretty">{view.personal.marketRelevance}</p>
       </Section>

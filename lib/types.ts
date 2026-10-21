@@ -284,6 +284,13 @@ export interface Debt {
   aprBp: number
   /** Cuota mensual en céntimos. */
   monthlyPaymentCents: number
+  /**
+   * Solo si es a tipo variable (una hipoteca o préstamo «Euríbor + X %»): el
+   * diferencial X en centésimas de punto (90 = 0,90 %). El interés que se
+   * usa en el plan sigue siendo `aprBp`; esto sirve para estimar la cuota de
+   * la próxima revisión con el Euríbor de hoy.
+   */
+  variableSpreadBp?: number
   createdAt: number
   updatedAt: number
 }

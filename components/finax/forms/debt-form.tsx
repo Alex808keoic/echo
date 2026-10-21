@@ -20,6 +20,7 @@ interface Errors {
   balance?: string
   apr?: string
   payment?: string
+  spread?: string
 }
 
 /**
@@ -31,6 +32,8 @@ export function DebtForm({ debt, onDone }: DebtFormProps) {
   const [balance, setBalance] = useState(debt ? centsToInputValue(debt.balanceCents) : '')
   const [apr, setApr] = useState(debt ? bpToInputValue(debt.aprBp) : '')
   const [payment, setPayment] = useState(debt ? centsToInputValue(debt.monthlyPaymentCents) : '')
+  const [variable, setVariable] = useState(debt?.variableSpreadBp !== undefined)
+  const [spread, setSpread] = useState(debt?.variableSpreadBp !== undefined ? bpToInputValue(debt.variableSpreadBp) : '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -47,10 +50,13 @@ export function DebtForm({ debt, onDone }: DebtFormProps) {
     if (balanceCents === null || balanceCents < 0) next.balance = 'Introduce lo que queda por devolver.'
     if (aprBp === null) next.apr = 'Introduce el interés anual, p. ej. 8,5.'
     if (paymentCents === null) next.payment = 'Introduce la cuota mensual.'
+    // Diferencial: hasta un 10 %; puede ser 0.
+    const spreadBp = variable ? parsePercentToBp(spread, 10) : undefined
+    if (spreadBp === null) next.spread = 'Introduce el diferencial del contrato, p. ej. 0,9.'
     setErrors(next)
-    if (Object.keys(next).length > 0 || balanceCents === null || aprBp === null || paymentCents === null) return
+    if (Object.keys(next).length > 0 || balanceCents === null || aprBp === null || paymentCents === null || spreadBp === null) return
 
-    const input: DebtInput = { name, balanceCents, aprBp, monthlyPaymentCents: paymentCents }
+    const input: DebtInput = { name, balanceCents, aprBp, monthlyPaymentCents: paymentCents, ...(spreadBp !== undefined ? { variableSpreadBp: spreadBp } : {}) }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (debt ? updateDebt(debt.id, input) : addDebt(input)))
@@ -88,6 +94,20 @@ export function DebtForm({ debt, onDone }: DebtFormProps) {
       <Field label="Cuota mensual" error={errors.payment} hint="Cuando la pagues, regístrala como gasto: aquí solo sirve para calcular cuándo terminas.">
         <AmountInput value={payment} onChange={(e) => setPayment(e.target.value)} />
       </Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <input type="checkbox" checked={variable} onChange={(e) => setVariable(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-finax" />
+        <span className="min-w-0">
+          <span className="block text-[13.5px] font-semibold text-grafito">Es a tipo variable</span>
+          <span className="mt-0.5 block text-[12px] font-medium text-muted-foreground text-pretty">
+            Como muchas hipotecas: el interés se revisa con el Euríbor. Finax te dirá cuánto sería tu cuota con el Euríbor de hoy.
+          </span>
+        </span>
+      </label>
+      {variable && (
+        <Field label="Diferencial (el «Euríbor + …» del contrato), en %" error={errors.spread} hint="Viene en la escritura o en la app del banco. Muchas hipotecas están entre 0,5 y 1 %.">
+          <TextInput inputMode="decimal" value={spread} onChange={(e) => setSpread(e.target.value)} placeholder="Ej. 0,9" />
+        </Field>
+      )}
       {saveError && (
         <p role="alert" className="text-[12.5px] font-medium text-negative">
           {saveError}
@@ -95,8 +115,8 @@ export function DebtForm({ debt, onDone }: DebtFormProps) {
       )}
       <div className="flex gap-3 pt-1">
         {debt && (
-          <Button type="button" variant="secondary" aria-label="Eliminar deuda" onClick={() => setConfirmingDelete(true)} className="px-4 text-negative">
-            <TrashIcon className="h-5 w-5" />
+          <Button type="button" variant="secondary" icon={<TrashIcon className="h-4 w-4" />} onClick={() => setConfirmingDelete(true)} className="px-4 text-negative">
+            Eliminar
           </Button>
         )}
         <Button type="submit" fullWidth disabled={busy}>

@@ -4,6 +4,7 @@
  * forma parte del backup: es regenerable.
  */
 import type { MarketHistoryEntry, MarketResearch } from '../market/types'
+import type { MarketBaseline } from '../market/moves'
 import { db } from './db'
 
 export const MARKET_KEY = 'latest' as const
@@ -12,6 +13,8 @@ export interface MarketCacheEntry {
   key: typeof MARKET_KEY
   research: MarketResearch
   history: MarketHistoryEntry[]
+  /** Indicadores de una investigación de hace unas 4 semanas, para ver cuánto se ha movido la bolsa (`lib/market/moves.ts`). */
+  baseline?: MarketBaseline | null
   /** Momento de la última descarga (o intento con 304). */
   fetchedAt: number
   etag?: string

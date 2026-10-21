@@ -4,6 +4,10 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getAxisMemory } from '@/lib/db/axis-memory'
 import { useMarketContext } from '@/hooks/use-market-context'
+import { freshValue } from '@/lib/axis/plan/market-signals'
+
+/** Diferencial que se suma al Euríbor para proponer el interés de una hipoteca variable (un valor habitual; se puede cambiar). */
+const HOME_SPREAD_PCT = 1
 import { inflationFrom } from '@/lib/axis/plan/inflation'
 import { HOME_COSTS_PCT, HOME_DOWN_PCT, SCENARIO_TIPS, SIMULATION_YEARS, simulate, type Scenario, type ScenarioKind, type SimSide, type SimVerdict } from '@/lib/axis/plan/simulate'
 import { formatCents, parseAmountToCents, parsePercentToBp } from '@/lib/money'
@@ -120,7 +124,10 @@ export function SimulatorScreen({ overview, onNavigate, onBack }: ScreenProps) {
 
   if (!overview || memory === undefined) return <ScreenLoading />
 
-  const v = { ...DEFAULTS[kind], ...values }
+  // Hipoteca: con un Euríbor reciente, el interés propuesto es Euríbor + 1 punto.
+  const euribor = freshValue(market?.keyIndicators ?? [], 'euribor-12m')
+  const homeApr = euribor !== null ? String(Math.round((euribor + HOME_SPREAD_PCT) * 10) / 10).replace('.', ',') : null
+  const v = { ...DEFAULTS[kind], ...(kind === 'home' && homeApr ? { apr: homeApr } : {}), ...values }
   const set = (key: string) => (e: { target: { value: string } }) => setValues((prev) => ({ ...prev, [key]: e.target.value }))
   const changeKind = (label: string) => {
     setKind(kindOf(label))
@@ -144,7 +151,7 @@ export function SimulatorScreen({ overview, onNavigate, onBack }: ScreenProps) {
           <Field label="¿Qué quieres probar?" group>
             <ChipGroup options={KIND_OPTIONS} value={KINDS[kind]} onChange={changeKind} />
           </Field>
-          <ScenarioFields kind={kind} v={v} set={set} setValue={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))} />
+          <ScenarioFields kind={kind} v={v} euribor={euribor} set={set} setValue={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))} />
           {error && (
             <p role="alert" className="text-[12.5px] font-medium text-negative">
               {error}
@@ -215,7 +222,7 @@ export function SimulatorScreen({ overview, onNavigate, onBack }: ScreenProps) {
   )
 }
 
-function ScenarioFields({ kind, v, set, setValue }: { kind: ScenarioKind; v: Values; set: (key: string) => (e: { target: { value: string } }) => void; setValue: (key: string, value: string) => void }) {
+function ScenarioFields({ kind, v, euribor, set, setValue }: { kind: ScenarioKind; v: Values; euribor: number | null; set: (key: string) => (e: { target: { value: string } }) => void; setValue: (key: string, value: string) => void }) {
   const money = (key: string, label: string, hint?: string) => (
     <Field label={label} hint={hint}>
       <AmountInput value={v[key] ?? ''} onChange={set(key)} />
@@ -254,7 +261,14 @@ function ScenarioFields({ kind, v, set, setValue }: { kind: ScenarioKind; v: Val
       return (
         <>
           {money('cents', 'Precio de la vivienda')}
-          {number('apr', 'Interés de la hipoteca, en %', 'Ej. 3')}
+          {number(
+            'apr',
+            'Interés de la hipoteca, en %',
+            'Ej. 3',
+            euribor !== null
+              ? `Propuesto: Euríbor de hoy (${String(euribor).replace('.', ',')} %) + ${HOME_SPREAD_PCT} punto, habitual en una variable. Cámbialo por el de tu oferta (las de tipo fijo suelen ser distintas).`
+              : undefined,
+          )}
           {number('years', 'Plazo, en años', 'Ej. 30')}
           {money('rent', 'Alquiler que dejarías de pagar al mes', 'Déjalo vacío si no pagas alquiler.')}
         </>

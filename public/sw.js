@@ -5,7 +5,7 @@
  * - Nunca cachea /api/* ni peticiones que no sean GET.
  * Los datos del usuario viven en IndexedDB, no pasan por aquí.
  */
-const VERSION = 'finax-sw-v4'
+const VERSION = 'finax-sw-v5'
 const SHELL = `${VERSION}-shell`
 const DATA = `${VERSION}-data`
 
@@ -132,6 +132,38 @@ function pendingOccurrences(r, today) {
   return out.slice(-24)
 }
 
+/**
+ * Movimiento fuerte de la bolsa en un mes (repite strongEquityMove de
+ * lib/market/moves.ts: cambiarlo en los dos sitios). Compara la investigación
+ * guardada con la de hace unas 4 semanas (`baseline` en la caché de mercado).
+ */
+function strongEquityMove(research, baseline, now) {
+  if (!research || !baseline || !Array.isArray(research.indicators) || !Array.isArray(baseline.indicators)) return null
+  const MONTH = /^\d{4}-\d{2}$/
+  const dayOf = (asOf) => Date.parse(MONTH.test(asOf) ? asOf + '-15' : asOf)
+  const fresh = (i) => {
+    if (MONTH.test(i.asOf)) {
+      const [y, m] = i.asOf.split('-').map(Number)
+      return now - new Date(y, m, 1).getTime() <= 45 * DAY_MS
+    }
+    // Aproximación de 5 días laborables: 7 días naturales.
+    return now - Date.parse(i.asOf) <= 7 * DAY_MS
+  }
+  const moves = []
+  for (const key of ['stoxx50', 'ibex', 'spx', 'ndq']) {
+    const cur = research.indicators.find((i) => i.key === key)
+    const old = baseline.indicators.find((i) => i.key === key)
+    if (!cur || !old || cur.unit !== 'pts' || old.unit !== 'pts' || !(cur.value > 0) || !(old.value > 0) || typeof cur.asOf !== 'string' || typeof old.asOf !== 'string') continue
+    if (!fresh(cur) || (cur.asOf.length === 7) !== (old.asOf.length === 7)) continue
+    const days = Math.round((dayOf(cur.asOf) - dayOf(old.asOf)) / DAY_MS)
+    if (!(days >= 20 && days <= 50)) continue
+    const pct = Math.round(((cur.value - old.value) / old.value) * 1000) / 10
+    if (pct <= -8) moves.push({ key, pct, direction: 'drop' })
+    else if (pct >= 10) moves.push({ key, pct, direction: 'rise' })
+  }
+  return moves.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct))[0] || null
+}
+
 function localToday() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -145,7 +177,7 @@ async function notifyDueReminders() {
   } catch {
     return
   }
-  const [checks, positions, memories, movements, meta, config, recurring] = await Promise.all([
+  const [checks, positions, memories, movements, meta, config, recurring, market] = await Promise.all([
     readAll(db, 'planChecks'),
     readAll(db, 'positions'),
     readAll(db, 'axisMemories'),
@@ -153,6 +185,7 @@ async function notifyDueReminders() {
     readAll(db, 'meta'),
     readAll(db, 'config'),
     readAll(db, 'recurring'),
+    readAll(db, 'market'),
   ])
   db.close()
   const today = localToday()
@@ -187,6 +220,18 @@ async function notifyDueReminders() {
       period: pending[pending.length - 1],
       text: pending.length === 1 ? 'Tienes 1 movimiento fijo por confirmar.' : `Tienes ${pending.length} movimientos fijos por confirmar.`,
     })
+  // La bolsa se ha movido mucho: solo si inviertes (tienes inversiones o tu plan del mes invierte).
+  const marketCache = market.find((m) => m.key === 'latest')
+  const invests = positions.some((p) => p.valueCents > 0) || Boolean(entry && entry.planned && entry.planned.investCents > 0)
+  const move = invests && marketCache ? strongEquityMove(marketCache.research, marketCache.baseline, Date.now()) : null
+  if (move) {
+    const amount = String(Math.abs(move.pct)).replace('.', ',')
+    due.push({
+      id: 'equity-move',
+      period: marketCache.baseline.id + ':' + move.direction,
+      text: move.direction === 'drop' ? 'La bolsa ha bajado un ' + amount + ' % en un mes. Tu plan no cambia: mira por qué en «Tu plan».' : 'La bolsa ha subido un ' + amount + ' % en un mes. Tu plan no cambia: mira por qué en «Tu plan».',
+    })
+  }
   if (due.length === 0) return
 
   const cache = await caches.open(REMINDER_STATE)
