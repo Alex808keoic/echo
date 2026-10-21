@@ -110,7 +110,55 @@ describe('el porqué de cada paso', () => {
   it('el colchón explica de dónde sale su tamaño', () => {
     const s = setup(100_000, [], profile('balanced', 'long', [{ kind: 'irregularIncome', value: true }]))
     const why = stepReasons(step(s.plan, 'create-cushion')!, s.plan, s.decision.profile.fields)
-    assert.match(why[0], /«No, cambian bastante».*6 meses de gasto, no de 3/)
+    assert.match(why[0], /«No, cambian bastante».*6 meses de gasto y no 3/)
+  })
+})
+
+describe('lo que el plan sabe de ti (situación, personas a cargo, experiencia y pérdidas)', () => {
+  // 3 meses cerrados con 1.000 € de gasto: el colchón por meses es gasto × meses.
+  const cushionOf = (extra: MemoryFact[]) => setup(100_000, [], profile('balanced', 'long', extra)).plan.cushion!
+
+  it('el colchón: 3 meses; 6 por tu cuenta o sin trabajo; 3 más con personas a cargo', () => {
+    assert.equal(cushionOf([]).months, 3)
+    assert.equal(cushionOf([{ kind: 'work', value: 'employee' }]).months, 3)
+    assert.equal(cushionOf([{ kind: 'work', value: 'self-employed' }]).months, 6)
+    assert.equal(cushionOf([{ kind: 'work', value: 'unemployed' }]).months, 6)
+    assert.equal(cushionOf([{ kind: 'dependents', value: true }]).months, 6)
+    assert.equal(cushionOf([{ kind: 'irregularIncome', value: true }, { kind: 'dependents', value: true }]).months, 9)
+    assert.equal(cushionOf([{ kind: 'work', value: 'self-employed' }, { kind: 'dependents', value: true }]).targetCents, 900_000)
+  })
+
+  it('el porqué del colchón cita tu situación y las personas a tu cargo', () => {
+    const s = setup(100_000, [], profile('balanced', 'long', [{ kind: 'work', value: 'self-employed' }, { kind: 'dependents', value: true }]))
+    const why = stepReasons(step(s.plan, 'create-cushion')!, s.plan, s.decision.profile.fields)
+    assert.ok(why.some((w) => w.includes('«Trabajo por mi cuenta»') && w.includes('6 meses')))
+    assert.ok(why.some((w) => w.includes('3 meses más') && w.includes('9 en total')))
+  })
+
+  it('si una caída te obligaría a cambiar tus planes, dinámico se invierte como equilibrado', () => {
+    const dynamic = step(setup(800_000, [CUSHION(), COCHE()], profile('dynamic', 'long')).plan, 'invest-long-term')!
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('dynamic', 'long', [{ kind: 'lossCapacity', value: 'low' }]))
+    const capped = step(s.plan, 'invest-long-term')!
+    assert.equal(dynamic.pct, 60)
+    assert.equal(capped.pct, 40, 'el porcentaje de equilibrado')
+    assert.ok(capped.mix.some((p) => p.key === 'bonds'), 'con renta fija, como equilibrado')
+    const why = stepReasons(capped, s.plan, s.decision.profile.fields)
+    assert.ok(why.some((w) => w.includes('«Sí, me obligaría a cambiar cosas»') && w.includes('equilibrada')))
+  })
+
+  it('con capacidad de asumir pérdidas, el perfil no cambia', () => {
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('dynamic', 'long', [{ kind: 'lossCapacity', value: 'high' }]))
+    assert.equal(step(s.plan, 'invest-long-term')!.pct, 60)
+  })
+
+  it('sin experiencia invirtiendo no hay parte arriesgada, aunque se cumpla todo lo demás', () => {
+    // Sin objetivos pendientes y con mucho dinero parado: con perfil dinámico y plazo largo habría parte arriesgada.
+    const withRisky = step(setup(3_000_000, [CUSHION()], profile('dynamic', 'long')).plan, 'invest-long-term')!
+    assert.ok(withRisky.mix.some((p) => p.key === 'risky'))
+    const s = setup(3_000_000, [CUSHION()], profile('dynamic', 'long', [{ kind: 'investingExperience', value: 'none' }]))
+    const invest = step(s.plan, 'invest-long-term')!
+    assert.equal(invest.mix.some((p) => p.key === 'risky'), false)
+    assert.ok(stepReasons(invest, s.plan, s.decision.profile.fields).some((w) => w.includes('«Nunca»') && w.includes('no hay parte arriesgada')))
   })
 
   it('el chat recibe el porqué y la respuesta sin IA lo incluye', () => {

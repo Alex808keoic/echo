@@ -37,7 +37,11 @@ const RULES: ReadonlyArray<{ kind: ConversionKind; test: RegExp; needsAmount?: b
   { kind: 'recurringIncome', test: /\b(cada mes|al mes|mensual\w*|paga|sueldo|nomina|cobra\w*|le dan)\b/, needsAmount: true },
   { kind: 'minLiquidity', test: /\b(siempre|minimo|colchon|disponible\w*|reserva)\b/, needsAmount: true },
   { kind: 'irregularIncome', test: /\b(irregular\w*|variable\w*|depende|cambian?|no siempre)\b.*\bingres\w*|\bingres\w*.*\b(irregular\w*|variable\w*|cambian?)\b/ },
+  { kind: 'lossCapacity', test: /\b(no (me )?puedo permitirme perder|no me lo puedo permitir|necesito ese dinero|lo necesito para vivir)\b/ },
+  { kind: 'investingExperience', test: /\b(nunca he invertido|no he invertido nunca|he invertido|tengo (acciones|fondos)|experiencia invirtiendo)\b/ },
   { kind: 'riskAttitude', test: /\b(riesgo\w*|arriesga\w*|perder|bolsa|altibajos|seguro|segura)\b/ },
+  { kind: 'dependents', test: /\b(hij[oa]s?|bebe|embarazad[oa]|a mi cargo|mantengo a|dependen de mi)\b/ },
+  { kind: 'work', test: /\b(autonom[oa]|freelance|por mi cuenta|en paro|desemplead[oa]|jubilad[oa]|estudiante|trabajo en|trabaja en)\b/ },
   { kind: 'adult', test: /\b(menor de edad|mayor de edad|\d{1,2} anos)\b/ },
   { kind: 'horizon', test: /\b(plazo|largo|corto|dentro de|en \d+ anos|ano que viene|proximo ano|jubila\w*)\b/ },
   { kind: 'priorities', test: /\b(prioridad\w*|lo primero|antes que nada|mas importante)\b/ },
@@ -90,7 +94,7 @@ export function conversionProposal(note: UserMemory, input: ConversionInput, obj
       if (!question || !option) return { ok: false, error: 'Elige una respuesta.' }
       return replacing({
         content: option.content,
-        category: question.id === 'horizon' || question.id === 'riskAttitude' ? 'preference' : 'context',
+        category: question.id === 'horizon' || question.id === 'riskAttitude' || question.id === 'lossCapacity' ? 'preference' : 'context',
         importance: 'high',
         confidence: 1,
         replacesId: null,

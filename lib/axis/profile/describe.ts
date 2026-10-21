@@ -3,7 +3,21 @@
  * al aceptar una memoria con `fact`, porque es lo que cambiará las decisiones.
  */
 import { formatCents } from '../../money'
-import type { Horizon, MemoryFact, RecurringIncomeFrequency, RiskAttitude } from './types'
+import type { Horizon, InvestingExperience, MemoryFact, RecurringIncomeFrequency, RiskAttitude, WorkSituation } from './types'
+
+const WORK_LABEL: Record<WorkSituation, string> = {
+  employee: 'trabaja por cuenta ajena',
+  'self-employed': 'trabaja por su cuenta',
+  student: 'estudia',
+  unemployed: 'ahora no trabaja',
+  retired: 'jubilación',
+}
+
+const EXPERIENCE_LABEL: Record<InvestingExperience, string> = {
+  none: 'ninguna',
+  some: 'algo',
+  experienced: 'bastante',
+}
 
 const FREQUENCY_LABEL: Record<RecurringIncomeFrequency, string> = { monthly: 'al mes' }
 
@@ -40,5 +54,13 @@ export function describeFact(fact: MemoryFact, objectiveName: (id: string) => st
       return `Ingreso recurrente: ${formatCents(fact.cents)} ${FREQUENCY_LABEL[fact.frequency]} · ${fact.category}`
     case 'adult':
       return fact.value ? 'Mayor de edad' : 'Menor de edad'
+    case 'work':
+      return `Situación: ${WORK_LABEL[fact.value]}`
+    case 'dependents':
+      return fact.value ? 'Hay personas que dependen de su dinero' : 'Nadie depende de su dinero'
+    case 'investingExperience':
+      return `Experiencia invirtiendo: ${EXPERIENCE_LABEL[fact.value]}`
+    case 'lossCapacity':
+      return fact.value === 'low' ? 'Una pérdida le obligaría a cambiar sus planes' : 'Podría asumir una pérdida sin cambiar sus planes'
   }
 }

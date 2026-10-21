@@ -7,11 +7,14 @@
 import { formatCents } from '../../money'
 import { PROFILE_QUESTIONS, type ProfileQuestionId } from '../profile/questionnaire'
 import type { ReconciledProfile } from '../profile/types'
-import { CUSHION_MONTHS, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
+import { CUSHION_MONTHS, planRisk, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
 import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS } from './mix'
 import { inflationPhrase } from './inflation'
 
-type Profile = Pick<ReconciledProfile, 'riskAttitude' | 'horizon' | 'irregularIncome' | 'minLiquidityCents' | 'adult'>
+type Profile = Pick<
+  ReconciledProfile,
+  'riskAttitude' | 'horizon' | 'irregularIncome' | 'minLiquidityCents' | 'adult' | 'work' | 'dependents' | 'investingExperience' | 'lossCapacity'
+>
 
 /** «Respondiste «En más de 5 años»» para la respuesta guardada; `null` si no hay. */
 function answer(id: ProfileQuestionId, value: unknown): string | null {
@@ -41,9 +44,16 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       const c = plan.cushion
       if (c?.source === 'min-liquidity' && profile.minLiquidityCents !== undefined)
         why.push(`Dijiste que quieres tener siempre al menos ${formatCents(profile.minLiquidityCents)} líquidos.`)
-      else if (c?.source === 'months' && profile.irregularIncome === true)
-        why.push(`Respondiste ${answer('irregularIncome', true)} sobre tus ingresos: por eso el colchón es de ${CUSHION_MONTHS.irregular} meses de gasto, no de ${CUSHION_MONTHS.regular}.`)
-      else if (c?.source === 'months') why.push(`${CUSHION_MONTHS.regular} meses de tu gasto habitual es lo normal con ingresos estables.`)
+      else if (c?.source === 'months') {
+        const work = profile.work === 'self-employed' || profile.work === 'unemployed' ? answer('work', profile.work) : null
+        if (profile.irregularIncome === true)
+          why.push(`Respondiste ${answer('irregularIncome', true)} sobre tus ingresos: un mes flojo no debe obligarte a tocar tus objetivos, por eso la base son ${CUSHION_MONTHS.irregular} meses de gasto y no ${CUSHION_MONTHS.regular}.`)
+        else if (work)
+          why.push(`Sobre tu situación respondiste ${work}: tus ingresos pueden fallar sin aviso, por eso la base son ${CUSHION_MONTHS.irregular} meses de gasto y no ${CUSHION_MONTHS.regular}.`)
+        else why.push(`${CUSHION_MONTHS.regular} meses de tu gasto habitual es lo normal con ingresos estables.`)
+        if (profile.dependents === true)
+          why.push(`A si alguien depende de tu dinero respondiste ${answer('dependents', true)}: un imprevisto no te afecta solo a ti, así que el colchón suma ${CUSHION_MONTHS.dependentsExtra} meses más${c.months ? ` (${c.months} en total)` : ''}.`)
+      }
       why.push('Sin colchón, cualquier imprevisto te obligaría a sacar dinero invertido, quizá justo en un mal momento.')
       break
     }
@@ -51,12 +61,17 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       why.push(`Los necesitas en ${SHORT_TERM_MONTHS / 12} años o menos: el dinero que vas a usar pronto no se arriesga, porque una inversión podría estar en pérdidas justo entonces.`)
       break
     case 'invest-long-term': {
-      if (risk) why.push(`Sobre el riesgo respondiste ${risk}: por eso la mezcla lleva ${MIX_BY_RISK[profile.riskAttitude!]}.`)
+      const applied = planRisk(profile)
+      if (risk && applied === profile.riskAttitude) why.push(`Sobre el riesgo respondiste ${risk}: por eso la mezcla lleva ${MIX_BY_RISK[applied!]}.`)
+      else if (risk && applied)
+        why.push(`Sobre el riesgo respondiste ${risk}, pero a si una caída te obligaría a cambiar tus planes respondiste ${answer('lossCapacity', 'low')}: lo que puedes permitirte manda, así que la mezcla es equilibrada (${MIX_BY_RISK[applied]}) y sin parte arriesgada.`)
       if (horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}${profile.horizon === 'medium' ? ': con un plazo medio, la mezcla lleva más renta fija' : ''}.`)
       if (step.noObjectives) why.push('No tienes objetivos pendientes, así que lo que te sobra no tiene otro destino: por eso se invierte una parte mayor.')
       else why.push('Tienes objetivos pendientes: por eso solo se invierte una parte y el resto va a ellos.')
       if (step.mix.some((p) => p.key === 'risky'))
-        why.push(`Tienes la parte arriesgada (como mucho el ${RISKY_MAX_PCT} %) porque se cumplen todas las condiciones: perfil dinámico, plazo largo, colchón completo, ningún objetivo cercano con retraso y dinero parado de más de ${RISKY_MIN_IDLE_MONTHS} meses de gasto.`)
+        why.push(`Tienes la parte arriesgada (como mucho el ${RISKY_MAX_PCT} %) porque se cumplen todas las condiciones: perfil dinámico, algo de experiencia invirtiendo, plazo largo, colchón completo, ningún objetivo cercano con retraso y dinero parado de más de ${RISKY_MIN_IDLE_MONTHS} meses de gasto.`)
+      else if (applied === 'dynamic' && profile.horizon === 'long' && profile.investingExperience === 'none')
+        why.push(`A si has invertido alguna vez respondiste ${answer('investingExperience', 'none')}: por eso no hay parte arriesgada. Se empieza por lo diversificado, que es lo que mejor perdona los errores.`)
       if (step.rebalance) why.push('Lo que ya tienes invertido se ha alejado de tu mezcla: en vez de vender, lo nuevo va a lo que falta.')
       if (plan.inflation) why.push(`Con ${inflationPhrase(plan.inflation)}, el dinero quieto en la cuenta pierde poder de compra cada año; invertir a largo plazo busca crecer más que la inflación, aunque con altibajos.`)
       break

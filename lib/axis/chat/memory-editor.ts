@@ -171,6 +171,14 @@ export function memoryUsage(fact: MemoryFact | undefined, planIgnored = false): 
       return 'En las lecturas de AXIS solo matiza cómo te explica la inversión. En tu plan decide qué parte de lo que te sobra va al largo plazo: 20 % si prefieres no arriesgar, 40 % equilibrado y 60 % dinámico. Se cambia desde «Tu perfil».'
     case 'adult':
       return 'AXIS no lo usa para decidir nada: en tu plan solo cambia cómo se explica la parte de inversión (si eres menor, la haría un adulto a tu nombre). Se cambia desde «Tu perfil».'
+    case 'work':
+      return 'En tu plan cambia el tamaño del colchón: si trabajas por tu cuenta o ahora no trabajas, es de 6 meses de gasto en vez de 3. Se cambia desde «Tu perfil».'
+    case 'dependents':
+      return 'En tu plan, si alguien depende de tu dinero, el colchón tiene 3 meses de gasto más. Se cambia desde «Tu perfil».'
+    case 'investingExperience':
+      return 'En tu plan, sin experiencia invirtiendo no hay parte arriesgada: se empieza por lo diversificado. Se cambia desde «Tu perfil».'
+    case 'lossCapacity':
+      return 'En tu plan, si una caída te obligaría a cambiar tus planes, la inversión es como mucho equilibrada y sin parte arriesgada, aunque lleves bien los altibajos. Se cambia desde «Tu perfil».'
   }
 }
 

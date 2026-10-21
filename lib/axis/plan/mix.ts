@@ -9,8 +9,9 @@
  *
  * Parte arriesgada (acciones concretas, sectores, criptomonedas…): como mucho
  * el 10 %, que sale de la renta variable global, y solo si TODO se cumple:
- * perfil dinámico, plazo largo, colchón completo, ningún objetivo cercano con
- * retraso y dinero parado de al menos 3 meses de gasto. Es dinero que se puede
+ * perfil dinámico (y que una caída no te obligue a cambiar tus planes:
+ * `planRisk`), algo de experiencia invirtiendo, plazo largo, colchón completo,
+ * ningún objetivo cercano con retraso y dinero parado de al menos 3 meses de gasto. Es dinero que se puede
  * perder entero, y así se dice siempre. (Ser mayor de edad no es condición por
  * decisión del usuario, 2026-10-17: si no lo eres, se explica que lo haría un adulto.)
  */
@@ -55,11 +56,14 @@ export interface RiskyConditions {
   shortTermAtRisk: boolean
   idleCents: number
   spendingCents: number
+  /** Respondió que no ha invertido nunca: se empieza por lo diversificado. */
+  noExperience?: boolean
 }
 
 export function riskyAllowed(c: RiskyConditions): boolean {
   return (
     c.riskAttitude === 'dynamic' &&
+    c.noExperience !== true &&
     c.horizon === 'long' &&
     c.cushionComplete &&
     !c.shortTermAtRisk &&

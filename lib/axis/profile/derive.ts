@@ -132,6 +132,22 @@ function apply(profile: UserProfile, fact: MemoryFact, sourceId: string): void {
       profile.adult = fact.value
       profile.sources.adult = sourceId
       return
+    case 'work':
+      profile.work = fact.value
+      profile.sources.work = sourceId
+      return
+    case 'dependents':
+      profile.dependents = fact.value
+      profile.sources.dependents = sourceId
+      return
+    case 'investingExperience':
+      profile.investingExperience = fact.value
+      profile.sources.investingExperience = sourceId
+      return
+    case 'lossCapacity':
+      profile.lossCapacity = fact.value
+      profile.sources.lossCapacity = sourceId
+      return
   }
 }
 
@@ -160,6 +176,10 @@ export function reconcileProfile(profile: UserProfile | ReconciledProfile, ctx: 
     ...(profile.minLiquidityCents !== undefined ? { minLiquidityCents: profile.minLiquidityCents } : {}),
     ...(profile.irregularIncome !== undefined ? { irregularIncome: profile.irregularIncome } : {}),
     ...(profile.adult !== undefined ? { adult: profile.adult } : {}),
+    ...(profile.work !== undefined ? { work: profile.work } : {}),
+    ...(profile.dependents !== undefined ? { dependents: profile.dependents } : {}),
+    ...(profile.investingExperience !== undefined ? { investingExperience: profile.investingExperience } : {}),
+    ...(profile.lossCapacity !== undefined ? { lossCapacity: profile.lossCapacity } : {}),
     // Un ingreso previsto no depende de los datos actuales: se conserva tal cual (copiado).
     ...(profile.recurringIncomes !== undefined ? { recurringIncomes: profile.recurringIncomes.map((r) => ({ ...r })) } : {}),
     sources,

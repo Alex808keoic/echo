@@ -8,7 +8,8 @@
  *      no reparte nada: el primer paso es ese.
  *   1. Colchón = objetivo «Fondo de emergencia», el primero del reparto. Meta:
  *      la del objetivo si existe (editable); si no, tu mínimo líquido
- *      declarado; si no, 3 meses de gasto habitual (6 con ingresos irregulares).
+ *      declarado; si no, 3 meses de gasto habitual (6 con ingresos irregulares,
+ *      por tu cuenta o sin trabajo; 3 más si alguien depende de ti: `cushionMonthsFor`).
  *      Hasta completarlo recibe TODO el ahorro: es lo que hace el reparto
  *      automático con el colchón en primer lugar.
  *   1b. Deudas caras (interés ≥ lo que cabe esperar de tu mezcla, o ≥ 7 % sin
@@ -23,7 +24,8 @@
  *   3. De lo que sobra, un porcentaje a largo plazo según tu perfil de riesgo
  *      (20 / 40 / 60 %; 40 / 70 / 90 % si no tienes objetivos pendientes, porque
  *      ese dinero no tiene otro destino), solo si lo has indicado y tu horizonte
- *      no es corto. Se reparte en TIPOS de inversión según tu perfil (plan/mix.ts),
+ *      no es corto. Si una caída te obligaría a cambiar tus planes, el riesgo es
+ *      como mucho equilibrado (`planRisk`). Se reparte en TIPOS de inversión según tu perfil (plan/mix.ts),
  *      nunca en productos.
  *   4. El resto se queda en tu líquido: el reparto automático lo lleva a tus objetivos.
  *   5. Dinero parado (líquido por encima del colchón y de todos tus objetivos):
@@ -36,14 +38,34 @@
  */
 import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
-import type { RiskAttitude } from '../profile/types'
+import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
 import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
 import type { DebtContext } from '../types'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
-export const CUSHION_MONTHS = { regular: 3, irregular: 6 } as const
+/**
+ * Meses de gasto del colchón: 3 con ingresos estables; 6 si cambian, si
+ * trabajas por tu cuenta o si ahora no trabajas; y 3 más si alguien depende de
+ * tu dinero (respuestas de «Tu perfil»).
+ */
+export const CUSHION_MONTHS = { regular: 3, irregular: 6, dependentsExtra: 3 } as const
+
+export function cushionMonthsFor(profile: Pick<ReconciledProfile, 'irregularIncome' | 'work' | 'dependents'>): number {
+  const unsteady = profile.irregularIncome === true || profile.work === 'self-employed' || profile.work === 'unemployed'
+  return (unsteady ? CUSHION_MONTHS.irregular : CUSHION_MONTHS.regular) + (profile.dependents === true ? CUSHION_MONTHS.dependentsExtra : 0)
+}
+
+/**
+ * Riesgo con el que se invierte: el que dices llevar, pero como mucho
+ * equilibrado si una caída te obligaría a cambiar tus planes (lo que puedes
+ * permitirte manda sobre lo que te gustaría).
+ */
+export function planRisk(profile: Pick<ReconciledProfile, 'riskAttitude' | 'lossCapacity'>): RiskAttitude | undefined {
+  if (profile.riskAttitude === 'dynamic' && profile.lossCapacity === 'low') return 'balanced'
+  return profile.riskAttitude
+}
 /** Objetivos con fecha a este plazo o menos: corto plazo (su dinero no se invierte). */
 export const SHORT_TERM_MONTHS = 24
 export const LONG_TERM_PCT: Record<RiskAttitude, number> = { conservative: 20, balanced: 40, dynamic: 60 }
@@ -286,8 +308,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // 1. Colchón.
   const active = ctx.objectives.filter((o) => o.status !== 'achieved')
   const cushionObjective = active.filter(isCushionObjective).sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))[0] ?? null
-  const irregular = profile.irregularIncome === true
-  const cushionMonths = irregular ? CUSHION_MONTHS.irregular : CUSHION_MONTHS.regular
+  const cushionMonths = cushionMonthsFor(profile)
   // Un mínimo líquido declarado nunca se rebaja: si es mayor que la meta del objetivo, manda (es lo que exige `liquidity.below-min`).
   const declaredMin = profile.minLiquidityCents ?? 0
   const objectiveTarget = cushionObjective?.targetCents ?? 0
@@ -310,7 +331,8 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
 
   // 1b. Deudas caras: más que lo que cabe esperar de tu mezcla (o del 7 % sin perfil), nunca por debajo del 3 %.
   const investable = !needsProfile && profile.horizon !== 'short'
-  const expectedReturnPct = investable ? expectedMixReturnPct(mixWeights(profile.riskAttitude as RiskAttitude, profile.horizon as 'medium' | 'long', false)) : null
+  const risk = planRisk(profile)
+  const expectedReturnPct = investable ? expectedMixReturnPct(mixWeights(risk as RiskAttitude, profile.horizon as 'medium' | 'long', false)) : null
   const payFirstPct = expectedReturnPct === null ? DEBT_EXPENSIVE_PCT : Math.min(DEBT_EXPENSIVE_PCT, Math.max(DEBT_CHEAP_PCT, expectedReturnPct))
   const expensive = debts.filter((d) => d.aprPct >= payFirstPct)
   if (expensive.length > 0) {
@@ -377,10 +399,17 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   if (needsProfile) longTerm = noLongTerm('no-profile')
   else if (profile.horizon === 'short') longTerm = noLongTerm('short-horizon')
   else {
-    const risk = profile.riskAttitude as RiskAttitude
     const horizon = profile.horizon as 'medium' | 'long'
-    const risky = riskyAllowed({ riskAttitude: risk, horizon, cushionComplete: true, shortTermAtRisk: atRisk, idleCents, spendingCents: monthly.spendingCents })
-    const weights = mixWeights(risk, horizon, risky)
+    const risky = riskyAllowed({
+      riskAttitude: risk as RiskAttitude,
+      horizon,
+      cushionComplete: true,
+      shortTermAtRisk: atRisk,
+      idleCents,
+      spendingCents: monthly.spendingCents,
+      noExperience: profile.investingExperience === 'none',
+    })
+    const weights = mixWeights(risk as RiskAttitude, horizon, risky)
     // Si tu mezcla real se ha alejado de la del plan, lo nuevo va a lo que falta (sin vender nada).
     const current = heldPct(held)
     if (current && needsRebalance(held, weights)) rebalance = { heldPct: current, targetPct: weights }
@@ -388,7 +417,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     plainFor = (cents) => splitMix(cents, weights)
     if (room <= 0) longTerm = noLongTerm('no-room')
     else {
-      const pct = (noObjectives ? LONG_TERM_PCT_NO_OBJECTIVES : LONG_TERM_PCT)[risk]
+      const pct = (noObjectives ? LONG_TERM_PCT_NO_OBJECTIVES : LONG_TERM_PCT)[risk as RiskAttitude]
       longTerm = { pct, monthlyCents: euros((room * pct) / 100), reason: 'ok' }
     }
   }

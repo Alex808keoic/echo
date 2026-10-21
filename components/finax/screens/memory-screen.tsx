@@ -166,7 +166,7 @@ function ProfileCard({ memories, onOpen }: { memories: UserMemory[]; onOpen: () 
         <p className="text-[15px] font-bold text-grafito">Tu perfil</p>
         <p className="mt-1 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
           {answered === 0
-            ? `${total} preguntas rápidas sobre tus plazos, cómo llevas el riesgo, tus ingresos y tu edad.`
+            ? `${total} preguntas rápidas para conocerte: tus plazos, el riesgo, tu trabajo, quién depende de ti, tus ingresos y tu edad.`
             : complete
               ? 'Has respondido todas las preguntas. Puedes cambiarlas cuando quieras.'
               : `Has respondido ${answered} de ${total} preguntas.`}

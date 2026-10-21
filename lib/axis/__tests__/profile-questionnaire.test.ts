@@ -68,9 +68,45 @@ describe('hecho «adult»', () => {
   })
 })
 
+describe('hechos de «conocerte» (situación, personas a cargo, experiencia y pérdidas)', () => {
+  it('válidos solo con sus valores', () => {
+    assert.ok(isValidMemoryFact({ kind: 'work', value: 'self-employed' }))
+    assert.equal(isValidMemoryFact({ kind: 'work', value: 'autonomo' }), false)
+    assert.ok(isValidMemoryFact({ kind: 'dependents', value: true }))
+    assert.equal(isValidMemoryFact({ kind: 'dependents', value: 2 }), false)
+    assert.ok(isValidMemoryFact({ kind: 'investingExperience', value: 'none' }))
+    assert.equal(isValidMemoryFact({ kind: 'investingExperience', value: 'mucha' }), false)
+    assert.ok(isValidMemoryFact({ kind: 'lossCapacity', value: 'low' }))
+    assert.equal(isValidMemoryFact({ kind: 'lossCapacity', value: 'low', pct: 20 }), false)
+  })
+
+  it('entran en el perfil derivado y se describen', () => {
+    const p = deriveProfile([
+      memory({ kind: 'work', value: 'student' }, 1),
+      memory({ kind: 'dependents', value: false }, 2),
+      memory({ kind: 'investingExperience', value: 'some' }, 3),
+      memory({ kind: 'lossCapacity', value: 'high' }, 4),
+    ])
+    assert.deepEqual([p.work, p.dependents, p.investingExperience, p.lossCapacity], ['student', false, 'some', 'high'])
+    assert.equal(describeFact({ kind: 'work', value: 'student' }), 'Situación: estudia')
+    assert.match(memoryUsage({ kind: 'dependents', value: true }), /3 meses de gasto más/)
+  })
+
+  it('el chat no puede fijarlos: solo vienen del cuestionario', () => {
+    const p: MemoryProposal = { content: 'Trabaja por su cuenta.', category: 'context', importance: 'high', confidence: 1, replacesId: null, fact: { kind: 'work', value: 'self-employed' } }
+    const { proposal, outcome } = gateProposalFact(p, extractProfileFacts('Soy autónomo'))
+    assert.equal(outcome, 'dropped-model')
+    assert.equal(proposal?.fact, undefined)
+  })
+
+  it('una copia de seguridad con ellos se importa', () => {
+    assert.equal(validateImportedMemories([memory({ kind: 'lossCapacity', value: 'low' }, 1), memory({ kind: 'work', value: 'retired' }, 2)]).ok, true)
+  })
+})
+
 describe('cuestionario · respuestas', () => {
-  it('cuatro preguntas, cada opción con un hecho válido y un texto guardable', () => {
-    assert.deepEqual(PROFILE_QUESTIONS.map((q) => q.id), ['horizon', 'riskAttitude', 'irregularIncome', 'adult'])
+  it('ocho preguntas, cada opción con un hecho válido y un texto guardable', () => {
+    assert.deepEqual(PROFILE_QUESTIONS.map((q) => q.id), ['horizon', 'riskAttitude', 'lossCapacity', 'investingExperience', 'work', 'dependents', 'irregularIncome', 'adult'])
     for (const q of PROFILE_QUESTIONS) {
       for (const o of q.options) {
         assert.equal(o.fact.kind, q.id)

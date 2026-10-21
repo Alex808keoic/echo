@@ -24,6 +24,7 @@ import type { FinancialContext } from '@/lib/axis/types'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { ProfileForm } from '../forms/profile-form'
+import { PROFILE_QUESTIONS } from '@/lib/axis/profile/questionnaire'
 import { UpdateValuesForm } from '../forms/update-values-form'
 import { useMarketSignals } from '@/hooks/use-market-signals'
 import { MarketSignalsCard } from '../market-signals-card'
@@ -34,7 +35,7 @@ import { todayISO } from '@/lib/dates'
 import type { FinancialOverview } from '@/hooks/use-financial-overview'
 import type { UserMemory } from '@/lib/axis/chat/types'
 
-const PROFILE_KINDS = new Set(['riskAttitude', 'horizon', 'irregularIncome', 'adult'])
+const PROFILE_KINDS = new Set<string>(PROFILE_QUESTIONS.map((q) => q.id))
 /** Hasta este mes (incluido), el resumen que se enseña primero es el del año anterior. */
 const LAST_YEAR_UNTIL_MONTH = 3
 

@@ -30,6 +30,10 @@ const KIND_LABELS: Record<ConversionKind, string> = {
   riskAttitude: 'Riesgo',
   irregularIncome: 'Ingresos estables',
   adult: 'Edad',
+  work: 'Situación',
+  dependents: 'Personas a tu cargo',
+  investingExperience: 'Experiencia',
+  lossCapacity: 'Pérdidas',
   priorities: 'Prioridad',
   objective: 'Objetivo',
 }

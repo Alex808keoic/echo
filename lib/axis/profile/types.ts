@@ -19,7 +19,22 @@ export type Horizon = (typeof HORIZONS)[number]
 export const RISK_ATTITUDES = ['conservative', 'balanced', 'dynamic'] as const
 export type RiskAttitude = (typeof RISK_ATTITUDES)[number]
 
-export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities', 'recurringIncome', 'adult'] as const
+/** Situación laboral (cuestionario de perfil): cambia el tamaño del colchón. */
+export const WORK_SITUATIONS = ['employee', 'self-employed', 'student', 'unemployed', 'retired'] as const
+export type WorkSituation = (typeof WORK_SITUATIONS)[number]
+
+/** Experiencia invirtiendo (cuestionario de perfil): sin experiencia, no hay parte arriesgada. */
+export const INVESTING_EXPERIENCE = ['none', 'some', 'experienced'] as const
+export type InvestingExperience = (typeof INVESTING_EXPERIENCE)[number]
+
+/**
+ * Capacidad de asumir pérdidas (cuestionario de perfil), distinta de cómo las
+ * llevarías (`riskAttitude`): `low` = una caída obligaría a cambiar tus planes.
+ */
+export const LOSS_CAPACITIES = ['low', 'high'] as const
+export type LossCapacity = (typeof LOSS_CAPACITIES)[number]
+
+export const MEMORY_FACT_KINDS = ['horizon', 'riskAttitude', 'minLiquidity', 'irregularIncome', 'priorities', 'recurringIncome', 'adult', 'work', 'dependents', 'investingExperience', 'lossCapacity'] as const
 export type MemoryFactKind = (typeof MEMORY_FACT_KINDS)[number]
 
 /**
@@ -54,6 +69,12 @@ export type MemoryFact =
   | { kind: 'recurringIncome'; cents: number; frequency: RecurringIncomeFrequency; category: RecurringIncomeCategory }
   /** Mayor de edad (cuestionario de perfil). Solo cambia cómo se explica la parte de inversión: un menor invierte a través de un adulto. */
   | { kind: 'adult'; value: boolean }
+  /** Las cuatro siguientes solo vienen del cuestionario «Tu perfil»; solo cambian «Tu plan» (colchón y mezcla). */
+  | { kind: 'work'; value: WorkSituation }
+  /** Alguien depende de tu dinero (hijos, familia…). */
+  | { kind: 'dependents'; value: boolean }
+  | { kind: 'investingExperience'; value: InvestingExperience }
+  | { kind: 'lossCapacity'; value: LossCapacity }
 
 /**
  * Un ingreso recurrente del perfil. Es una PREVISIÓN declarada por el usuario:
@@ -68,7 +89,18 @@ export interface RecurringIncome {
   sourceMemoryId: string
 }
 
-export type ProfileField = 'horizon' | 'riskAttitude' | 'minLiquidityCents' | 'irregularIncome' | 'priorities' | 'recurringIncomes' | 'adult'
+export type ProfileField =
+  | 'horizon'
+  | 'riskAttitude'
+  | 'minLiquidityCents'
+  | 'irregularIncome'
+  | 'priorities'
+  | 'recurringIncomes'
+  | 'adult'
+  | 'work'
+  | 'dependents'
+  | 'investingExperience'
+  | 'lossCapacity'
 
 export interface ProfileConflict {
   kind: MemoryFactKind
@@ -89,6 +121,10 @@ export interface UserProfile {
   recurringIncomes?: RecurringIncome[]
   /** Mayor de edad, si lo ha indicado (cuestionario de perfil). */
   adult?: boolean
+  work?: WorkSituation
+  dependents?: boolean
+  investingExperience?: InvestingExperience
+  lossCapacity?: LossCapacity
   /** Trazabilidad: id de la memoria que aporta cada campo (los ingresos recurrentes la llevan en cada elemento). */
   sources: Partial<Record<ProfileField, string>>
   conflicts: ProfileConflict[]
@@ -158,7 +194,14 @@ export function isValidMemoryFact(v: unknown): v is MemoryFact {
       return keys.join() === 'cents,kind' && Number.isInteger(v.cents) && (v.cents as number) >= PROFILE_LIMITS.MIN_LIQUIDITY_MIN_CENTS && (v.cents as number) <= PROFILE_LIMITS.MIN_LIQUIDITY_MAX_CENTS
     case 'irregularIncome':
     case 'adult':
+    case 'dependents':
       return keys.join() === 'kind,value' && typeof v.value === 'boolean'
+    case 'work':
+      return keys.join() === 'kind,value' && WORK_SITUATIONS.includes(v.value as WorkSituation)
+    case 'investingExperience':
+      return keys.join() === 'kind,value' && INVESTING_EXPERIENCE.includes(v.value as InvestingExperience)
+    case 'lossCapacity':
+      return keys.join() === 'kind,value' && LOSS_CAPACITIES.includes(v.value as LossCapacity)
     case 'priorities': {
       if (keys.join() !== 'kind,objectiveIds' || !Array.isArray(v.objectiveIds)) return false
       const ids = v.objectiveIds
@@ -179,5 +222,5 @@ export function isValidMemoryFact(v: unknown): v is MemoryFact {
 }
 
 export function isEmptyProfile(p: UserProfile): boolean {
-  return p.horizon === undefined && p.riskAttitude === undefined && p.minLiquidityCents === undefined && p.irregularIncome === undefined && p.priorities === undefined && p.recurringIncomes === undefined && Object.keys(p.sources).length === 0 && p.conflicts.length === 0
+  return p.horizon === undefined && p.riskAttitude === undefined && p.minLiquidityCents === undefined && p.irregularIncome === undefined && p.priorities === undefined && p.recurringIncomes === undefined && p.adult === undefined && p.work === undefined && p.dependents === undefined && p.investingExperience === undefined && p.lossCapacity === undefined && Object.keys(p.sources).length === 0 && p.conflicts.length === 0
 }
