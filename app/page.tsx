@@ -5,9 +5,8 @@ import { flushSync } from 'react-dom'
 import { PhoneFrame, type ScreenEnter } from '@/components/finax/phone-frame'
 import { BottomNavigation, isTab, tabIndex, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
 import { HomeScreen } from '@/components/finax/screens/home-screen'
-import { MoneyScreen } from '@/components/finax/screens/money-screen'
+import { MoneyScreen, openMoneyView } from '@/components/finax/screens/money-screen'
 import { TransactionsScreen } from '@/components/finax/screens/transactions-screen'
-import { StatsScreen } from '@/components/finax/screens/stats-screen'
 import { AxisScreen, openAxisTab } from '@/components/finax/screens/axis-screen'
 import { ObjectivesScreen } from '@/components/finax/screens/objectives-screen'
 import { InvestmentsScreen } from '@/components/finax/screens/investments-screen'
@@ -45,7 +44,7 @@ function App() {
   const overview = useFinancialOverview()
   const { open, close } = useSheet()
 
-  const showFab = screen === 'movimientos' || screen === 'estadisticas'
+  const showFab = screen === 'movimientos' || screen === 'dinero'
   const openNewMovement = () => open('Nuevo movimiento', <MovementForm onDone={close} />)
   /**
    * Cambia de pantalla con transición. Con View Transitions (Chrome/Android) la pantalla que sale y la
@@ -71,7 +70,9 @@ function App() {
   const navigate = (target: ScreenKey) => {
     // «Tu plan» es la pestaña principal de AXIS: se entra en AXIS por ella.
     if (target === 'plan') openAxisTab('plan')
-    const next = target === 'plan' ? 'axis' : target
+    // Estadísticas es la vista de gastos de «Tu dinero».
+    if (target === 'estadisticas') openMoneyView('Gastos')
+    const next = target === 'plan' ? 'axis' : target === 'estadisticas' ? 'dinero' : target
     if (next === screen) return
     // Entre pestañas, hacia el lado de la pestaña; a una secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
     const direction: NavDirection = isTab(next)
@@ -123,7 +124,6 @@ function App() {
           {screen === 'inicio' && <HomeScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'dinero' && <MoneyScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'movimientos' && <TransactionsScreen overview={overview} onNavigate={navigate} onBack={back} />}
-          {screen === 'estadisticas' && <StatsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'axis' && <AxisScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'objetivos' && <ObjectivesScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'inversiones' && <InvestmentsScreen overview={overview} onNavigate={navigate} onBack={back} />}

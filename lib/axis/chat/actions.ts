@@ -42,7 +42,7 @@ function planStepAction(plan: AllocationPlan): ChatAction | null {
     case 'reduce-spending':
       return { kind: 'navigate', label: 'Ver en qué gastas', to: 'estadisticas' }
     case 'fix-negative-liquidity':
-      return { kind: 'navigate', label: 'Revisar Mi Dinero', to: 'dinero' }
+      return { kind: 'navigate', label: 'Revisar tu dinero', to: 'dinero' }
     default:
       return null
   }

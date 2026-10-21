@@ -66,7 +66,7 @@ export function useAxis(overview: FinancialOverview | undefined, { ai = false, m
   return { state, refresh }
 }
 
-/** Frase corta para las tarjetas de AXIS en Inicio, Mi Dinero y Estadísticas. */
+/** Frase corta para las textos cortos de AXIS (saludo de la pestaña AXIS). */
 export function axisHeadline(state: AxisState): string {
   switch (state.status) {
     case 'analysis':

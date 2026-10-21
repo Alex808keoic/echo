@@ -91,7 +91,7 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
         <button
           type="button"
           onClick={() => onNavigate('dinero')}
-          aria-label="Ver Mi Dinero"
+          aria-label="Ver tu dinero"
           className="block w-full text-left"
         >
           <p className="text-[13px] font-medium text-muted-foreground">Tu patrimonio</p>

@@ -83,7 +83,7 @@ export const investmentRules: Rule = (ctx, _market, profile) => {
       recommendation: {
         what: 'Comprueba que el líquido cubre tus gastos de varios meses antes de seguir invirtiendo.',
         why: 'El colchón de liquidez es lo que permite mantener las inversiones cuando llega un gasto inesperado.',
-        nextStep: { label: 'Ver Mi Dinero', to: 'dinero' },
+        nextStep: { label: 'Ver tu dinero', to: 'dinero' },
         action: { verb: 'review', target: 'cushion' },
       },
     })

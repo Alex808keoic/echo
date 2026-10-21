@@ -112,7 +112,7 @@ export function reviewMonth(input: {
     verdict === 'on-track'
       ? 'Vas según tu plan: sigue igual este mes.'
       : !savedOk
-        ? 'Este mes, lo primero es volver a tu ritmo de ahorro: mira en qué se fue el dinero en Estadísticas.'
+        ? 'Este mes, lo primero es volver a tu ritmo de ahorro: mira en qué se fue el dinero en «Tu dinero».'
         : 'Este mes, intenta hacer la inversión que propone el plan (y apúntala en Inversiones).'
   return { month, label: formatMonthYear(month), verdict, lines, next, usesCurrentPlan }
 }

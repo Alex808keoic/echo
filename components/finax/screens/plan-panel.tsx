@@ -349,7 +349,7 @@ function YearReviewCard({ overview, plan, memories, onStats }: { overview: Finan
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Button variant="secondary" fullWidth onClick={onStats}>
-          Ver estadísticas
+          Ver tus gastos
         </Button>
         <Button variant={r.profileStale ? 'primary' : 'secondary'} fullWidth onClick={() => open('Tu perfil', <ProfileForm memories={memories} onDone={close} />)}>
           {r.profileStale ? 'Repetir mi perfil' : 'Ver mi perfil'}

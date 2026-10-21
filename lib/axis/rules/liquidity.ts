@@ -42,7 +42,7 @@ function negativeLiquidity(ctx: Parameters<Rule>[0]): Signal | null {
     recommendation: {
       what: 'Comprueba tu saldo inicial y tus movimientos y, si son correctos, prioriza volver a un líquido positivo antes de cualquier otro destino del dinero.',
       why: 'Mientras el líquido sea negativo, ningún otro plan se puede financiar con dinero propio.',
-      nextStep: { label: 'Ver Mi Dinero', to: 'dinero' },
+      nextStep: { label: 'Ver tu dinero', to: 'dinero' },
       action: { verb: 'review', target: 'data' },
     },
     uncertainty: {
@@ -68,7 +68,7 @@ export const liquidityRules: Rule = (ctx, _market, profile) => {
     recommendation: {
       what: `Completa tu colchón hasta ${eur(minCents)} antes de destinar ahorro a otros fines.`,
       why: 'Es el mínimo que has decidido mantener; mientras no esté cubierto, cualquier otro destino del ahorro se financia con menos margen del que quieres.',
-      nextStep: { label: 'Ver Mi Dinero', to: 'dinero' },
+      nextStep: { label: 'Ver tu dinero', to: 'dinero' },
       action: { verb: 'complete-cushion', target: 'cushion' },
     },
     ...(pendingObjective

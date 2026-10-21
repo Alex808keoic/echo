@@ -112,7 +112,7 @@ export const expenseRules: Rule = (ctx, _market, _profile) => {
       recommendation: {
         what: `Decide si el peso de «${top.label}» es el que quieres; el resto de categorías apenas mueven el total.`,
         why: 'Ajustar la partida dominante cambia el resultado del mes; ajustar las pequeñas, no.',
-        nextStep: { label: 'Ver estadísticas', to: 'estadisticas' },
+        nextStep: { label: 'Ver tus gastos', to: 'estadisticas' },
         action: { verb: 'decide', target: 'category', targetId: top.label },
       },
     })

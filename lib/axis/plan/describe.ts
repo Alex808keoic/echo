@@ -87,13 +87,13 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       return {
         title: 'Primero, vuelve a tener dinero líquido en positivo',
         detail: 'Con el líquido por debajo de cero no hay nada que repartir. Comprueba tu saldo inicial y tus movimientos.',
-        action: { kind: 'review-money', label: 'Ver Mi Dinero' },
+        action: { kind: 'review-money', label: 'Ver tu dinero' },
       }
     case 'reduce-spending':
       return {
         title: plan.blocker === 'no-surplus' ? 'Primero, consigue que te sobre algo cada mes' : 'Primero, gasta menos de lo que ingresas',
         detail: 'Mientras no ahorres, no hay nada que repartir. Mira en qué se va tu dinero.',
-        action: { kind: 'review-spending', label: 'Ver estadísticas' },
+        action: { kind: 'review-spending', label: 'Ver tus gastos' },
       }
     case 'register-data':
       return {

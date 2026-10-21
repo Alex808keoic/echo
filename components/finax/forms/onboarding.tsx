@@ -45,7 +45,7 @@ export function Onboarding() {
       {step !== 'done' && <Progress step={step} />}
       {step === 'balance' && (
         <section className="space-y-4">
-          <StepIntro title="Tu dinero de hoy" text="¿Cuánto tienes ahora mismo en tus cuentas? Es tu punto de partida. Las inversiones no: esas se añaden en Mi Dinero." />
+          <StepIntro title="Tu dinero de hoy" text="¿Cuánto tienes ahora mismo en tus cuentas? Es tu punto de partida. Las inversiones no: esas se añaden en «Tu dinero»." />
           <InitialBalanceForm submitLabel="Siguiente" onDone={() => setStep('profile')} />
         </section>
       )}

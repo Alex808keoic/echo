@@ -109,7 +109,7 @@ describe('AXIS · perfil · minLiquidityCents · activación', () => {
     assert.equal(s.fact, 'Quieres mantener al menos 5.000,00 € líquidos y hoy tienes 3.550,00 €: faltan 1.450,00 €.')
     assert.deepEqual(d.recommendation, s.recommendation)
     assert.deepEqual(d.recommendation?.action, { verb: 'complete-cushion', target: 'cushion' })
-    assert.deepEqual(d.nextStep, { label: 'Ver Mi Dinero', to: 'dinero' })
+    assert.deepEqual(d.nextStep, { label: 'Ver tu dinero', to: 'dinero' })
     assert.equal('alternative' in s, false, 'sin objetivo pendiente no hay alternativa que ofrecer')
     assert.equal('uncertainty' in s, false)
   })

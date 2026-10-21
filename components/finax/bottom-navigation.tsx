@@ -1,13 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { HomeIcon, MoneyIcon, MovementsIcon, StatsIcon } from './icons'
+import { HomeIcon, MoneyIcon, MovementsIcon } from './icons'
 import { AxisSphere } from './axis-sphere'
 
-export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'estadisticas' | 'axis'
+export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'axis'
 
-/** Pantallas secundarias accesibles desde las pestañas principales. «plan» no es una pantalla: abre AXIS en «Tu plan». */
-export type ScreenKey = TabKey | 'objetivos' | 'inversiones' | 'ajustes' | 'memoria' | 'plan' | 'resumen' | 'guia' | 'deudas' | 'simulador' | 'fijos'
+/** Pantallas secundarias accesibles desde las pestañas principales. «plan» y «estadisticas» no son pantallas: abren AXIS en «Tu plan» y «Tu dinero» en los gastos. */
+export type ScreenKey = TabKey | 'estadisticas' | 'objetivos' | 'inversiones' | 'ajustes' | 'memoria' | 'plan' | 'resumen' | 'guia' | 'deudas' | 'simulador' | 'fijos'
 
 interface Tab {
   key: TabKey
@@ -17,9 +17,8 @@ interface Tab {
 
 const tabs: Tab[] = [
   { key: 'inicio', label: 'Inicio', icon: (p) => <HomeIcon {...p} /> },
-  { key: 'dinero', label: 'Mi Dinero', icon: (p) => <MoneyIcon {...p} /> },
+  { key: 'dinero', label: 'Tu dinero', icon: (p) => <MoneyIcon {...p} /> },
   { key: 'movimientos', label: 'Movimientos', icon: (p) => <MovementsIcon {...p} /> },
-  { key: 'estadisticas', label: 'Estadísticas', icon: (p) => <StatsIcon {...p} /> },
   { key: 'axis', label: 'AXIS', icon: () => <span /> },
 ]
 
@@ -46,8 +45,8 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
         {/* Pastilla que se desliza hasta la pestaña activa, detrás de su icono. */}
         <span
           aria-hidden
-          className="slide-indicator pointer-events-none absolute left-0 top-0 flex w-1/5 justify-center"
-          style={{ transform: `translateX(${index * 100}%)` }}
+          className="slide-indicator pointer-events-none absolute left-0 top-0 flex justify-center"
+          style={{ width: `${100 / tabs.length}%`, transform: `translateX(${index * 100}%)` }}
         >
           <span
             className={cn(

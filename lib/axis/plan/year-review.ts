@@ -111,7 +111,7 @@ export function reviewYear(input: {
   // Para el año que viene.
   const next: string[] = []
   const profileStale = input.profileAnsweredAt === null || now - input.profileAnsweredAt > PROFILE_REVIEW_DAYS * DAY_MS
-  if (rate !== null && rate < LOW_SAVINGS_RATE_PCT) next.push(`Intenta ahorrar al menos el ${LOW_SAVINGS_RATE_PCT} % de lo que ingresas: mira en Estadísticas qué gasto puedes bajar.`)
+  if (rate !== null && rate < LOW_SAVINGS_RATE_PCT) next.push(`Intenta ahorrar al menos el ${LOW_SAVINGS_RATE_PCT} % de lo que ingresas: mira en «Tu dinero» qué gasto puedes bajar.`)
   if (owed > 0) next.push('Actualiza lo que te queda de cada deuda y sigue tu plan para devolver antes las caras.')
   if (snapshot.positions.length > 0) next.push('Actualiza el valor de tus inversiones para ver tu rentabilidad real.')
   next.push(partial ? 'Revisa si tus objetivos siguen siendo los mismos y si sus fechas son realistas.' : 'Piensa qué quieres conseguir este año y crea o ajusta tus objetivos.')
