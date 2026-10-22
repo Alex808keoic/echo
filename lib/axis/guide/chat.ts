@@ -29,7 +29,7 @@ export function chatGuideOf(message: string, decision: AxisDecision): ChatGuide 
 export function guideForPrompt({ types, fits }: ChatGuide) {
   return {
     // Sin `examples`: los ejemplos de la guía solo se ven en la pantalla, nunca llegan al modelo.
-    tipos: types.map((t) => ({ nombre: t.name, familia: groupById(t.group).name, que_es: t.what, para_que: t.goodFor, riesgo: RISK_LABEL[t.risk], plazo: t.horizon, como_compararlo: t.compare, tener_en_cuenta: t.warnings })),
+    tipos: types.map((t) => ({ nombre: t.name, familia: groupById(t.group).name, que_es: t.what, para_que: t.goodFor, riesgo: RISK_LABEL[t.risk], plazo: t.horizon, como_compararlo: t.compare, ...(t.choose ? { como_reconocer_uno_bueno: t.choose } : {}), tener_en_cuenta: t.warnings })),
     encaje_con_su_plan: fits.map((f) => ({ producto: f.product, veredicto: f.headline, motivos: f.reasons, comprobar: f.checks })),
     como_usarlo:
       'Es la guía de Finax: información general sobre el TIPO de producto y si encaja con su plan. Explícalo con tus palabras usando solo esto. Nunca le digas que compre, venda o invierta en él, ni nombres marcas, fondos, gestoras ni brókers concretos. Si quiere una recomendación concreta, dile que solo puede dársela una entidad autorizada (CNMV o Banco de España) y que en «Guía para invertir» tiene cómo comprobarlo.',
@@ -39,7 +39,7 @@ export function guideForPrompt({ types, fits }: ChatGuide) {
 /** Cifras de la guía (escritas por Finax): el chat puede citarlas. */
 export function guideFigures(guide: ChatGuide | null): AllowedFigure[] {
   if (!guide) return []
-  const texts = [...guide.types.flatMap((t) => [t.what, t.goodFor, t.horizon, ...t.compare, ...t.warnings]), ...guide.fits.flatMap((f) => [...f.reasons, ...f.checks])]
+  const texts = [...guide.types.flatMap((t) => [t.what, t.goodFor, t.horizon, ...t.compare, ...(t.choose ?? []), ...t.warnings]), ...guide.fits.flatMap((f) => [...f.reasons, ...f.checks])]
   return texts.flatMap((text) =>
     extractFigures(text).flatMap((f): AllowedFigure[] => {
       const n = Number(f.key.slice(2))

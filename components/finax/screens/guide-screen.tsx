@@ -2,7 +2,9 @@
 
 import { useRef, useState, type ReactNode } from 'react'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
-import { productFit, type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
+import { type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
+import { COMPARE_DEFAULT_MONTHLY_CENTS, COMPARE_YEARS, feeComparison, investEstimate, monthlyForType, sleeveGuide, type InvestEstimate, type SleeveGuide } from '@/lib/axis/guide/invest'
+import type { AllocationPlan } from '@/lib/axis/plan/allocation'
 import { AUTHORIZED_SERVICES, EXAMPLES_NOTICE, groupRiskRange, OFFICIAL_LINKS, RISK_LABEL, type InvestmentGroupId, type ProductType } from '@/lib/axis/guide/products'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
 import { defaultYears, monthsLabel, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
@@ -60,17 +62,22 @@ export function GuideScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const result = useAllocationPlan(overview)
   const [groupId, setGroupId] = useState<InvestmentGroupId | null>(null)
   const [open, setOpen] = useState<string | null>(null)
-  const [fee, setFee] = useState('')
   const top = useRef<HTMLDivElement>(null)
   if (!result) return <ScreenLoading />
   const { plan, decision } = result
   const rec = recommendGuide(plan, decision.profile.fields)
+  const estimate = investEstimate(decision, plan)
+  const sleeves = sleeveGuide(plan, decision.profile.fields)
   const minor = decision.profile.fields.adult === false
+  // Los escenarios empiezan con lo que tu plan invertiría en un año y con tu plazo.
+  const mine: Mine = {
+    amountCents: estimate.kind === 'now' ? estimate.yearCents : null,
+    years: decision.profile.fields.horizon === 'long' ? 10 : decision.profile.fields.horizon === 'medium' ? 5 : null,
+  }
 
   const go = (id: InvestmentGroupId | null, typeId: string | null = null) => {
     setGroupId(id)
     setOpen(typeId)
-    setFee('')
     requestAnimationFrame(() => top.current?.scrollIntoView({ block: 'start' }))
   }
   const group = groupId ? rec.groups.find((g) => g.group.id === groupId) ?? null : null
@@ -84,22 +91,12 @@ export function GuideScreen({ overview, onNavigate, onBack }: ScreenProps) {
       />
 
       {group ? (
-        <GroupView
-          group={group}
-          open={open}
-          onToggle={(id) => {
-            setOpen(open === id ? null : id)
-            setFee('')
-          }}
-          fee={fee}
-          onFee={setFee}
-          plan={plan}
-          profile={decision.profile.fields}
-          onPlan={() => onNavigate('plan')}
-        />
+        <GroupView group={group} open={open} onToggle={(id) => setOpen(open === id ? null : id)} plan={plan} mine={mine} onPlan={() => onNavigate('plan')} />
       ) : (
         <>
-          <LeadCard rec={rec} onOpen={go} onPlan={() => onNavigate('plan')} />
+          <EstimateCard estimate={estimate} onPlan={() => onNavigate('plan')} />
+
+          {sleeves.length > 0 ? <MixGuide sleeves={sleeves} rec={rec} onOpen={go} /> : <LeadCard rec={rec} onOpen={go} onPlan={() => onNavigate('plan')} />}
 
           <section className="space-y-2">
             <Label>Dónde se puede invertir</Label>
@@ -156,6 +153,104 @@ export function GuideScreen({ overview, onNavigate, onBack }: ScreenProps) {
   )
 }
 
+const NONE_TEXT: Record<Extract<InvestEstimate, { kind: 'none' }>['reason'], string> = {
+  blocked: 'Ahora, nada: tu plan dice que primero hay que resolver otra cosa. Mira el primer paso de «Tu plan».',
+  'no-profile': 'Para calcularlo necesito saber cuándo necesitarás el dinero y cómo llevas el riesgo: responde «Tu perfil».',
+  'short-horizon': 'Nada: dijiste que necesitarás tu dinero en menos de 2 años, así que lo que te sobra va mejor en ahorro seguro, sin riesgo.',
+  'no-room': 'Este mes, nada: tus objetivos cercanos necesitan todo lo que ahorras.',
+}
+
+/** «Cuánto deberías invertir»: lo que dice tu plan, a partir de lo que tienes y de lo que ahorras. */
+function EstimateCard({ estimate, onPlan }: { estimate: InvestEstimate; onPlan: () => void }) {
+  const row = (label: string, cents: number, strong = false) => (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-[12.5px] font-medium text-grafito/80">{label}</span>
+      <span className={cn('whitespace-nowrap tabular-nums', strong ? 'text-[17px] font-extrabold text-grafito' : 'text-[13.5px] font-bold text-grafito')}>{euros(cents)}</span>
+    </div>
+  )
+  return (
+    <FinancialCard className="space-y-3 border-axis-blue/30">
+      <div className="flex items-center gap-2">
+        <SparkIcon className="h-4 w-4 text-axis-violet" />
+        <Label>AXIS · cuánto deberías invertir</Label>
+      </div>
+      {estimate.kind === 'now' ? (
+        <>
+          <div className="space-y-1.5">
+            {estimate.monthlyCents > 0 && row('Cada mes, de lo que ahorras', estimate.monthlyCents, true)}
+            {estimate.lumpCents > 0 && row(`Ahora, de una vez o en ${estimate.spreadMonths} meses`, estimate.lumpCents, estimate.monthlyCents === 0)}
+            {estimate.monthlyCents > 0 && estimate.lumpCents > 0 && row('En total, en un año', estimate.yearCents)}
+          </div>
+          <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">
+            {estimate.lumpCents > 0
+              ? `De los ${euros(estimate.liquidCents)} que tienes en líquido, ${euros(estimate.keptCents)} se quedan para tu colchón y tus objetivos; el resto no tiene destino y puede trabajar a largo plazo${estimate.lumpPerMonthCents > 0 ? ` (repartido, unos ${euros(estimate.lumpPerMonthCents)} al mes)` : ''}.`
+              : `Tu líquido (${euros(estimate.liquidCents)}) lo necesitan tu colchón y tus objetivos: lo que inviertes sale de lo que ahorras cada mes.`}
+          </p>
+        </>
+      ) : estimate.kind === 'later' ? (
+        <p className="text-[13px] font-medium leading-snug text-grafito/85 text-pretty">
+          {estimate.reason === 'cushion'
+            ? `Ahora, nada: primero se completa tu colchón${estimate.months ? ` (te faltan unos ${estimate.months === 1 ? '1 mes' : `${estimate.months} meses`})` : ''}.${estimate.thenMonthlyCents ? ` Después, con tus números de hoy, invertirías unos ${euros(estimate.thenMonthlyCents)} al mes.` : ''}`
+            : `Ahora, nada: tu plan va primero a por tus deudas caras, porque devolverlas rinde más seguro que invertir${estimate.months ? ` (unos ${estimate.months} meses)` : ''}.`}
+        </p>
+      ) : (
+        <p className="text-[13px] font-medium leading-snug text-grafito/85 text-pretty">{NONE_TEXT[estimate.reason]}</p>
+      )}
+      <button type="button" onClick={onPlan} className="text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
+        Ver tu plan →
+      </button>
+    </FinancialCard>
+  )
+}
+
+/** «Tu mezcla, parte por parte»: cada parte de tu plan, cuánto lleva y qué tipos sirven para ella. */
+function MixGuide({ sleeves, rec, onOpen }: { sleeves: SleeveGuide[]; rec: GuideRecommendation; onOpen: (id: InvestmentGroupId, typeId: string) => void }) {
+  return (
+    <section className="space-y-2">
+      <Label>Tu mezcla, parte por parte</Label>
+      {sleeves.some((s) => s.rebalancing) && (
+        <p className="px-1 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
+          Lo que ya tienes invertido se ha alejado de tu mezcla: este mes lo nuevo va sobre todo a lo que falta, sin vender nada. El porcentaje es el de tu mezcla.
+        </p>
+      )}
+      {sleeves.map((s) => (
+        <FinancialCard key={s.key} className="space-y-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="min-w-0 text-[14px] font-bold leading-snug text-grafito text-pretty">
+              {s.label} · {s.pct} %
+            </p>
+            {s.monthlyCents > 0 && <p className="whitespace-nowrap text-[13px] font-bold tabular-nums text-grafito">{euros(s.monthlyCents)}/mes</p>}
+          </div>
+          {s.lumpCents > 0 && <p className="text-[12px] font-medium text-muted-foreground">Y {euros(s.lumpCents)} del dinero sin destino.</p>}
+          <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">{s.choice}</p>
+          {s.types.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[12px] font-semibold text-grafito/80">Tipos que sirven para esta parte</p>
+              {s.types.map(({ type }) => (
+                <button key={type.id} type="button" onClick={() => onOpen(type.group, type.id)} className="flex w-full items-center gap-2 rounded-2xl bg-muted px-3.5 py-2.5 text-left">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-bold text-grafito">{type.name}</span>
+                    <span className="block text-[11.5px] font-medium text-muted-foreground">Cómo elegir uno, comisiones y escenarios</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </FinancialCard>
+      ))}
+      {rec.shortTerm && (
+        <button type="button" onClick={() => onOpen(rec.shortTerm!.group.id, rec.shortTerm!.type.id)} className="flex w-full items-center gap-2 rounded-2xl bg-muted px-3.5 py-2.5 text-left">
+          <span className="min-w-0 flex-1 text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">
+            Para tu colchón y lo que puedes necesitar pronto: <span className="font-bold text-grafito">{rec.shortTerm.group.name}</span> ({rec.shortTerm.type.name.toLowerCase()})
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      )}
+    </section>
+  )
+}
+
 /** Lo que mejor encaja de toda la guía, o por qué todavía no toca invertir. */
 function LeadCard({ rec, onOpen, onPlan }: { rec: GuideRecommendation; onOpen: (id: InvestmentGroupId, typeId: string) => void; onPlan: () => void }) {
   const { lead, shortTerm } = rec
@@ -206,20 +301,22 @@ function groupAdvice(g: GroupFit): string {
   return 'Ahora mismo, nada de esta familia encaja con tu plan.'
 }
 
+/** Tu importe (lo que tu plan invertiría en un año) y tu plazo, para empezar los escenarios. */
+interface Mine {
+  amountCents: number | null
+  years: (typeof SCENARIO_YEARS)[number] | null
+}
+
 interface GroupViewProps {
   group: GroupFit
   open: string | null
   onToggle: (id: string) => void
-  fee: string
-  onFee: (v: string) => void
-  plan: Parameters<typeof productFit>[1]
-  profile: Parameters<typeof productFit>[2]
+  plan: AllocationPlan
+  mine: Mine
   onPlan: () => void
 }
 
-function GroupView({ group, open, onToggle, fee, onFee, plan, profile, onPlan }: GroupViewProps) {
-  const feeNumber = fee.trim() === '' ? undefined : Number(fee.replace(',', '.'))
-  const validFee = feeNumber !== undefined && Number.isFinite(feeNumber) ? feeNumber : undefined
+function GroupView({ group, open, onToggle, plan, mine, onPlan }: GroupViewProps) {
   return (
     <>
       <FinancialCard className="space-y-3">
@@ -245,7 +342,7 @@ function GroupView({ group, open, onToggle, fee, onFee, plan, profile, onPlan }:
                 </span>
                 <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', expanded && 'rotate-90')} />
               </button>
-              {expanded && <TypeDetail type={type} fit={productFit(type, plan, profile, validFee)} fee={fee} onFee={onFee} onPlan={onPlan} />}
+              {expanded && <TypeDetail type={type} fit={fit} plan={plan} mine={mine} onPlan={onPlan} />}
             </FinancialCard>
           )
         })}
@@ -254,7 +351,7 @@ function GroupView({ group, open, onToggle, fee, onFee, plan, profile, onPlan }:
   )
 }
 
-function TypeDetail({ type, fit, fee, onFee, onPlan }: { type: ProductType; fit: ProductFit; fee: string; onFee: (v: string) => void; onPlan: () => void }) {
+function TypeDetail({ type, fit, plan, mine, onPlan }: { type: ProductType; fit: ProductFit; plan: AllocationPlan; mine: Mine; onPlan: () => void }) {
   return (
     <div className="fade-in space-y-3 px-4 pb-4 text-[13px] font-medium leading-snug text-grafito/85">
       <p className="text-pretty">{type.what}</p>
@@ -275,7 +372,14 @@ function TypeDetail({ type, fit, fee, onFee, onPlan }: { type: ProductType; fit:
         </button>
       </div>
 
-      <ScenarioSection type={type} />
+      <ScenarioSection type={type} mine={mine} />
+
+      {type.choose && type.choose.length > 0 && (
+        <div className="space-y-1">
+          <p className="font-semibold text-grafito">Cómo reconocer uno bueno</p>
+          <Bullets items={type.choose} />
+        </div>
+      )}
 
       {type.examples && type.examples.length > 0 && (
         <div className="space-y-2">
@@ -301,17 +405,77 @@ function TypeDetail({ type, fit, fee, onFee, onPlan }: { type: ProductType; fit:
         <Bullets items={fit.checks} />
       </div>
 
-      {type.family !== 'cash' && (
-        <label className="block">
-          <span className="mb-1 block text-[12px] font-semibold text-grafito/80">¿Miras uno concreto? Su comisión anual, si la sabes (%)</span>
-          <input
-            inputMode="decimal"
-            value={fee}
-            onChange={(e) => onFee(e.target.value)}
-            placeholder="Ej. 0,2"
-            className="w-full rounded-2xl border border-border bg-card px-4 py-2.5 text-[16px] font-medium text-grafito outline-none focus:border-finax-dark"
-          />
-        </label>
+      {type.family !== 'cash' && <FeeCompare type={type} plan={plan} />}
+    </div>
+  )
+}
+
+const pctInput = (raw: string): number | null => {
+  const n = Number(raw.trim().replace(',', '.'))
+  return raw.trim() !== '' && Number.isFinite(n) ? n : null
+}
+
+/**
+ * «¿Dudas entre dos?»: la comisión anual de cada opción (la pone el usuario) y
+ * cuánto se lleva la diferencia con tu aportación del plan. Finax solo hace la cuenta.
+ */
+function FeeCompare({ type, plan }: { type: ProductType; plan: AllocationPlan }) {
+  const [a, setA] = useState('')
+  const [b, setB] = useState('')
+  const planMonthly = monthlyForType(type, plan)
+  const monthly = planMonthly ?? COMPARE_DEFAULT_MONTHLY_CENTS
+  const aPct = pctInput(a)
+  const bPct = pctInput(b)
+  const result = aPct !== null && bPct !== null ? feeComparison(type, monthly, aPct, bPct) : null
+  const input = (value: string, onChange: (v: string) => void, label: string) => (
+    <label className="block min-w-0">
+      <span className="mb-1 block text-[12px] font-semibold text-grafito/80">{label}</span>
+      <input
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ej. 0,2"
+        className="w-full rounded-2xl border border-border bg-card px-4 py-2.5 text-[16px] font-medium text-grafito outline-none focus:border-finax-dark"
+      />
+    </label>
+  )
+  const pct = (n: number) => `${String(n).replace('.', ',')} %`
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-border bg-background/60 p-3.5">
+      <p className="font-semibold text-grafito">¿Dudas entre dos? Compara su comisión</p>
+      <p className="text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
+        Pon la comisión total anual de cada uno (%). Se calcula con {planMonthly !== null ? `lo que tu plan pone aquí, ${euros(monthly)} al mes` : `${euros(monthly)} al mes`}, durante {COMPARE_YEARS} años.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {input(a, setA, 'Opción A')}
+        {input(b, setB, 'Opción B')}
+      </div>
+      {result && (
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[12.5px] font-semibold text-grafito/80">Habrías puesto</span>
+            <span className="text-[13px] font-bold tabular-nums text-grafito">{euros(result.contributedCents)}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[12.5px] font-semibold text-grafito/80">Con A ({pct(aPct!)})</span>
+            <span className="text-[13px] font-bold tabular-nums text-grafito">{euros(result.aCents)}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[12.5px] font-semibold text-grafito/80">Con B ({pct(bPct!)})</span>
+            <span className="text-[13px] font-bold tabular-nums text-grafito">{euros(result.bCents)}</span>
+          </div>
+          <p className="rounded-xl bg-axis-soft px-3 py-2 text-[12.5px] font-semibold leading-snug text-axis-indigo text-pretty">
+            {result.cheaper === null
+              ? 'Cuestan lo mismo: decide por lo demás (lo que copia, su tamaño, cómo se compra).'
+              : `La opción ${result.cheaper === 'a' ? 'A' : 'B'} te dejaría unos ${euros(result.diffCents)} más: es lo que se llevaría de más la comisión de la otra.`}
+          </p>
+          {(result.aHigh || result.bHigh) && (
+            <p className="rounded-xl bg-negative/8 px-3 py-2 text-[12.5px] font-semibold leading-snug text-negative text-pretty">
+              {result.aHigh && result.bHigh ? 'Las dos comisiones son altas' : `La comisión de la opción ${result.aHigh ? 'A' : 'B'} es alta`} para este tipo de producto.
+            </p>
+          )}
+          <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">Con el crecimiento «normal» supuesto para este tipo, sin impuestos ni inflación. Es una cuenta orientativa, no una previsión.</p>
+        </div>
       )}
     </div>
   )
@@ -343,11 +507,19 @@ const yearsLabel = (y: number) => (y === 1 ? '1 año' : `${y} años`)
  * (lib/axis/guide/scenarios.ts) para la cantidad y el plazo que elijas, más
  * lo que podría caer en un año muy malo. Nunca una previsión.
  */
-function ScenarioSection({ type }: { type: ProductType }) {
+function ScenarioSection({ type, mine }: { type: ProductType; mine: Mine }) {
   const assumption = SCENARIO_ASSUMPTIONS[type.id]
-  const [amount, setAmount] = useState<(typeof SCENARIO_AMOUNTS_CENTS)[number]>(100_000)
-  const [years, setYears] = useState<(typeof SCENARIO_YEARS)[number]>(() => (assumption ? defaultYears(assumption) : 1))
+  // Con plan, la primera cantidad es lo que tu plan invertiría en un año; el plazo, el tuyo (solo en lo que sube y baja).
+  const yours = mine.amountCents !== null && mine.amountCents > 0 && !(SCENARIO_AMOUNTS_CENTS as readonly number[]).includes(mine.amountCents) ? mine.amountCents : null
+  const amounts: readonly number[] = yours !== null ? [yours, ...SCENARIO_AMOUNTS_CENTS] : SCENARIO_AMOUNTS_CENTS
+  const [amount, setAmount] = useState<number>(mine.amountCents !== null && mine.amountCents > 0 ? mine.amountCents : 100_000)
+  const [years, setYears] = useState<(typeof SCENARIO_YEARS)[number]>(() => {
+    if (!assumption) return 1
+    const base = defaultYears(assumption)
+    return mine.years !== null && assumption.kind === 'growth' && assumption.sigma > 10 ? mine.years : base
+  })
   if (!assumption) return null
+  const amountLabel = (c: number) => (c === yours ? `${euros(c)} (tu plan en un año)` : euros(c))
 
   const badYear =
     assumption.badYearPct && assumption.badYearPct > 0 ? (
@@ -362,11 +534,11 @@ function ScenarioSection({ type }: { type: ProductType }) {
       {assumption.kind === 'none' ? (
         <>
           <p className="text-pretty">{assumption.reason}</p>
-          {badYear && <Chips options={SCENARIO_AMOUNTS_CENTS} value={amount} onChange={setAmount} label={euros} />}
+          {badYear && <Chips options={amounts} value={amount} onChange={setAmount} label={amountLabel} />}
           {badYear}
         </>
       ) : (
-        <ScenarioBody assumption={assumption} amount={amount} years={years} onAmount={setAmount} onYears={setYears} badYear={badYear} />
+        <ScenarioBody assumption={assumption} amounts={amounts} amountLabel={amountLabel} amount={amount} years={years} onAmount={setAmount} onYears={setYears} badYear={badYear} />
       )}
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">{SCENARIO_NOTICE}</p>
     </div>
@@ -375,6 +547,8 @@ function ScenarioSection({ type }: { type: ProductType }) {
 
 function ScenarioBody({
   assumption,
+  amounts,
+  amountLabel,
   amount,
   years,
   onAmount,
@@ -382,9 +556,11 @@ function ScenarioBody({
   badYear,
 }: {
   assumption: GrowthAssumption
-  amount: (typeof SCENARIO_AMOUNTS_CENTS)[number]
+  amounts: readonly number[]
+  amountLabel: (cents: number) => string
+  amount: number
   years: (typeof SCENARIO_YEARS)[number]
-  onAmount: (v: (typeof SCENARIO_AMOUNTS_CENTS)[number]) => void
+  onAmount: (v: number) => void
   onYears: (v: (typeof SCENARIO_YEARS)[number]) => void
   badYear: ReactNode
 }) {
@@ -406,13 +582,13 @@ function ScenarioBody({
       <div className="space-y-1.5">
         <p className="text-[12px] font-semibold text-grafito/80">Si pones</p>
         <Chips
-          options={SCENARIO_AMOUNTS_CENTS}
+          options={amounts}
           value={amount}
           onChange={(v) => {
             setActive(null)
             onAmount(v)
           }}
-          label={euros}
+          label={amountLabel}
         />
         <p className="pt-1 text-[12px] font-semibold text-grafito/80">Y lo dejas</p>
         <Chips

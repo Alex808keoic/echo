@@ -183,6 +183,12 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
     - Parte arriesgada: además, exige no haber respondido «Nunca» a la experiencia (`riskyAllowed.noExperience`).
     - El «¿Por qué?» cita cada una de estas respuestas. Sin responderlas, el plan es el de antes.
   - **«¿Me lo puedo permitir?» y «Me ha pasado algo»** arriba de Tu plan. El primero abre «¿Y si…?» en compra (`openSimulator`). El segundo es una hoja con cambios de vida (`plan/life-events.ts`: trabajo o sueldo, sin trabajo, alguien depende de ti, mudarse, dinero extra, compra grande, deuda nueva), con el consejo y lo que hay que revisar: Tu perfil, Fijos, Deudas, un ingreso puntual (`MovementForm oneOffIncome`) o el simulador. Nunca guarda ni mueve nada por su cuenta.
+  - **Guía con tus números** (`lib/axis/guide/invest.ts`, pantalla `guia`; el usuario eligió estos puntos):
+    - «Cuánto deberías invertir» (`investEstimate`): al mes (paso `invest-long-term`), ahora de una vez o en 6 meses (dinero sin destino de `idle-money`, si no es ahorro seguro), el total en un año y cuánto de tu líquido se queda para colchón y objetivos. Si aún no toca: por el colchón (meses que faltan y lo que invertirías después, recalculando el plan con el colchón completo: `monthlyWithCushionDone`) o por deudas caras; o por qué no (perfil, plazo corto, sin margen, plan bloqueado).
+    - «Tu mezcla, parte por parte» (`sleeveGuide`): cada parte de la mezcla con su peso (el de la mezcla, también cuando el mes reequilibra), lo que recibe al mes, cómo elegir entre sus tipos (`SLEEVE_CHOICE`) y los tipos que encajan (`SLEEVE_TYPES`). Sustituye a la tarjeta «lo que mejor te encaja» cuando hay mezcla.
+    - «Cómo reconocer uno bueno»: `ProductType.choose` en 9 tipos (umbrales alineados con `HIGH_FEE_PCT`); también llega al chat (`como_reconocer_uno_bueno`) y licencia sus cifras.
+    - Comparador de comisiones de dos opciones (`feeComparison`, con la aportación del plan a esa parte o 100 €/mes, 20 años, crecimiento «normal» del tipo). Sustituye al campo de una sola comisión.
+    - Escenarios: empiezan con lo que tu plan invertiría en un año y con tu plazo (solo en lo que sube y baja).
   - **Pendiente de decidir con el usuario:** objetivos por plazo (el dinero de un objetivo a más de 5 años podría invertirse). Choca con la invariante de que el progreso de los objetivos sale solo del líquido: hay que decidir cómo cuenta lo invertido para un objetivo antes de tocarlo.
 
 ---

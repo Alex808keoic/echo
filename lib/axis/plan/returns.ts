@@ -102,7 +102,7 @@ export interface FeeSummary {
 }
 
 /** Valor futuro de lo de hoy más una aportación mensual, creciendo a `pct` anual (capitalización mensual). */
-function futureValue(todayCents: number, monthlyCents: number, pct: number, years: number): number {
+export function futureValue(todayCents: number, monthlyCents: number, pct: number, years: number): number {
   const m = Math.pow(1 + pct / 100, 1 / 12)
   let total = todayCents
   for (let i = 0; i < years * 12; i++) total = total * m + monthlyCents

@@ -39,6 +39,8 @@ export interface ProductType {
   what: string
   goodFor: string
   compare: string[]
+  /** «Cómo reconocer uno bueno»: señales con umbrales orientativos, sin nombrar ninguno. Solo en los tipos más usados. */
+  choose?: string[]
   warnings: string[]
   /** Ejemplos de lo que existe dentro del tipo. Solo pantalla; no son recomendaciones. */
   examples?: string[]
@@ -118,6 +120,12 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La TAE (el interés anual real) y cuánto dura', 'Si hay penalización por sacar el dinero antes de tiempo', 'Comisiones de la cuenta', 'Que la entidad esté adherida a un fondo de garantía de depósitos'],
     warnings: ['TAE muy alta solo los primeros meses: mira cuánto queda después', 'En España, el Fondo de Garantía de Depósitos cubre hasta 100.000 € por titular y entidad'],
     examples: ['Cuenta remunerada (dinero disponible siempre)', 'Depósito a 6 meses', 'Depósito a 12 meses'],
+    choose: [
+      'Una TAE que se acerque al tipo de depósito del BCE y, a ser posible, que supere la inflación',
+      'Que la TAE dure: no solo los primeros meses de bienvenida',
+      'Sin comisiones ni condiciones que no cumples (nómina, recibos, tarjeta)',
+      'Entidad adherida a un fondo de garantía de depósitos: en España cubre hasta 100.000 € por titular y entidad',
+    ],
     keywords: ['cuenta remunerada', 'deposito', 'depositos', 'plazo fijo', 'cuenta de ahorro'],
   },
   {
@@ -132,6 +140,11 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La rentabilidad y el plazo', 'Comisiones del intermediario (se pueden comprar directamente al Tesoro Público)'],
     warnings: ['Si las vendes antes del vencimiento, el precio puede ser menor que el que pagaste'],
     examples: ['Letras a 3 meses', 'Letras a 6 meses', 'Letras a 9 meses', 'Letras a 12 meses'],
+    choose: [
+      'Un plazo (3, 6, 9 o 12 meses) que acabe cuando necesites el dinero',
+      'Compara su rentabilidad con la TAE de un depósito al mismo plazo',
+      'Mira si te cobran comisión por comprarlas o guardarlas: se pueden comprar sin ninguna',
+    ],
     keywords: ['letras', 'letra del tesoro', 'letras del tesoro', 'tesoro'],
   },
   {
@@ -145,6 +158,11 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     goodFor: 'Dinero de corto plazo como alternativa a una cuenta, con algo más de riesgo.',
     compare: ['La comisión total anual (TER)', 'La rentabilidad después de comisiones'],
     warnings: ['No está garantizado como un depósito: en momentos raros puede bajar un poco'],
+    choose: [
+      'Comisión total por debajo del 0,3 % al año: por encima del 0,5 % se come casi todo lo que da',
+      'Invierte en deuda de calidad a muy corto plazo',
+      'Su rentabilidad va cerca del tipo de depósito del BCE',
+    ],
     keywords: ['fondo monetario', 'fondos monetarios', 'monetario'],
   },
 
@@ -161,6 +179,11 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['El plazo: cuanto más largo, más se mueve su precio', 'La rentabilidad hasta el vencimiento', 'Comisiones del intermediario (se pueden comprar directamente al Tesoro Público)'],
     warnings: ['Si suben los tipos y lo vendes antes del vencimiento, puedes perder dinero', 'Un estado con problemas paga más interés, pero arriesga más'],
     examples: ['Bonos del Estado a 3 años', 'Bonos del Estado a 5 años', 'Obligaciones del Estado a 10 años', 'Bonos de otros estados de la zona euro (por ejemplo, Alemania)'],
+    choose: [
+      'De un estado de la zona euro con buena nota de crédito',
+      'Que venza cuando vayas a necesitar el dinero: si lo mantienes hasta entonces, sabes lo que cobras',
+      'Compara lo que paga con unas Letras o un depósito al mismo plazo',
+    ],
     keywords: ['bonos', 'bono', 'obligaciones', 'bonos del estado', 'deuda publica'],
   },
   {
@@ -188,6 +211,12 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     goodFor: 'Tener renta fija diversificada sin elegir bonos uno a uno.',
     compare: ['La comisión total anual (TER)', 'La duración media de sus bonos: a más duración, más se mueve con los tipos', 'Qué tipo de bonos lleva (estados, empresas, «high yield»)'],
     warnings: ['Si suben los tipos, puede bajar durante un tiempo', 'A diferencia de un bono, no tiene fecha de vencimiento: nadie te asegura recuperar lo invertido en una fecha'],
+    choose: [
+      'Comisión total por debajo del 0,5 % al año; por encima del 1 %, cara',
+      'Bonos de calidad (grado de inversión) de muchos estados y empresas',
+      'Una duración acorde a tu plazo: cuanto más larga, más sube y baja cuando cambian los tipos de interés',
+      'En euros o con la divisa cubierta, para no sumar riesgo de cambio',
+    ],
     keywords: ['renta fija', 'fondo de renta fija', 'fondos de renta fija'],
   },
 
@@ -204,6 +233,12 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La comisión total anual (TER): en un indexado suele ser baja', 'Qué índice copia y cuántas empresas y países incluye', 'Lo bien que lo copia (error de seguimiento)'],
     warnings: [EQUITY_DROP, 'En España, pasar el dinero de un fondo a otro no tributa (traspaso)'],
     examples: ['Índice MSCI World: grandes empresas de países desarrollados', 'Índice MSCI ACWI: además, países emergentes', 'Índice FTSE All-World: parecido al anterior', 'Índice S&P 500: las 500 mayores de EE. UU.'],
+    choose: [
+      'Comisión total (TER) por debajo del 0,3 % al año; por encima del 0,5 %, cara para un indexado',
+      'Que copie un índice mundial de miles de empresas de muchos países, no uno de un solo país o sector',
+      'Clase de acumulación: reinvierte lo que pagan las empresas sin que tributes cada año',
+      'Un fondo grande y con años de historia, que copie bien su índice (poco error de seguimiento)',
+    ],
     keywords: ['fondo indexado', 'fondos indexados', 'indexado', 'indexados', 'msci world', 'indice mundial'],
   },
   {
@@ -230,6 +265,11 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     goodFor: 'Quien quiere algo intermedio entre la renta fija y las acciones en un solo producto.',
     compare: ['Qué parte lleva en acciones: a más acciones, más riesgo', 'La comisión total anual: algunos son caros para lo que hacen'],
     warnings: ['Puede bajar en los años malos de la bolsa y de los bonos a la vez'],
+    choose: [
+      'Una proporción de acciones y bonos que encaje con tu perfil de riesgo',
+      'Comisión total baja: por debajo del 0,5 % si es indexado; por encima del 1,5 %, cara',
+      'Que mantenga solo esa proporción con el tiempo (reequilibrio automático)',
+    ],
     keywords: ['fondo mixto', 'fondos mixtos'],
   },
 
@@ -246,6 +286,12 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La comisión total anual (TER)', 'Las comisiones del bróker por comprar y vender', 'Qué índice copia y si es amplio', 'Si reparte los dividendos o los reinvierte (acumulación)'],
     warnings: [EQUITY_DROP, 'En España, cambiar de un ETF a otro normalmente tributa (no hay traspaso como en los fondos)'],
     examples: ['Índice MSCI World', 'Índice MSCI ACWI', 'Índice FTSE All-World'],
+    choose: [
+      'Comisión total (TER) por debajo del 0,3 % al año',
+      'Que copie un índice mundial de miles de empresas',
+      'De acumulación y domiciliado en la UE (UCITS), el que puede comprar un particular en España',
+      'Con mucho dinero invertido y mucha compraventa diaria: así se compra y se vende a buen precio',
+    ],
     keywords: ['etf', 'etfs'],
   },
   {
@@ -288,6 +334,12 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La duración media de sus bonos', 'Qué bonos lleva y en qué moneda', 'La comisión total anual (TER)'],
     warnings: ['Si suben los tipos, puede bajar durante un tiempo', 'Si los bonos están en otra moneda, el cambio frente al euro también cuenta'],
     examples: ['Bonos de gobiernos de la zona euro', 'Bonos de empresas en euros', 'Bonos a corto plazo'],
+    choose: [
+      'Comisión total (TER) por debajo del 0,25 % al año',
+      'Bonos de calidad de muchos emisores, con una duración acorde a tu plazo',
+      'En euros o con la divisa cubierta',
+      'De acumulación y domiciliado en la UE (UCITS)',
+    ],
     keywords: ['etf de bonos', 'etf de renta fija'],
   },
   {
