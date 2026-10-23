@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T13:05:34.288Z",
+  "checkedAt": "2026-10-23T12:44:47.825Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,18 +10,18 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.263,
+      "value": 3.262,
       "unit": "%",
-      "asOf": "2026-10-21",
-      "changePct": 0.018,
+      "asOf": "2026-10-22",
+      "changePct": -0.001,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     },
     {
       "key": "ine-ipc",
@@ -32,7 +32,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     },
     {
       "key": "ea-hicp",
@@ -44,18 +44,18 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19323.5,
+      "value": 18913.5,
       "unit": "pts",
-      "asOf": "2026-10-21",
-      "changePct": 0.48,
+      "asOf": "2026-10-22",
+      "changePct": -1.38,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     },
     {
       "key": "stoxx50",
@@ -66,7 +66,7 @@
       "asOf": "2026-09",
       "changePct": -2.58,
       "source": "BCE",
-      "fetchedAt": "2026-10-22T13:05:34.288Z"
+      "fetchedAt": "2026-10-23T12:44:47.826Z"
     }
   ],
   "events": [],
