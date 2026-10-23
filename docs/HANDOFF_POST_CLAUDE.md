@@ -33,6 +33,12 @@
 `gisbertsalminenalex-ship-it` activa, el push da 403. Antes de subir:
 `gh auth switch --user Alex808keoic` y después
 `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
+Si otra sesión necesita la otra cuenta activa, se puede subir sin cambiarla:
+`git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$(gh auth token --user Alex808keoic)"; }; f' push origin main`.
+
+**Si un push no se despliega:** cada commit de `main` debe recibir en GitHub el estado «Vercel». Si no
+aparece ninguno (ni de error), Vercel no recibe los avisos: el 2026-10-23 se había desconectado el
+repo (Vercel → proyecto «echo» → Settings → Git). Tras reconectarlo hace falta un push nuevo.
 
 ### Qué se hizo del 2 al 10 de octubre (≈ 60 commits)
 
