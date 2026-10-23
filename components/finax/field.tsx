@@ -76,7 +76,8 @@ export function ChipGroup<T extends string>({ options, value, onChange }: ChipGr
             onClick={() => onChange(option)}
             aria-pressed={active}
             className={cn(
-              'relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all after:absolute after:inset-x-0 after:-inset-y-1',
+              // 32 px de pastilla + 4 px de zona táctil por arriba y por abajo: con el hueco de 8 px, las filas se tocan sin huecos muertos.
+              'relative rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-all after:absolute after:inset-x-0 after:-inset-y-1',
               active ? 'bg-finax-dark text-white' : 'bg-muted text-muted-foreground hover:bg-graylight/70',
             )}
           >

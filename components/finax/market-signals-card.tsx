@@ -38,7 +38,7 @@ export function MarketSignalsCard({ signals, onDebts }: MarketSignalsCardProps) 
             <p className="text-[13.5px] font-bold leading-snug text-grafito text-pretty">{s.title}</p>
             <p className="text-[12.5px] font-medium leading-snug text-grafito/85 text-pretty">{s.text}</p>
             {s.id.startsWith('variable-debt:') && onDebts && (
-              <button type="button" onClick={onDebts} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+              <button type="button" onClick={onDebts} className="tap text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                 Ver tus deudas
               </button>
             )}

@@ -89,7 +89,7 @@ function Insight({ analysis, onNavigate, footer }: { analysis: AxisAnalysis; onN
             <li key={s.id} className="flex flex-col items-start gap-1 text-[12.5px] font-medium text-muted-foreground">
               <span
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                  'rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
                   s.priority === 'critical' || s.priority === 'high'
                     ? 'bg-negative-soft text-negative'
                     : 'bg-muted text-muted-foreground',
@@ -102,9 +102,9 @@ function Insight({ analysis, onNavigate, footer }: { analysis: AxisAnalysis; onN
           ))}
         </ul>
       )}
-      <details className="rounded-xl border border-border px-3 py-2">
-        <summary className="cursor-pointer text-[12.5px] font-semibold text-axis-indigo">Datos y lo que no sé</summary>
-        <div className="mt-2 space-y-3">
+      <details className="rounded-xl border border-border px-3">
+        <summary className="cursor-pointer py-2.5 text-[12.5px] font-semibold text-axis-indigo">Datos y lo que no sé</summary>
+        <div className="space-y-3 pb-3">
           {data.facts.length > 0 && <Bullets items={data.facts} />}
           <ul className="space-y-2">
             {uncertainty.items.map((u) => (
@@ -123,7 +123,7 @@ function Insight({ analysis, onNavigate, footer }: { analysis: AxisAnalysis; onN
         <button
           type="button"
           onClick={() => step.to && onNavigate(step.to)}
-          className="flex items-center gap-1 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline"
+          className="tap flex items-center gap-1 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline"
         >
           {step.label}
           <ChevronRight className="h-4 w-4" />
@@ -221,7 +221,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         {engineNote(engine)}
       </p>
       {axis.status === 'analysis' && (
-        <button type="button" onClick={refresh} className="text-[12px] font-semibold text-axis-violet transition-colors hover:text-axis-indigo">
+        <button type="button" onClick={refresh} className="tap text-[12px] font-semibold text-axis-violet transition-colors hover:text-axis-indigo">
           Actualizar lectura
         </button>
       )}

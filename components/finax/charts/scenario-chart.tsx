@@ -55,7 +55,7 @@ export function ScenarioChart({ series, active, onActive, height = 150 }: Scenar
   return (
     <div className="space-y-1">
       <div className="flex gap-2">
-        <div aria-hidden className="relative shrink-0 text-[10.5px] font-semibold tabular-nums text-muted-foreground" style={{ height }}>
+        <div aria-hidden className="relative shrink-0 text-[11px] font-semibold tabular-nums text-muted-foreground" style={{ height }}>
           <span className="invisible block h-0 overflow-hidden whitespace-nowrap">{widest}</span>
           {labels.map((t) => (
             <span key={t.value} className="absolute right-0 -translate-y-1/2 whitespace-nowrap leading-none" style={{ top: `${(t.y / height) * 100}%` }}>
@@ -131,7 +131,7 @@ export function ScenarioChart({ series, active, onActive, height = 150 }: Scenar
         </div>
       </div>
       {/* Eje de tiempo, alineado con el área de la gráfica (misma columna invisible que el eje vertical). */}
-      <div aria-hidden className="flex gap-2 text-[10.5px] font-semibold text-muted-foreground">
+      <div aria-hidden className="flex gap-2 text-[11px] font-semibold text-muted-foreground">
         <span className="invisible h-0 overflow-hidden whitespace-nowrap tabular-nums">{widest}</span>
         <div className="mr-2 flex min-w-0 flex-1 justify-between">
           <span>Hoy</span>

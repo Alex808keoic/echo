@@ -27,7 +27,7 @@
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
 | Lint | No existe |
-| Dispositivo principal | Galaxy S21 del usuario (~360 × 800 CSS px). Los cambios de UI se comprueban a 360 × 800 |
+| Dispositivo principal | **Galaxy S21 FE** del usuario (≈ 412 × 915 CSS px con la configuración de fábrica; hasta 2026-10-23 se creía un S21 de 360 px). Los cambios de UI se comprueban a 412 × 915 y se confirma que nada se rompe a 360 × 800 |
 
 **Subir a GitHub:** `gh` tiene dos cuentas. Solo `Alex808keoic` puede escribir en el repo; con
 `gisbertsalminenalex-ship-it` activa, el push da 403. Antes de subir:
@@ -106,7 +106,7 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
 
 ### Pendiente (en orden recomendado)
 
-1. **Pasada de diseño para el Galaxy S21** (360 px), pantalla por pantalla. El usuario la dejó a propósito para el final; en los commits de arreglos no se tocan tamaños ni layout sin pedirlo.
+1. ~~Pasada de diseño para el móvil~~ 2026-10-23, primera pasada para el S21 FE: auditadas todas las pantallas a 412 y 360 px (nada se sale ni se corta). Se arreglaron zonas táctiles (utilidad `tap` en `globals.css` para enlaces de texto; pastillas de `ChipGroup` a 32 px + zona; casillas de «Tu decisión del mes», desplegables «¿Por qué?» y «Datos y lo que no sé», sugerencias del chat ≥ 40 px), texto mínimo de 11 px (barra inferior, ejes de gráficas, etiquetas) y la barra inferior usa `env(safe-area-inset-bottom)` en lugar de 20 px fijos. Si el usuario pide más, siguiente paso: revisar a ojo pantalla por pantalla en su móvil.
 2. ~~Que Vercel solo despliegue si pasa la CI~~ ✅ 2026-10-14: `vercel.json` hace que Vercel ejecute `typecheck` y `test` antes de `build`; si fallan, no despliega y producción sigue con la versión anterior.
 3. **Medir en producción:**
    - Si el timeout de Cloudflare en el análisis es sistemático.

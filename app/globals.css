@@ -81,6 +81,19 @@
   --axis-soft: #eef0ff;
 }
 
+/*
+ * Zona táctil de al menos ~40 px de alto para enlaces de texto y controles bajos, sin cambiar su
+ * aspecto: un ::after invisible que sobresale por arriba y por abajo (pensado para el dedo en el S21 FE).
+ */
+@utility tap {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -10px -6px;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--border);

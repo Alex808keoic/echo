@@ -424,7 +424,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
               <span className="text-[15px] font-extrabold text-grafito tabular-nums">
                 {formatCents(monthTotal)}
               </span>
-              <span className="text-[10.5px] font-medium leading-tight text-muted-foreground">
+              <span className="text-[11px] font-medium leading-tight text-muted-foreground">
                 {noun} {isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`}
               </span>
             </DonutChart>
@@ -436,7 +436,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
                       type="button"
                       aria-expanded={restOpen}
                       onClick={() => setRestOpenFor(restOpen ? null : month)}
-                      className="block w-full text-left"
+                      className="tap block w-full text-left"
                     >
                       <LegendRow color={c.color} label={restOpen ? 'Resto ▴' : 'Resto ▾'} pct={c.pct} />
                     </button>

@@ -224,7 +224,7 @@ function ProposalCard({ message, memories, onResolve }: { message: ChatMessage; 
         )
       )}
       {editable && !editing && (
-        <button type="button" onClick={() => setEditing(true)} className="mt-2 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+        <button type="button" onClick={() => setEditing(true)} className="tap mt-2 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
           Corregir el dato
         </button>
       )}
@@ -307,7 +307,7 @@ function Message({ message, memories, onResolve, onNavigate }: { message: ChatMe
         {message.nextStep && <NextStepLink step={message.nextStep} onNavigate={onNavigate} />}
         {message.actions && message.actions.length > 0 && <ActionCards actions={message.actions} onNavigate={onNavigate} />}
         <ProposalCard message={message} memories={memories} onResolve={onResolve} />
-        <p className="mt-1.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground/80">
+        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground/80">
           <span className={cn('rounded-full px-1.5 py-0.5', ai ? 'bg-axis-soft text-axis-indigo' : 'bg-muted')}>{ai ? 'IA' : 'Motor local'}</span>
           {message.fallbackReason && <span className="normal-case tracking-normal">· {FALLBACK_LABEL[message.fallbackReason]}</span>}
         </p>
@@ -321,7 +321,7 @@ function MemoriesList({ memories, onForget, onNavigate }: { memories: UserMemory
   const objectives = useLiveQuery(listObjectives, [])
   const { open: openSheet, close } = useSheet()
   const seeAll = (
-    <button type="button" onClick={() => onNavigate('memoria')} className="mt-2 px-1 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+    <button type="button" onClick={() => onNavigate('memoria')} className="tap mt-2 px-1 text-[12px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
       Ver todo · Lo que AXIS sabe de ti
     </button>
   )
@@ -357,7 +357,7 @@ function MemoriesList({ memories, onForget, onNavigate }: { memories: UserMemory
                 type="button"
                 aria-label="Olvidar"
                 onClick={() => confirmForget(m)}
-                className="shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-negative"
+                className="tap shrink-0 rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-negative"
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>
@@ -426,7 +426,7 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
                   type="button"
                   disabled={disabled}
                   onClick={() => void onSend(s)}
-                  className="rounded-full bg-muted px-3.5 py-1.5 text-left text-xs font-semibold text-muted-foreground transition-all hover:bg-graylight/70 disabled:opacity-50"
+                  className="min-h-10 rounded-full bg-muted px-3.5 py-2 text-left text-[12.5px] font-semibold text-muted-foreground transition-all hover:bg-graylight/70 disabled:opacity-50"
                 >
                   {s}
                 </button>

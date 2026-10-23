@@ -129,7 +129,7 @@ function Section({ title, items, onEdit, onDelete, onConvert, onTogglePlan }: Se
               )}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
                 {v.editable && (
-                  <button type="button" onClick={() => onEdit(v.memory)} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => onEdit(v.memory)} className="tap text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                     Editar
                   </button>
                 )}
@@ -142,7 +142,7 @@ function Section({ title, items, onEdit, onDelete, onConvert, onTogglePlan }: Se
                   Eliminar
                 </button>
                 {onTogglePlan && (
-                  <button type="button" onClick={() => onTogglePlan(v.memory)} className="text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => onTogglePlan(v.memory)} className="tap text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:underline">
                     {v.memory.planIgnored ? 'Volver a tenerla en cuenta' : 'No cuenta para el plan'}
                   </button>
                 )}

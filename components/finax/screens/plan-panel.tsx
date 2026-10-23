@@ -141,9 +141,9 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
                   </ul>
                 )}
                 {why.length > 0 && (
-                  <details className="rounded-xl border border-border px-3 py-2">
-                    <summary className="cursor-pointer text-[12.5px] font-semibold text-axis-indigo">¿Por qué?</summary>
-                    <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[12px] font-medium leading-snug text-grafito/80 text-pretty">
+                  <details className="rounded-xl border border-border px-3">
+                    <summary className="cursor-pointer py-2.5 text-[12.5px] font-semibold text-axis-indigo">¿Por qué?</summary>
+                    <ul className="list-disc space-y-1 pb-2.5 pl-4 text-[12px] font-medium leading-snug text-grafito/80 text-pretty">
                       {why.map((w) => (
                         <li key={w}>{w}</li>
                       ))}
@@ -199,24 +199,24 @@ function MonthChecklist({ checklist, positions }: { checklist: PlanChecklist; po
           {doneCount} de {items.length} hechas
         </p>
       </div>
-      <ul className="space-y-2">
+      <ul className="-my-1.5">
         {items.map((item) => {
           const checked = done.has(item.id)
           // Este paso lo marca Finax al apuntar el valor de todas tus inversiones este mes.
           const auto = item.id === UPDATE_INVESTMENTS_ID
           return (
             <li key={item.id} className="space-y-1">
-              <label className="flex cursor-pointer items-start gap-3">
+              <label className="flex cursor-pointer items-start gap-3 py-2.5">
                 <input type="checkbox" checked={checked} disabled={auto} onChange={() => void toggle(item.id)} className="mt-0.5 h-4 w-4 shrink-0 accent-finax" />
                 <span className={cn('text-[13.5px] font-semibold leading-snug text-pretty', checked ? 'text-muted-foreground line-through' : 'text-grafito')}>{item.text}</span>
               </label>
               {auto && !checked && (
-                <button type="button" onClick={() => open('Actualizar valores', <UpdateValuesForm positions={positions} onDone={close} />)} className="ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+                <button type="button" onClick={() => open('Actualizar valores', <UpdateValuesForm positions={positions} onDone={close} />)} className="tap ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                   Actualizar valores
                 </button>
               )}
               {checked && item.invest && (
-                <button type="button" onClick={() => register(item.invest!.sleeve, item.invest!.cents)} className="ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+                <button type="button" onClick={() => register(item.invest!.sleeve, item.invest!.cents)} className="tap ml-7 text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
                   Apuntarlo en Inversiones
                 </button>
               )}
@@ -251,7 +251,7 @@ function MonthReviewCard({ review, onStats }: { review: MonthReview; onStats: ()
       </ul>
       <p className="rounded-xl bg-muted px-3 py-2 text-[12.5px] font-semibold leading-snug text-grafito text-pretty">{review.next}</p>
       {review.verdict !== 'on-track' && (
-        <button type="button" onClick={onStats} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+        <button type="button" onClick={onStats} className="tap text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
           Ver en qué se fue el dinero
         </button>
       )}
@@ -292,7 +292,7 @@ function MonthCheckIn({ checklist, memories, onSimulate }: { checklist: PlanChec
           Revisar mi perfil
         </Button>
       </div>
-      <button type="button" onClick={onSimulate} className="text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
+      <button type="button" onClick={onSimulate} className="tap text-[12.5px] font-semibold text-axis-indigo underline-offset-2 hover:underline">
         ¿Un cambio que aún no ha pasado? Pruébalo en «¿Y si…?»
       </button>
     </FinancialCard>

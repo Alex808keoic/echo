@@ -62,7 +62,7 @@ export function LineChart({ data, xs, dates, height = 150, className }: LineChar
 
   return (
     <div className={cn('flex gap-2', className)}>
-      <div aria-hidden className="relative shrink-0 text-[10.5px] font-semibold tabular-nums text-muted-foreground">
+      <div aria-hidden className="relative shrink-0 text-[11px] font-semibold tabular-nums text-muted-foreground">
         <span className="invisible block h-0 overflow-hidden whitespace-nowrap">{widest}</span>
         {labels.map((t) => (
           <span key={t.value} className="absolute right-0 -translate-y-1/2 whitespace-nowrap leading-none" style={{ top: `${(t.y / height) * 100}%` }}>

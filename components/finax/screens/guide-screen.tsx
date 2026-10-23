@@ -196,7 +196,7 @@ function EstimateCard({ estimate, onPlan }: { estimate: InvestEstimate; onPlan: 
       ) : (
         <p className="text-[13px] font-medium leading-snug text-grafito/85 text-pretty">{NONE_TEXT[estimate.reason]}</p>
       )}
-      <button type="button" onClick={onPlan} className="text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
+      <button type="button" onClick={onPlan} className="tap text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
         Ver tu plan →
       </button>
     </FinancialCard>
@@ -278,7 +278,7 @@ function LeadCard({ rec, onOpen, onPlan }: { rec: GuideRecommendation; onOpen: (
           Ver {lead.group.name.toLowerCase()}
         </button>
       ) : (
-        <button type="button" onClick={onPlan} className="text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
+        <button type="button" onClick={onPlan} className="tap text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
           Ver tu plan →
         </button>
       )}
@@ -367,7 +367,7 @@ function TypeDetail({ type, fit, plan, mine, onPlan }: { type: ProductType; fit:
         </p>
         <VerdictPill verdict={fit.verdict} text={fit.headline} />
         <Bullets items={fit.reasons} />
-        <button type="button" onClick={onPlan} className="text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
+        <button type="button" onClick={onPlan} className="tap text-[12.5px] font-bold text-axis-violet hover:text-axis-indigo">
           Ver tu plan →
         </button>
       </div>

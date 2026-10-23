@@ -40,7 +40,7 @@ interface BottomNavigationProps {
 export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
   const index = tabIndex(active)
   return (
-    <nav aria-label="Navegación principal" className="border-t border-border bg-card/95 px-3 pb-5 pt-2.5 backdrop-blur">
+    <nav aria-label="Navegación principal" className="border-t border-border bg-card/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur">
       <div className="relative flex items-stretch justify-between">
         {/* Pastilla que se desliza hasta la pestaña activa, detrás de su icono. */}
         <span
@@ -84,7 +84,7 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
               </span>
               <span
                 className={cn(
-                  'text-[10px] font-semibold tracking-tight transition-colors',
+                  'text-[11px] font-semibold tracking-tight transition-colors',
                   isActive ? activeColor : 'text-muted-foreground',
                 )}
               >
