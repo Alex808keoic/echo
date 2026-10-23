@@ -25,10 +25,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { listUserMemories } from '@/lib/db/axis-memories'
 import { ProfileForm } from '../forms/profile-form'
 import { PROFILE_QUESTIONS } from '@/lib/axis/profile/questionnaire'
-import { LIFE_EVENTS, type LifeEventAction } from '@/lib/axis/plan/life-events'
-import type { ScenarioKind } from '@/lib/axis/plan/simulate'
-import { MovementForm } from '../forms/movement-form'
-import { openSimulator } from './simulator-screen'
 import { UpdateValuesForm } from '../forms/update-values-form'
 import { useMarketSignals } from '@/hooks/use-market-signals'
 import { MarketSignalsCard } from '../market-signals-card'
@@ -103,28 +99,10 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
     }
   }
 
-  const simulateNow = (scenario: ScenarioKind) => {
-    openSimulator(scenario)
-    onNavigate('simulador')
-  }
-
   return (
     <div className="space-y-5">
-      {/* Lo que le preguntarías a un asesor en cualquier momento, sin esperar a la revisión del mes. */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="secondary" fullWidth className="px-3 text-[13px]" onClick={() => simulateNow('purchase')}>
-          ¿Me lo puedo permitir?
-        </Button>
-        <LifeEventsButton memories={memories} onNavigate={onNavigate} onSimulate={simulateNow} />
-      </div>
-
-      {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
-
+      {/* Primero lo de este mes; después, en «Cómo vas», el seguimiento. Las herramientas viven en su pestaña. */}
       {checklist && checklist.items.length > 0 && <MonthChecklist checklist={checklist} positions={overview?.positions ?? []} />}
-
-      {market.signals.length > 0 && <MarketSignalsCard signals={market.signals} onDebts={() => onNavigate('deudas')} />}
-
-      {checklist && !checklist.checkedIn && <MonthCheckIn checklist={checklist} memories={memories} onSimulate={() => onNavigate('simulador')} />}
 
       {plan.monthly && <MonthlySummary plan={plan} />}
 
@@ -183,96 +161,24 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
         })}
       </ol>
 
+      {market.signals.length > 0 && <MarketSignalsCard signals={market.signals} onDebts={() => onNavigate('deudas')} />}
+
+      {checklist && !checklist.checkedIn && <MonthCheckIn checklist={checklist} memories={memories} onSimulate={() => onNavigate('simulador')} />}
+
+      <h2 className="pt-2 text-[17px] font-bold tracking-tight text-grafito">Cómo vas</h2>
+
+      {review && <MonthReviewCard review={review} onStats={() => onNavigate('estadisticas')} />}
+
       {insight}
 
       <ProjectionCard plan={plan} context={decision.context} safeRatePct={market.safeRatePct} />
 
       <YearReviewCard overview={overview} plan={plan} memories={memories} onStats={() => onNavigate('estadisticas')} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="secondary" fullWidth onClick={() => onNavigate('simulador')}>
-          ¿Y si…?
-        </Button>
-        <Button variant="secondary" fullWidth onClick={() => onNavigate('deudas')}>
-          Mis deudas
-        </Button>
-      </div>
-
-      <Button variant="secondary" fullWidth onClick={() => onNavigate('guia')}>
-        Guía para invertir
-      </Button>
-
       <p className="flex gap-2.5 rounded-2xl bg-muted px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
         <LeafLogo className="mt-0.5 h-4 w-4 shrink-0 text-axis-violet" />
         <span>{PLAN_DISCLAIMER}</span>
       </p>
-    </div>
-  )
-}
-
-/** «Me ha pasado algo»: abre la lista de cambios de vida y lleva a donde se revisa cada uno. */
-function LifeEventsButton({ memories, onNavigate, onSimulate }: { memories: UserMemory[]; onNavigate: ScreenProps['onNavigate']; onSimulate: (scenario: ScenarioKind) => void }) {
-  const { open, close } = useSheet()
-  const run = (action: LifeEventAction) => {
-    switch (action.kind) {
-      case 'profile':
-        return open('Tu perfil', <ProfileForm memories={memories} onDone={close} />)
-      case 'one-off-income':
-        return open('Nuevo movimiento', <MovementForm oneOffIncome onDone={close} />)
-      case 'recurring':
-        close()
-        return onNavigate('fijos')
-      case 'debts':
-        close()
-        return onNavigate('deudas')
-      case 'simulate':
-        close()
-        return onSimulate(action.scenario)
-    }
-  }
-  return (
-    <Button variant="secondary" fullWidth className="px-3 text-[13px]" onClick={() => open('Me ha pasado algo', <LifeEvents onAction={run} />)}>
-      Me ha pasado algo
-    </Button>
-  )
-}
-
-function LifeEvents({ onAction }: { onAction: (action: LifeEventAction) => void }) {
-  const [openId, setOpenId] = useState<string | null>(null)
-  return (
-    <div className="space-y-3">
-      <p className="text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">
-        Cuando cambia tu vida, cambia tu plan. Elige qué ha pasado y te digo qué revisar.
-      </p>
-      <ul className="space-y-2">
-        {LIFE_EVENTS.map((e) => {
-          const expanded = openId === e.id
-          return (
-            <li key={e.id} className="rounded-2xl border border-border">
-              <button
-                type="button"
-                aria-expanded={expanded}
-                onClick={() => setOpenId(expanded ? null : e.id)}
-                className="min-h-11 w-full px-4 py-2.5 text-left text-[13.5px] font-semibold leading-snug text-grafito text-pretty"
-              >
-                {e.label}
-              </button>
-              {expanded && (
-                <div className="space-y-2.5 px-4 pb-3">
-                  <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">{e.advice}</p>
-                  <div className={cn('grid gap-2', e.actions.length > 1 && 'grid-cols-2')}>
-                    {e.actions.map((a, i) => (
-                      <Button key={a.label} variant={i === 0 ? 'primary' : 'secondary'} fullWidth className="px-3 py-2.5 text-[13px]" onClick={() => onAction(a.action)}>
-                        {a.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ul>
     </div>
   )
 }

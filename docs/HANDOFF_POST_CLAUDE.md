@@ -23,7 +23,7 @@
 | Producción | Vercel, proyecto «echo»; **un push a `main` despliega solo** |
 | IA de AXIS | Cloudflare Workers AI (Gemma 4) → fallback Groq (`openai/gpt-oss-20b`), Decision First activo |
 | IA de Market Research | Desde el 2026-10-13, Cloudflare → Groq (`scripts/market/providers/select.ts`). Necesita los secrets `CF_ACCOUNT_ID` y `CF_API_TOKEN` en GitHub (los añade el usuario; sin ellos, solo Groq). Gemini ya no se usa: fallaba siempre (HTTP 403) |
-| Tests | `pnpm test` → **1.437 pasan, 0 fallan** (2026-10-21, también con `TZ=UTC`) |
+| Tests | `pnpm test` → **1.392 pasan, 0 fallan** (2026-10-23) |
 | Typecheck / build | OK / OK |
 | CI | **Sí, desde `92c363e`**: `.github/workflows/ci.yml` (tipos, tests y build en push y PR a `main`). No bloquea a Vercel |
 | Lint | No existe |
@@ -189,6 +189,11 @@ Los mensajes de commit son detallados (motivo, alcance, tests, goldens): leer
     - «Cómo reconocer uno bueno»: `ProductType.choose` en 9 tipos (umbrales alineados con `HIGH_FEE_PCT`); también llega al chat (`como_reconocer_uno_bueno`) y licencia sus cifras.
     - Comparador de comisiones de dos opciones (`feeComparison`, con la aportación del plan a esa parte o 100 €/mes, 20 años, crecimiento «normal» del tipo). Sustituye al campo de una sola comisión.
     - Escenarios: empiezan con lo que tu plan invertiría en un año y con tu plazo (solo en lo que sube y baja).
+  - **Todo fácil de encontrar (2026-10-23, decidido con el usuario):** cada cosa tiene una sola casa.
+    - AXIS tiene 3 pestañas: «Tu plan», «Herramientas» y «Conversación» (`AxisTab`). «Herramientas» (`screens/tools-panel.tsx`): «Para decidir» (¿Me lo puedo permitir?, ¿Y si…?, Me ha pasado algo, Guía para invertir) y «Sobre ti» («Tu perfil», que abre el cuestionario en hoja, y «Lo que AXIS sabe de ti»). Los botones de herramientas, deudas y guía ya no están en el plan.
+    - «Tu plan» por importancia: decisión del mes → resumen y pasos → «El mercado y tu plan» → «¿Ha cambiado algo?»; debajo, «Cómo vas»: revisión del mes anterior, «Lo que veo en tus números», proyección y resumen del año.
+    - Ajustes conserva atajos a «Tu perfil» y «Lo que AXIS sabe de ti». Filas compartidas en `components/finax/row-list.tsx`; texto del progreso del perfil en `profileProgress` (`profile/questionnaire.ts`).
+    - Icono de Ajustes también en «Tu dinero» (ya estaba en Inicio, Movimientos y AXIS).
   - **Pendiente de decidir con el usuario:** objetivos por plazo (el dinero de un objetivo a más de 5 años podría invertirse). Choca con la invariante de que el progreso de los objetivos sale solo del líquido: hay que decidir cómo cuenta lo invertido para un objetivo antes de tocarlo.
 
 ---

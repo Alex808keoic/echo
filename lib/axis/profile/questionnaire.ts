@@ -134,6 +134,15 @@ export function answeredCount(profile: UserProfile): number {
   return Object.keys(answersFromProfile(profile)).length
 }
 
+/** Una línea con lo respondido de «Tu perfil», para las filas que lo abren. */
+export function profileProgress(profile: UserProfile): string {
+  const answered = answeredCount(profile)
+  const total = PROFILE_QUESTIONS.length
+  if (answered === 0) return `${total} preguntas rápidas para conocerte: deciden tu plan.`
+  if (answered === total) return 'Todas respondidas. Puedes cambiarlas cuando quieras.'
+  return `${answered} de ${total} preguntas respondidas.`
+}
+
 /**
  * Memorias a guardar: una por respuesta que cambia respecto a `current`. Las
  * no respondidas o iguales no generan nada. Sin `replacesId`: la que ocupe el

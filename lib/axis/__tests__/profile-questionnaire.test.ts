@@ -14,7 +14,7 @@ import { CHAT_LIMITS, type MemoryProposal, type UserMemory } from '../chat/types
 import { deriveProfile } from '../profile/derive'
 import { describeFact } from '../profile/describe'
 import { extractProfileFacts } from '../profile/extract'
-import { answeredCount, answersFromProfile, PROFILE_QUESTIONS, profileProposals } from '../profile/questionnaire'
+import { answeredCount, answersFromProfile, PROFILE_QUESTIONS, profileProgress, profileProposals } from '../profile/questionnaire'
 import { isValidMemoryFact, type MemoryFact } from '../profile/types'
 import { db } from '../../db/db'
 import { clearAllData } from '../../db/backup'
@@ -36,6 +36,15 @@ const memory = (fact: MemoryFact | undefined, i: number, content = `Memoria de p
 /** Índice de la opción de una pregunta por su valor. */
 const pick = (id: string, value: unknown) => PROFILE_QUESTIONS.find((q) => q.id === id)!.options.findIndex((o) => o.fact.value === value)
 const ALL = { horizon: pick('horizon', 'long'), riskAttitude: pick('riskAttitude', 'balanced'), irregularIncome: pick('irregularIncome', true), adult: pick('adult', false) }
+
+describe('profileProgress', () => {
+  it('sin respuestas invita a responder; con todas, a cambiarlas', () => {
+    assert.match(profileProgress(deriveProfile([])), /^\d+ preguntas rápidas/)
+    const all = applyProposals([], profileProposals(Object.fromEntries(PROFILE_QUESTIONS.map((q) => [q.id, 0])), {}), 1, newId)
+    assert.equal(all.action, 'applied')
+    assert.equal(profileProgress(deriveProfile(all.memories)), 'Todas respondidas. Puedes cambiarlas cuando quieras.')
+  })
+})
 
 describe('hecho «adult»', () => {
   it('válido solo como { kind, value: boolean }', () => {
@@ -129,6 +138,7 @@ describe('cuestionario · respuestas', () => {
     const profile = deriveProfile(outcome.memories)
     assert.deepEqual(answersFromProfile(profile), ALL)
     assert.equal(answeredCount(profile), 4)
+    assert.equal(profileProgress(profile), `4 de ${PROFILE_QUESTIONS.length} preguntas respondidas.`)
     assert.equal(profile.riskAttitude, 'balanced')
     assert.equal(profile.irregularIncome, true)
   })

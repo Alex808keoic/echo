@@ -9,7 +9,7 @@ import { wealthBreakdown } from '@/lib/finance/wealth-breakdown'
 import { seriesDelta, wealthSources } from '@/lib/finance/patrimonio'
 import { useIsMinor } from '@/hooks/use-minor'
 import type { FinancialOverview } from '@/hooks/use-financial-overview'
-import { PageHeader, SectionHeader } from '../page-header'
+import { IconButton, PageHeader, SectionHeader } from '../page-header'
 import { FilterTabs, Segmented } from '../filter-tabs'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
@@ -18,7 +18,7 @@ import { EvolutionChart, seriesForRange } from '../charts/evolution-chart'
 import { brandColor, CHART_COLORS, donutSlices, REST_COLOR, REST_KEY } from '@/lib/ui/chart-colors'
 import { LegendRow, CategoryRow } from '../category-row'
 import { ChangeBadge } from '../metric'
-import { ArrowUp, ArrowDown, TargetIcon, TrendUpIcon, ChevronRight, MoneyIcon, categoryIconMap, DotsIcon } from '../icons'
+import { ArrowUp, ArrowDown, TargetIcon, TrendUpIcon, ChevronRight, MoneyIcon, categoryIconMap, DotsIcon, SettingsIcon } from '../icons'
 import { ScreenLoading } from '../loading'
 import { EmptyState } from '../empty-state'
 import { Button } from '../button'
@@ -77,7 +77,15 @@ export function MoneyScreen({ overview, onNavigate }: ScreenProps) {
 
   return (
     <div className="space-y-6 px-5 pb-24 pt-3">
-      <PageHeader title="Tu dinero" subtitle="Lo que tienes y en qué se va" />
+      <PageHeader
+        title="Tu dinero"
+        subtitle="Lo que tienes y en qué se va"
+        action={
+          <IconButton label="Ajustes" onClick={() => onNavigate('ajustes')}>
+            <SettingsIcon className="h-5 w-5" />
+          </IconButton>
+        }
+      />
 
       <FilterTabs options={VIEWS} value={view} onChange={setView} size="sm" />
 

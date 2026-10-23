@@ -11,47 +11,19 @@ import { useMarket } from '@/hooks/use-market'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
 import { SubPageHeader } from '../page-header'
-import { FinancialCard } from '../card'
 import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { Confirm } from '../confirm'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
-import { ChevronRight } from '../icons'
+import { ProfileForm } from '../forms/profile-form'
+import { Row, RowGroup as Group } from '../row-list'
+import { deriveProfile } from '@/lib/axis/profile/derive'
+import { profileProgress } from '@/lib/axis/profile/questionnaire'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 import { disableReminders, enableReminders, reminderStatus, type ReminderStatus } from '@/lib/notifications'
 import { getLastBackupAt, setLastBackupAt } from '@/lib/db/meta'
 import { toISODate } from '@/lib/dates'
-
-interface RowProps {
-  title: string
-  description: string
-  onClick?: () => void
-  tone?: 'default' | 'danger'
-  disabled?: boolean
-}
-
-function Row({ title, description, onClick, tone = 'default', disabled }: RowProps) {
-  const content = (
-    <div className="min-w-0 flex-1">
-      <p className={cn('text-[14px] font-bold', tone === 'danger' ? 'text-negative' : 'text-grafito')}>{title}</p>
-      <p className="text-[12px] font-medium text-muted-foreground text-pretty">{description}</p>
-    </div>
-  )
-  // Fila informativa: no es un control.
-  if (!onClick) return <div className="flex items-center gap-3 px-5 py-3.5">{content}</div>
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex w-full items-center gap-3 px-5 py-3.5 text-left disabled:opacity-50"
-    >
-      {content}
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
-    </button>
-  )
-}
 
 /** Activar o desactivar las notificaciones de recordatorio con la app cerrada. */
 function RemindersRow() {
@@ -91,23 +63,13 @@ function RemindersRow() {
   )
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h2 className="mb-2 text-[13px] font-bold text-muted-foreground">{title}</h2>
-      <FinancialCard padded={false} className="divide-y divide-border overflow-hidden">
-        {children}
-      </FinancialCard>
-    </section>
-  )
-}
-
 export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { open, close } = useSheet()
   const fileInput = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const market = useMarket()
-  const memoryCount = useLiveQuery(async () => (await listUserMemories()).length, [], 0)
+  const memories = useLiveQuery(listUserMemories, [], [])
+  const memoryCount = memories.length
   const lastBackupAt = useLiveQuery(getLastBackupAt, [], null)
   const [aiStatus, setAiStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
   useEffect(() => {
@@ -284,6 +246,12 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       </Group>
 
       <Group title="AXIS">
+        {/* Atajos: su sitio es AXIS → Herramientas. */}
+        <Row
+          title="Tu perfil"
+          description={profileProgress(deriveProfile(memories))}
+          onClick={() => open('Tu perfil', <ProfileForm memories={memories} onDone={close} />)}
+        />
         <Row
           title="Lo que AXIS sabe de ti"
           description="Lo que recuerda de tus conversaciones o de lo que añadas tú, y para qué lo usa. Puedes añadir, editar y eliminar."

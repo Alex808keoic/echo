@@ -17,6 +17,7 @@ import { LeafLogo, SettingsIcon, LightbulbIcon, ArrowUpRight, ChevronRight } fro
 import type { ScreenKey } from '../bottom-navigation'
 import { cn } from '@/lib/utils'
 import { PlanPanel } from './plan-panel'
+import { ToolsPanel } from './tools-panel'
 import type { ScreenProps } from './types'
 
 type Navigate = (screen: ScreenKey) => void
@@ -140,10 +141,11 @@ function engineNote(engine: AxisEngineInfo | null): string {
     : `${engine.label} (sin IA). AXIS te aconseja; nunca ejecuta operaciones.`
 }
 
-export type AxisTab = 'plan' | 'conversacion'
+export type AxisTab = 'plan' | 'herramientas' | 'conversacion'
 
 const TABS: ReadonlyArray<{ key: AxisTab; label: string }> = [
   { key: 'plan', label: 'Tu plan' },
+  { key: 'herramientas', label: 'Herramientas' },
   { key: 'conversacion', label: 'Conversación' },
 ]
 
@@ -160,12 +162,12 @@ export function openAxisTab(tab: AxisTab) {
 
 function AxisTabs({ value, onChange }: { value: AxisTab; onChange: (tab: AxisTab) => void }) {
   return (
-    <div role="tablist" aria-label="AXIS" className="relative isolate grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
-      {/* Fondo blanco que se desliza a la pestaña elegida (la mitad menos el hueco). */}
+    <div role="tablist" aria-label="AXIS" className="relative isolate grid grid-cols-3 gap-1 rounded-full bg-muted p-1">
+      {/* Fondo blanco que se desliza a la pestaña elegida (un tercio sin el relleno ni los huecos). */}
       <span
         aria-hidden
-        className="slide-indicator pointer-events-none absolute inset-y-1 left-1 z-10 w-[calc(50%-6px)] rounded-full bg-card shadow-[0_2px_10px_-6px_rgba(79,70,229,0.5)]"
-        style={{ transform: value === 'conversacion' ? 'translateX(calc(100% + 4px))' : 'none' }}
+        className="slide-indicator pointer-events-none absolute inset-y-1 left-1 z-10 w-[calc((100%-16px)/3)] rounded-full bg-card shadow-[0_2px_10px_-6px_rgba(79,70,229,0.5)]"
+        style={{ transform: `translateX(calc(${TABS.findIndex((t) => t.key === value)} * (100% + 4px)))` }}
       />
       {TABS.map((t) => {
         const active = t.key === value
@@ -310,6 +312,10 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
             onForget={chat.forget}
             onNavigate={navigate}
           />
+        </div>
+      ) : tab === 'herramientas' ? (
+        <div id="axis-panel-herramientas" role="tabpanel" aria-labelledby="axis-tab-herramientas" className="content-swap mt-5 px-5">
+          <ToolsPanel onNavigate={navigate} />
         </div>
       ) : (
         <div id="axis-panel-plan" role="tabpanel" aria-labelledby="axis-tab-plan" className="content-swap mt-5 space-y-5 px-5">
