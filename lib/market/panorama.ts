@@ -158,15 +158,35 @@ type Built = Pick<GroupPanorama, 'trend' | 'headline' | 'figures'>
 
 const NO_DATA: Built = { trend: 'no-data', headline: 'Esta semana su fuente no ha dado datos recientes; en cuanto los dé, aparecerán aquí.', figures: [] }
 
+const pick = (by: Map<string, MarketIndicator>, keys: readonly string[]) => keys.flatMap((k) => (by.has(k) ? [by.get(k) as MarketIndicator] : []))
+
+const monthName = (asOf: string) => {
+  const m = /^\d{4}-(\d{2})$/.exec(asOf)
+  return m ? MONTHS[Number(m[1]) - 1] : asOf
+}
+
 function savings(by: Map<string, MarketIndicator>): Built {
   const dfr = by.get('ecb-dfr')
   const ipc = by.get('ine-ipc')
-  if (!dfr) return NO_DATA
-  const rate = dfr.value as number
-  const figures = [figure(dfr), ...(ipc ? [figure(ipc)] : [])]
-  const changed = dfr.changePct ? ` Lo ${dfr.changePct > 0 ? 'subió' : 'bajó'} ${abs(dfr.changePct, 2)} puntos en su última decisión (${dayText(dfr.asOf)}).` : ''
-  const base = `El BCE paga un ${short(rate, 2)} % a los bancos; las cuentas y depósitos suelen pagar algo menos.${changed}`
-  const trend: GroupTrend = dfr.changePct ? (dfr.changePct > 0 ? 'rise' : 'drop') : 'calm'
+  const deposit = by.get('es-deposit-1y')
+  const sight = by.get('es-deposit-sight')
+  const letras = by.get('es-letras-1y')
+  if (!dfr && !deposit && !letras) return NO_DATA
+  const figures = [deposit, sight, letras, dfr, ipc].filter((i): i is MarketIndicator => !!i).map(figure)
+  const parts: string[] = []
+  // Lo que pagan de verdad los bancos en España; sin ese dato, el tipo del BCE como referencia.
+  if (deposit) {
+    parts.push(
+      `Un depósito a 1 año paga de media un ${short(deposit.value as number, 2)} % (${monthName(deposit.asOf)}, Banco de España)${sight ? `; una cuenta a la vista, un ${short(sight.value as number, 2)} %` : ''}.`,
+    )
+  } else if (dfr) {
+    parts.push(`El BCE paga un ${short(dfr.value as number, 2)} % a los bancos; las cuentas y depósitos suelen pagar algo menos.`)
+  }
+  if (letras) parts.push(`Las Letras del Tesoro a 1 año rentan un ${short(letras.value as number, 2)} %.`)
+  if (dfr?.changePct) parts.push(`El BCE ${dfr.changePct > 0 ? 'subió' : 'bajó'} su tipo ${abs(dfr.changePct, 2)} puntos en su última decisión (${dayText(dfr.asOf)}).`)
+  const base = parts.join(' ')
+  const trend: GroupTrend = dfr?.changePct ? (dfr.changePct > 0 ? 'rise' : 'drop') : 'calm'
+  const rate = (deposit ?? letras ?? dfr)?.value as number
   if (!ipc) return { trend, headline: base, figures }
   const real = rate - (ipc.value as number)
   const vsInflation =
@@ -177,9 +197,11 @@ function savings(by: Map<string, MarketIndicator>): Built {
 }
 
 function bonds(by: Map<string, MarketIndicator>): Built {
-  const list = ['ea-10y', 'es-10y'].flatMap((k) => (by.has(k) ? [by.get(k) as MarketIndicator] : []))
-  if (list.length === 0) return NO_DATA
-  const figures = list.map(figure)
+  const list = pick(by, ['ea-10y', 'es-10y'])
+  const others = pick(by, ['us-10y', 'eu-hy'])
+  if (list.length === 0 && others.length === 0) return NO_DATA
+  const figures = [...list, ...others].map(figure)
+  if (list.length === 0) return { trend: 'calm', headline: 'No hay datos recientes de los bonos de la eurozona; abajo tienes los de EE. UU. y los de empresas.', figures }
   // Uno solo para no mezclar señales: el diario de la eurozona antes que la media mensual de España.
   const lead = list.find((i) => monthly(i) !== null) ?? list[0]
   const where = lead.key === 'es-10y' ? 'de España' : 'de la eurozona'
@@ -212,14 +234,19 @@ function stocks(by: Map<string, MarketIndicator>): Built {
   return { trend, headline, figures }
 }
 
+const COMMODITY_NAMES: Record<string, string> = { gold: 'El oro', brent: 'El petróleo Brent', copper: 'El cobre', 'gas-eu': 'El gas natural en Europa' }
+
 function commodities(by: Map<string, MarketIndicator>): Built {
-  const list = ['gold', 'brent'].flatMap((k) => (by.has(k) ? [by.get(k) as MarketIndicator] : []))
+  const list = pick(by, Object.keys(COMMODITY_NAMES))
   if (list.length === 0) return NO_DATA
   const figures = list.map(figure)
   const top = biggest(list)
-  if (!top) return { trend: 'calm', headline: 'Hay precios recientes, pero sin una variación a un mes con la que comparar.', figures }
+  if (!top) {
+    const prices = list.map((i) => `${COMMODITY_NAMES[i.key].replace(/^El /, 'el ')} está a ${fmtValue(i)}`).join('; ')
+    return { trend: 'calm', headline: `${prices[0].toUpperCase()}${prices.slice(1)}. Aún no hay un precio de hace un mes con el que comparar: Finax lo apunta cada día.`, figures }
+  }
   const trend = trendOf(top.pct, T.COMMODITY_MOVE_PCT, T.COMMODITY_STRONG_PCT, -T.COMMODITY_STRONG_PCT)
-  const name = top.i.key === 'gold' ? 'El oro' : 'El petróleo Brent'
+  const name = COMMODITY_NAMES[top.i.key]
   const monthly = top.i.asOf.length === 7 ? ' (media mensual)' : ''
   return { trend, headline: `${name} ${verb(top.pct)} un ${abs(top.pct, 1)} % en el último mes${monthly}.`, figures }
 }

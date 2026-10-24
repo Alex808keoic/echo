@@ -12,6 +12,13 @@ import { coingeckoCrypto } from '../sources/crypto'
 import { ineHousePrices, IPV_URL, quartersBehind } from '../sources/housing'
 import { baseFor, daysBetween, type SourceContext } from '../sources/shared'
 import { parseIndicator } from '../../../lib/market/validate'
+import type { MarketIndicator } from '../../../lib/market/types'
+import { research } from '../../../lib/market/__tests__/fixtures'
+import { bdeSavings, DEPOSITS_URL, LETRAS_URL } from '../sources/savings'
+import { goldApiSpot, GOLD_SPOT_URL } from '../sources/commodities'
+import { applySampledSeries, parseSampledSeries, SAMPLED_KEEP } from '../sampled'
+import { runLightCheck } from '../light'
+import { memoryStore } from '../store'
 
 /** fetch falso: responde según la URL; lo que no está en `routes` da 503. */
 function fakeFetch(routes: Record<string, unknown>): typeof fetch {
@@ -19,7 +26,8 @@ function fakeFetch(routes: Record<string, unknown>): typeof fetch {
     const hit = Object.entries(routes).find(([prefix]) => String(url).startsWith(prefix))
     if (!hit) return new Response('no healthy upstream', { status: 503 })
     const body = typeof hit[1] === 'string' ? hit[1] : JSON.stringify(hit[1])
-    return new Response(body, { status: 200 })
+    // El Banco de España sirve sus CSV en latin1.
+    return new Response(String(url).includes('bde.es') ? Buffer.from(body, 'latin1') : body, { status: 200 })
   }) as typeof fetch
 }
 const ctx = (routes: Record<string, unknown>, now = '2026-10-24T07:30:00Z'): SourceContext => ({ fetch: fakeFetch(routes), now: new Date(now), env: {}, timeoutMs: 1_000 })
@@ -117,5 +125,59 @@ describe('criptomonedas (CoinGecko)', () => {
     assert.ok(eth.changePct !== null && eth.changePct < -10)
     assert.equal(r.source.type, 'data')
     for (const i of r.indicators) parseIndicator(i)
+  })
+})
+
+describe('ahorro seguro (Banco de España)', () => {
+  const deposits = [
+    '"","BE_19_7.1","BE_19_7.2","BE_19_7.3"',
+    '"DESCRIPCIÓN DE LA SERIE","Tipos de interés. Nuevas operaciones. Entidades de crédito y EFC. TEDR. Depósitos de hogares e ISFLSH. A la vista","Tipos de interés. Nuevas operaciones. Entidades de crédito y EFC. TEDR. Hogares e ISFLSH. Depósitos a plazo. Tipo medio ponderado","Tipos de interés. Nuevas operaciones. Entidades de crédito y EFC. TEDR. Hogares e ISFLSH. Depósitos a plazo hasta 1 año"',
+    '"JUL 2026",0.1575,2.1,2.0237',
+    '"AGO 2026",0.1582,2.08,2.0143',
+  ].join('\n')
+  const letras = [
+    '"DESCRIPCIÓN DE LA SERIE","Tipos de interés. Del mercado secundario de valores. Letras del tesoro. De 1 a 3 meses","Tipos de interés. Del mercado secundario de valores. Letras del tesoro. 1 Año. Conjunto del mercado"',
+    '"22 SEP 2026",2.5,3.2',
+    '"23 SEP 2026",2.5,"_"',
+    '"21 OCT 2026",2.562,3.062',
+  ].join('\n')
+
+  it('depósitos (mensual) y Letras a 1 año (diario, en puntos frente a hace un mes)', async () => {
+    const r = await bdeSavings(ctx({ [DEPOSITS_URL]: deposits, [LETRAS_URL]: letras }))
+    const by = Object.fromEntries(r.indicators.map((i) => [i.key, i]))
+    assert.deepEqual([by['es-deposit-1y'].value, by['es-deposit-1y'].asOf, by['es-deposit-1y'].changePct], [2.01, '2026-08', -0.01])
+    assert.deepEqual([by['es-deposit-sight'].value, by['es-deposit-sight'].asOf], [0.16, '2026-08'])
+    assert.deepEqual([by['es-letras-1y'].value, by['es-letras-1y'].asOf, by['es-letras-1y'].changePct, by['es-letras-1y'].changeDays], [3.06, '2026-10-21', -0.14, 29])
+    for (const i of r.indicators) parseIndicator(i)
+  })
+})
+
+describe('oro del día (gold-api) y serie muestreada', () => {
+  const gold = (asOf: string, value: number, src = 'gold-api.com'): MarketIndicator => ({ key: 'gold', label: 'Oro', group: 'commodity', value, unit: 'USD', asOf, changePct: null, source: src })
+
+  it('lee el precio con su fecha; rechaza una respuesta rara', async () => {
+    const r = await goldApiSpot(ctx({ [GOLD_SPOT_URL]: { currency: 'USD', name: 'Gold', price: 3996.899902, symbol: 'XAU', updatedAt: '2026-10-24T09:52:53Z' } }))
+    assert.deepEqual([r.indicators[0].key, r.indicators[0].value, r.indicators[0].asOf, r.indicators[0].changePct, r.source.type], ['gold', 3996.9, '2026-10-24', null, 'data'])
+    await assert.rejects(goldApiSpot(ctx({ [GOLD_SPOT_URL]: { currency: 'EUR', price: 1, updatedAt: '2026-10-24' } })), /no válida/)
+  })
+
+  it('apunta un valor por día y calcula la variación cuando hay uno de hace un mes', () => {
+    const first = applySampledSeries([gold('2026-09-25', 3600)], {})
+    assert.equal(first.indicators[0].changePct, null, 'sin dato de hace un mes, no hay variación')
+    const again = applySampledSeries([gold('2026-09-25', 3610)], first.series)
+    assert.deepEqual(again.series.gold, [{ date: '2026-09-25', value: 3610 }], 'el mismo día se sustituye')
+    const later = applySampledSeries([gold('2026-10-24', 3971)], again.series)
+    assert.deepEqual([later.indicators[0].changePct, later.indicators[0].changeDays], [10, 29])
+    // El oro del FMI (otra fuente, media mensual) no se apunta.
+    assert.deepEqual(applySampledSeries([gold('2026-09', 3600, 'FMI')], {}).series, {})
+    assert.deepEqual(parseSampledSeries({ gold: [{ date: '2026-10-24', value: 1 }, { date: 'x', value: 2 }, { date: '2026-10-25', value: -1 }], bad: 3 }), { gold: [{ date: '2026-10-24', value: 1 }] })
+    assert.equal(SAMPLED_KEEP, 70)
+  })
+
+  it('la comprobación ligera guarda la serie en series.json', async () => {
+    const store = memoryStore({ latest: research() })
+    const material = { retrievedAt: '2026-10-24T07:30:00Z', indicators: [gold('2026-10-24', 3996.9)], headlines: [], sources: [], failed: [], skipped: [] }
+    await runLightCheck({ store, collect: async () => material, now: new Date('2026-10-24T07:30:00Z') })
+    assert.deepEqual(store.files.get('series.json'), { gold: [{ date: '2026-10-24', value: 3996.9 }] })
   })
 })

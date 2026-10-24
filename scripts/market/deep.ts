@@ -22,6 +22,7 @@ import type { MarketAIProvider } from '../../lib/ai/providers/types'
 import { publishResearch } from './publish'
 import type { CollectedMaterial } from './sources'
 import type { DataStore } from './store'
+import { withSampledSeries } from './light'
 
 export interface DeepDeps {
   store: DataStore
@@ -90,7 +91,7 @@ export async function runDeepResearch(deps: DeepDeps): Promise<DeepOutcome> {
   if (!pre.allowed) return { status: 'blocked', reason: pre.reason }
 
   // 4. Fuentes. 5. Compactar. 6. Estimar tokens.
-  const material = await deps.collect()
+  const material = await withSampledSeries(store, await deps.collect())
   if (material.indicators.length === 0 && material.headlines.length === 0) {
     return { status: 'failed', reason: 'ninguna fuente disponible', attempts: [] }
   }

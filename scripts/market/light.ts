@@ -11,6 +11,7 @@ import { assertBudget, emptyLedger, type BudgetLedger } from './budget'
 import { detectEvents, type DetectedEvent } from './material'
 import type { CollectedMaterial } from './sources'
 import type { DataStore } from './store'
+import { applySampledSeries } from './sampled'
 
 export interface LightDeps {
   store: DataStore
@@ -33,10 +34,19 @@ function mergeIndicators(latest: MarketResearch, fresh: MarketResearch['indicato
   return [...byKey.values()]
 }
 
+/** Apunta en `series.json` los indicadores sin histórico propio y les pone la variación a un mes. */
+export async function withSampledSeries(store: DataStore, material: CollectedMaterial): Promise<CollectedMaterial> {
+  if (!store.readSeries || !store.writeSeries) return material
+  const { indicators, series } = applySampledSeries(material.indicators, await store.readSeries())
+  await store.writeSeries(series)
+  return { ...material, indicators }
+}
+
 export async function runLightCheck(deps: LightDeps): Promise<LightOutcome> {
   const now = deps.now ?? new Date()
   const log = deps.log ?? (() => {})
-  const material = await deps.collect()
+  const collected = await deps.collect()
+  const material = await withSampledSeries(deps.store, collected)
   const latest = await deps.store.readLatest()
   const since = new Date(now.getTime() - 2 * 86_400_000).toISOString()
   const events = detectEvents(material, latest, since)

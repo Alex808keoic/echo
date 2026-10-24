@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import type { MarketHistoryEntry, MarketResearch } from '../../lib/market/types'
 import { parseMarketHistory, parseMarketResearch } from '../../lib/market/validate'
 import { parseLedger, type BudgetLedger } from './budget'
+import { parseSampledSeries, type SampledSeries } from './sampled'
 
 export const HISTORY_KEEP = 12
 export const HISTORY_SUMMARY_KEEP = 8
@@ -31,6 +32,9 @@ export interface DataStore {
   readLedger(): Promise<BudgetLedger | null | undefined>
   writeLedger(ledger: BudgetLedger): Promise<void>
   writeLight(report: LightReport): Promise<void>
+  /** `series.json`: valores que el job apunta cada día para fuentes sin histórico (`sampled.ts`). */
+  readSeries?(): Promise<SampledSeries>
+  writeSeries?(series: SampledSeries): Promise<void>
 }
 
 async function readJson(path: string): Promise<unknown | undefined> {
@@ -87,6 +91,8 @@ export function fileStore(dir: string): DataStore {
     },
     writeLedger: (l) => write(p('budget.json'), l),
     writeLight: (r) => write(p('light.json'), r),
+    readSeries: async () => parseSampledSeries(await readJson(p('series.json'))),
+    writeSeries: (s) => write(p('series.json'), s),
   }
 }
 
@@ -136,6 +142,12 @@ export function memoryStore(initial: { latest?: MarketResearch | null; history?:
     },
     async writeLight(r) {
       files.set('light.json', r)
+    },
+    async readSeries() {
+      return parseSampledSeries(files.get('series.json'))
+    },
+    async writeSeries(s) {
+      files.set('series.json', s)
     },
   }
 }

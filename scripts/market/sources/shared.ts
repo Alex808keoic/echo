@@ -88,11 +88,14 @@ export function parseBdeTable(csv: string, match: RegExp, last = 2): Array<{ dat
   if (col < 0) throw new Error('columna no encontrada')
   const points: Array<{ date: string; value: number }> = []
   for (const r of rows) {
-    const m = (r[0] ?? '').match(/^(\d{2}) ([A-Z]{3}) (\d{4})$/)
-    if (!m) continue
+    // Tablas diarias («21 OCT 2026») o mensuales («AGO 2026» → `2026-08`).
+    const day = (r[0] ?? '').match(/^(\d{2}) ([A-Z]{3}) (\d{4})$/)
+    const month = (r[0] ?? '').match(/^([A-Z]{3}) (\d{4})$/)
+    if (!day && !month) continue
     const value = Number(r[col])
     if (!Number.isFinite(value)) continue
-    points.push({ date: `${m[3]}-${BDE_MONTHS[m[2]] ?? '01'}-${m[1]}`, value })
+    const date = day ? `${day[3]}-${BDE_MONTHS[day[2]] ?? '01'}-${day[1]}` : `${month![2]}-${BDE_MONTHS[month![1]] ?? '01'}`
+    points.push({ date, value })
   }
   return points.slice(-last)
 }

@@ -36,7 +36,9 @@ export const FRESHNESS_LABEL: Record<Freshness, string> = {
  * la investigación. Se aplican según la granularidad de `asOf`:
  *
  * - Periodo mensual `YYYY-MM` (inflación, medias mensuales, FEDFUNDS):
- *   fresco hasta `monthlyGraceDays` días después del final del periodo.
+ *   fresco hasta `monthlyGraceDays` días después del final del periodo. Los
+ *   que se publican con unos dos meses de retraso (`slowMonthlyKeys`: tipos
+ *   de los depósitos del Banco de España), hasta `slowMonthlyGraceDays`.
  * - Trimestre `YYYY-Qn` (precio de la vivienda del INE, que publica unos 70
  *   días después del trimestre): fresco hasta `quarterlyGraceDays` días
  *   después del final del trimestre, el tiempo hasta que sale el siguiente.
@@ -55,6 +57,8 @@ export const FRESHNESS_LABEL: Record<Freshness, string> = {
  */
 export const INDICATOR_FRESHNESS = Object.freeze({
   monthlyGraceDays: 45,
+  slowMonthlyGraceDays: 80,
+  slowMonthlyKeys: Object.freeze(['es-deposit-1y', 'es-deposit-sight']) as readonly string[],
   quarterlyGraceDays: 165,
   dailyMaxBusinessDays: 5,
   policyRateMaxDays: 60,
@@ -90,7 +94,8 @@ export function indicatorFreshness(
     const m = Number(month[2])
     if (m < 1 || m > 12) return 'unknown'
     const periodEnd = Date.UTC(y, m, 0) // último día del mes
-    return today <= periodEnd + INDICATOR_FRESHNESS.monthlyGraceDays * DAY_MS ? 'fresh' : 'stale'
+    const grace = INDICATOR_FRESHNESS.slowMonthlyKeys.includes(indicator.key) ? INDICATOR_FRESHNESS.slowMonthlyGraceDays : INDICATOR_FRESHNESS.monthlyGraceDays
+    return today <= periodEnd + grace * DAY_MS ? 'fresh' : 'stale'
   }
   const quarter = QUARTER.exec(indicator.asOf)
   if (quarter) {

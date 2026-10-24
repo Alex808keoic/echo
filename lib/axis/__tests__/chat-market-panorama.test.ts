@@ -33,7 +33,10 @@ const payload = (i: ChatInput) => JSON.parse(buildChatRequest(i).user.slice(buil
 describe('chat · cómo van las inversiones', () => {
   it('el contexto de mercado lleva los indicadores de las familias solo si existen', () => {
     assert.equal(market([]).assetIndicators, undefined)
-    assert.deepEqual(market(ASSETS).assetIndicators?.map((i) => i.key), ['ea-10y', 'btc'])
+    // Todo lo que no entra en keyIndicators (aquí, también el Nasdaq del fixture).
+    const keys = market(ASSETS).assetIndicators?.map((i) => i.key) ?? []
+    for (const k of ['ea-10y', 'btc', 'ndq']) assert.ok(keys.includes(k), k)
+    assert.ok(!keys.includes('ibex'), 'el IBEX ya va en keyIndicators')
   })
 
   it('sin esos datos, el prompt es el de antes', () => {

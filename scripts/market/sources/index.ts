@@ -6,13 +6,14 @@
 import type { MarketIndicator, MarketSource } from '../../../lib/market/types'
 import { bdeEuribor12m, bdeIbex35 } from './bde'
 import { ecbBondYields } from './bonds'
-import { imfCommodities } from './commodities'
+import { goldApiSpot, imfCommodities } from './commodities'
 import { coingeckoCrypto } from './crypto'
 import { ecbDepositRate, ecbEuribor12m, ecbEuroStoxx50 } from './ecb'
 import { fredSeries, SourceSkipped } from './fred'
 import { ineHousePrices } from './housing'
 import { eurostatHicp, ineIpc } from './inflation'
 import { rssFeeds } from './rss'
+import { bdeSavings } from './savings'
 import { SOURCE_TIMEOUT_MS, type Headline, type Source, type SourceContext } from './shared'
 
 export interface NamedSource {
@@ -32,6 +33,8 @@ export const ALL_SOURCES: NamedSource[] = [
   { name: 'FRED', run: fredSeries },
   { name: 'BCE (bonos)', run: ecbBondYields },
   { name: 'INE (vivienda)', run: ineHousePrices },
+  { name: 'Banco de España (depósitos y Letras)', run: bdeSavings },
+  { name: 'gold-api (oro)', run: goldApiSpot },
   { name: 'FMI (materias primas)', run: imfCommodities },
   { name: 'CoinGecko (criptomonedas)', run: coingeckoCrypto },
   ...rssFeeds,

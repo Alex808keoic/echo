@@ -120,3 +120,37 @@ describe('compatibilidad de la investigación', () => {
     assert.equal(indicatorFreshness(q('2026-Q5'), NOW), 'unknown')
   })
 })
+
+describe('panorama · fuentes añadidas el 24-10-2026', () => {
+  it('ahorro seguro con lo que pagan de verdad los depósitos y las Letras', () => {
+    const more = [
+      ...BASE,
+      ind({ key: 'es-deposit-1y', group: 'rate', value: 2.01, asOf: '2026-08' }),
+      ind({ key: 'es-deposit-sight', group: 'rate', value: 0.16, asOf: '2026-08' }),
+      ind({ key: 'es-letras-1y', group: 'rate', value: 3.06, asOf: '2026-10-21' }),
+    ]
+    const g = byId(marketPanorama(more, [], NOW))
+    assert.match(g.ahorro.headline, /depósito a 1 año paga de media un 2,01 % \(agosto, Banco de España\); una cuenta a la vista, un 0,16 %\. Las Letras del Tesoro a 1 año rentan un 3,06 %/)
+    assert.match(g.ahorro.headline, /pierde poder de compra \(unos 2,9 puntos/)
+    assert.equal(g.ahorro.figures.length, 5)
+  })
+
+  it('los depósitos se publican con dos meses de retraso: agosto sigue vigente a finales de octubre', () => {
+    const dep = { key: 'es-deposit-1y', value: 2, asOf: '2026-08' }
+    assert.equal(indicatorFreshness(dep, NOW), 'fresh')
+    assert.equal(indicatorFreshness({ ...dep, key: 'ine-ipc' }, NOW), 'stale', 'la regla normal sigue en 45 días')
+    assert.equal(indicatorFreshness(dep, new Date('2026-11-20T00:00:00Z')), 'stale')
+  })
+
+  it('materias primas: el cobre o el gas también pueden «explotar»', () => {
+    const more = [...BASE, ind({ key: 'copper', group: 'commodity', value: 12000, unit: 'USD', asOf: '2026-09', changePct: 14.2, changeDays: 31 })]
+    const g = byId(marketPanorama(more, [], NOW))
+    assert.equal(g.materias.trend, 'strong-rise')
+    assert.match(g.materias.headline, /El cobre ha subido un 14,2 %.*\(media mensual\)/)
+  })
+
+  it('renta fija enseña también EE. UU. y los bonos de empresas', () => {
+    const more = [...BASE, ind({ key: 'us-10y', group: 'bond', value: 4.4, changePct: 0.1, changeDays: 28 }), ind({ key: 'eu-hy', group: 'bond', value: 5.9, changePct: 0.3, changeDays: 28 })]
+    assert.equal(byId(marketPanorama(more, [], NOW))['renta-fija'].figures.length, 3)
+  })
+})

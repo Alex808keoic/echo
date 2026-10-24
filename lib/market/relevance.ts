@@ -34,7 +34,7 @@ export function matchAssetClasses(assetClasses: AssetClassNote[], positionNames:
   return assetClasses.filter((ac) => ac.aliases.some((alias) => names.some((n) => n.includes(normalize(alias)))))
 }
 
-/** Grupos que no entran en `keyIndicators` (no los usa `decide()`) pero sí en el panorama del chat. */
+/** Familias que no estaban antes del 2026-10-24: su presencia activa el panorama del chat. */
 const ASSET_GROUPS: readonly MarketIndicator['group'][] = ['bond', 'commodity', 'housing', 'crypto']
 
 function pickIndicators(indicators: MarketIndicator[]): MarketIndicator[] {
@@ -64,7 +64,11 @@ export function buildMarketContext(
   positionNames: string[],
   now: Date = new Date(),
 ): MarketContext {
-  const assets = research.indicators.filter((i) => ASSET_GROUPS.includes(i.group)).slice(0, MARKET_CONTEXT_LIMITS.assetIndicators)
+  const key = pickIndicators(research.indicators)
+  // Lo que no entra en `keyIndicators` (no lo usa `decide()`) va al panorama del chat. Solo si hay algún
+  // dato de las familias nuevas: sin ellos, el contexto es el de antes.
+  const extra = research.indicators.filter((i) => !key.includes(i))
+  const assets = extra.some((i) => ASSET_GROUPS.includes(i.group)) ? extra.slice(0, MARKET_CONTEXT_LIMITS.assetIndicators) : []
   const relevant = matchAssetClasses(research.assetClasses, positionNames).slice(0, MARKET_CONTEXT_LIMITS.assetClasses)
   const relevantKeys = relevant.map((a) => a.key)
   return {
@@ -76,7 +80,7 @@ export function buildMarketContext(
     coversTo: research.coversTo,
     overview: research.overview,
     // Cada indicador con su propia frescura; los antiguos se conservan, marcados.
-    keyIndicators: pickIndicators(research.indicators).map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })),
+    keyIndicators: key.map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })),
     ...(assets.length > 0 ? { assetIndicators: assets.map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })) } : {}),
     relevantEvents: pickEvents(research.events, relevantKeys),
     relevantAssetClasses: relevant,
