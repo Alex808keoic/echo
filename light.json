@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-24T11:30:58.287Z",
+  "checkedAt": "2026-10-24T11:35:43.633Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,7 +10,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "euribor-12m",
@@ -21,7 +21,7 @@
       "asOf": "2026-10-22",
       "changePct": -0.001,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "ine-ipc",
@@ -32,7 +32,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "ea-hicp",
@@ -44,7 +44,7 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "ibex",
@@ -56,7 +56,7 @@
       "changePct": -3.37,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "stoxx50",
@@ -68,7 +68,55 @@
       "changePct": -2.58,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
+    },
+    {
+      "key": "fed-funds",
+      "label": "Fed · tipo de fondos federales",
+      "group": "rate",
+      "value": 3.75,
+      "unit": "%",
+      "asOf": "2026-09",
+      "changePct": 0.12,
+      "changeDays": 31,
+      "source": "FRED",
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
+    },
+    {
+      "key": "spx",
+      "label": "S&P 500",
+      "group": "index",
+      "value": 7757.17,
+      "unit": "pts",
+      "asOf": "2026-10-21",
+      "changePct": 0.66,
+      "changeDays": 28,
+      "source": "FRED",
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
+    },
+    {
+      "key": "ndq",
+      "label": "Nasdaq 100",
+      "group": "index",
+      "value": 28957.53,
+      "unit": "pts",
+      "asOf": "2026-10-23",
+      "changePct": -5.39,
+      "changeDays": 28,
+      "source": "FRED",
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
+    },
+    {
+      "key": "brent",
+      "label": "Petróleo Brent (dólares por barril)",
+      "group": "commodity",
+      "value": 115.22,
+      "unit": "USD",
+      "asOf": "2026-10-20",
+      "changePct": 0.29,
+      "changeDays": 28,
+      "source": "FRED",
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "ea-10y",
@@ -80,7 +128,7 @@
       "changePct": -0.18,
       "changeDays": 28,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "es-10y",
@@ -92,7 +140,7 @@
       "changePct": 0.29,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "ine-ipv",
@@ -104,19 +152,19 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 71866,
+      "value": 71883,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -2.63,
+      "changePct": -2.6,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     },
     {
       "key": "eth",
@@ -125,10 +173,10 @@
       "value": 2110,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -10.68,
+      "changePct": -10.67,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T11:30:58.288Z"
+      "fetchedAt": "2026-10-24T11:35:43.633Z"
     }
   ],
   "events": [],
