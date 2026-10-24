@@ -1,11 +1,11 @@
 {
-  "id": "2026-W42",
+  "id": "2026-W43",
   "kind": "deep",
-  "generatedAt": "2026-10-17T13:02:17.895Z",
-  "coversFrom": "2026-10-10",
-  "coversTo": "2026-10-17",
+  "generatedAt": "2026-10-24T10:40:06.059Z",
+  "coversFrom": "2026-10-17",
+  "coversTo": "2026-10-24",
   "region": "eurozone",
-  "overview": "El periodo muestra una presión inflacionista en España con un IPC interanual del 4.9 % en septiembre. En el ámbito monetario, la facilidad de depósito del BCE se sitúa en el 2.5 % y el Euríbor a 12 meses muestra un ligero ascenso al 3.217 %. Mientras el IBEX 35 presenta un crecimiento del 1.31 %, el EURO STOXX 50 ha experimentado una caída del 2.58 % en su media mensual de septiembre.",
+  "overview": "El periodo se caracteriza por un incremento en la inflación tanto en España (4.9%) como en la eurozona (3.8%) según datos de septiembre. Los mercados de renta variable europea muestran una tendencia a la baja, con el IBEX 35 cayendo un 3.37% y el EURO STOXX 50 un 2.58% en sus últimos registros. Por su parte, los activos criptográficos presentan retrocesos significativos, especialmente Ether con una caída del 10.46%. La deuda pública española se situó en el 99,7% del PIB en agosto de 2026.",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -16,7 +16,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "euribor-12m",
@@ -27,7 +27,7 @@
       "asOf": "2026-10-22",
       "changePct": -0.001,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "ine-ipc",
@@ -38,7 +38,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "ea-hicp",
@@ -49,8 +49,8 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "Eurostat",
-      "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z",
+      "publishedAt": "2026-10-16T21:00:00.000Z"
     },
     {
       "key": "ibex",
@@ -62,7 +62,7 @@
       "changePct": -3.37,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "stoxx50",
@@ -74,7 +74,7 @@
       "changePct": -2.58,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "ea-10y",
@@ -86,7 +86,7 @@
       "changePct": -0.18,
       "changeDays": 28,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "es-10y",
@@ -98,7 +98,7 @@
       "changePct": 0.29,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "ine-ipv",
@@ -110,95 +110,95 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 71837,
+      "value": 71964,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -2.67,
+      "changePct": -2.49,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     },
     {
       "key": "eth",
       "label": "Ether (euros)",
       "group": "crypto",
-      "value": 2109,
+      "value": 2115,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -10.7,
+      "changePct": -10.46,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T10:40:06.070Z"
     }
   ],
   "events": [
     {
-      "date": "2026-10-17",
-      "title": "Declaración de Christine Lagarde ante el IMFC",
-      "summary": "Christine Lagarde realiza una declaración ante el IMFC.",
-      "impact": "medium",
-      "source": "BCE · prensa",
+      "date": "2026-10-23",
+      "title": "Cooperación en ciberseguridad y criptografía cuántica",
+      "summary": "El Banco de España y el Banco de Portugal refuerzan su colaboración para abordar riesgos de ciberseguridad y la migración hacia la criptografía cuántica.",
+      "impact": "low",
+      "source": "Banco de España",
       "affects": [
-        "monetary-policy"
+        "regulation"
       ]
     },
     {
-      "date": "2026-09",
-      "title": "Aumento de la inflación en España",
-      "summary": "El IPC en España registró un incremento interanual del 4.9 %, lo que supone un aumento de 0.6 % respecto al periodo anterior.",
-      "impact": "medium",
-      "source": "INE",
+      "date": "2026-10-23",
+      "title": "Publicación de expectativas de los consumidores",
+      "summary": "El BCE presenta los resultados de su encuesta sobre las expectativas de los consumidores correspondiente a septiembre de 2026.",
+      "impact": "low",
+      "source": "BCE",
       "affects": [
         "inflation"
       ]
     },
     {
-      "date": "2026-10-13",
-      "title": "Publicación de actas de la Fed sobre tasas de descuento",
-      "summary": "La Reserva Federal publica las actas de las reuniones sobre la tasa de descuento de agosto y septiembre de 2026.",
+      "date": "2026-10-21",
+      "title": "Situación de la deuda pública en España",
+      "summary": "La deuda de las Administraciones Públicas alcanzó el 99,7% del PIB en agosto de 2026.",
       "impact": "medium",
-      "source": "Fed · prensa",
+      "source": "Banco de España",
+      "affects": [
+        "growth"
+      ]
+    },
+    {
+      "date": "2026-10-20",
+      "title": "Estado financiero del Eurosistema",
+      "summary": "Se reporta el estado financiero consolidado del Eurosistema con fecha de referencia al 16 de octubre de 2026.",
+      "impact": "low",
+      "source": "BCE",
       "affects": [
         "monetary-policy"
       ]
     },
     {
-      "date": "2026-10-15",
-      "title": "Análisis de proyecciones macroeconómicas por el Banco de España",
-      "summary": "El Banco de España analiza las proyecciones macroeconómicas con agentes sociales y la comunidad académica en Valladolid.",
+      "date": "2026-10-24",
+      "title": "Intervenciones de miembros del BCE",
+      "summary": "Diversas declaraciones de miembros del BCE (Piero Cipollone, Philip R. Lane, Frank Elderson) sobre liquidez, oportunidades bancarias y riesgos climáticos.",
       "impact": "low",
-      "source": "Banco de España · noticias",
+      "source": "BCE",
       "affects": [
-        "macroeconomics"
-      ]
-    },
-    {
-      "date": "2026-10-13",
-      "title": "La IA como oportunidad para Europa según Philip R. Lane",
-      "summary": "Philip R. Lane aborda la oportunidad que representa la Inteligencia Artificial para Europa.",
-      "impact": "low",
-      "source": "BCE · prensa",
-      "affects": [
-        "technology"
+        "monetary-policy"
       ]
     }
   ],
   "trends": [
     {
-      "title": "Incremento de la inflación en la región",
-      "summary": "Tendencia al alza en los indicadores de inflación tanto en España (4.9 %) como en la eurozona (3.8 %), ambos con un incremento de 0.6 p.p. respecto al dato anterior.",
+      "title": "Presión inflacionaria al alza",
+      "summary": "Se observa un incremento en los niveles de inflación, con el IPC en España subiendo 0.6 p.p. hasta el 4.9% y la inflación de la eurozona subiendo 0.6 p.p. hasta el 3.8% (datos de septiembre 2026).",
       "horizon": "months",
       "confidence": "media"
     },
     {
-      "title": "Comportamiento dispar en la renta variable europea",
-      "summary": "Divergencia en el comportamiento de los índices bursátiles europeos, con el IBEX 35 al alza (+1.31 %) frente a la caída del EURO STOXX 50 (-2.58 %).",
+      "title": "Corrección en activos de riesgo y criptoactivos",
+      "summary": "Los indicadores muestran una tendencia bajista en la renta variable europea y una caída pronunciada en los criptoactivos, destacando la caída de Ether del 10.46% y Bitcoin del 2.49% en los últimos 28 días.",
       "horizon": "weeks",
       "confidence": "alta"
     }
@@ -209,67 +209,67 @@
       "label": "Renta Variable Global",
       "aliases": [
         "msci world",
-        "acciones globales",
-        "equity global"
+        "bolsa mundial",
+        "global equity"
       ],
-      "note": "Sin noticias relevantes en el material de esta semana.",
+      "note": "Sin noticias específicas sobre el comportamiento conjunto de Europa y EE. UU. en el material.",
       "stance": "neutral"
     },
     {
       "key": "equity-europe",
       "label": "Renta Variable Europea",
       "aliases": [
-        "euro stoxx 50",
-        "acciones europeas",
-        "stoxx",
-        "ibex 35",
-        "acciones españa",
-        "ibex"
+        "ibex",
+        "euro stoxx",
+        "europa",
+        "indexado"
       ],
-      "note": "El EURO STOXX 50 registró una media mensual de 6316.39 pts, lo que supone una variación del -2.58 % respecto al dato anterior (septiembre 2026). El IBEX 35 cerró en 19177.7 pts el 15 de octubre de 2026, con un incremento del 1.31 % respecto al periodo anterior.",
+      "note": "El IBEX 35 se sitúa en 18913.5 pts (-3.37% vs hace 28 días, 22-10-2026) y el EURO STOXX 50 en 6316.39 pts (-2.58% vs hace 31 días, sept-2026).",
       "stance": "caution"
     },
     {
       "key": "equity-us",
       "label": "Renta Variable EE. UU.",
       "aliases": [
-        "s&p 500",
+        "sp500",
         "nasdaq",
-        "acciones usa"
+        "eeuu",
+        "america"
       ],
       "note": "Sin noticias relevantes en el material de esta semana.",
       "stance": "neutral"
     },
     {
       "key": "bonds-gov",
-      "label": "Renta Fija Pública",
+      "label": "Bonos Gubernamentales",
       "aliases": [
-        "bonos",
+        "bono",
         "deuda pública",
-        "soberanos"
+        "renta fija"
       ],
-      "note": "Sin noticias relevantes en el material de esta semana.",
+      "note": "El bono a 10 años de la eurozona (AAA) está en 3.38% (-0.18 p.p. vs hace 28 días, 22-10-2026) y el bono a 10 años de España en 3.93% (+0.29 p.p. vs hace 31 días, sept-2026).",
       "stance": "neutral"
     },
     {
       "key": "bonds-corp",
-      "label": "Renta Fija Corporativa",
+      "label": "Bonos Corporativos",
       "aliases": [
-        "bonos corporativos",
-        "deuda empresa"
+        "bono empresa",
+        "renta fija corporativa"
       ],
       "note": "Sin noticias relevantes en el material de esta semana.",
       "stance": "neutral"
     },
     {
       "key": "cash",
-      "label": "Efectivo",
+      "label": "Efectivo y Depósitos",
       "aliases": [
         "cuenta remunerada",
-        "efectivo",
-        "depósitos"
+        "depósito",
+        "bce",
+        "euribor"
       ],
-      "note": "La facilidad de depósito del BCE se situó en el 2.5 % (dato de septiembre 2026), tras un incremento de 0.25 p.p.",
+      "note": "La facilidad de depósito del BCE se sitúa en 2.5% (+0.25 p.p., 16-09-2026) y el Euríbor a 12 meses en 3.262% (-0.001 p.p., 22-10-2026).",
       "stance": "neutral"
     },
     {
@@ -287,27 +287,30 @@
       "label": "Criptoactivos",
       "aliases": [
         "bitcoin",
-        "crypto",
+        "btc",
+        "ether",
+        "eth",
         "cripto"
       ],
-      "note": "Sin noticias relevantes en el material de esta semana.",
-      "stance": "neutral"
+      "note": "Bitcoin se sitúa en 71964 EUR (-2.49% vs hace 28 días, 24-10-2026) y Ether en 2115 EUR (-10.46% vs hace 28 días, 24-10-2026).",
+      "stance": "caution"
     },
     {
       "key": "real-estate",
       "label": "Inmobiliario",
       "aliases": [
-        "inmobiliario",
-        "ladrillo",
-        "real estate"
+        "vivienda",
+        "casa",
+        "inmuebles",
+        "sector inmobiliario"
       ],
-      "note": "Sin noticias relevantes en el material de esta semana.",
+      "note": "El precio de la vivienda en España presenta una variación interanual del 12.2% (-0.7 p.p. vs hace 91 días, 2026-Q2).",
       "stance": "neutral"
     }
   ],
   "uncertainties": [
-    "No se dispone de datos actualizados sobre la evolución de la renta variable global o estadounidense en el material proporcionado.",
-    "La evolución de las tasas de interés de la Fed no se detalla más allá de la publicación de las actas."
+    "No se dispone de datos sobre materias primas debido a la falta de información de la fuente FMI.",
+    "Los datos de inflación y de la media mensual del EURO STOXX 50 corresponden a septiembre, por lo que podrían no reflejar la situación exacta de la última semana de octubre."
   ],
   "warnings": [
     "Esta síntesis no es asesoramiento financiero",
@@ -317,71 +320,91 @@
     {
       "name": "BCE · Data Portal (DFR)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "official"
     },
     {
       "name": "Banco de España · mercado monetario",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_7.csv",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "official"
     },
     {
       "name": "BCE · Data Portal (Euríbor)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.RT.MM.EURIBOR1YD_.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "official"
     },
     {
       "name": "INE · IPC",
       "url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC290750?nult=2&tip=A",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "official"
     },
     {
       "name": "Eurostat · HICP",
       "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=EA&coicop18=TOTAL&unit=RCH_A&lastTimePeriod=2&format=JSON",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "official"
     },
     {
       "name": "Banco de España · Bolsa de Madrid",
       "url": "https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/ti_1_6.csv",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "data"
     },
     {
       "name": "BCE · Data Portal (EURO STOXX 50)",
       "url": "https://data-api.ecb.europa.eu/service/data/FM/M.U2.EUR.DS.EI.DJES50I.HSTA?format=jsondata&lastNObservations=2",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
+      "type": "data"
+    },
+    {
+      "name": "BCE · Data Portal (bonos a 10 años)",
+      "url": "https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y?format=jsondata&lastNObservations=30",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
+      "type": "official"
+    },
+    {
+      "name": "INE · Índice de Precios de Vivienda",
+      "url": "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPV1376?nult=2&tip=A",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
+      "type": "official"
+    },
+    {
+      "name": "CoinGecko · criptomonedas",
+      "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=eur&days=31&interval=daily",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "data"
     },
     {
       "name": "BCE · prensa",
       "url": "https://www.ecb.europa.eu/rss/press.html",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "news"
     },
     {
       "name": "Fed · prensa",
       "url": "https://www.federalreserve.gov/feeds/press_all.xml",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "news"
     },
     {
       "name": "Banco de España · noticias",
       "url": "https://www.bde.es/wbe/es/inicio/rss/rss-noticias/",
-      "retrievedAt": "2026-10-17T13:02:17.914Z",
+      "retrievedAt": "2026-10-24T10:40:06.070Z",
       "type": "news"
     }
   ],
-  "failedSources": [],
+  "failedSources": [
+    "FMI (materias primas)"
+  ],
   "provider": {
     "id": "cloudflare:@cf/google/gemma-4-26b-a4b-it",
     "model": "@cf/google/gemma-4-26b-a4b-it"
   },
   "budget": {
-    "monthCalls": 10,
+    "monthCalls": 11,
     "monthLimit": 20
   }
 }
