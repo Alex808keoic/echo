@@ -4,14 +4,16 @@
  * única puerta entre el proveedor (o un archivo descargado) y Finax.
  */
 import { findCertainty, type CertaintyHit } from '../text/certainty'
-import type {
-  AssetClassNote,
-  MarketEvent,
-  MarketHistoryEntry,
-  MarketIndicator,
-  MarketResearch,
-  MarketSource,
-  MarketTrend,
+import {
+  INDICATOR_GROUPS,
+  INDICATOR_UNITS,
+  type AssetClassNote,
+  type MarketEvent,
+  type MarketHistoryEntry,
+  type MarketIndicator,
+  type MarketResearch,
+  type MarketSource,
+  type MarketTrend,
 } from './types'
 
 export class MarketValidationError extends Error {
@@ -75,16 +77,31 @@ function numberOrNull(v: unknown, field: string): number | null {
   return v
 }
 
+function positiveInt(v: unknown, field: string): number {
+  if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0) throw new MarketValidationError(`«${field}» no es un número de días`)
+  return v
+}
+
+/**
+ * Un indicador de un grupo o unidad que esta versión no conoce (añadido
+ * después en el job) se descarta en lugar de rechazar toda la investigación.
+ */
+const isKnownIndicator = (v: unknown) =>
+  !isRecord(v) ||
+  ((typeof v.group !== 'string' || (INDICATOR_GROUPS as readonly string[]).includes(v.group)) &&
+    (typeof v.unit !== 'string' || (INDICATOR_UNITS as readonly string[]).includes(v.unit)))
+
 export function parseIndicator(v: unknown, i = 0): MarketIndicator {
   if (!isRecord(v)) throw new MarketValidationError(`indicador ${i} no válido`)
   return {
     key: text(v.key, `indicators[${i}].key`, { max: 40 }),
     label: text(v.label, `indicators[${i}].label`, { max: 80 }),
-    group: oneOf(v.group, ['index', 'rate', 'inflation'] as const, `indicators[${i}].group`),
+    group: oneOf(v.group, INDICATOR_GROUPS, `indicators[${i}].group`),
     value: numberOrNull(v.value, `indicators[${i}].value`),
-    unit: oneOf(v.unit, ['%', 'pts'] as const, `indicators[${i}].unit`),
+    unit: oneOf(v.unit, INDICATOR_UNITS, `indicators[${i}].unit`),
     asOf: text(v.asOf, `indicators[${i}].asOf`, { max: 16 }),
     changePct: numberOrNull(v.changePct, `indicators[${i}].changePct`),
+    ...(v.changeDays === undefined ? {} : { changeDays: positiveInt(v.changeDays, `indicators[${i}].changeDays`) }),
     source: text(v.source, `indicators[${i}].source`, { max: 80 }),
     ...(v.status === undefined ? {} : { status: oneOf(v.status, ['advance', 'estimated', 'provisional'] as const, `indicators[${i}].status`) }),
     ...(v.fetchedAt === undefined ? {} : { fetchedAt: isoDate(v.fetchedAt, `indicators[${i}].fetchedAt`) }),
@@ -181,7 +198,7 @@ export function parseMarketResearch(input: unknown): MarketResearch {
     coversTo: isoDate(input.coversTo, 'coversTo'),
     region: 'eurozone',
     overview: text(input.overview, 'overview', { max: 1200 }),
-    indicators: list(input.indicators, 'indicators', parseIndicator, 20),
+    indicators: list(Array.isArray(input.indicators) ? input.indicators.filter(isKnownIndicator) : input.indicators, 'indicators', parseIndicator, 30),
     events: list(input.events, 'events', parseEvent),
     trends: list(input.trends, 'trends', parseTrend, 8),
     assetClasses: mergeAssetClasses(list(input.assetClasses, 'assetClasses', parseAssetClass, 20)).slice(0, 10),

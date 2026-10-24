@@ -141,7 +141,7 @@ describe('síntesis IA · solo datos frescos como situación actual', () => {
 
   it('5. un indicador fresh sí entra, con valor, variación, fecha y estado', () => {
     const text = compact([IPC_SEP])
-    assert.match(section(text, 'INDICADORES VIGENTES'), /IPC España \(interanual\): 4\.9 % \(\+0\.6 % vs\. anterior\), dato de 2026-09 \(avance, provisional\) \[INE\]/)
+    assert.match(section(text, 'INDICADORES VIGENTES'), /IPC España \(interanual\): 4\.9 % \(\+0\.6 p\.p\. vs\. anterior\), dato de 2026-09 \(avance, provisional\) \[INE\]/)
     assert.doesNotMatch(text, /NO INTERPRETABLES/)
   })
 

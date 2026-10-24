@@ -34,7 +34,8 @@ function fmtNotCurrent(i: ContextIndicator): string {
 
 function fmtIndicator(i: MarketIndicator): string {
   if (i.value === null) return `${i.label}: sin dato`
-  const value = i.unit === '%' ? `${String(i.value).replace('.', ',')} %` : `${i.value.toLocaleString('es-ES')} pts`
+  const unit = { '%': '%', pts: 'pts', EUR: '€', USD: '$' }[i.unit]
+  const value = i.unit === '%' ? `${String(i.value).replace('.', ',')} %` : `${i.value.toLocaleString('es-ES')} ${unit}`
   return `${i.label}: ${value} (${i.asOf}, ${i.source})`
 }
 

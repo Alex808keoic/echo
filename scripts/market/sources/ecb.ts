@@ -4,7 +4,7 @@
  * - Euríbor a 12 meses, media mensual;
  * - EURO STOXX 50, media mensual.
  */
-import { fetchJSON, parseEcbSeries, pctChange, round, source, type EcbSdmxJson, type Source } from './shared'
+import { daysBetween, fetchJSON, parseEcbSeries, pctChange, round, source, type EcbSdmxJson, type Source } from './shared'
 import type { MarketIndicator } from '../../../lib/market/types'
 
 const BASE = 'https://data-api.ecb.europa.eu/service/data/FM'
@@ -62,6 +62,7 @@ export const ecbEuroStoxx50: Source = async (ctx) => {
     unit: 'pts',
     asOf: last.date,
     changePct: prev ? pctChange(last.value, prev.value) : null,
+    ...(prev ? { changeDays: daysBetween(prev.date, last.date) } : {}),
     source: 'BCE',
   }
   return { source: source('BCE · Data Portal (EURO STOXX 50)', url(key, 2), 'data', ctx.now), indicators: [indicator], headlines: [] }

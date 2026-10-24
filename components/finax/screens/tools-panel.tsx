@@ -59,6 +59,7 @@ export function ToolsPanel({ onNavigate }: Pick<ScreenProps, 'onNavigate'>) {
           onClick={() => open('Me ha pasado algo', <LifeEvents onAction={runLifeEvent} />)}
         />
         <Row title="Guía para invertir" description="Cuánto invertir, en qué tipos y cómo reconocer uno bueno." onClick={() => onNavigate('guia')} />
+        <Row title="Cómo van las inversiones" description="Ahorro, bonos, bolsa, oro, vivienda, cripto…: qué ha pasado este mes." onClick={() => onNavigate('mercados')} />
       </RowGroup>
 
       <RowGroup title="Sobre ti">

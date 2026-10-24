@@ -37,6 +37,9 @@ export const FRESHNESS_LABEL: Record<Freshness, string> = {
  *
  * - Periodo mensual `YYYY-MM` (inflación, medias mensuales, FEDFUNDS):
  *   fresco hasta `monthlyGraceDays` días después del final del periodo.
+ * - Trimestre `YYYY-Qn` (precio de la vivienda del INE, que publica unos 70
+ *   días después del trimestre): fresco hasta `quarterlyGraceDays` días
+ *   después del final del trimestre, el tiempo hasta que sale el siguiente.
  * - Día `YYYY-MM-DD`:
  *   - tipos oficiales (`policyRateKeys`): siguen vigentes hasta una decisión
  *     posterior; no se sabe cuándo será, así que se toleran `policyRateMaxDays`
@@ -52,6 +55,7 @@ export const FRESHNESS_LABEL: Record<Freshness, string> = {
  */
 export const INDICATOR_FRESHNESS = Object.freeze({
   monthlyGraceDays: 45,
+  quarterlyGraceDays: 165,
   dailyMaxBusinessDays: 5,
   policyRateMaxDays: 60,
   policyRateKeys: Object.freeze(['ecb-dfr', 'fed-funds']) as readonly string[],
@@ -59,6 +63,7 @@ export const INDICATOR_FRESHNESS = Object.freeze({
 
 const MONTH = /^(\d{4})-(\d{2})$/
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/
+const QUARTER = /^(\d{4})-Q([1-4])$/
 
 /** Inicio del día (UTC) de `now`. */
 const utcDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
@@ -86,6 +91,11 @@ export function indicatorFreshness(
     if (m < 1 || m > 12) return 'unknown'
     const periodEnd = Date.UTC(y, m, 0) // último día del mes
     return today <= periodEnd + INDICATOR_FRESHNESS.monthlyGraceDays * DAY_MS ? 'fresh' : 'stale'
+  }
+  const quarter = QUARTER.exec(indicator.asOf)
+  if (quarter) {
+    const periodEnd = Date.UTC(Number(quarter[1]), Number(quarter[2]) * 3, 0)
+    return today <= periodEnd + INDICATOR_FRESHNESS.quarterlyGraceDays * DAY_MS ? 'fresh' : 'stale'
   }
   const day = DAY.exec(indicator.asOf)
   if (day) {

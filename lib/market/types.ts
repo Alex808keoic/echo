@@ -8,7 +8,17 @@
 
 export type Freshness = 'fresh' | 'aging' | 'stale'
 
-export type IndicatorGroup = 'index' | 'rate' | 'inflation'
+/**
+ * `bond`: rentabilidad de la deuda pública · `commodity`: materias primas ·
+ * `housing`: precio de la vivienda · `crypto`: criptomonedas (2026-10-24).
+ */
+export type IndicatorGroup = 'index' | 'rate' | 'inflation' | 'bond' | 'commodity' | 'housing' | 'crypto'
+
+export const INDICATOR_GROUPS: readonly IndicatorGroup[] = ['index', 'rate', 'inflation', 'bond', 'commodity', 'housing', 'crypto']
+
+export type IndicatorUnit = '%' | 'pts' | 'USD' | 'EUR'
+
+export const INDICATOR_UNITS: readonly IndicatorUnit[] = ['%', 'pts', 'USD', 'EUR']
 
 export interface MarketIndicator {
   /** Clave estable: 'spx', 'ecb-dfr', 'ine-ipc'… */
@@ -16,14 +26,19 @@ export interface MarketIndicator {
   label: string
   group: IndicatorGroup
   value: number | null
-  unit: '%' | 'pts'
+  unit: IndicatorUnit
   /**
-   * Fecha de observación del dato: día `YYYY-MM-DD` o periodo `YYYY-MM`. En
+   * Fecha de observación del dato: día `YYYY-MM-DD`, mes `YYYY-MM` o trimestre `YYYY-Qn`. En
    * tipos oficiales, la fecha desde la que el tipo está en vigor.
    */
   asOf: string
-  /** Variación % respecto a la observación anterior disponible, cuando se conoce. */
+  /**
+   * Variación % respecto a la observación anterior disponible, cuando se conoce
+   * (en puntos porcentuales si el valor ya es un %: tipos, inflación, vivienda).
+   */
   changePct: number | null
+  /** Días entre las dos observaciones que compara `changePct`, si la fuente los da. */
+  changeDays?: number
   source: string
   /**
    * Estado del dato cuando la fuente lo marca como no definitivo: `advance`

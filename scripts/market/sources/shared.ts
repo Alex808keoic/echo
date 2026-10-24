@@ -126,3 +126,19 @@ export function pctChange(current: number, previous: number): number | null {
   return round(((current - previous) / previous) * 100, 2)
 }
 
+
+/** Días naturales entre dos fechas `YYYY-MM-DD` (o meses `YYYY-MM`, tomados a día 15). */
+export function daysBetween(from: string, to: string): number {
+  const at = (d: string) => Date.parse(/^\d{4}-\d{2}$/.test(d) ? `${d}-15` : d)
+  return Math.round((at(to) - at(from)) / 86_400_000)
+}
+
+/**
+ * De una serie diaria ordenada, la observación más reciente que tenga al menos
+ * `minDays` días menos que la última: la base de una variación «en un mes».
+ */
+export function baseFor<T extends { date: string }>(points: readonly T[], minDays: number): T | undefined {
+  const last = points[points.length - 1]
+  if (!last) return undefined
+  return [...points].reverse().find((p) => daysBetween(p.date, last.date) >= minDays)
+}

@@ -13,6 +13,7 @@ import { InvestmentsScreen } from '@/components/finax/screens/investments-screen
 import { SettingsScreen } from '@/components/finax/screens/settings-screen'
 import { MemoryScreen } from '@/components/finax/screens/memory-screen'
 import { GuideScreen } from '@/components/finax/screens/guide-screen'
+import { MarketsScreen } from '@/components/finax/screens/markets-screen'
 import { DebtsScreen } from '@/components/finax/screens/debts-screen'
 import { SimulatorScreen } from '@/components/finax/screens/simulator-screen'
 import { RecurringScreen } from '@/components/finax/screens/recurring-screen'
@@ -132,6 +133,7 @@ function App() {
           {screen === 'deudas' && <DebtsScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'simulador' && <SimulatorScreen overview={overview} onNavigate={navigate} onBack={back} />}
           {screen === 'fijos' && <RecurringScreen overview={overview} onNavigate={navigate} onBack={back} />}
+          {screen === 'mercados' && <MarketsScreen onBack={back} />}
         </PhoneFrame>
       </div>
     </main>

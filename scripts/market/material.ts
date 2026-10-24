@@ -80,7 +80,9 @@ export function detectEvents(material: CollectedMaterial, latest: MarketResearch
 const STATUS_TEXT: Record<IndicatorStatus, string> = { advance: 'avance, provisional', estimated: 'estimación provisional', provisional: 'provisional' }
 
 function fmtIndicator(i: MarketIndicator): string {
-  const change = i.changePct === null ? '' : ` (${i.changePct >= 0 ? '+' : ''}${i.changePct}${i.group === 'rate' ? ' p.p.' : ' %'} vs. anterior)`
+  // Un valor que ya es un % (tipos, inflación, bonos, vivienda) cambia en puntos porcentuales.
+  const since = i.changeDays ? `vs. hace ${i.changeDays} días` : 'vs. anterior'
+  const change = i.changePct === null ? '' : ` (${i.changePct >= 0 ? '+' : ''}${i.changePct}${i.unit === '%' ? ' p.p.' : ' %'} ${since})`
   const status = i.status ? ` (${STATUS_TEXT[i.status]})` : ''
   return `- ${i.label}: ${i.value ?? 'n/d'} ${i.unit}${change}, dato de ${i.asOf}${status} [${i.source}]`
 }
@@ -146,6 +148,7 @@ REGLAS
 COBERTURA (la síntesis debe ser completa, sin inventar nada)
 - «events»: un evento por cada titular relevante del periodo (política monetaria, inflación, empleo, crecimiento, mercados, divisas, materias primas, regulación). Si hay titulares suficientes, al menos 5; agrupa en uno los titulares que traten de lo mismo.
 - «trends»: entre 2 y 4 tendencias que se apoyen en los indicadores o en varios titulares. Si el material solo permite una, pon una y explica en «uncertainties» por qué no hay más.
+- Qué indicador corresponde a cada clase: equity-europe → IBEX 35 y EURO STOXX 50; equity-us → S&P 500 y Nasdaq 100; equity-global → la bolsa de Europa y de EE. UU. juntas; bonds-gov → bonos a 10 años (si su rentabilidad sube, los bonos que ya existían bajan de precio, y al revés); cash → facilidad de depósito del BCE frente a la inflación; gold → oro; crypto → bitcoin y ether; real-estate → precio de la vivienda del INE (variación interanual, trimestral). El Brent va en events o trends si se mueve con fuerza. Si una clase tiene indicador vigente, su nota lo cita (valor, variación y fecha) en lugar de decir que no hay noticias.
 - «assetClasses»: exactamente una entrada para CADA una de las 9 claves (equity-global, equity-europe, equity-us, bonds-gov, bonds-corp, cash, gold, crypto, real-estate), sin repetir ninguna: si dos índices tocan la misma clase, van en la misma nota. Si el material no dice nada de una clase, su nota lo indica con calma («sin noticias relevantes en el material de esta semana») y su stance es neutral.
 - «overview»: 3 a 5 frases que resuman los indicadores vigentes y los eventos principales.
 - Devuelve solo el JSON que exige el esquema; en «assetClasses», rellena «aliases» con palabras que puedan aparecer en el nombre de una posición de un usuario español (p. ej. «indexado», «msci world», «ibex», «bono», «cuenta remunerada», «oro», «bitcoin»).`
