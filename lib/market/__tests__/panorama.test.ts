@@ -63,7 +63,7 @@ describe('panorama de las familias de inversión', () => {
     assert.equal(g.cripto.trend, 'strong-rise')
     assert.match(g.cripto.headline, /bitcoin ha subido un 40 %.*darse la vuelta/)
     assert.equal(g.acciones.trend, 'strong-drop')
-    assert.match(g.acciones.headline, /se recuperan con tiempo/)
+    assert.match(g.acciones.headline, /suelen recuperarse con tiempo/)
   })
 
   it('bonos: si la rentabilidad sube con fuerza, los bonos caen de precio', () => {

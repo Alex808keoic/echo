@@ -34,6 +34,9 @@ export function matchAssetClasses(assetClasses: AssetClassNote[], positionNames:
   return assetClasses.filter((ac) => ac.aliases.some((alias) => names.some((n) => n.includes(normalize(alias)))))
 }
 
+/** Grupos que no entran en `keyIndicators` (no los usa `decide()`) pero sí en el panorama del chat. */
+const ASSET_GROUPS: readonly MarketIndicator['group'][] = ['bond', 'commodity', 'housing', 'crypto']
+
 function pickIndicators(indicators: MarketIndicator[]): MarketIndicator[] {
   const byKey = new Map(indicators.map((i) => [i.key, i]))
   const ordered = KEY_INDICATOR_ORDER.flatMap((k) => (byKey.has(k) ? [byKey.get(k) as MarketIndicator] : []))
@@ -61,6 +64,7 @@ export function buildMarketContext(
   positionNames: string[],
   now: Date = new Date(),
 ): MarketContext {
+  const assets = research.indicators.filter((i) => ASSET_GROUPS.includes(i.group)).slice(0, MARKET_CONTEXT_LIMITS.assetIndicators)
   const relevant = matchAssetClasses(research.assetClasses, positionNames).slice(0, MARKET_CONTEXT_LIMITS.assetClasses)
   const relevantKeys = relevant.map((a) => a.key)
   return {
@@ -73,6 +77,7 @@ export function buildMarketContext(
     overview: research.overview,
     // Cada indicador con su propia frescura; los antiguos se conservan, marcados.
     keyIndicators: pickIndicators(research.indicators).map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })),
+    ...(assets.length > 0 ? { assetIndicators: assets.map((i) => ({ ...i, freshness: indicatorFreshness(i, now) })) } : {}),
     relevantEvents: pickEvents(research.events, relevantKeys),
     relevantAssetClasses: relevant,
     uncertainties: research.uncertainties.slice(0, 3),

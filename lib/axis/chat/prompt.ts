@@ -18,10 +18,11 @@ import { decide } from '../core/decision'
 import { chatPlanOf, planForPrompt } from '../plan/chat'
 import { coachingTone, TONE_GUIDE } from '../coaching'
 import { chatGuideOf, guideForPrompt } from '../guide/chat'
+import { chatPanoramaOf, panoramaForPrompt } from './market-panorama'
 import { profileFromMemory, reconcileProfile } from '../profile/derive'
 import { AXIS_CHAT_SYSTEM_PROMPT } from '../prompts'
 import type { AIRequest } from '../ai/provider'
-import type { FinancialContext, Signal } from '../types'
+import type { FinancialContext, MarketContext, Signal } from '../types'
 import { AXIS_CHAT_SCHEMA } from './schema'
 import { historyForPrompt } from './financial-history'
 import { TOOL_REQUEST_SCHEMA, TOOLS_FOR_PROMPT } from './tools'
@@ -40,6 +41,12 @@ function minimalContext(ctx: FinancialContext) {
   void _history
   void _closed
   return { ...ctx, flows: { ...flows, historyDays: ctx.quality.historyDays } }
+}
+
+function withoutAssetIndicators(market: MarketContext): MarketContext {
+  const { assetIndicators: _assets, ...rest } = market
+  void _assets
+  return rest
 }
 
 function signalSummary(signals: Signal[]) {
@@ -64,11 +71,15 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
   // La misma decisión que el análisis y la validación: de ella salen el plan y el tono.
   const decision = decide({ context, market: market ?? null, memory })
   const guide = chatGuideOf(message, decision)
+  const panorama = chatPanoramaOf(market)
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),
       senales_detectadas_por_finax: signalSummary(signals),
-      ...(market ? { contexto_de_mercado: market } : {}),
+      // Los indicadores de las familias van resumidos en «como_van_las_inversiones»: no se mandan dos veces.
+      ...(market ? { contexto_de_mercado: withoutAssetIndicators(market) } : {}),
+      // Cómo van las familias de inversión, calculado por Finax (solo si hay datos de bonos, materias, vivienda o cripto).
+      ...(panorama ? { como_van_las_inversiones: panoramaForPrompt(panorama) } : {}),
       // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.
       ...(history ? { historico_de_movimientos: historyForPrompt(history) } : {}),
       // Plan de reparto de Finax (fase 2d): recalculado aquí con los mismos datos; ningún dato nuevo.

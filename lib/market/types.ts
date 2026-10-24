@@ -144,6 +144,12 @@ export interface MarketContext {
   coversTo: string
   overview: string
   keyIndicators: ContextIndicator[]
+  /**
+   * Bonos, materias primas, vivienda y criptomonedas (2026-10-24), para que el
+   * chat sepa cómo va cada familia de inversión (`lib/axis/chat/market-panorama.ts`).
+   * Ausente si la investigación no tiene ninguno.
+   */
+  assetIndicators?: ContextIndicator[]
   relevantEvents: MarketEvent[]
   relevantAssetClasses: AssetClassNote[]
   uncertainties: string[]
@@ -154,6 +160,7 @@ export interface MarketContext {
 
 export const MARKET_CONTEXT_LIMITS = {
   indicators: 6,
+  assetIndicators: 8,
   events: 3,
   history: 4,
   assetClasses: 4,

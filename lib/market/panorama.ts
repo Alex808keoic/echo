@@ -208,7 +208,7 @@ function stocks(by: Map<string, MarketIndicator>): Built {
   const headline =
     trend === 'calm'
       ? `La bolsa está tranquila: el mayor movimiento del último mes es el del ${name}, ${signed(top.pct, 1)} %.`
-      : `El ${name} ${verb(top.pct)} un ${abs(top.pct, 1)} % en el último mes${trend === 'strong-drop' ? '. Las caídas así son normales en bolsa y se recuperan con tiempo, no en semanas' : ''}.`
+      : `El ${name} ${verb(top.pct)} un ${abs(top.pct, 1)} % en el último mes${trend === 'strong-drop' ? '. Las caídas así son normales en bolsa y suelen recuperarse con tiempo, no en semanas' : ''}.`
   return { trend, headline, figures }
 }
 
