@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-24T10:22:57.101Z",
+  "checkedAt": "2026-10-24T11:30:58.287Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,7 +10,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "euribor-12m",
@@ -21,7 +21,7 @@
       "asOf": "2026-10-22",
       "changePct": -0.001,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "ine-ipc",
@@ -32,7 +32,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "ea-hicp",
@@ -44,7 +44,7 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "ibex",
@@ -56,7 +56,7 @@
       "changePct": -3.37,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "stoxx50",
@@ -68,7 +68,7 @@
       "changePct": -2.58,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "ea-10y",
@@ -80,7 +80,7 @@
       "changePct": -0.18,
       "changeDays": 28,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "es-10y",
@@ -92,7 +92,7 @@
       "changePct": 0.29,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "ine-ipv",
@@ -104,31 +104,31 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 71837,
+      "value": 71866,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -2.67,
+      "changePct": -2.63,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     },
     {
       "key": "eth",
       "label": "Ether (euros)",
       "group": "crypto",
-      "value": 2109,
+      "value": 2110,
       "unit": "EUR",
       "asOf": "2026-10-24",
-      "changePct": -10.7,
+      "changePct": -10.68,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-24T10:22:57.101Z"
+      "fetchedAt": "2026-10-24T11:30:58.288Z"
     }
   ],
   "events": [],
