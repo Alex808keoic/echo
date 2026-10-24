@@ -16,7 +16,7 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     },
     {
       "key": "euribor-12m",
@@ -27,7 +27,7 @@
       "asOf": "2026-10-22",
       "changePct": -0.001,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     },
     {
       "key": "ine-ipc",
@@ -38,7 +38,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     },
     {
       "key": "ea-hicp",
@@ -50,7 +50,7 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     },
     {
       "key": "ibex",
@@ -59,9 +59,10 @@
       "value": 18913.5,
       "unit": "pts",
       "asOf": "2026-10-22",
-      "changePct": -1.38,
+      "changePct": -3.37,
+      "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     },
     {
       "key": "stoxx50",
@@ -71,8 +72,69 @@
       "unit": "pts",
       "asOf": "2026-09",
       "changePct": -2.58,
+      "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-23T12:44:47.826Z"
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
+    },
+    {
+      "key": "ea-10y",
+      "label": "Bono a 10 años de la eurozona (AAA)",
+      "group": "bond",
+      "value": 3.38,
+      "unit": "%",
+      "asOf": "2026-10-22",
+      "changePct": -0.18,
+      "changeDays": 28,
+      "source": "BCE",
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
+    },
+    {
+      "key": "es-10y",
+      "label": "Bono a 10 años de España (media mensual)",
+      "group": "bond",
+      "value": 3.93,
+      "unit": "%",
+      "asOf": "2026-09",
+      "changePct": 0.29,
+      "changeDays": 31,
+      "source": "BCE",
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
+    },
+    {
+      "key": "ine-ipv",
+      "label": "Precio de la vivienda en España (interanual)",
+      "group": "housing",
+      "value": 12.2,
+      "unit": "%",
+      "asOf": "2026-Q2",
+      "changePct": -0.7,
+      "changeDays": 91,
+      "source": "INE",
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
+    },
+    {
+      "key": "btc",
+      "label": "Bitcoin (euros)",
+      "group": "crypto",
+      "value": 71844,
+      "unit": "EUR",
+      "asOf": "2026-10-24",
+      "changePct": -2.66,
+      "changeDays": 28,
+      "source": "CoinGecko",
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
+    },
+    {
+      "key": "eth",
+      "label": "Ether (euros)",
+      "group": "crypto",
+      "value": 2109,
+      "unit": "EUR",
+      "asOf": "2026-10-24",
+      "changePct": -10.7,
+      "changeDays": 28,
+      "source": "CoinGecko",
+      "fetchedAt": "2026-10-24T10:18:19.232Z"
     }
   ],
   "events": [
