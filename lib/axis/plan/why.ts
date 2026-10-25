@@ -81,6 +81,11 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       if (step.safe && horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}: por eso no se invierte.`)
       else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
       break
+    case 'invest-goal-money':
+      why.push('Para un objetivo a más de 5 años, el dinero quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.')
+      if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
+      why.push('Cuando falten unos 3 años, lo prudente es irlo pasando a ahorro seguro, para que una caída no te pille justo antes.')
+      break
     case 'pay-debt':
       why.push(`Una deuda al ${String(step.aprPct).replace('.', ',')} % te cuesta ese interés cada año, pase lo que pase. Devolverla antes es una rentabilidad segura; invertir no lo es.`)
       if (step.expectedReturnPct !== null && risk)

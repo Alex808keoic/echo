@@ -121,7 +121,7 @@ function buildOverview(
     previousMonth,
     today: summarize(onDate(movements, todayISO())),
     series,
-    objectivesAllocation: allocateObjectives(objectives, liquidCents),
+    objectivesAllocation: allocateObjectives(objectives, liquidCents, { cents: investedCents, asOf: todayISO() }),
     axisSnapshot: { config, movements, objectives, positions, debts },
     isEmpty: movements.length === 0 && config === null,
   }

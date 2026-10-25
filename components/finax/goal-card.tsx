@@ -74,8 +74,9 @@ function OrderButton({ label, onClick, children }: { label: string; onClick?: ()
 }
 
 function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | 'onClick' | 'showRank'>) {
-  const { objective: goal, allocatedCents, remainingCents, pct, status, rank } = item
+  const { objective: goal, allocatedCents, fromLiquidCents, fromInvestedCents, remainingCents, pct, status, rank } = item
   const achieved = status === 'achieved'
+  const withInvested = !achieved && fromInvestedCents > 0
   return (
     <button type="button" onClick={onClick} className="flex w-full min-w-0 flex-1 items-start gap-3 text-left">
       <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
@@ -107,8 +108,16 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
             </span>
           )}
           {status === 'in-progress' && `Te faltan ${formatCents(remainingCents)}`}
-          {status === 'covered' && 'Tu dinero líquido ya llega a la meta'}
+          {status === 'covered' && (withInvested ? 'Entre tu dinero y tus inversiones ya llegas a la meta' : 'Tu dinero líquido ya llega a la meta')}
         </p>
+        {withInvested && (
+          // Objetivo lejano: parte de lo que lleva sale de tus inversiones, que pueden bajar.
+          <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-[12px] font-medium text-muted-foreground tabular-nums">
+            {fromLiquidCents > 0 && <span className="whitespace-nowrap">{formatCents(fromLiquidCents)} en cuenta ·</span>}
+            <span className="whitespace-nowrap">{formatCents(fromInvestedCents)} invertido</span>
+            <span className="whitespace-nowrap">(puede subir o bajar)</span>
+          </p>
+        )}
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div className="bar-fill h-full rounded-full bg-finax transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
         </div>

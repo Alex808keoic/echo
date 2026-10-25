@@ -14,8 +14,8 @@ import { recommendGuide } from '../guide/recommend'
 import { productFit } from '../guide/fit'
 import { PRODUCT_TYPES } from '../guide/products'
 import type { MemoryFact, RiskAttitude, Horizon } from '../profile/types'
-import type { Movement, Objective } from '../../types'
-import { config, gasto, ingreso, objective, snapshot, TODAY } from './fixtures'
+import type { Movement, Objective, Position } from '../../types'
+import { config, gasto, ingreso, objective, position, snapshot, TODAY } from './fixtures'
 
 /** Junio–agosto cerrados: 2.000 € de ingresos y 1.000 € de gasto; ahorro habitual 1.000 €/mes. */
 const history3 = (): Movement[] => [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 200_000), gasto(`2026-${m}-10`, 100_000)]), ingreso('2026-09-01', 200_000)]
@@ -23,10 +23,10 @@ const CUSHION = () => objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: 300
 const COCHE = () => objective({ name: 'Coche', targetCents: 2_000_000, priority: 2 })
 const profile = (riskAttitude: RiskAttitude, horizon: Horizon, extra: MemoryFact[] = []): MemoryFact[] => [{ kind: 'riskAttitude', value: riskAttitude }, { kind: 'horizon', value: horizon }, ...extra]
 
-function setup(liquidCents: number, objectives: Objective[], facts: MemoryFact[]) {
+function setup(liquidCents: number, objectives: Objective[], facts: MemoryFact[], positions: Position[] = []) {
   const movements = history3()
   const net = movements.reduce((t, m) => t + (m.type === 'ingreso' ? m.amountCents : -m.amountCents), 0)
-  const ctx = buildFinancialContext(snapshot({ config: config(liquidCents - net), movements, objectives }), TODAY)
+  const ctx = buildFinancialContext(snapshot({ config: config(liquidCents - net), movements, objectives, positions }), TODAY)
   const decision = decide({ context: ctx, memory: { profileFacts: facts.map((fact, i) => ({ id: `mem-${i}`, updatedAt: i + 1, fact })) } })
   return { plan: buildAllocationPlan(decision), objectives: decision.context.objectives, decision }
 }
@@ -138,6 +138,37 @@ describe('dinero parado', () => {
 
   it('sin perfil no propone nada con el dinero parado', () => {
     assert.equal(step(setup(800_000, [CUSHION()], []).plan, 'idle-money'), undefined)
+  })
+})
+
+describe('objetivos lejanos', () => {
+  const PISO = () => objective({ name: 'Piso', targetCents: 2_000_000, priority: 2, targetDate: '2033-01-01' })
+
+  it('propone invertir lo que el objetivo lejano tiene en la cuenta, sin parte arriesgada', () => {
+    const s = setup(1_300_000, [CUSHION(), PISO()], profile('dynamic', 'long'))
+    const goal = step(s.plan, 'invest-goal-money')!
+    assert.equal(goal.cents, 1_000_000)
+    assert.equal(goal.objectiveIds.length, 1)
+    assert.equal(goal.mix.reduce((t, p) => t + p.cents, 0), 1_000_000)
+    assert.ok(goal.mix.every((p) => p.key !== 'risky'))
+    assert.equal(step(s.plan, 'idle-money'), undefined)
+    const v = describeStep(goal, s.plan, s.objectives)
+    assert.equal(v.title, 'Puedes invertir los 10.000,00 € de «Piso»')
+    assert.match(v.detail!, /siguen contando para ese objetivo.*3 años antes de la fecha/)
+  })
+
+  it('lo ya invertido cuenta para el objetivo y libera la cuenta', () => {
+    const s = setup(1_300_000, [CUSHION(), PISO()], profile('balanced', 'long'), [position({ name: 'Fondo indexado global', valueCents: 1_500_000 })])
+    const piso = s.objectives.find((o) => o.name === 'Piso')!
+    assert.equal(piso.investedCents, 1_500_000)
+    assert.equal(piso.currentCents, 2_000_000)
+    assert.equal(step(s.plan, 'invest-goal-money')!.cents, 500_000)
+    assert.equal(s.decision.context.wealth.reservedForObjectivesCents, 300_000 + 500_000)
+  })
+
+  it('un objetivo a menos de 5 años no propone invertir', () => {
+    const s = setup(1_300_000, [CUSHION(), objective({ name: 'Coche', targetCents: 2_000_000, priority: 2, targetDate: '2029-01-01' })], profile('dynamic', 'long'))
+    assert.equal(step(s.plan, 'invest-goal-money'), undefined)
   })
 })
 

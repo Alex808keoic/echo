@@ -70,6 +70,12 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
             : `Decide qué hacer con tus ${eur(s.idleCents)} sin destino: de una vez o ${eur(s.perMonthCents)} al mes durante ${s.spreadMonths} meses`,
         })
         break
+      case 'invest-goal-money':
+        items.push({
+          id: s.kind,
+          text: `Decide si inviertes los ${eur(s.cents)} de ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}: de una vez o ${eur(s.perMonthCents)} al mes durante ${s.spreadMonths} meses`,
+        })
+        break
       case 'follow-priority':
         items.push({ id: s.kind, text: `Decide si «${name(s.objectiveId)}» va el primero en Objetivos` })
         break

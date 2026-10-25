@@ -23,6 +23,35 @@ const goal = (id: string, targetCents: number, extra: Partial<Objective> = {}): 
 /** [id, asignado, pct, estado] de cada objetivo, en el orden devuelto. */
 const view = (a: ObjectivesAllocation) => a.items.map((i) => [i.objective.id, i.allocatedCents, i.pct, i.status])
 
+describe('allocateObjectives · lo invertido cuenta para los objetivos lejanos', () => {
+  const asOf = '2026-10-25'
+  const parts = (a: ObjectivesAllocation) => a.items.map((i) => [i.objective.id, i.fromInvestedCents, i.fromLiquidCents, i.status])
+  it('el lejano se llena antes con lo invertido y el líquido completa; el cercano y el sin fecha, solo líquido', () => {
+    const goals = [
+      goal('piso', 3_000 * EUR, { priority: 1, targetDate: '2034-01-01' }),
+      goal('viaje', 500 * EUR, { priority: 2, targetDate: '2027-06-01' }),
+      goal('moto', 800 * EUR, { priority: 3 }),
+    ]
+    const a = allocateObjectives(goals, 1_500 * EUR, { cents: 2_000 * EUR, asOf })
+    assert.deepEqual(parts(a), [['piso', 2_000 * EUR, 1_000 * EUR, 'covered'], ['viaje', 0, 500 * EUR, 'covered'], ['moto', 0, 0, 'in-progress']])
+    assert.deepEqual([a.allocatedCents, a.fromLiquidCents, a.fromInvestedCents, a.availableCents], [3_500 * EUR, 1_500 * EUR, 2_000 * EUR, 0])
+  })
+  it('a 12 meses o menos lo invertido ya no cuenta', () => {
+    const a = allocateObjectives([goal('piso', 3_000 * EUR, { targetDate: '2027-10-01' })], 0, { cents: 2_000 * EUR, asOf })
+    assert.deepEqual(parts(a), [['piso', 0, 0, 'in-progress']])
+  })
+  it('lo invertido va en cascada por prioridad y nunca cuenta dos veces', () => {
+    const goals = [goal('a', 1_000 * EUR, { priority: 1, targetDate: '2035-01-01' }), goal('b', 1_000 * EUR, { priority: 2, targetDate: '2036-01-01' })]
+    const a = allocateObjectives(goals, 0, { cents: 1_500 * EUR, asOf })
+    assert.deepEqual(parts(a), [['a', 1_000 * EUR, 0, 'covered'], ['b', 500 * EUR, 0, 'in-progress']])
+    assert.equal(a.fromInvestedCents, 1_500 * EUR)
+  })
+  it('sin inversiones, el mismo reparto de siempre', () => {
+    const goals = [goal('a', 1_000 * EUR, { targetDate: '2035-01-01' })]
+    assert.deepEqual(view(allocateObjectives(goals, 400 * EUR, { cents: 0, asOf })), view(allocateObjectives(goals, 400 * EUR)))
+  })
+})
+
 /* ------------------------------- reparto puro ------------------------------- */
 
 describe('allocateObjectives · un objetivo (meta 400 €)', () => {
@@ -88,7 +117,7 @@ describe('allocateObjectives · bordes', () => {
   })
   it('sin objetivos: todo el líquido disponible', () => {
     assert.deepEqual(allocateObjectives([], 250 * EUR), {
-      liquidCents: 250 * EUR, items: [], allocatedCents: 0, availableCents: 250 * EUR, activeTargetCents: 0, activePct: 0, activeCount: 0, coveredCount: 0, achievedCount: 0,
+      liquidCents: 250 * EUR, items: [], allocatedCents: 0, fromLiquidCents: 0, fromInvestedCents: 0, availableCents: 250 * EUR, activeTargetCents: 0, activePct: 0, activeCount: 0, coveredCount: 0, achievedCount: 0,
     })
   })
 })

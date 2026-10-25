@@ -113,6 +113,7 @@ function objectiveContext(item: ObjectiveAllocation, aheadRemainingCents: number
     name: o.name,
     targetCents: o.targetCents,
     currentCents,
+    ...(item.fromInvestedCents > 0 ? { investedCents: item.fromInvestedCents } : {}),
     remainingCents,
     progressPct: item.pct,
     completed,
@@ -189,7 +190,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
 
   // Reparto automático: única fuente del progreso y del dinero destinado a objetivos.
   // Orden: activos por prioridad (cascada) y, detrás, los conseguidos.
-  const allocation = allocateObjectives(objectives, liquidCents)
+  const allocation = allocateObjectives(objectives, liquidCents, { cents: investedCents, asOf })
   let ahead = 0
   // Un objetivo sin meta positiva (solo puede llegar de una copia importada: el formulario la exige)
   // nunca recibe dinero ni se cubre: AXIS no habla de él como pendiente, estancado ni «siguiente».
@@ -210,8 +211,8 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       totalCents,
       liquidCents,
       investedCents,
-      // Lo asignado a los objetivos activos; los conseguidos no reservan nada.
-      reservedForObjectivesCents: allocation.allocatedCents,
+      // Lo asignado del líquido a los objetivos activos; los conseguidos no reservan nada.
+      reservedForObjectivesCents: allocation.fromLiquidCents,
       initialBalanceCents,
     },
     flows: {

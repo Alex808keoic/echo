@@ -112,7 +112,8 @@ function WealthView({ overview, range, onRange, onNavigate }: ViewProps) {
   const { open, close } = useSheet()
   const { month, previousMonth, liquidCents, investedCents, patrimonioCents, objectivesAllocation: allocation } = overview
   // Patrimonio = líquido + inversiones; líquido = destinado a objetivos (reparto automático) + disponible.
-  const destined = allocation.allocatedCents
+  // Lo que cuenta de las inversiones para objetivos lejanos sigue en «Inversiones»: no se cuenta dos veces.
+  const destined = allocation.fromLiquidCents
   const available = allocation.availableCents
   const breakdownView = wealthBreakdown({ liquidCents, destinedCents: destined, availableCents: available, investedCents })
   const breakdown = breakdownView.kind === 'parts' ? breakdownView.parts.map((b) => ({ ...b, color: brandColor(b.key) })) : []

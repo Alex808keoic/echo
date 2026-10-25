@@ -79,6 +79,8 @@ export interface ObjectiveContext {
   targetCents: number
   /** Lo asignado por el reparto automático (la meta si está conseguido); nunca el `currentCents` guardado. */
   currentCents: number
+  /** De `currentCents`, lo que sale de tus inversiones (solo objetivos lejanos; ausente si es 0). Puede subir o bajar. */
+  investedCents?: number
   remainingCents: number
   /** 0–100, nunca por encima de la meta. */
   progressPct: number
@@ -154,7 +156,7 @@ export interface FinancialContext {
     totalCents: number
     liquidCents: number
     investedCents: number
-    /** Parte del líquido que el usuario tiene reservada en objetivos. */
+    /** Parte del líquido que el usuario tiene reservada en objetivos (lo que cuenta de las inversiones no entra). */
     reservedForObjectivesCents: number
     initialBalanceCents: number
   }

@@ -122,7 +122,7 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
                     {view.warning && <p className="rounded-xl bg-negative/8 px-3 py-2 text-[12.5px] font-semibold leading-snug text-negative text-pretty">{view.warning}</p>}
                   </div>
                 </div>
-                {(step.kind === 'invest-long-term' || step.kind === 'idle-money') && step.mix.length > 0 && (
+                {(step.kind === 'invest-long-term' || step.kind === 'idle-money' || step.kind === 'invest-goal-money') && step.mix.length > 0 && (
                   <ul className="space-y-2 rounded-xl bg-muted px-3 py-2.5">
                     {step.mix.map((p) => (
                       <li key={p.key} className="space-y-0.5">

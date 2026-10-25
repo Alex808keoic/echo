@@ -170,6 +170,15 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         ...minorNote(step.adult, step.mix),
       }
     }
+    case 'invest-goal-money': {
+      const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
+      const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
+      return {
+        title: `Puedes invertir los ${eur(step.cents)} de ${list}`,
+        detail: `Faltan más de 5 años, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.`,
+        ...minorNote(step.adult, step.mix),
+      }
+    }
     case 'rest-to-objectives':
       if (step.noObjectives)
         return {
