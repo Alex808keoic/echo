@@ -680,3 +680,50 @@ describe('AXIS conversación · servidor', () => {
     await assert.rejects(() => chatWithProvider(provider, input()))
   })
 })
+
+describe('AXIS conversación · un reintento si la IA falla rápido (2026-10-25)', () => {
+  const failingOnce = (reason: 'error' | 'rate-limited' | 'unavailable') => {
+    let n = 0
+    return transport({
+      ask: async () => {
+        n++
+        if (n === 1) throw new ChatTransportError(reason, 'axis api 502')
+        return serverReply()
+      },
+    })
+  }
+
+  it('un 502 rápido se reintenta y responde la IA', async () => {
+    const reply = await createChatEngine({ transport: failingOnce('error') }).ask(input())
+    assert.equal(reply.engine.isAI, true)
+    assert.equal(reply.fallbackReason, undefined)
+  })
+
+  it('sin cupo o sin IA no se reintenta: responde el motor local', async () => {
+    for (const reason of ['rate-limited', 'unavailable'] as const) {
+      let calls = 0
+      const t = transport({
+        ask: async () => {
+          calls++
+          throw new ChatTransportError(reason, 'x')
+        },
+      })
+      const reply = await createChatEngine({ transport: t }).ask(input())
+      assert.equal(calls, 1, reason)
+      assert.equal(reply.fallbackReason, reason)
+    }
+  })
+
+  it('si el reintento también falla, motor local (dos llamadas, no más)', async () => {
+    let calls = 0
+    const t = transport({
+      ask: async () => {
+        calls++
+        throw new ChatTransportError('error', 'axis api 502')
+      },
+    })
+    const reply = await createChatEngine({ transport: t }).ask(input())
+    assert.equal(calls, 2)
+    assert.equal(reply.fallbackReason, 'error')
+  })
+})

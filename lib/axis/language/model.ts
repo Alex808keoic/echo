@@ -38,6 +38,8 @@ export interface LanguageOptions {
    * siguiente proveedor. Sin ella, la salida cruda (la validación queda para después de la cadena).
    */
   accept?: (raw: unknown, modelId: string) => unknown | Promise<unknown>
+  /** Plazo total de una cadena para esta llamada; sin él, el de la cadena. */
+  deadlineMs?: number
 }
 
 export interface AxisLanguageModel {
@@ -181,7 +183,7 @@ export function fallbackChain(models: AxisLanguageModel[], timing: ChainTiming):
     id: usable.map((m) => m.id).join(' > '),
     available: true,
     async complete(request, options) {
-      const deadline = Date.now() + timing.deadlineMs
+      const deadline = Date.now() + (options.deadlineMs ?? timing.deadlineMs)
       const errors: unknown[] = []
       // Un proveedor que no admite una petición tan grande no se intenta ni se le reserva tiempo: el plazo
       // entero va a los que sí (Groq gratuito responde 413 a lo que no cabe en su cupo por minuto).

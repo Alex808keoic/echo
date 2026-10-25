@@ -56,10 +56,22 @@ export interface ChatEngineOptions {
   runTool?: (request: ChatToolRequest) => ChatToolResult | Promise<ChatToolResult>
 }
 
-export const DEFAULT_CHAT_TIMEOUT_MS = 25_000
+export const DEFAULT_CHAT_TIMEOUT_MS = 40_000
+/**
+ * Si el intento con IA falla antes de este tiempo (el servidor rechazó la respuesta, un 5xx, la red), se
+ * reintenta una vez dentro del mismo plazo: el segundo intento suele salir bien (2026-10-25). Sin cupo, sin
+ * IA o sin conexión no se reintenta: no cambiaría nada.
+ */
+export const CHAT_RETRY_WITHIN_MS = 15_000
 
 export interface ChatEngine {
   ask(input: ChatInput): Promise<ChatReply>
+}
+
+/** Fallos que un segundo intento puede arreglar: los de la IA o la red, no la falta de cupo ni de IA. */
+function retryable(error: unknown): boolean {
+  if (error instanceof ChatTransportError) return error.reason === 'error'
+  return !(error instanceof Error && error.name === 'AbortError')
 }
 
 export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_MS, isOffline, onPhase, onFallback, runTool }: ChatEngineOptions): ChatEngine {
@@ -112,7 +124,16 @@ export function createChatEngine({ transport, timeoutMs = DEFAULT_CHAT_TIMEOUT_M
       return withFallback<ChatReply>({
         isAvailable,
         timeoutMs,
-        attempt: (signal) => askAI(input, signal),
+        attempt: async (signal) => {
+          const start = Date.now()
+          try {
+            return await askAI(input, signal)
+          } catch (error) {
+            if (signal.aborted || !retryable(error) || Date.now() - start >= CHAT_RETRY_WITHIN_MS) throw error
+            onFallback?.('error', `reintento: ${error instanceof Error ? error.message : 'error desconocido'}`)
+            return await askAI(input, signal)
+          }
+        },
         whenUnavailable: () => {
           onFallback?.('unavailable', 'IA no configurada')
           return local(input, 'unavailable')

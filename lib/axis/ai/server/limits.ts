@@ -41,14 +41,20 @@ export const AXIS_AI_LIMITS = Object.freeze({
    * 37.201 caracteres) y además le quitaba 8 s al principal. Una petición que no cabe no se intenta.
    */
   MAX_REQUEST_CHARS_BY_PROVIDER: Object.freeze({ groq: 18_000 } as Partial<Record<'cloudflare' | 'groq' | 'gemini', number>>),
-  /** Timeout de cada llamada a un proveedor (tope; la cadena puede dar menos). */
-  TIMEOUT_MS: 20_000,
+  /** Timeout de cada llamada a un proveedor (tope; la cadena puede dar menos). Cubre el plazo del chat. */
+  TIMEOUT_MS: 36_000,
   /**
    * Plazo TOTAL de la cadena de proveedores (principal + fallback), por
    * debajo de los 25 s que espera el cliente: pasado ese tiempo el cliente ya
    * ha respondido en local y seguir llamando solo gastaría cuota.
    */
   CHAIN_DEADLINE_MS: 22_000,
+  /**
+   * Plazo de la cadena en el chat, por debajo de los 40 s que espera el móvil (`DEFAULT_CHAT_TIMEOUT_MS`).
+   * Con 22 s, Cloudflare se quedaba sin tiempo en las preguntas grandes (2026-10-25): una respuesta tarde
+   * es mejor que una del motor local. El análisis sigue con `CHAIN_DEADLINE_MS`.
+   */
+  CHAT_CHAIN_DEADLINE_MS: 37_000,
   /** Tiempo que la cadena reserva para cada proveedor posterior al que está probando. */
   FALLBACK_RESERVE_MS: 8_000,
   /** Por debajo de este tiempo restante no se empieza otro intento. */

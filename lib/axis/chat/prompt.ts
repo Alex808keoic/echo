@@ -31,6 +31,20 @@ import type { ChatInput } from './types'
 export { AXIS_CHAT_SYSTEM_PROMPT }
 
 /**
+ * ¿La conversación va del mercado? Solo entonces viajan «contexto_de_mercado» y
+ * «como_van_las_inversiones» (~10.000 caracteres con datos reales): una pregunta
+ * corriente pesaba 37.000 y Cloudflare tardaba demasiado y Groq no la admitía
+ * (2026-10-25). Se mira el mensaje y los dos últimos de la conversación (para
+ * «¿y el oro?»); si no va de mercado y hace falta, el modelo tiene `buscar_mercado`.
+ */
+export const MARKET_TOPIC =
+  /(?<!\p{L})(mercados?|bolsas?|ibex|s&p|nasdaq|msci|[ií]ndices?|cotiza\p{L}*|precios?|sub(e|en|ido|ida|ir[aá]?|iendo)|baj(a|an|ado|ada|ar[aá]?|ando)|ca[ií]d[ao]s?|cae[nr]?|infla\p{L}*|ipc|eur[ií]bor|tipos de inter[eé]s|bce|fed|oro|plata|cobre|petr[oó]leo|brent|gas|materias primas|bitcoin|ether\p{L}*|cripto\p{L}*|vivienda|bonos?|letras|dep[oó]sitos?|rentabilidad\p{L}*|c[oó]mo (va|van|est[aá]n?)|noticias?|econom[ií]a|recesi[oó]n|crisis|guerra|aranceles?|d[oó]lar)(?!\p{L})/iu
+
+function talksAboutMarket(message: string, conversation: ChatInput['conversation']): boolean {
+  return MARKET_TOPIC.test([message, ...conversation.recent.slice(-2).map((m) => m.text)].join('\n'))
+}
+
+/**
  * Mismo contexto mínimo que el análisis: sin la serie diaria (abulta y no
  * aporta a la conversación). `historyDays` sale de `quality`, que conserva el
  * valor real aunque el transporte ya no envíe `flows.history`.
@@ -71,13 +85,14 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
   // La misma decisión que el análisis y la validación: de ella salen el plan y el tono.
   const decision = decide({ context, market: market ?? null, memory })
   const guide = chatGuideOf(message, decision)
-  const panorama = chatPanoramaOf(market)
+  const marketTopic = talksAboutMarket(message, conversation)
+  const panorama = marketTopic ? chatPanoramaOf(market) : null
   const payload = {
     datos_actuales: {
       contexto_financiero: minimalContext(context),
       senales_detectadas_por_finax: signalSummary(signals),
       // Los indicadores de las familias van resumidos en «como_van_las_inversiones»: no se mandan dos veces.
-      ...(market ? { contexto_de_mercado: withoutAssetIndicators(market) } : {}),
+      ...(market && marketTopic ? { contexto_de_mercado: withoutAssetIndicators(market) } : {}),
       // Cómo van las familias de inversión, calculado por Finax (solo si hay datos de bonos, materias, vivienda o cripto).
       ...(panorama ? { como_van_las_inversiones: panoramaForPrompt(panorama) } : {}),
       // Movimientos reales ya resumidos por Finax: para preguntas sobre meses anteriores o el mayor gasto.

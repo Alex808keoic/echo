@@ -24,6 +24,8 @@ import { isChatToolResults, type ChatToolResult } from '@/lib/axis/chat/tools'
 import type { AxisMemory, MarketContext } from '@/lib/axis/types'
 
 export const runtime = 'nodejs'
+/** El chat puede esperar a la IA hasta ~37 s (`CHAT_CHAIN_DEADLINE_MS`); la función necesita algo más. */
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
 const NO_STORE = { 'cache-control': 'no-store' }

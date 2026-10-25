@@ -194,6 +194,7 @@ async function completeLogged(
   kind: AxisCallKind,
   signal?: AbortSignal,
   accept?: (raw: unknown, modelId: string) => unknown | Promise<unknown>,
+  deadlineMs?: number,
 ): Promise<{ raw: unknown; answeredBy: string }> {
   const maxOutputTokens = AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS
   const requestChars = request.system.length + request.user.length + JSON.stringify(request.schema).length
@@ -215,7 +216,7 @@ async function completeLogged(
       }
     : undefined
   try {
-    const out = await model.complete(request, { maxOutputTokens, signal, onAttempt, ...(acceptOnce ? { accept: acceptOnce } : {}) })
+    const out = await model.complete(request, { maxOutputTokens, signal, onAttempt, ...(acceptOnce ? { accept: acceptOnce } : {}), ...(deadlineMs !== undefined ? { deadlineMs } : {}) })
     if (reported === 0) logAxisCall({ ...single, outcome: 'ok', diagnostics: {} })
     const raw = accept && !accepted ? await accept(out, answeredBy) : out
     return { raw, answeredBy }
@@ -320,7 +321,7 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   const model = asLanguageModel(provider)
   // Defensa en profundidad: mensaje, conversación y memoria se redactan también aquí antes de construir el prompt.
   const input = redactChatInput(rawInput)
-  const { raw } = await completeLogged(model, buildChatRequest(input), 'chat', signal, (out, modelId) => finishChatReply(out, input, modelId))
+  const { raw } = await completeLogged(model, buildChatRequest(input), 'chat', signal, (out, modelId) => finishChatReply(out, input, modelId), AXIS_AI_LIMITS.CHAT_CHAIN_DEADLINE_MS)
   return raw as ChatReply
 }
 
@@ -355,7 +356,7 @@ export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput,
     void _ignored
     return { reply: await finishChatReply(rest, input, modelId) }
   }
-  const { raw } = await completeLogged(model, buildChatRequest(input, { tools }), 'chat', signal, accept)
+  const { raw } = await completeLogged(model, buildChatRequest(input, { tools }), 'chat', signal, accept, AXIS_AI_LIMITS.CHAT_CHAIN_DEADLINE_MS)
   const turn = raw as Awaited<ReturnType<typeof accept>>
   if ('toolRequest' in turn) {
     const { toolRequest } = turn
