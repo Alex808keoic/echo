@@ -315,7 +315,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         </div>
       ) : tab === 'herramientas' ? (
         <div id="axis-panel-herramientas" role="tabpanel" aria-labelledby="axis-tab-herramientas" className="content-swap mt-5 px-5">
-          <ToolsPanel onNavigate={navigate} />
+          <ToolsPanel overview={overview} onNavigate={navigate} />
         </div>
       ) : (
         <div id="axis-panel-plan" role="tabpanel" aria-labelledby="axis-tab-plan" className="content-swap mt-5 space-y-5 px-5">

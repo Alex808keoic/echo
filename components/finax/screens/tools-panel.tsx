@@ -14,6 +14,7 @@ import { Row, RowGroup } from '../row-list'
 import { ProfileForm } from '../forms/profile-form'
 import { MovementForm } from '../forms/movement-form'
 import { openSimulator } from './simulator-screen'
+import { IdealSplit } from '../ideal-split'
 import type { ScreenProps } from './types'
 
 /**
@@ -21,7 +22,7 @@ import type { ScreenProps } from './types'
  * momento, sin esperar a la revisión del mes, y lo que AXIS sabe de ti. Aquí
  * vive cada herramienta; el plan solo enlaza a ellas desde sus pasos.
  */
-export function ToolsPanel({ onNavigate }: Pick<ScreenProps, 'onNavigate'>) {
+export function ToolsPanel({ overview, onNavigate }: Pick<ScreenProps, 'onNavigate'> & { overview: NonNullable<ScreenProps['overview']> }) {
   const { open, close } = useSheet()
   const memories = useLiveQuery(listUserMemories, [], [])
 
@@ -57,6 +58,22 @@ export function ToolsPanel({ onNavigate }: Pick<ScreenProps, 'onNavigate'>) {
           title="Me ha pasado algo"
           description="Cuéntame qué ha cambiado en tu vida y te digo qué revisar."
           onClick={() => open('Me ha pasado algo', <LifeEvents onAction={runLifeEvent} />)}
+        />
+        <Row
+          title="Cómo repartir tu dinero"
+          description="Qué parte de lo que tienes debería ir a colchón, objetivos e inversión, y cómo lo tienes tú."
+          onClick={() =>
+            open(
+              'Cómo repartir tu dinero',
+              <IdealSplit
+                overview={overview}
+                onNavigate={(screen) => {
+                  close()
+                  onNavigate(screen)
+                }}
+              />,
+            )
+          }
         />
         <Row title="Guía para invertir" description="Cuánto invertir, en qué tipos y cómo reconocer uno bueno." onClick={() => onNavigate('guia')} />
         <Row title="Cómo van las inversiones" description="Ahorro, bonos, bolsa, oro, vivienda, cripto…: qué ha pasado este mes." onClick={() => onNavigate('mercados')} />

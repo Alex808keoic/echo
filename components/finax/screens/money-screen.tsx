@@ -13,6 +13,7 @@ import { IconButton, PageHeader, SectionHeader } from '../page-header'
 import { FilterTabs, Segmented } from '../filter-tabs'
 import { FinancialCard } from '../card'
 import { DonutChart } from '../charts/donut-chart'
+import { IdealSplit } from '../ideal-split'
 import { BarChart } from '../charts/bar-chart'
 import { EvolutionChart, seriesForRange } from '../charts/evolution-chart'
 import { brandColor, CHART_COLORS, donutSlices, REST_COLOR, REST_KEY } from '@/lib/ui/chart-colors'
@@ -239,7 +240,7 @@ function WealthView({ overview, range, onRange, onNavigate }: ViewProps) {
               size={132}
               thickness={16}
             >
-              <span className="text-[15px] font-extrabold text-grafito tabular-nums">
+              <span className="whitespace-nowrap text-[13px] font-extrabold text-grafito tabular-nums">
                 {formatCents(patrimonioCents)}
               </span>
               <span className="text-[11px] font-medium text-muted-foreground">Total</span>
@@ -276,6 +277,12 @@ function WealthView({ overview, range, onRange, onNavigate }: ViewProps) {
             <dd className="font-semibold text-grafito tabular-nums">{formatCents(available)}</dd>
           </div>
         </dl>
+      </FinancialCard>
+
+      <FinancialCard>
+        <h2 className="text-[16px] font-bold tracking-tight text-grafito">Cómo debería repartirse</h2>
+        <p className="mb-4 mt-0.5 text-[12px] font-medium text-muted-foreground">Según AXIS, tu consultor financiero</p>
+        <IdealSplit overview={overview} onNavigate={onNavigate} />
       </FinancialCard>
 
       <section>
