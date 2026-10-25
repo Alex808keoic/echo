@@ -47,6 +47,8 @@ export interface AxisLanguageModel {
   readonly available: boolean
   /** Tope de salida propio del proveedor; si existe, sustituye al que pida el llamador. */
   readonly maxOutputTokens?: number
+  /** Tamaño máximo de petición (instrucciones + datos + esquema, en caracteres) que admite; sin él, cualquiera. */
+  readonly maxRequestChars?: number
   /** Devuelve la salida cruda del modelo (JSON parseado) o lanza `AIProviderError`. */
   complete(request: AIRequest, options: LanguageOptions): Promise<unknown>
 }
@@ -57,11 +59,12 @@ export function errorKindOf(error: unknown): string {
 }
 
 /** Envuelve un proveedor existente (Gemini, Groq, Cloudflare, mock) sin tocarlo. */
-export function fromProvider(provider: AIProvider | MarketAIProvider, opts: { maxOutputTokens?: number } = {}): AxisLanguageModel {
+export function fromProvider(provider: AIProvider | MarketAIProvider, opts: { maxOutputTokens?: number; maxRequestChars?: number } = {}): AxisLanguageModel {
   return {
     id: provider.id,
     available: true,
     maxOutputTokens: opts.maxOutputTokens,
+    ...(opts.maxRequestChars !== undefined ? { maxRequestChars: opts.maxRequestChars } : {}),
     async complete(request, options) {
       const maxOutputTokens = opts.maxOutputTokens ?? options.maxOutputTokens
       const report = (r: Pick<AttemptReport, 'outcome' | 'errorKind' | 'diagnostics'>) => options.onAttempt?.({ model: provider.id, attempt: 1, maxOutputTokens, ...r })
@@ -148,6 +151,11 @@ function finalError(errors: unknown[]): unknown {
   return notRateLimit ?? errors[errors.length - 1]
 }
 
+/** Tamaño de una petición en caracteres: instrucciones, datos y esquema. */
+export function requestChars(request: AIRequest): number {
+  return request.system.length + request.user.length + JSON.stringify(request.schema).length
+}
+
 export interface ChainTiming {
   /** Plazo total de la cadena, en ms. */
   deadlineMs: number
@@ -175,10 +183,19 @@ export function fallbackChain(models: AxisLanguageModel[], timing: ChainTiming):
     async complete(request, options) {
       const deadline = Date.now() + timing.deadlineMs
       const errors: unknown[] = []
-      for (let i = 0; i < usable.length; i++) {
-        const model = usable[i]
-        const attempt = i + 1
-        const later = usable.length - attempt
+      // Un proveedor que no admite una petición tan grande no se intenta ni se le reserva tiempo: el plazo
+      // entero va a los que sí (Groq gratuito responde 413 a lo que no cabe en su cupo por minuto).
+      const size = requestChars(request)
+      const fitting = usable.filter((m) => m.maxRequestChars === undefined || size <= m.maxRequestChars)
+      const order = fitting.length > 0 ? fitting : usable
+      for (const model of usable) {
+        if (order.includes(model)) continue
+        options.onAttempt?.({ model: model.id, attempt: usable.indexOf(model) + 1, outcome: 'skipped', maxOutputTokens: model.maxOutputTokens ?? options.maxOutputTokens, errorKind: 'too-large', diagnostics: {} })
+      }
+      for (let i = 0; i < order.length; i++) {
+        const model = order[i]
+        const attempt = usable.indexOf(model) + 1
+        const later = order.length - (i + 1)
         const remaining = deadline - Date.now()
         if (i > 0 && remaining < timing.minAttemptMs) {
           options.onAttempt?.({ model: model.id, attempt, outcome: 'skipped', maxOutputTokens: model.maxOutputTokens ?? options.maxOutputTokens, errorKind: 'deadline', diagnostics: {} })

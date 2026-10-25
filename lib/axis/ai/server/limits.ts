@@ -33,6 +33,14 @@ export const AXIS_AI_LIMITS = Object.freeze({
    *   así que un tope bajo trunca la respuesta (`finish_reason: length`).
    */
   MAX_OUTPUT_TOKENS_BY_PROVIDER: Object.freeze({ cloudflare: 1_200, groq: 3_000, gemini: 3_000 }),
+  /**
+   * Petición más grande (instrucciones + datos + esquema, en caracteres) que admite cada proveedor; sin
+   * entrada, cualquiera. Groq gratuito: 8.000 tokens por minuto contando la petición Y el tope de salida
+   * (3.000), así que la petición debe quedar por debajo de ~5.000 tokens. En producción, 17.691 caracteres
+   * fueron 4.598 tokens (~3,85 por token): 18.000 deja margen. Por encima respondía 413 (2026-10-25, con
+   * 37.201 caracteres) y además le quitaba 8 s al principal. Una petición que no cabe no se intenta.
+   */
+  MAX_REQUEST_CHARS_BY_PROVIDER: Object.freeze({ groq: 18_000 } as Partial<Record<'cloudflare' | 'groq' | 'gemini', number>>),
   /** Timeout de cada llamada a un proveedor (tope; la cadena puede dar menos). */
   TIMEOUT_MS: 20_000,
   /**

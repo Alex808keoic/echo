@@ -357,3 +357,40 @@ describe('AXIS · cadena desde la configuración (Cloudflare → Groq)', () => {
     assert.ok(!(result instanceof Error))
   })
 })
+
+describe('AXIS · cadena de proveedores · peticiones demasiado grandes (2026-10-25)', () => {
+  /** Responde a los `ms` (o se rinde al abortar, como los adapters reales). */
+  const after = (ms: number, value: unknown): Behavior => (signal) =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(() => resolve(value), ms)
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timer)
+        reject(new AIProviderError('timeout', 'tiempo de espera agotado'))
+      })
+    })
+  const big: AIRequest = { system: 's', user: 'x'.repeat(500), schema: { type: 'object' } }
+
+  it('si no cabe en el de reserva, no se intenta y el principal tiene todo el plazo', async () => {
+    // Con reserva, el principal tendría 400 − 150 = 250 ms; tarda 320: solo responde si recibe el plazo entero.
+    const a = fake('cloudflare:a', after(320, { ok: 'principal' }))
+    const b = fake('groq:b', ok({ ok: 'reserva' }))
+    const reports: AttemptReport[] = []
+    const chain = fallbackChain([fromProvider(a.provider), fromProvider(b.provider, { maxRequestChars: 100 })], FAST)
+    const out = await chain.complete(big, { maxOutputTokens: 100, onAttempt: (r) => reports.push(r) })
+    assert.deepEqual(out, { ok: 'principal' })
+    assert.equal(b.seen.calls, 0)
+    assert.ok(reports.some((r) => r.model === 'groq:b' && r.outcome === 'skipped' && r.errorKind === 'too-large'))
+  })
+
+  it('si cabe, todo como antes: el de reserva responde cuando el principal falla', async () => {
+    const a = fake('cloudflare:a', fail('timeout'))
+    const b = fake('groq:b', ok({ ok: 'reserva' }))
+    const chain = fallbackChain([fromProvider(a.provider), fromProvider(b.provider, { maxRequestChars: 10_000 })], FAST)
+    assert.deepEqual(await chain.complete(big, { maxOutputTokens: 100 }), { ok: 'reserva' })
+  })
+
+  it('Groq tiene tope y Cloudflare no', () => {
+    assert.equal(AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER.groq, 18_000)
+    assert.equal(AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER.cloudflare, undefined)
+  })
+})

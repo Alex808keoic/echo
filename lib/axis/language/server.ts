@@ -10,7 +10,7 @@ import { AXIS_AI_LIMITS } from '../ai/server/limits'
 import { fallbackChain, fromProvider, type AxisLanguageModel } from './model'
 
 export function languageModelFromConfig(config: AIServerConfig = readAIServerConfig()): AxisLanguageModel {
-  const models = configuredProviders(config).map(({ id, provider }) => fromProvider(provider, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER[id] }))
+  const models = configuredProviders(config).map(({ id, provider }) => fromProvider(provider, { maxOutputTokens: AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER[id], maxRequestChars: AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER[id] }))
   return fallbackChain(models, {
     deadlineMs: AXIS_AI_LIMITS.CHAIN_DEADLINE_MS,
     reserveMs: AXIS_AI_LIMITS.FALLBACK_RESERVE_MS,
