@@ -12,7 +12,7 @@ import { createChatEngine, type ChatPhase, type ChatTransport } from '../chat/en
 import { buildChatRequest } from '../chat/prompt'
 import { isChatToolResults, parseToolRequest, runChatTool, TOOL_LIMITS, toolResultFigures, type ChatToolRequest } from '../chat/tools'
 import { buildFinancialContext } from '../context'
-import type { AxisLanguageModel } from '../language/model'
+import { fallbackChain, fromProvider, type AxisLanguageModel } from '../language/model'
 import type { ChatInput, ChatReply } from '../chat/types'
 import type { Movement } from '../../types'
 import { config, gasto, ingreso, movement, NOW, snapshot, TODAY } from './fixtures'
@@ -219,5 +219,27 @@ describe('cifras del resultado', () => {
   it('se pueden citar con y sin signo', () => {
     const keys = new Set(toolResultFigures([runChatTool({ herramienta: 'buscar_movimientos', texto: 'gimnasio' }, MOVEMENTS)]).map((f) => f.key))
     assert.ok(keys.has('m:-15.00') && keys.has('m:15.00'))
+  })
+})
+
+describe('una respuesta rechazada pasa al siguiente proveedor (2026-10-25)', () => {
+  const provider = (id: string, output: unknown) => ({ id, complete: async () => output })
+  const chain = (first: unknown, second: unknown) =>
+    fallbackChain([fromProvider(provider('principal:a', first)), fromProvider(provider('reserva:b', second))], { deadlineMs: 5_000, reserveMs: 1_000, minAttemptMs: 100 })
+
+  it('con certeza indebida en el principal, responde el de reserva', async () => {
+    const turn = await chatTurnWithProvider(chain(answer('Con la renta fija la rentabilidad está garantizada.'), answer('La renta fija son préstamos a estados o empresas a cambio de un interés.')), chatInput('¿Qué es la renta fija?'))
+    assert.ok('reply' in turn)
+    assert.match(turn.reply.text, /préstamos a estados/)
+    assert.match(turn.reply.engine.label, /reserva:b/)
+  })
+
+  it('si los dos se rechazan, falla como antes (y el dispositivo responde en local)', async () => {
+    const bad = answer('Está garantizado.')
+    await assert.rejects(chatTurnWithProvider(chain(bad, bad), chatInput('¿Qué es la renta fija?')), /malformed|no válida/)
+  })
+
+  it('un modelo que no aplica la validación también queda validado', async () => {
+    await assert.rejects(chatTurnWithProvider(scripted(answer('Está garantizado.')), chatInput('¿Qué es la renta fija?')))
   })
 })

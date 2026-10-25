@@ -32,6 +32,12 @@ export interface LanguageOptions {
   signal?: AbortSignal
   /** Recibe un informe por cada intento contra un proveedor (uso de tokens, motivo de fin, límites, error). Solo para logs. */
   onAttempt?: (report: AttemptReport) => void
+  /**
+   * Validación de AXIS sobre la salida de CADA intento (`modelId`: quién la dio). Devuelve lo que
+   * `complete` entrega en lugar de la salida cruda; si lanza un `malformed`, en una cadena se prueba el
+   * siguiente proveedor. Sin ella, la salida cruda (la validación queda para después de la cadena).
+   */
+  accept?: (raw: unknown, modelId: string) => unknown | Promise<unknown>
 }
 
 export interface AxisLanguageModel {
@@ -63,16 +69,34 @@ export function fromProvider(provider: AIProvider | MarketAIProvider, opts: { ma
         if ('completeWithUsage' in provider) {
           const c = await provider.completeWithUsage(request, { maxOutputTokens, signal: options.signal })
           report({ outcome: 'ok', diagnostics: c.diagnostics ?? {} })
-          return c.output
+          return options.accept ? await acceptOrReject(options.accept, c.output, provider.id) : c.output
         }
         const output = await provider.complete(request, options.signal)
         report({ outcome: 'ok', diagnostics: {} })
-        return output
+        return options.accept ? await acceptOrReject(options.accept, output, provider.id) : output
       } catch (error) {
+        // Un rechazo de la validación ya se informó como intento correcto: no se cuenta dos veces.
+        if (error instanceof AxisRejection) throw error.cause
+
         report({ outcome: 'error', errorKind: errorKindOf(error), diagnostics: error instanceof AIProviderError ? (error.diagnostics ?? {}) : {} })
         throw error
       }
     },
+  }
+}
+
+async function acceptOrReject(accept: NonNullable<LanguageOptions['accept']>, raw: unknown, modelId: string): Promise<unknown> {
+  try {
+    return await accept(raw, modelId)
+  } catch (error) {
+    throw new AxisRejection(error)
+  }
+}
+
+/** Envuelve el error de `accept` para distinguirlo de un fallo del proveedor dentro de `fromProvider`. */
+class AxisRejection extends Error {
+  constructor(readonly cause: unknown) {
+    super('rechazo de la validación de AXIS')
   }
 }
 
@@ -96,7 +120,9 @@ export function asLanguageModel(model: AxisLanguageModel | AIProvider | MarketAI
  * JSON (`malformed`) y credenciales rechazadas (401/403: el token de ESE
  * proveedor está mal o caducado; el siguiente tiene las suyas). No: otros
  * 4xx (petición o modelo erróneos: el siguiente no lo arreglaría) y negativas.
- * La validación semántica de AXIS ocurre DESPUÉS de la cadena, así que un
+ * Con `accept` (el chat), una respuesta que la validación de AXIS rechaza
+ * (`malformed`) también pasa al siguiente proveedor. Sin `accept` (el
+ * análisis), la validación semántica ocurre DESPUÉS de la cadena, así que un
  * rechazo de Decision First nunca llega aquí: va directo al motor local.
  */
 export function isProviderFailure(error: unknown): boolean {

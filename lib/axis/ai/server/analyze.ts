@@ -184,7 +184,17 @@ export function logAxisCall(entry: AxisCallLog): void {
  * (una línea por proveedor probado). Devuelve también qué modelo respondió.
  * No cambia el resultado ni el error.
  */
-async function completeLogged(model: AxisLanguageModel, request: AIRequest, kind: AxisCallKind, signal?: AbortSignal): Promise<{ raw: unknown; answeredBy: string }> {
+/**
+ * `accept`: validación de AXIS dentro de cada intento (el chat), para que una respuesta rechazada pase al
+ * siguiente proveedor de la cadena. Se ejecuta siempre: si el modelo no la aplicó, aquí, sobre su salida.
+ */
+async function completeLogged(
+  model: AxisLanguageModel,
+  request: AIRequest,
+  kind: AxisCallKind,
+  signal?: AbortSignal,
+  accept?: (raw: unknown, modelId: string) => unknown | Promise<unknown>,
+): Promise<{ raw: unknown; answeredBy: string }> {
   const maxOutputTokens = AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS
   const requestChars = request.system.length + request.user.length + JSON.stringify(request.schema).length
   let reported = 0
@@ -196,9 +206,18 @@ async function completeLogged(model: AxisLanguageModel, request: AIRequest, kind
   }
   // Un modelo que no informa de sus intentos (mocks, implementaciones propias) deja igualmente una línea.
   const single = { kind, model: model.id, attempt: 1, fallback: false, requestChars, maxOutputTokens: model.maxOutputTokens ?? maxOutputTokens }
+  let accepted = false
+  const acceptOnce = accept
+    ? async (raw: unknown, modelId: string) => {
+        const value = await accept(raw, modelId)
+        accepted = true
+        return value
+      }
+    : undefined
   try {
-    const raw = await model.complete(request, { maxOutputTokens, signal, onAttempt })
+    const out = await model.complete(request, { maxOutputTokens, signal, onAttempt, ...(acceptOnce ? { accept: acceptOnce } : {}) })
     if (reported === 0) logAxisCall({ ...single, outcome: 'ok', diagnostics: {} })
+    const raw = accept && !accepted ? await accept(out, answeredBy) : out
     return { raw, answeredBy }
   } catch (error) {
     if (reported === 0) logAxisCall({ ...single, outcome: 'error', errorKind: errorKindOf(error), diagnostics: error instanceof AIProviderError ? (error.diagnostics ?? {}) : {} })
@@ -301,8 +320,8 @@ export async function chatWithProvider(provider: Model, rawInput: ChatInput, sig
   const model = asLanguageModel(provider)
   // Defensa en profundidad: mensaje, conversación y memoria se redactan también aquí antes de construir el prompt.
   const input = redactChatInput(rawInput)
-  const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input), 'chat', signal)
-  return finishChatReply(raw, input, answeredBy)
+  const { raw } = await completeLogged(model, buildChatRequest(input), 'chat', signal, (out, modelId) => finishChatReply(out, input, modelId))
+  return raw as ChatReply
 }
 
 /** Un turno del chat con consultas (parte 4c): o la respuesta validada, o la consulta que pide el modelo. */
@@ -326,11 +345,21 @@ export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput,
   const model = asLanguageModel(provider)
   const input = redactChatInput(rawInput)
   const tools = !input.toolResults
-  const { raw, answeredBy } = await completeLogged(model, buildChatRequest(input, { tools }), 'chat', signal)
-  if (!isRecord(raw)) throw new AIProviderError('malformed', 'la salida no es un objeto')
-  if (tools) {
-    const toolRequest = parseToolRequest(raw.consulta)
-    if (toolRequest && SERVER_TOOLS.has(toolRequest.herramienta)) {
+  // Cada intento de la cadena se valida: o pide una consulta válida, o trae una respuesta que AXIS acepta.
+  // Si no, `malformed` y la cadena prueba el siguiente proveedor.
+  const accept = async (out: unknown, modelId: string): Promise<{ toolRequest: ChatToolRequest } | { reply: ChatReply }> => {
+    if (!isRecord(out)) throw new AIProviderError('malformed', 'la salida no es un objeto')
+    const toolRequest = tools ? parseToolRequest(out.consulta) : null
+    if (toolRequest) return { toolRequest }
+    const { consulta: _ignored, ...rest } = out
+    void _ignored
+    return { reply: await finishChatReply(rest, input, modelId) }
+  }
+  const { raw } = await completeLogged(model, buildChatRequest(input, { tools }), 'chat', signal, accept)
+  const turn = raw as Awaited<ReturnType<typeof accept>>
+  if ('toolRequest' in turn) {
+    const { toolRequest } = turn
+    if (SERVER_TOOLS.has(toolRequest.herramienta)) {
       // Consulta del servidor (buscar_mercado): se ejecuta aquí y se responde en esta misma petición.
       console.info('[axis] chat: consulta (servidor):', toolRequest.herramienta)
       const consume = deps.consumeSlot ?? (() => consumeInstanceSlot().allowed)
@@ -339,14 +368,10 @@ export async function chatTurnWithProvider(provider: Model, rawInput: ChatInput,
       const resultado = await search(toolRequest.texto ?? '')
       return chatTurnWithProvider(provider, { ...input, toolResults: [{ consulta: toolRequest, resultado }] }, signal, deps)
     }
-    if (toolRequest) {
-      console.info('[axis] chat: consulta:', toolRequest.herramienta)
-      return { toolRequest }
-    }
+    console.info('[axis] chat: consulta:', toolRequest.herramienta)
+    return { toolRequest }
   }
-  const { consulta: _ignored, ...rest } = raw
-  void _ignored
-  return { reply: await finishChatReply(rest, input, answeredBy) }
+  return turn
 }
 
 /** Forma, puerta de datos de perfil y validación semántica de la salida del modelo. Lanza si no es válida. */
