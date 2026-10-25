@@ -23,6 +23,7 @@ import {
 import { inMonth, onDate, pctChange, summarize, type PeriodSummary } from '@/lib/finance/summary'
 import { allocateObjectives, totalValueCents, type ObjectivesAllocation } from '@/lib/finance/objectives'
 import type { FinancialSnapshot } from '@/lib/axis/context'
+import { goalInvestedPool } from '@/lib/axis/plan/mix'
 import { currentMonthKey, shiftedMonthKey, todayISO } from '@/lib/dates'
 import type { AppConfig, Debt, Movement, Objective, Position } from '@/lib/types'
 
@@ -121,7 +122,7 @@ function buildOverview(
     previousMonth,
     today: summarize(onDate(movements, todayISO())),
     series,
-    objectivesAllocation: allocateObjectives(objectives, liquidCents, { cents: investedCents, asOf: todayISO() }),
+    objectivesAllocation: allocateObjectives(objectives, liquidCents, goalInvestedPool(positions, todayISO())),
     axisSnapshot: { config, movements, objectives, positions, debts },
     isEmpty: movements.length === 0 && config === null,
   }

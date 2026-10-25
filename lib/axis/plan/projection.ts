@@ -75,8 +75,9 @@ export function projectWealth(plan: AllocationPlan, ctx: Pick<FinancialContext, 
   const today: Record<PositionAssetType | 'liquid', number> = { 'global-equity': 0, bonds: 0, risky: 0, safe: 0, other: 0, liquid: Math.max(0, ctx.wealth.liquidCents) }
   for (const p of ctx.investments.positions) today[p.assetType ?? 'other'] += Math.max(0, p.valueCents)
   const monthly: Record<PositionAssetType | 'liquid', number> = { 'global-equity': 0, bonds: 0, risky: 0, safe: 0, other: 0, liquid: 0 }
-  const invest = plan.steps.find((s) => s.kind === 'invest-long-term')
-  const invested = invest?.kind === 'invest-long-term' ? invest.mix.reduce((t, p) => ((monthly[p.key] += p.cents), t + p.cents), 0) : 0
+  // Lo que se invierte cada mes: el largo plazo y el ahorro de los objetivos lejanos.
+  let invested = 0
+  for (const s of plan.steps) if (s.kind === 'invest-long-term' || s.kind === 'invest-for-goals') for (const p of s.mix) ((monthly[p.key] += p.cents), (invested += p.cents))
   monthly.liquid = Math.max(0, plan.monthly.savingsCents - invested)
 
   const keys = Object.keys(today) as Array<PositionAssetType | 'liquid'>

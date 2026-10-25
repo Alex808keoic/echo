@@ -21,7 +21,7 @@ import { formatCents } from '../../money'
 import { annuityPaymentCents, DEBT_LOAD_MAX_PCT } from '../../finance/debts'
 import type { AxisMemory, FinancialContext } from '../types'
 import type { Debt, Movement } from '../../types'
-import { buildAllocationPlan, CUSHION_MONTHS, type AllocationPlan } from './allocation'
+import { buildAllocationPlan, CUSHION_MONTHS, monthlyInvestCents, type AllocationPlan } from './allocation'
 import { describeStep, durationText } from './describe'
 import { projectWealth } from './projection'
 import type { InflationRef } from './inflation'
@@ -153,7 +153,7 @@ function side(ctx: FinancialContext, memory: AxisMemory | undefined, inflation: 
     liquidCents: ctx.wealth.liquidCents,
     savingsCents: plan.status === 'ready' ? savings : savings !== null ? Math.min(savings, 0) : null,
     cushionMonths: spending && spending > 0 ? Math.floor((Math.max(0, ctx.wealth.liquidCents) / spending) * 10) / 10 : null,
-    investCents: plan.longTerm.monthlyCents,
+    investCents: monthlyInvestCents(plan),
     firstStep: plan.steps[0] ? describeStep(plan.steps[0], plan, ctx.objectives).title : 'Tu plan está al día',
     lateObjectives: late,
     projectionCents: projectWealth(plan, ctx, SIMULATION_YEARS, inflation)?.midCents ?? null,

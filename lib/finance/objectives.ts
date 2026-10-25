@@ -6,8 +6,9 @@
  * entre los objetivos activos, por prioridad: cada uno recibe lo que le falta
  * mientras quede dinero. Un mismo euro nunca cuenta para dos objetivos.
  * Los objetivos lejanos (fecha a más de `INVESTED_GOAL_MIN_MONTHS`) reciben
- * antes lo invertido, con la misma cascada, y el líquido completa lo que falte
- * (decidido por el usuario el 2026-10-25).
+ * antes lo invertido, con la misma cascada; después, los objetivos con fecha
+ * reciben lo que tienes en ahorro seguro (depósitos, Letras…), y el líquido
+ * completa lo que falte (decidido por el usuario el 2026-10-25).
  * `allocateObjectives` es la única fuente del progreso que muestran las pantallas.
  */
 import type { Objective, Position } from '../types'
@@ -32,6 +33,11 @@ export function monthsBetween(fromISO: string, toISO: string): number {
 /** El objetivo puede recibir lo invertido: tiene fecha y está a más de `INVESTED_GOAL_MIN_MONTHS`. */
 export function takesInvested(o: Pick<Objective, 'targetDate'>, asOf: string): boolean {
   return o.targetDate !== undefined && monthsBetween(asOf, o.targetDate) > INVESTED_GOAL_MIN_MONTHS
+}
+
+/** El objetivo puede recibir lo que tienes en ahorro seguro: tiene fecha y no ha pasado. */
+export function takesSafe(o: Pick<Objective, 'targetDate'>, asOf: string): boolean {
+  return o.targetDate !== undefined && monthsBetween(asOf, o.targetDate) > 0
 }
 
 /** Progreso 0–100 de un `currentCents` dado, nunca por encima de la meta (lo usa AXIS). */
@@ -86,9 +92,10 @@ export interface ObjectiveAllocation {
   rank: number | null
   /** Lo que le corresponde ahora (líquido + invertido). 0 si está conseguido. */
   allocatedCents: number
-  /** De `allocatedCents`, lo que sale del líquido y lo que sale de lo invertido. */
+  /** De `allocatedCents`: lo que sale del líquido, de lo invertido (puede bajar) y de lo que tienes en ahorro seguro. */
   fromLiquidCents: number
   fromInvestedCents: number
+  fromSafeCents: number
   /** Lo que le falta para la meta con ese reparto. 0 si está conseguido. */
   remainingCents: number
   /** Progreso 0–100 del reparto; 100 si está conseguido. */
@@ -103,9 +110,10 @@ export interface ObjectivesAllocation {
   items: ObjectiveAllocation[]
   /** Suma de lo repartido (líquido + invertido): «Destinado a objetivos». */
   allocatedCents: number
-  /** De lo repartido, lo que sale del líquido y lo que sale de lo invertido. */
+  /** De lo repartido: lo que sale del líquido, de lo invertido y del ahorro seguro. */
   fromLiquidCents: number
   fromInvestedCents: number
+  fromSafeCents: number
   /** Líquido − lo repartido del líquido. Negativo si el líquido lo es. */
   availableCents: number
   /** Suma de las metas activas y su porcentaje cubierto. */
@@ -116,36 +124,52 @@ export interface ObjectivesAllocation {
   achievedCount: number
 }
 
-/** Lo invertido que puede contar para los objetivos lejanos: su valor de hoy y la fecha desde la que se mide la distancia. */
+/**
+ * Lo invertido que puede contar para los objetivos: el valor de hoy de lo que
+ * puede bajar (`cents`, solo objetivos lejanos), el de lo que tienes en ahorro
+ * seguro (`safeCents`, cualquier objetivo con fecha) y la fecha desde la que se
+ * mide la distancia.
+ */
 export interface InvestedPool {
   cents: number
+  safeCents?: number
   asOf: string
 }
 
+/** Cascada de un fondo entre los objetivos que lo admiten, para lo que les falte después de `taken`. */
+function cascade(ordered: Objective[], poolCents: number, admits: (o: Objective) => boolean, taken: number[]): number[] {
+  let pool = Math.max(0, poolCents)
+  return ordered.map((o, i) => {
+    if (!admits(o)) return 0
+    const cents = Math.min(Math.max(0, Math.max(0, o.targetCents) - taken[i]), pool)
+    pool -= cents
+    return cents
+  })
+}
+
 /**
- * Reparte en cascada. Primero lo invertido (`invested`), solo entre los
- * objetivos lejanos (`takesInvested`), por prioridad; después el líquido entre
- * todos los activos, por prioridad, para lo que les falte. Invariantes:
+ * Reparte en cascada, por prioridad. Primero lo invertido (`invested.cents`),
+ * solo entre los objetivos lejanos (`takesInvested`); después el ahorro seguro
+ * entre los objetivos con fecha (`takesSafe`); por último el líquido entre
+ * todos los activos, para lo que les falte. Un objetivo sin fecha es dinero
+ * que puedes necesitar en cualquier momento: solo recibe líquido. Invariantes:
  * Σ del líquido ≤ max(0, líquido); Σ de lo invertido ≤ max(0, invertido);
  * asignado ≤ meta; disponible = líquido − lo repartido del líquido. Los
  * conseguidos no reciben nada. Sin `invested`, solo el líquido. Pura y determinista.
  */
 export function allocateObjectives(objectives: Objective[], liquidCents: number, invested?: InvestedPool): ObjectivesAllocation {
   const ordered = activeInOrder(objectives)
-  let investedPool = invested ? Math.max(0, invested.cents) : 0
-  const fromInvested = ordered.map((o) => {
-    if (!invested || !takesInvested(o, invested.asOf)) return 0
-    const cents = Math.min(Math.max(0, o.targetCents), investedPool)
-    investedPool -= cents
-    return cents
-  })
+  const none = ordered.map(() => 0)
+  const fromInvested = invested ? cascade(ordered, invested.cents, (o) => takesInvested(o, invested.asOf), none) : none
+  const fromSafe = invested ? cascade(ordered, invested.safeCents ?? 0, (o) => takesSafe(o, invested.asOf), fromInvested) : none
   let pool = Math.max(0, liquidCents)
   const active = ordered.map((objective, i): ObjectiveAllocation => {
     const target = Math.max(0, objective.targetCents)
     const fromInvestedCents = fromInvested[i]
-    const fromLiquidCents = Math.min(target - fromInvestedCents, pool)
+    const fromSafeCents = fromSafe[i]
+    const fromLiquidCents = Math.min(target - fromInvestedCents - fromSafeCents, pool)
     pool -= fromLiquidCents
-    const allocatedCents = fromInvestedCents + fromLiquidCents
+    const allocatedCents = fromInvestedCents + fromSafeCents + fromLiquidCents
     const covered = target > 0 && allocatedCents >= target
     return {
       objective,
@@ -153,6 +177,7 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number,
       allocatedCents,
       fromLiquidCents,
       fromInvestedCents,
+      fromSafeCents,
       remainingCents: target - allocatedCents,
       pct: displayPct(allocatedCents, target),
       status: covered ? 'covered' : 'in-progress',
@@ -161,10 +186,11 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number,
   const achieved = objectives
     .filter(isAchieved)
     .sort((a, b) => (b.achievedAt ?? 0) - (a.achievedAt ?? 0) || compareObjectives(a, b))
-    .map((objective): ObjectiveAllocation => ({ objective, rank: null, allocatedCents: 0, fromLiquidCents: 0, fromInvestedCents: 0, remainingCents: 0, pct: 100, status: 'achieved' }))
+    .map((objective): ObjectiveAllocation => ({ objective, rank: null, allocatedCents: 0, fromLiquidCents: 0, fromInvestedCents: 0, fromSafeCents: 0, remainingCents: 0, pct: 100, status: 'achieved' }))
   const fromLiquidCents = active.reduce((t, a) => t + a.fromLiquidCents, 0)
   const fromInvestedCents = active.reduce((t, a) => t + a.fromInvestedCents, 0)
-  const allocatedCents = fromLiquidCents + fromInvestedCents
+  const fromSafeCents = active.reduce((t, a) => t + a.fromSafeCents, 0)
+  const allocatedCents = fromLiquidCents + fromInvestedCents + fromSafeCents
   const activeTargetCents = active.reduce((t, a) => t + Math.max(0, a.objective.targetCents), 0)
   return {
     liquidCents,
@@ -172,6 +198,7 @@ export function allocateObjectives(objectives: Objective[], liquidCents: number,
     allocatedCents,
     fromLiquidCents,
     fromInvestedCents,
+    fromSafeCents,
     availableCents: liquidCents - fromLiquidCents,
     activeTargetCents,
     activePct: displayPct(allocatedCents, activeTargetCents),

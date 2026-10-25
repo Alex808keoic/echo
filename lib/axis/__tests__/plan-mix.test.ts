@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
-import { buildAllocationPlan, CUSHION_OBJECTIVE_NAME, IDLE_SPREAD_MONTHS, planSleeves, type AllocationPlan, type PlanStep } from '../plan/allocation'
+import { buildAllocationPlan, CUSHION_OBJECTIVE_NAME, IDLE_SPREAD_MONTHS, monthlyInvestCents, planSleeves, type AllocationPlan, type PlanStep } from '../plan/allocation'
 import { describeStep } from '../plan/describe'
 import { mixWeights, splitMix, RISKY_MAX_PCT } from '../plan/mix'
 import { recommendGuide } from '../guide/recommend'
@@ -164,6 +164,35 @@ describe('objetivos lejanos', () => {
     assert.equal(piso.currentCents, 2_000_000)
     assert.equal(step(s.plan, 'invest-goal-money')!.cents, 500_000)
     assert.equal(s.decision.context.wealth.reservedForObjectivesCents, 300_000 + 500_000)
+  })
+
+  it('el ahorro del objetivo lejano se invierte cada mes: lo que falta entre los meses que quedan', () => {
+    const s = setup(1_300_000, [CUSHION(), PISO()], profile('balanced', 'long'))
+    const piso = s.objectives.find((o) => o.name === 'Piso')!
+    const goal = step(s.plan, 'invest-for-goals')!
+    assert.equal(goal.monthlyCents, Math.ceil(piso.remainingCents / piso.monthsLeft! / 100) * 100)
+    assert.equal(goal.atRisk, false)
+    assert.ok(goal.mix.every((p) => p.key !== 'risky'))
+    assert.equal(monthlyInvestCents(s.plan), goal.monthlyCents + step(s.plan, 'invest-long-term')!.monthlyCents)
+    assert.match(describeStep(goal, s.plan, s.objectives).title, /^Para «Piso», invierte .* al mes$/)
+  })
+
+  it('cerca de la fecha propone pasar lo invertido a ahorro seguro, poco a poco hasta un año antes', () => {
+    const near = objective({ name: 'Boda', targetCents: 2_000_000, priority: 2, targetDate: '2028-09-15' })
+    const s = setup(500_000, [CUSHION(), near], profile('balanced', 'long'), [position({ name: 'Fondo indexado global', valueCents: 1_200_000 })])
+    const move = step(s.plan, 'move-goal-to-safe')!
+    assert.equal(move.investedCents, 1_200_000)
+    assert.equal(move.spreadMonths, 12)
+    assert.equal(move.perMonthCents, 100_000)
+    assert.equal(describeStep(move, s.plan, s.objectives).title, 'Pasa a ahorro seguro lo invertido para «Boda»')
+    assert.equal(step(s.plan, 'invest-for-goals'), undefined)
+  })
+
+  it('lo que ya está en ahorro seguro sigue contando y no pide moverse', () => {
+    const near = objective({ name: 'Boda', targetCents: 2_000_000, priority: 2, targetDate: '2028-09-15' })
+    const s = setup(500_000, [CUSHION(), near], profile('balanced', 'long'), [position({ name: 'Depósito', valueCents: 1_200_000, assetType: 'safe' })])
+    assert.equal(s.objectives.find((o) => o.name === 'Boda')!.safeCents, 1_200_000)
+    assert.equal(step(s.plan, 'move-goal-to-safe'), undefined)
   })
 
   it('un objetivo a menos de 5 años no propone invertir', () => {

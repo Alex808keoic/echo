@@ -68,7 +68,7 @@ function betterFor(weight: (t: TypeFit) => number) {
 function mixWeightOf(plan: AllocationPlan): (t: TypeFit) => number {
   const weights = new Map<string, number>()
   for (const s of plan.steps)
-    if (s.kind === 'invest-long-term' || s.kind === 'idle-money' || s.kind === 'invest-goal-money')
+    if (s.kind === 'invest-long-term' || s.kind === 'idle-money' || s.kind === 'invest-goal-money' || s.kind === 'invest-for-goals')
       for (const p of s.mix) for (const family of SLEEVES[p.key].families) weights.set(family, Math.max(weights.get(family) ?? 0, p.pct))
   return (t) => weights.get(t.type.family) ?? 0
 }

@@ -81,6 +81,15 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       if (step.safe && horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}: por eso no se invierte.`)
       else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
       break
+    case 'invest-for-goals':
+      why.push('Para un objetivo a más de 5 años, invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.')
+      if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
+      why.push('La cifra es lo que falta entre los meses que quedan, sin contar con la rentabilidad, para no prometer nada que el mercado no asegura.')
+      break
+    case 'move-goal-to-safe':
+      why.push('Cerca de la fecha, una caída de la bolsa ya no tiene tiempo de recuperarse y podrías llegar con menos de lo que necesitas.')
+      why.push('Hacerlo poco a poco evita venderlo todo justo en un mal momento.')
+      break
     case 'invest-goal-money':
       why.push('Para un objetivo a más de 5 años, el dinero quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.')
       if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)

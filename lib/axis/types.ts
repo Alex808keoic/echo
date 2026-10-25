@@ -81,6 +81,8 @@ export interface ObjectiveContext {
   currentCents: number
   /** De `currentCents`, lo que sale de tus inversiones (solo objetivos lejanos; ausente si es 0). Puede subir o bajar. */
   investedCents?: number
+  /** De `currentCents`, lo que sale de lo que tienes en ahorro seguro (solo objetivos con fecha; ausente si es 0). */
+  safeCents?: number
   remainingCents: number
   /** 0–100, nunca por encima de la meta. */
   progressPct: number

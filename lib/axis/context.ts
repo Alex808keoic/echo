@@ -9,7 +9,7 @@ import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctC
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
-import { guessAssetType } from './plan/mix'
+import { goalInvestedPool, guessAssetType } from './plan/mix'
 import { aprPctOf, payoffMonths } from '../finance/debts'
 import type { AppConfig, Debt, Movement, Objective, Position } from '../types'
 import type {
@@ -114,6 +114,7 @@ function objectiveContext(item: ObjectiveAllocation, aheadRemainingCents: number
     targetCents: o.targetCents,
     currentCents,
     ...(item.fromInvestedCents > 0 ? { investedCents: item.fromInvestedCents } : {}),
+    ...(item.fromSafeCents > 0 ? { safeCents: item.fromSafeCents } : {}),
     remainingCents,
     progressPct: item.pct,
     completed,
@@ -190,7 +191,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
 
   // Reparto automático: única fuente del progreso y del dinero destinado a objetivos.
   // Orden: activos por prioridad (cascada) y, detrás, los conseguidos.
-  const allocation = allocateObjectives(objectives, liquidCents, { cents: investedCents, asOf })
+  const allocation = allocateObjectives(objectives, liquidCents, goalInvestedPool(positions, asOf))
   let ahead = 0
   // Un objetivo sin meta positiva (solo puede llegar de una copia importada: el formulario la exige)
   // nunca recibe dinero ni se cubre: AXIS no habla de él como pendiente, estancado ni «siguiente».

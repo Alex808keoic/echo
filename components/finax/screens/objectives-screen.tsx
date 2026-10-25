@@ -123,7 +123,7 @@ export function ObjectivesScreen({ overview, onBack }: ScreenProps) {
             </div>
             <p className="mt-3 text-[12px] font-medium text-muted-foreground text-pretty">
               Tu dinero líquido se reparte solo, por orden: el primero recibe antes que el segundo.
-              {allocation.fromInvestedCents > 0 && ' Los objetivos a más de un año cuentan antes con lo que tienes invertido.'}
+              {allocation.fromInvestedCents + allocation.fromSafeCents > 0 && ' Los objetivos con fecha cuentan antes con tus inversiones: los de más de un año, con todas; los cercanos, solo con tu ahorro seguro.'}
             </p>
           </FinancialCard>
 

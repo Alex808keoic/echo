@@ -13,7 +13,7 @@ import type { AppConfig, Debt, Movement, Position } from '../../types'
 import { inMonth, totalsByCategory } from '../../finance/summary'
 import { closedMonthsOf, monthKeyOf } from '../context'
 import { regularExpenseCents, regularIncomeCents } from '../rules/shared'
-import type { AllocationPlan } from './allocation'
+import { monthlyInvestCents, type AllocationPlan } from './allocation'
 import { inflationPhrase, type InflationRef } from './inflation'
 
 export interface PlannedSnapshot {
@@ -42,8 +42,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /** Planificado del plan actual, cuando no hay foto del mes revisado. */
 export function plannedFromPlan(plan: AllocationPlan, items: number): PlannedSnapshot {
-  const invest = plan.steps.find((s) => s.kind === 'invest-long-term')
-  return { savingsCents: plan.monthly?.savingsCents ?? 0, investCents: invest?.kind === 'invest-long-term' ? invest.monthlyCents : 0, items }
+  return { savingsCents: plan.monthly?.savingsCents ?? 0, investCents: monthlyInvestCents(plan), items }
 }
 
 export function reviewMonth(input: {

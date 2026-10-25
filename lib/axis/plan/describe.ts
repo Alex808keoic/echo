@@ -11,7 +11,7 @@ import { RISKY_MAX_PCT, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
 
 /** Lo que la pantalla puede hacer desde un paso. */
-export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts'
+export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts' | 'review-investments'
 
 export interface StepView {
   title: string
@@ -170,6 +170,27 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         ...minorNote(step.adult, step.mix),
       }
     }
+    case 'invest-for-goals': {
+      const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
+      const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
+      return {
+        title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
+        detail: `Faltan más de 5 años: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.`,
+        ...(step.atRisk ? { warning: 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.' } : {}),
+        ...minorNote(step.adult, step.mix),
+      }
+    }
+    case 'move-goal-to-safe': {
+      const name = objectives.find((o) => o.id === step.objectiveId)?.name ?? 'tu objetivo'
+      return {
+        title: `Pasa a ahorro seguro lo invertido para «${name}»`,
+        detail:
+          step.spreadMonths > 1
+            ? `Faltan unos ${plural(step.monthsLeft, 'mes', 'meses')} y tienes ${eur(step.investedCents)} invertidos para este objetivo. Una caída ahora ya no tendría tiempo de recuperarse: pásalos poco a poco, unos ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}, a ahorro seguro (cuenta remunerada, depósito o Letras del Tesoro). Apúntalo en Inversiones con el tipo «Ahorro seguro»: así sigue contando para el objetivo.`
+            : `Faltan unos ${plural(step.monthsLeft, 'mes', 'meses')} y tienes ${eur(step.investedCents)} invertidos para este objetivo. Ya no hay tiempo de recuperarse de una caída: pásalos a ahorro seguro (cuenta remunerada, depósito o Letras del Tesoro) y apúntalo en Inversiones con el tipo «Ahorro seguro». A menos de un año de la fecha, lo invertido que pueda bajar deja de contar para el objetivo.`,
+        action: { kind: 'review-investments', label: 'Ir a Inversiones' },
+      }
+    }
     case 'invest-goal-money': {
       const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
@@ -274,7 +295,7 @@ export function planSegments(plan: AllocationPlan): Array<{ kind: SegmentKind; l
     if (s.kind === 'fill-cushion') out.push({ kind: 'cushion', label: s.starter ? 'Colchón mínimo' : 'Colchón', cents: s.monthlyCents })
     else if (s.kind === 'pay-debt') out.push({ kind: 'debt', label: 'Devolver deudas', cents: s.monthlyCents })
     else if (s.kind === 'short-term-objectives') out.push({ kind: 'short-term', label: 'Objetivos cercanos', cents: s.monthlyCents })
-    else if (s.kind === 'invest-long-term') for (const p of s.mix) out.push({ ...SEGMENT_OF[p.key], cents: p.cents })
+    else if (s.kind === 'invest-long-term' || s.kind === 'invest-for-goals') for (const p of s.mix) out.push({ ...SEGMENT_OF[p.key], cents: p.cents })
     else if (s.kind === 'rest-to-objectives') out.push({ kind: 'objectives', label: s.noObjectives ? 'Se queda en tu líquido' : 'Tus objetivos', cents: s.monthlyCents })
   }
   return out.filter((s) => s.cents > 0)

@@ -267,14 +267,14 @@ export interface RecurringForecast {
 /**
  * Objetivos del contexto tal como los ve el reparto del líquido: mismo orden
  * (`rank`, o el del contexto en uno antiguo) y mismo estado, con la meta
- * rebajada en lo que ya cubren tus inversiones. Con el líquido del contexto,
+ * rebajada en lo que ya cubren tus inversiones y tu ahorro seguro. Con el líquido del contexto,
  * `allocateObjectives` reproduce exactamente su reparto.
  */
 export function objectivesForAllocation(objectives: readonly ObjectiveContext[]): Objective[] {
   return objectives.map((o, i) => ({
     id: o.id,
     name: o.name,
-    targetCents: o.targetCents - (o.investedCents ?? 0),
+    targetCents: o.targetCents - (o.investedCents ?? 0) - (o.safeCents ?? 0),
     currentCents: 0,
     createdAt: 0,
     updatedAt: 0,

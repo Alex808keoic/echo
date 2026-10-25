@@ -74,9 +74,9 @@ function OrderButton({ label, onClick, children }: { label: string; onClick?: ()
 }
 
 function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | 'onClick' | 'showRank'>) {
-  const { objective: goal, allocatedCents, fromLiquidCents, fromInvestedCents, remainingCents, pct, status, rank } = item
+  const { objective: goal, allocatedCents, fromLiquidCents, fromInvestedCents, fromSafeCents, remainingCents, pct, status, rank } = item
   const achieved = status === 'achieved'
-  const withInvested = !achieved && fromInvestedCents > 0
+  const withInvested = !achieved && fromInvestedCents + fromSafeCents > 0
   return (
     <button type="button" onClick={onClick} className="flex w-full min-w-0 flex-1 items-start gap-3 text-left">
       <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-finax-soft text-finax">
@@ -111,11 +111,20 @@ function GoalSummary({ item, onClick, showRank }: Pick<GoalCardProps, 'item' | '
           {status === 'covered' && (withInvested ? 'Entre tu dinero y tus inversiones ya llegas a la meta' : 'Tu dinero líquido ya llega a la meta')}
         </p>
         {withInvested && (
-          // Objetivo lejano: parte de lo que lleva sale de tus inversiones, que pueden bajar.
+          // Parte de lo que lleva sale de tus inversiones (pueden bajar) o de tu ahorro seguro.
           <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-[12px] font-medium text-muted-foreground tabular-nums">
-            {fromLiquidCents > 0 && <span className="whitespace-nowrap">{formatCents(fromLiquidCents)} en cuenta ·</span>}
-            <span className="whitespace-nowrap">{formatCents(fromInvestedCents)} invertido</span>
-            <span className="whitespace-nowrap">(puede subir o bajar)</span>
+            {[
+              fromLiquidCents > 0 && `${formatCents(fromLiquidCents)} en cuenta`,
+              fromSafeCents > 0 && `${formatCents(fromSafeCents)} en ahorro seguro`,
+              fromInvestedCents > 0 && `${formatCents(fromInvestedCents)} invertido (puede subir o bajar)`,
+            ]
+              .filter(Boolean)
+              .map((part, i) => (
+                <span key={i} className="whitespace-nowrap">
+                  {i > 0 && '· '}
+                  {part}
+                </span>
+              ))}
           </p>
         )}
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">

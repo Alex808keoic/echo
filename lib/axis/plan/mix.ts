@@ -16,7 +16,8 @@
  * decisión del usuario, 2026-10-17: si no lo eres, se explica que lo haría un adulto.)
  */
 import type { Horizon, RiskAttitude } from '../profile/types'
-import type { PositionAssetType } from '../../types'
+import type { Position, PositionAssetType } from '../../types'
+import type { InvestedPool } from '../../finance/objectives'
 import { matchProductTypes, type ProductFamily } from '../guide/products'
 import { SCENARIO_ASSUMPTIONS } from '../guide/scenarios'
 
@@ -79,6 +80,21 @@ const TYPE_OF_FAMILY: Record<ProductFamily, PositionAssetType> = {
   speculative: 'risky',
   cash: 'safe',
   'short-debt': 'safe',
+}
+
+/**
+ * Lo invertido que puede contar para tus objetivos (`allocateObjectives`): lo
+ * que tienes en ahorro seguro por un lado y todo lo demás (puede bajar) por otro.
+ */
+export function goalInvestedPool(positions: ReadonlyArray<Pick<Position, 'name' | 'valueCents' | 'assetType'>>, asOf: string): InvestedPool {
+  let cents = 0
+  let safeCents = 0
+  for (const p of positions) {
+    const value = Number.isSafeInteger(p.valueCents) ? Math.max(0, p.valueCents) : 0
+    if ((p.assetType ?? guessAssetType(p.name)) === 'safe') safeCents += value
+    else cents += value
+  }
+  return { cents, safeCents, asOf }
 }
 
 /** Tipo de una inversión por su nombre («MSCI World indexado» → renta variable global); sin pistas, «other». */
