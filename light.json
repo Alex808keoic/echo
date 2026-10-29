@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-28T14:16:40.878Z",
+  "checkedAt": "2026-10-29T14:34:02.240Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,18 +10,18 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.262,
+      "value": 3.29,
       "unit": "%",
-      "asOf": "2026-10-27",
-      "changePct": 0.037,
+      "asOf": "2026-10-28",
+      "changePct": 0.028,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ine-ipc",
@@ -32,7 +32,7 @@
       "asOf": "2026-09",
       "changePct": 0.6,
       "source": "INE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ea-hicp",
@@ -44,19 +44,19 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 19160.6,
+      "value": 18883.5,
       "unit": "pts",
-      "asOf": "2026-10-27",
-      "changePct": -1.83,
+      "asOf": "2026-10-28",
+      "changePct": -2.79,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "stoxx50",
@@ -68,7 +68,7 @@
       "changePct": -2.58,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "fed-funds",
@@ -80,67 +80,67 @@
       "changePct": 0.12,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "spx",
       "label": "S&P 500",
       "group": "index",
-      "value": 7722.6,
+      "value": 7743.98,
       "unit": "pts",
-      "asOf": "2026-10-27",
-      "changePct": 0.67,
+      "asOf": "2026-10-28",
+      "changePct": 1.21,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ndq",
       "label": "Nasdaq 100",
       "group": "index",
-      "value": 29651.44,
+      "value": 29813.16,
       "unit": "pts",
-      "asOf": "2026-10-27",
-      "changePct": -2.27,
+      "asOf": "2026-10-28",
+      "changePct": -1.96,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "brent",
       "label": "Petróleo Brent (dólares por barril)",
       "group": "commodity",
-      "value": 115.22,
+      "value": 123.1,
       "unit": "USD",
-      "asOf": "2026-10-20",
-      "changePct": 0.29,
+      "asOf": "2026-10-27",
+      "changePct": 8.02,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "us-10y",
       "label": "Bono a 10 años de EE. UU.",
       "group": "bond",
-      "value": 5,
+      "value": 4.99,
       "unit": "%",
-      "asOf": "2026-10-26",
-      "changePct": -0.24,
+      "asOf": "2026-10-27",
+      "changePct": -0.27,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "eu-hy",
       "label": "Bonos de empresas europeas de alto rendimiento",
       "group": "bond",
-      "value": 6.83,
+      "value": 6.71,
       "unit": "%",
-      "asOf": "2026-10-26",
-      "changePct": 0.51,
+      "asOf": "2026-10-28",
+      "changePct": 0.35,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "copper",
@@ -152,7 +152,7 @@
       "changePct": 0.99,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "gas-eu",
@@ -164,19 +164,19 @@
       "changePct": 21.85,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ea-10y",
       "label": "Bono a 10 años de la eurozona (AAA)",
       "group": "bond",
-      "value": 3.37,
+      "value": 3.39,
       "unit": "%",
-      "asOf": "2026-10-27",
-      "changePct": -0.24,
+      "asOf": "2026-10-28",
+      "changePct": -0.19,
       "changeDays": 28,
       "source": "BCE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "es-10y",
@@ -188,7 +188,7 @@
       "changePct": 0.29,
       "changeDays": 31,
       "source": "BCE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "ine-ipv",
@@ -200,7 +200,7 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "es-deposit-1y",
@@ -212,7 +212,7 @@
       "changePct": -0.01,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "es-deposit-sight",
@@ -224,7 +224,7 @@
       "changePct": 0,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "es-letras-1y",
@@ -232,51 +232,64 @@
       "group": "rate",
       "value": 3.06,
       "unit": "%",
-      "asOf": "2026-10-26",
+      "asOf": "2026-10-27",
       "changePct": -0.04,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "gold",
       "label": "Oro (dólares por onza)",
       "group": "commodity",
-      "value": 4047.8,
+      "value": 4030,
       "unit": "USD",
-      "asOf": "2026-10-28",
+      "asOf": "2026-10-29",
       "changePct": null,
       "source": "gold-api.com",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 72400,
+      "value": 72182,
       "unit": "EUR",
-      "asOf": "2026-10-28",
-      "changePct": -1.83,
+      "asOf": "2026-10-29",
+      "changePct": -2.17,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     },
     {
       "key": "eth",
       "label": "Ether (euros)",
       "group": "crypto",
-      "value": 2093,
+      "value": 2091,
       "unit": "EUR",
-      "asOf": "2026-10-28",
-      "changePct": -11.35,
+      "asOf": "2026-10-29",
+      "changePct": -11.78,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-10-28T14:16:40.878Z"
+      "fetchedAt": "2026-10-29T14:34:02.240Z"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "kind": "headline",
+      "detail": "BCE · prensa: Monetary policy decisions"
+    },
+    {
+      "kind": "headline",
+      "detail": "Fed · prensa: Federal Reserve issues FOMC statement"
+    },
+    {
+      "kind": "headline",
+      "detail": "Banco de España · noticias: El BCE mantiene sin cambios los tipos de interés en octubre"
+    }
+  ],
   "failedSources": [
     "FMI (materias primas)"
   ],
-  "eventTriggered": false
+  "eventTriggered": true
 }
