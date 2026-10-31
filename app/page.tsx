@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { PhoneFrame, type ScreenEnter } from '@/components/finax/phone-frame'
 import { BottomNavigation, isTab, tabIndex, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
@@ -22,6 +22,8 @@ import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
 import { MovementForm } from '@/components/finax/forms/movement-form'
 import { useFinancialOverview } from '@/hooks/use-financial-overview'
+import { EcosystemProvider } from '@/hooks/use-ecosystem'
+import { RETURN_TO_SETTINGS_KEY } from '@/lib/ecosystem/client'
 
 type NavDirection = 'forward' | 'back' | 'left' | 'right'
 
@@ -30,7 +32,9 @@ const FALLBACK_ENTER: Record<NavDirection, ScreenEnter> = { forward: 'forward', 
 export default function Page() {
   return (
     <SheetProvider>
-      <App />
+      <EcosystemProvider>
+        <App />
+      </EcosystemProvider>
     </SheetProvider>
   )
 }
@@ -43,6 +47,17 @@ function App() {
   const [enter, setEnter] = useState<ScreenEnter | undefined>(undefined)
   const overview = useFinancialOverview()
   const { open, close } = useSheet()
+
+  // Al volver de entrar con Google para el ecosistema AXIS, se reabre Ajustes, donde se empezó.
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(RETURN_TO_SETTINGS_KEY) === null) return
+      window.sessionStorage.removeItem(RETURN_TO_SETTINGS_KEY)
+      setScreen('ajustes')
+    } catch {
+      // Sin sessionStorage se queda en Inicio.
+    }
+  }, [])
 
   const showFab = screen === 'movimientos' || screen === 'dinero'
   const openNewMovement = () => open('Nuevo movimiento', <MovementForm onDone={close} />)

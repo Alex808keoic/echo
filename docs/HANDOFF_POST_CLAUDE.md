@@ -12,6 +12,18 @@
 
 ---
 
+## Ecosistema AXIS (2026-10-31)
+
+Finax puede conectarse, si el usuario quiere, con la **app AXIS** (repo `github.com/Alex808keoic/axis`), que une Finax, Axthletics y Mentax. No cambia nada del AXIS consultor de Finax.
+
+- **Ajustes → «Ecosistema AXIS»** (`components/finax/ecosystem-section.tsx`): entrar con Google, elegir en una hoja qué cifras se comparten y confirmar. Después: cambiar la selección, «Dejar de compartir» (borra en AXIS lo recibido) o «Cerrar sesión». Al volver de Google se reabre Ajustes. Solo aparece con Finax ya configurado.
+- **Qué sale:** un resumen por semana (contrato `axis.snapshot.v1`, copia en `lib/ecosystem/contract.ts`; no editar ahí): ingresos, gastos, gastos habituales, patrimonio (la misma curva que la gráfica), valor invertido, deudas (solo la semana actual: no hay historial) y número de movimientos, más los objetivos con el mismo reparto que la pantalla. Nunca movimientos sueltos, conceptos, notas, nombres de inversiones ni conversaciones.
+- **Cuándo:** al confirmar, toda la historia; después, al abrir y al salir de la app, como mucho cada 5 min (`hooks/use-ecosystem.tsx`). Cada envío sustituye el de su semana.
+- **Dónde:** proyecto Supabase compartido del ecosistema (UE), RLS por usuario. La clave publicable está en `lib/ecosystem/client.ts` porque es pública por diseño. `@supabase/supabase-js` se carga solo con una sesión guardada o al volver de Google: sin conectar no hay ninguna petición.
+- **Datos:** el consentimiento vive en `AppConfig.ecosystem` (viaja en la copia; sin sesión no se envía nada). `setInitialBalance` lo conserva.
+
+---
+
 ## 🟢 Estado al 2026-10-13 (actual)
 
 ### Repositorio y producción

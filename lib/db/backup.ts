@@ -38,6 +38,7 @@ import { computeLiquidCents } from '../finance/patrimonio'
 import { withDerivedCurrentCents } from '../finance/objectives'
 import { validateImportedMemories } from '../axis/chat/memory'
 import type { UserMemory } from '../axis/chat/types'
+import { isEcosystemSharing } from '../ecosystem/sharing'
 
 export const BACKUP_FORMAT = 'finax-backup'
 export const BACKUP_VERSION = 4
@@ -205,7 +206,8 @@ function isConfig(v: unknown): v is AppConfig {
     v.key === CONFIG_KEY &&
     isInt(v.initialBalanceCents) &&
     isInt(v.configuredAt) &&
-    isInt(v.updatedAt)
+    isInt(v.updatedAt) &&
+    (v.ecosystem === undefined || isEcosystemSharing(v.ecosystem))
   )
 }
 

@@ -21,6 +21,7 @@ import { deriveProfile } from '@/lib/axis/profile/derive'
 import { profileProgress } from '@/lib/axis/profile/questionnaire'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
+import { EcosystemSection } from '../ecosystem-section'
 import { disableReminders, enableReminders, reminderStatus, type ReminderStatus } from '@/lib/notifications'
 import { getLastBackupAt, setLastBackupAt } from '@/lib/db/meta'
 import { toISODate } from '@/lib/dates'
@@ -244,6 +245,8 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       <Group title="Recordatorios">
         <RemindersRow />
       </Group>
+
+      <EcosystemSection configured={overview.config !== null} />
 
       <Group title="AXIS">
         {/* Atajos: su sitio es AXIS → Herramientas. */}

@@ -4,6 +4,7 @@
  * Importes siempre en céntimos enteros (D-16). Fechas en `YYYY-MM-DD`
  * en hora local y sin componente horario (D-18).
  */
+import type { EcosystemSharing } from './ecosystem/sharing'
 
 /* ------------------------------ Movimientos ------------------------------ */
 
@@ -341,6 +342,8 @@ export interface AppConfig {
   initialBalanceCents: number
   /** Marca que los datos actuales proceden de la carga de demostración. */
   demo?: boolean
+  /** Lo que se comparte con la app AXIS del ecosistema. Ausente: nada. */
+  ecosystem?: EcosystemSharing
   configuredAt: number
   updatedAt: number
 }
