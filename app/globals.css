@@ -115,21 +115,6 @@
   display: none;
 }
 
-@keyframes axis-float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-6px) scale(1.015); }
-}
-.axis-float {
-  animation: axis-float 6s ease-in-out infinite;
-}
-
-@keyframes axis-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.9; }
-}
-.axis-pulse {
-  animation: axis-pulse 5s ease-in-out infinite;
-}
 
 /* ------------------------------------------------------------------------- */
 /* Transiciones y microinteracciones. Cortas (≤ 280 ms), solo transform y     */

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { AxisSphere } from './axis-sphere'
+import { AxisMark } from './axis-mark'
 import { LeafLogo, ChevronRight } from './icons'
 
 interface AxisCardProps {
@@ -14,7 +14,7 @@ interface AxisCardProps {
 
 /**
  * Tarjeta de recomendación/insight de AXIS.
- * - lavender: identidad AXIS (violeta/azul), con la esfera.
+ * - lavender: identidad AXIS (violeta/azul), con el símbolo del ecosistema.
  * - green: integrada en Finax, con hoja verde.
  */
 export function AxisCard({ text, title, tone = 'lavender', onClick, extra }: AxisCardProps) {
@@ -31,7 +31,7 @@ export function AxisCard({ text, title, tone = 'lavender', onClick, extra }: Axi
     >
       <div className="shrink-0">
         {isLavender ? (
-          <AxisSphere size={40} glow={false} />
+          <AxisMark size={40} />
         ) : (
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 text-finax">
             <LeafLogo className="h-5 w-5" />

@@ -7,7 +7,7 @@ import { useMarketContext } from '@/hooks/use-market-context'
 import { FRESHNESS_LABEL } from '@/lib/market/freshness'
 import { formatShortDate } from '@/lib/dates'
 import type { AxisAnalysis, AxisEngineInfo, AxisNextStep, Priority } from '@/lib/axis/types'
-import { AxisSphere } from '../axis-sphere'
+import { AxisMark } from '../axis-mark'
 import { AxisConversation } from '../axis-conversation'
 import { FinancialCard } from '../card'
 import { Button } from '../button'
@@ -282,13 +282,13 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
         </IconButton>
       </div>
 
-      {/* Saludo compacto: la esfera grande ocupaba media pantalla del móvil antes de llegar a nada útil. */}
+      {/* Saludo compacto: el símbolo de AXIS junto al saludo, sin ocupar media pantalla del móvil. */}
       <div className="relative mt-3 flex items-center gap-4 px-5 pb-4 pt-2">
         <div
           className="pointer-events-none absolute left-0 top-[-12px] h-[104px] w-[104px]"
           style={{ background: 'radial-gradient(closest-side, rgba(129,140,248,0.22), rgba(129,140,248,0))' }}
         />
-        <AxisSphere size={60} className="shrink-0" />
+        <AxisMark size={56} className="relative shrink-0" />
         <div className="relative min-w-0">
           <h1 className="text-[22px] font-extrabold leading-tight tracking-tight text-grafito">{greeting()}</h1>
           <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{axisHeadline(axis)}</p>

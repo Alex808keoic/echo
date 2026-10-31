@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { HomeIcon, MoneyIcon, MovementsIcon } from './icons'
-import { AxisSphere } from './axis-sphere'
+import { AxisMark } from './axis-mark'
 
 export type TabKey = 'inicio' | 'dinero' | 'movimientos' | 'axis'
 
@@ -73,11 +73,8 @@ export function BottomNavigation({ active, onChange }: BottomNavigationProps) {
                 )}
               >
                 {isAxis ? (
-                  isActive ? (
-                    <AxisSphere size={22} glow={false} />
-                  ) : (
-                    <span className="h-[18px] w-[18px] rounded-full border-[1.6px] border-current opacity-90" />
-                  )
+                  // Activa, a todo color; inactiva, en una tinta como las demás pestañas.
+                  <AxisMark size={22} mono={!isActive} />
                 ) : (
                   <tab.icon className="h-[22px] w-[22px]" />
                 )}
