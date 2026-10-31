@@ -13,7 +13,7 @@ import { FinancialCard } from '../card'
 import { Button } from '../button'
 import { IconButton } from '../page-header'
 import { ScreenLoading } from '../loading'
-import { LeafLogo, SettingsIcon, LightbulbIcon, ArrowUpRight, ChevronRight } from '../icons'
+import { SettingsIcon, LightbulbIcon, ArrowUpRight, ChevronRight } from '../icons'
 import type { ScreenKey } from '../bottom-navigation'
 import { cn } from '@/lib/utils'
 import { PlanPanel } from './plan-panel'
@@ -269,9 +269,7 @@ export function AxisScreen({ overview, onNavigate }: ScreenProps) {
       {/* Cabecera identidad AXIS */}
       <div className="flex items-center justify-between px-5 pt-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-axis-soft text-axis-violet">
-            <LeafLogo className="h-5 w-5" />
-          </span>
+          <AxisMark size={36} />
           <div>
             <p className="text-[17px] font-extrabold leading-none tracking-tight text-grafito">AXIS</p>
             <p className="mt-1 text-[12px] font-medium text-muted-foreground">Tu consultor financiero</p>

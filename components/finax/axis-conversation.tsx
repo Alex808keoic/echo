@@ -26,7 +26,8 @@ import { FinancialCard } from './card'
 import { AmountInput, ChipGroup } from './field'
 import { Confirm } from './confirm'
 import { useSheet } from './sheet'
-import { ArrowUpRight, ChevronRight, CloseIcon, LeafLogo, TrashIcon } from './icons'
+import { ArrowUpRight, ChevronRight, CloseIcon, TrashIcon } from './icons'
+import { AxisMark } from './axis-mark'
 import { cn } from '@/lib/utils'
 import type { ChatAction } from '@/lib/axis/chat/actions'
 import { useCushionActions } from './cushion-actions'
@@ -299,9 +300,7 @@ function Message({ message, memories, onResolve, onNavigate }: { message: ChatMe
   const ai = message.engine?.isAI === true
   return (
     <li className="flex gap-2.5">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-axis-soft text-axis-violet">
-        <LeafLogo className="h-4 w-4" />
-      </span>
+      <AxisMark size={28} className="mt-0.5 shrink-0" />
       <div className="min-w-0 flex-1">
         <Paragraphs text={message.text} />
         {message.nextStep && <NextStepLink step={message.nextStep} onNavigate={onNavigate} />}

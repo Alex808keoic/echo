@@ -18,7 +18,7 @@ import { FinancialCard } from '../card'
 import { Button } from '../button'
 import { ScreenLoading } from '../loading'
 import { AmountInput, ChipGroup, Field, TextInput } from '../field'
-import { LeafLogo } from '../icons'
+import { AxisMark } from '../axis-mark'
 import type { ScreenProps } from './types'
 
 const KINDS: Record<ScenarioKind, string> = {
@@ -223,7 +223,7 @@ export function SimulatorScreen({ overview, onNavigate, onBack }: ScreenProps) {
       </FinancialCard>
 
       <p className="flex gap-2.5 rounded-2xl bg-muted px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
-        <LeafLogo className="mt-0.5 h-4 w-4 shrink-0 text-axis-violet" />
+        <AxisMark size={16} className="mt-0.5 shrink-0" />
         <span>
           Es una simulación con tus datos y las reglas de tu plan, no una previsión ni asesoramiento personalizado. No se guarda nada: tus datos no cambian.
           {kind === 'home' && ` Supone un ${HOME_DOWN_PCT} % de entrada y un ${HOME_COSTS_PCT} % de gastos de compra; en tu comunidad pueden ser distintos.`}

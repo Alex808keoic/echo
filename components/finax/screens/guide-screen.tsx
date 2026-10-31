@@ -14,7 +14,8 @@ import { ScenarioChart } from '../charts/scenario-chart'
 import { SubPageHeader } from '../page-header'
 import { FinancialCard } from '../card'
 import { ScreenLoading } from '../loading'
-import { ArrowUpRight, ChevronRight, LeafLogo, SparkIcon } from '../icons'
+import { ArrowUpRight, ChevronRight } from '../icons'
+import { AxisMark } from '../axis-mark'
 import type { ScreenProps } from './types'
 
 const VERDICT_TONE: Record<FitVerdict, string> = {
@@ -143,7 +144,7 @@ export function GuideScreen({ overview, onNavigate, onBack }: ScreenProps) {
       )}
 
       <p className="flex gap-2.5 rounded-2xl bg-muted px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
-        <LeafLogo className="mt-0.5 h-4 w-4 shrink-0 text-axis-violet" />
+        <AxisMark size={16} className="mt-0.5 shrink-0" />
         <span>
           Esta guía es información general. AXIS te dice qué tipo de producto encaja con tu plan, no qué producto comprar: los ejemplos solo enseñan qué existe. Finax no recomienda productos, marcas ni entidades, ni
           cuándo comprar o vender.
@@ -171,7 +172,7 @@ function EstimateCard({ estimate, onPlan }: { estimate: InvestEstimate; onPlan: 
   return (
     <FinancialCard className="space-y-3 border-axis-blue/30">
       <div className="flex items-center gap-2">
-        <SparkIcon className="h-4 w-4 text-axis-violet" />
+        <AxisMark size={16} />
         <Label>AXIS · cuánto deberías invertir</Label>
       </div>
       {estimate.kind === 'now' ? (
@@ -258,7 +259,7 @@ function LeadCard({ rec, onOpen, onPlan }: { rec: GuideRecommendation; onOpen: (
   return (
     <FinancialCard className="space-y-3 border-axis-blue/30">
       <div className="flex items-center gap-2">
-        <SparkIcon className="h-4 w-4 text-axis-violet" />
+        <AxisMark size={16} />
         <Label>AXIS · lo que mejor te encaja ahora</Label>
       </div>
       {recommended ? (
@@ -322,7 +323,7 @@ function GroupView({ group, open, onToggle, plan, mine, onPlan }: GroupViewProps
       <FinancialCard className="space-y-3">
         <p className="text-[13px] font-medium leading-snug text-grafito/85 text-pretty">{group.group.intro}</p>
         <p className="flex gap-2 rounded-2xl bg-axis-soft px-3.5 py-2.5 text-[12.5px] font-semibold leading-snug text-axis-indigo text-pretty">
-          <SparkIcon className="mt-0.5 h-4 w-4 shrink-0" />
+          <AxisMark size={16} className="mt-0.5 shrink-0" />
           <span>{groupAdvice(group)}</span>
         </p>
       </FinancialCard>
@@ -362,7 +363,7 @@ function TypeDetail({ type, fit, plan, mine, onPlan }: { type: ProductType; fit:
 
       <div className="space-y-2 rounded-2xl border border-border bg-background/60 p-3.5">
         <p className="flex items-center gap-1.5 text-[12px] font-bold text-axis-indigo">
-          <SparkIcon className="h-3.5 w-3.5" />
+          <AxisMark size={14} />
           Con tu plan
         </p>
         <VerdictPill verdict={fit.verdict} text={fit.headline} />

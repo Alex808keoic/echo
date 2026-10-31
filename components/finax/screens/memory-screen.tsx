@@ -19,7 +19,8 @@ import { ConvertNoteForm } from '../forms/convert-note-form'
 import { ProfileForm } from '../forms/profile-form'
 import { deriveProfile } from '@/lib/axis/profile/derive'
 import { answeredCount, PROFILE_QUESTIONS } from '@/lib/axis/profile/questionnaire'
-import { LeafLogo, PlusIcon, TrashIcon } from '../icons'
+import { PlusIcon, TrashIcon } from '../icons'
+import { AxisMark } from '../axis-mark'
 import type { ScreenProps } from './types'
 
 /**
@@ -89,7 +90,7 @@ export function MemoryScreen({ onBack }: ScreenProps) {
       )}
 
       <p className="flex gap-2.5 rounded-2xl bg-muted px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
-        <LeafLogo className="mt-0.5 h-4 w-4 shrink-0 text-axis-violet" />
+        <AxisMark size={16} className="mt-0.5 shrink-0" />
         <span>
           Estas memorias se guardan en este dispositivo. Cuando conversas con AXIS, se envían al servidor de Finax y al proveedor de IA para
           poder responderte. Se borran al eliminarlas aquí o con «Borrar todos los datos» en Ajustes.
