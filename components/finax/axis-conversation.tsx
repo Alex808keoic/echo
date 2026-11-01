@@ -448,7 +448,8 @@ export function AxisConversation({ status, online, messages, memories, onSend, o
             )}
             aria-live="polite"
           >
-            {working && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-axis-violet" />}
+            {/* AXIS pensando: su símbolo gira despacio, como en la app AXIS. */}
+            {working && <AxisMark size={18} className="axis-spin" />}
             {STATUS_LABEL[status] ?? (!online ? 'Sin conexión: responderé con el motor local.' : null)}
             {!online && STATUS_LABEL[status] && ' · Sin conexión'}
           </p>

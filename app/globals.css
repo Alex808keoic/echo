@@ -245,6 +245,10 @@ html[data-nav='left']::view-transition-new(finax-screen) { animation-name: vt-ta
 }
 .chart-area { animation: fade-in 500ms 250ms ease-out both; }
 
+/* AXIS pensando: su símbolo gira despacio (una vuelta cada 4 s), como en la app AXIS. */
+@keyframes axis-spin { to { transform: rotate(360deg); } }
+.axis-spin { animation: axis-spin 4s linear infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
