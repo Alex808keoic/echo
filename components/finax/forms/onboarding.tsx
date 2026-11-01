@@ -17,6 +17,7 @@ import { MovementForm } from './movement-form'
 import { cn } from '@/lib/utils'
 import { useEcosystem } from '@/hooks/use-ecosystem'
 import { AxisMark } from '../axis-mark'
+import { ShieldIcon, UserIcon } from '../icons'
 
 export const ONBOARDING_TITLE = 'Empezar en Finax'
 
@@ -158,9 +159,9 @@ function ProfileStep({ onNext }: { onNext: () => void }) {
 }
 
 const AXIS_POINTS = [
-  { title: 'Qué es AXIS', text: 'La app que une Finax con Axthletics y Mentax: cada semana te resume cómo vas en dinero, cuerpo y mente, y te propone un paso para mejorar.' },
-  { title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
-  { title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo cifras por semana, como lo que ingresas o gastas: nunca tus movimientos, conceptos, notas ni lo que hablas con AXIS.' },
+  { icon: null, title: 'Qué es AXIS', text: 'La app que une Finax con Axthletics y Mentax: cada semana te resume cómo vas en dinero, cuerpo y mente, y te propone un paso para mejorar.' },
+  { icon: UserIcon, title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
+  { icon: ShieldIcon, title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo cifras por semana, como lo que ingresas o gastas: nunca tus movimientos, conceptos, notas ni lo que hablas con AXIS.' },
 ] as const
 
 /**
@@ -180,9 +181,14 @@ function AxisStep({ onSkip }: { onSkip: () => void }) {
       </div>
       <ul className="space-y-2">
         {AXIS_POINTS.map((point) => (
-          <li key={point.title} className="rounded-2xl bg-muted px-4 py-3">
-            <p className="text-[13.5px] font-bold text-grafito">{point.title}</p>
-            <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{point.text}</p>
+          <li key={point.title} className="flex items-start gap-3.5 rounded-2xl bg-muted px-4 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-card text-finax-dark" aria-hidden>
+              {point.icon ? <point.icon className="h-[18px] w-[18px]" /> : <AxisMark size={18} />}
+            </span>
+            <div>
+              <p className="text-[13.5px] font-bold text-grafito">{point.title}</p>
+              <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{point.text}</p>
+            </div>
           </li>
         ))}
       </ul>

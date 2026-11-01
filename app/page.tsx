@@ -21,6 +21,7 @@ import { Wordmark } from '@/components/finax/wordmark'
 import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
 import { MovementForm } from '@/components/finax/forms/movement-form'
+import { FirstRunWelcome } from '@/components/finax/first-run-welcome'
 import { useFinancialOverview } from '@/hooks/use-financial-overview'
 import { EcosystemProvider } from '@/hooks/use-ecosystem'
 import { RETURN_TO_SETTINGS_KEY } from '@/lib/ecosystem/client'
@@ -121,7 +122,12 @@ function App() {
       <div className="flex min-h-dvh items-center justify-center sm:p-4 lg:min-h-[calc(100dvh-5rem)]">
         <PhoneFrame
           nav={<BottomNavigation active={origin} onChange={navigate} />}
-          overlay={<SheetOutlet />}
+          overlay={
+            <>
+              <FirstRunWelcome overview={overview} />
+              <SheetOutlet />
+            </>
+          }
           contentKey={screen}
           enter={enter}
           floatingAction={
