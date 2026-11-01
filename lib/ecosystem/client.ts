@@ -23,7 +23,7 @@ const AUTH_STORAGE_KEY = 'sb-dfqyzqvjuarujxdftfjs-auth-token'
 export const RETURN_TO_SETTINGS_KEY = 'finax.ecosystem.return'
 
 /** La app AXIS, para abrirla desde aquí. */
-export const AXIS_URL = 'https://axis-kohl-rho.vercel.app'
+export const AXIS_URL = 'https://axis-life.vercel.app'
 
 /** Entre envíos automáticos pasan al menos estos minutos. */
 const MIN_MINUTES_BETWEEN_PUSHES = 5
