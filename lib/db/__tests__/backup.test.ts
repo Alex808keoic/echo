@@ -70,8 +70,8 @@ describe('copia v4 · exportación', () => {
   it('es v4 e incluye las memorias campo a campo, sin transformarlas', async () => {
     await seedDevice()
     const backup = await exportBackup()
-    assert.equal(backup.version, 4)
-    assert.equal(BACKUP_VERSION, 4)
+    assert.equal(backup.version, 5)
+    assert.equal(BACKUP_VERSION, 5)
     assert.deepEqual(backup.memories, await db.axisMemories.toArray())
     const paga = backup.memories?.find((m) => m.fact)
     assert.deepEqual(Object.keys(paga ?? {}).sort(), ['category', 'confidence', 'content', 'createdAt', 'fact', 'id', 'importance', 'source', 'updatedAt'])
@@ -87,7 +87,7 @@ describe('copia v4 · exportación', () => {
     for (const forbidden of ['mensaje de conversación', 'resumen secreto', 'previousConclusions', 'dato de mercado', 'profileFacts', 'conversation":{']) {
       assert.ok(!text.includes(forbidden), `la copia contiene «${forbidden}»`)
     }
-    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'positions', 'recurring', 'version'])
+    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['cashTransfers', 'config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'positions', 'recurring', 'version'])
   })
 })
 
@@ -150,7 +150,7 @@ describe('copia v1 · compatibilidad', () => {
   })
 
   it('una versión desconocida se rechaza', () => {
-    assert.throws(() => parseBackup(file({ version: 5 })), /Versión de copia no compatible/)
+    assert.throws(() => parseBackup(file({ version: 6 })), /Versión de copia no compatible/)
     assert.throws(() => parseBackup(file({ version: '2' })), /Versión de copia no compatible/)
   })
 })
@@ -228,5 +228,32 @@ describe('copia v2 · atomicidad', () => {
     const forged: Backup = { format: BACKUP_FORMAT, version: 2, exportedAt: '', config: null, movements: [duplicated, duplicated], objectives: [], positions: [], memories: [memory('nueva')] }
     await assert.rejects(restoreBackup(forged))
     assert.deepEqual(await tables(), before)
+  })
+})
+
+describe('copia v5 · efectivo y tarjeta', () => {
+  it('lleva los traspasos y el efectivo de cada movimiento, y los restaura', async () => {
+    const { addCashTransfer, listCashTransfers } = await import('../cash')
+    await setInitialBalance(10_000)
+    await addMovement({ type: 'gasto', amountCents: 1_200, date: '2026-10-02', category: 'Restaurantes', wallet: 'efectivo' })
+    await addCashTransfer({ direction: 'a-efectivo', amountCents: 5_000, date: '2026-10-01', nota: 'Cajero' })
+    const text = JSON.stringify(await exportBackup())
+    await clearAllData()
+    await restoreBackup(parseBackup(text))
+    const [movement] = await db.movements.toArray()
+    assert.equal(movement.wallet, 'efectivo')
+    const transfers = await listCashTransfers()
+    assert.equal(transfers.length, 1)
+    assert.equal(transfers[0].nota, 'Cajero')
+  })
+
+  it('una copia v4 conserva los traspasos del dispositivo; uno no válido se rechaza', async () => {
+    const { addCashTransfer, listCashTransfers } = await import('../cash')
+    await addCashTransfer({ direction: 'a-banco', amountCents: 300, date: '2026-10-01' })
+    const v4 = JSON.stringify({ format: BACKUP_FORMAT, version: 4, exportedAt: '', config: null, movements: [], objectives: [], positions: [], memories: [], debts: [], recurring: [] })
+    await restoreBackup(parseBackup(v4))
+    assert.equal((await listCashTransfers()).length, 1)
+    const bad = JSON.stringify({ ...JSON.parse(v4), version: 5, cashTransfers: [{ id: 'x', direction: 'a-luna', amountCents: 1, date: '2026-10-01', createdAt: 1, updatedAt: 1 }] })
+    assert.throws(() => parseBackup(bad), /traspasos de efectivo no válidos/)
   })
 })

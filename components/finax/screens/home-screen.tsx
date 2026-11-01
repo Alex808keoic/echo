@@ -31,6 +31,7 @@ import { Onboarding, ONBOARDING_TITLE } from '../forms/onboarding'
 import { RecurringForm } from '../forms/recurring-form'
 import { RecurringPending } from '../recurring-pending'
 import { ObjectiveForm } from '../forms/objective-form'
+import { WALLET_TITLE, WalletSheet } from '../forms/wallet-sheet'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 
@@ -116,6 +117,21 @@ export function HomeScreen({ overview, onNavigate }: ScreenProps) {
             </p>
           )}
         </button>
+        {!overview.isEmpty && (
+          <button
+            type="button"
+            onClick={() => open(WALLET_TITLE, <WalletSheet />)}
+            className="mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-muted/60 px-4 py-2.5 text-left text-[12.5px] font-medium text-muted-foreground transition-opacity active:opacity-70"
+          >
+            <span className="whitespace-nowrap">
+              Tarjeta <span className="font-bold text-grafito tabular-nums">{formatCents(overview.wallets.bankCents)}</span>
+            </span>
+            <span className="whitespace-nowrap">
+              Efectivo <span className="font-bold text-grafito tabular-nums">{formatCents(overview.wallets.cashCents)}</span>
+            </span>
+            <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
+          </button>
+        )}
       </section>
 
       {overview.isEmpty ? (

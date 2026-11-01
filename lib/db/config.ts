@@ -21,7 +21,8 @@ export async function setInitialBalance(cents: number, demo?: boolean): Promise<
     key: CONFIG_KEY,
     initialBalanceCents: cents,
     demo: demo ?? existing?.demo,
-    // Cambiar el saldo no toca lo que se comparte con AXIS.
+    // Cambiar el saldo no toca el efectivo inicial ni lo que se comparte con AXIS.
+    ...(existing?.initialCashCents ? { initialCashCents: existing.initialCashCents } : {}),
     ...(existing?.ecosystem ? { ecosystem: existing.ecosystem } : {}),
     configuredAt: existing?.configuredAt ?? now,
     updatedAt: now,

@@ -7,6 +7,9 @@
  *       ni conversación, ni conclusiones, ni mercado, ni estado derivado.
  *   v3  lo mismo + las deudas (`debts`).
  *   v4  lo mismo + los movimientos fijos (`recurring`).
+ *   v5  lo mismo + los traspasos entre banco y efectivo (`cashTransfers`);
+ *       los movimientos pueden llevar `wallet` y la configuración
+ *       `initialCashCents`. Una copia anterior conserva los traspasos del dispositivo.
  *
  * Objetivos: `priority` y `achievedAt` son opcionales (las copias anteriores
  * no los tienen). `currentCents` sigue siendo obligatorio por compatibilidad,
@@ -27,6 +30,7 @@ import {
   POSITION_ASSET_TYPES,
   RECURRING_FREQUENCIES,
   type AppConfig,
+  type CashTransfer,
   type Debt,
   type Movement,
   type Objective,
@@ -41,9 +45,9 @@ import type { UserMemory } from '../axis/chat/types'
 import { isEcosystemSharing } from '../ecosystem/sharing'
 
 export const BACKUP_FORMAT = 'finax-backup'
-export const BACKUP_VERSION = 4
+export const BACKUP_VERSION = 5
 /** Versiones que se pueden importar. */
-export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2, 3, 4]
+export const SUPPORTED_BACKUP_VERSIONS: readonly number[] = [1, 2, 3, 4, 5]
 
 export interface Backup {
   format: typeof BACKUP_FORMAT
@@ -59,10 +63,12 @@ export interface Backup {
   debts?: Debt[]
   /** Movimientos fijos (solo v4). Ausente en una copia anterior: al restaurarla se conservan los del dispositivo. */
   recurring?: RecurringMovement[]
+  /** Traspasos banco ↔ efectivo (solo v5). Ausente en una copia anterior: se conservan los del dispositivo. */
+  cashTransfers?: CashTransfer[]
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [config, movements, objectives, positions, memories, debts, recurring] = await Promise.all([
+  const [config, movements, objectives, positions, memories, debts, recurring, cashTransfers] = await Promise.all([
     db.config.get(CONFIG_KEY),
     db.movements.toArray(),
     db.objectives.toArray(),
@@ -70,6 +76,7 @@ export async function exportBackup(): Promise<Backup> {
     db.axisMemories.toArray(),
     db.debts.toArray(),
     db.recurring.toArray(),
+    db.cashTransfers.toArray(),
   ])
   return {
     format: BACKUP_FORMAT,
@@ -82,6 +89,7 @@ export async function exportBackup(): Promise<Backup> {
     memories,
     debts,
     recurring,
+    cashTransfers,
   }
 }
 
@@ -120,6 +128,7 @@ function isMovement(v: unknown): v is Movement {
     isOptStr(v.nota) &&
     (v.puntual === undefined || v.puntual === true) &&
     isOptStr(v.recurringId) &&
+    (v.wallet === undefined || v.wallet === 'efectivo') &&
     (v.occurrence === undefined || (isStr(v.occurrence) && isValidISODate(v.occurrence))) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
@@ -200,11 +209,27 @@ function isRecurring(v: unknown): v is RecurringMovement {
   )
 }
 
+function isCashTransfer(v: unknown): v is CashTransfer {
+  return (
+    isRecord(v) &&
+    isStr(v.id) &&
+    (v.direction === 'a-efectivo' || v.direction === 'a-banco') &&
+    isInt(v.amountCents) &&
+    v.amountCents > 0 &&
+    isStr(v.date) &&
+    isValidISODate(v.date) &&
+    isOptStr(v.nota) &&
+    isInt(v.createdAt) &&
+    isInt(v.updatedAt)
+  )
+}
+
 function isConfig(v: unknown): v is AppConfig {
   return (
     isRecord(v) &&
     v.key === CONFIG_KEY &&
     isInt(v.initialBalanceCents) &&
+    (v.initialCashCents === undefined || (isInt(v.initialCashCents) && v.initialCashCents >= 0)) &&
     isInt(v.configuredAt) &&
     isInt(v.updatedAt) &&
     (v.ecosystem === undefined || isEcosystemSharing(v.ecosystem))
@@ -257,6 +282,12 @@ export function parseBackup(text: string): Backup {
     if (!Array.isArray(raw.recurring) || !raw.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
     recurring = withCurrentCategories(raw.recurring)
   }
+  // v5: los traspasos son obligatorios (puede ser una lista vacía).
+  let cashTransfers: CashTransfer[] | undefined
+  if (raw.version >= 5) {
+    if (!Array.isArray(raw.cashTransfers) || !raw.cashTransfers.every(isCashTransfer)) throw new Error('La copia contiene traspasos de efectivo no válidos.')
+    cashTransfers = raw.cashTransfers
+  }
   return {
     format: BACKUP_FORMAT,
     version: raw.version,
@@ -268,6 +299,7 @@ export function parseBackup(text: string): Backup {
     ...(memories !== undefined ? { memories } : {}),
     ...(debts !== undefined ? { debts } : {}),
     ...(recurring !== undefined ? { recurring } : {}),
+    ...(cashTransfers !== undefined ? { cashTransfers } : {}),
   }
 }
 
@@ -284,7 +316,8 @@ export async function restoreBackup(backup: Backup): Promise<void> {
   }
   if (backup.debts !== undefined && !backup.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
   if (backup.recurring !== undefined && !backup.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
-  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts, db.recurring], async () => {
+  if (backup.cashTransfers !== undefined && !backup.cashTransfers.every(isCashTransfer)) throw new Error('La copia contiene traspasos de efectivo no válidos.')
+  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts, db.recurring, db.cashTransfers], async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
@@ -293,6 +326,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
       ...(backup.memories !== undefined ? [db.axisMemories.clear()] : []),
       ...(backup.debts !== undefined ? [db.debts.clear()] : []),
       ...(backup.recurring !== undefined ? [db.recurring.clear()] : []),
+      ...(backup.cashTransfers !== undefined ? [db.cashTransfers.clear()] : []),
     ])
     if (backup.config) await db.config.put(backup.config)
     await db.movements.bulkAdd(backup.movements)
@@ -301,6 +335,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     if (backup.memories !== undefined) await db.axisMemories.bulkAdd(backup.memories)
     if (backup.debts !== undefined) await db.debts.bulkAdd(backup.debts)
     if (backup.recurring !== undefined) await db.recurring.bulkAdd(backup.recurring)
+    if (backup.cashTransfers !== undefined) await db.cashTransfers.bulkAdd(backup.cashTransfers)
   })
 }
 
@@ -310,7 +345,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
  * conversación). Nada sobrevive al borrado completo.
  */
 export async function clearAllData(): Promise<void> {
-  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks, db.debts, db.meta, db.recurring]
+  const tables = [db.config, db.movements, db.objectives, db.positions, db.market, db.axisMemory, db.axisMemories, db.axisConversation, db.planChecks, db.debts, db.meta, db.recurring, db.cashTransfers]
   await db.transaction('rw', tables, async () => {
     await Promise.all(tables.map((t) => t.clear()))
   })

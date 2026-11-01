@@ -27,6 +27,7 @@ import { useIsMinor } from '@/hooks/use-minor'
 const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
 const typeFromLabel = (label: string): MovementType => (label === 'Ingreso' ? 'ingreso' : 'gasto')
 const labelFromType = (type: MovementType) => (type === 'ingreso' ? 'Ingreso' : 'Gasto')
+const WALLET_OPTIONS = ['Tarjeta', 'Efectivo'] as const
 
 interface MovementFormProps {
   /** Movimiento a editar; ausente para crear uno nuevo. */
@@ -62,6 +63,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
   const [motivo, setMotivo] = useState(start?.motivo ?? '')
   const [nota, setNota] = useState(start?.nota ?? '')
   const [puntual, setPuntual] = useState(start ? start.puntual === true : oneOffIncome)
+  const [cash, setCash] = useState(start?.wallet === 'efectivo')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -102,7 +104,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
     setErrors(next)
     if (Object.keys(next).length > 0 || amountCents === null || !category) return
 
-    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual && !isDebtRepayment ? { puntual: true as const } : {}) }
+    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual && !isDebtRepayment ? { puntual: true as const } : {}), ...(cash ? { wallet: 'efectivo' as const } : {}) }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (movement ? updateMovement(movement.id, input) : onSave ? onSave(input) : addMovement(input)))
@@ -117,6 +119,10 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
 
       <Field label="Importe" error={errors.amount}>
         <AmountInput value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+      </Field>
+
+      <Field label={type === 'ingreso' ? 'Lo recibes en' : 'Pagado con'} group>
+        <FilterTabs options={WALLET_OPTIONS} value={cash ? 'Efectivo' : 'Tarjeta'} onChange={(v) => setCash(v === 'Efectivo')} size="sm" />
       </Field>
 
       <Field label="Fecha" error={errors.date}>

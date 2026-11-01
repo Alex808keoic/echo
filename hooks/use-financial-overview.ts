@@ -14,6 +14,8 @@ import { listMovements } from '@/lib/db/movements'
 import { listObjectives } from '@/lib/db/objectives'
 import { listPositions } from '@/lib/db/positions'
 import { listDebts } from '@/lib/db/debts'
+import { listCashTransfers } from '@/lib/db/cash'
+import { walletBalances, type WalletBalances } from '@/lib/finance/wallets'
 import {
   buildWealthSeries,
   computeLiquidCents,
@@ -25,7 +27,7 @@ import { allocateObjectives, totalValueCents, type ObjectivesAllocation } from '
 import type { FinancialSnapshot } from '@/lib/axis/context'
 import { goalInvestedPool } from '@/lib/axis/plan/mix'
 import { currentMonthKey, shiftedMonthKey, todayISO } from '@/lib/dates'
-import type { AppConfig, Debt, Movement, Objective, Position } from '@/lib/types'
+import type { AppConfig, CashTransfer, Debt, Movement, Objective, Position } from '@/lib/types'
 
 export interface FinancialOverview {
   config: AppConfig | null
@@ -37,6 +39,10 @@ export interface FinancialOverview {
   initialBalanceCents: number
   /** Saldo inicial + movimientos − inversiones que salieron del líquido. */
   liquidCents: number
+  /** El líquido partido entre banco (tarjeta) y efectivo. Suman `liquidCents`. */
+  wallets: WalletBalances
+  /** Traspasos banco ↔ efectivo, del más reciente al más antiguo. */
+  cashTransfers: CashTransfer[]
   /** Valor actual de las inversiones (manual). */
   investedCents: number
   /** Líquido + invertido. */
@@ -67,6 +73,7 @@ export function useFinancialOverview(): FinancialOverview | undefined {
   const objectives = useLiveQuery(listObjectives, [])
   const positions = useLiveQuery(listPositions, [])
   const debts = useLiveQuery(listDebts, [])
+  const cashTransfers = useLiveQuery(listCashTransfers, [])
 
   // Identidad estable mientras no cambien los datos: evita recalcular (y
   // relanzar el análisis de AXIS) en cada render del shell.
@@ -76,12 +83,13 @@ export function useFinancialOverview(): FinancialOverview | undefined {
       movements === undefined ||
       objectives === undefined ||
       positions === undefined ||
-      debts === undefined
+      debts === undefined ||
+      cashTransfers === undefined
     ) {
       return undefined
     }
-    return buildOverview(config, movements, objectives, positions, debts)
-  }, [config, movements, objectives, positions, debts])
+    return buildOverview(config, movements, objectives, positions, debts, cashTransfers)
+  }, [config, movements, objectives, positions, debts, cashTransfers])
 }
 
 function buildOverview(
@@ -90,6 +98,7 @@ function buildOverview(
   objectives: Objective[],
   positions: Position[],
   debts: Debt[],
+  cashTransfers: CashTransfer[],
 ): FinancialOverview {
   const initialBalanceCents = config?.initialBalanceCents ?? 0
   const liquidCents = computeLiquidCents(initialBalanceCents, movements, positions)
@@ -114,6 +123,8 @@ function buildOverview(
     debts,
     initialBalanceCents,
     liquidCents,
+    wallets: walletBalances(liquidCents, config?.initialCashCents ?? 0, movements, cashTransfers),
+    cashTransfers,
     investedCents,
     patrimonioCents,
     monthChangeCents,

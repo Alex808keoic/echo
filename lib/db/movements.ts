@@ -13,6 +13,7 @@ function normalize(input: MovementInput): MovementInput {
     motivo: requiresMotivo(input.category) && motivo ? motivo : undefined,
     nota: nota ? nota : undefined,
     puntual: input.puntual ? true : undefined,
+    wallet: input.wallet === 'efectivo' ? 'efectivo' : undefined,
   }
 }
 
@@ -31,6 +32,14 @@ export async function addMovement(input: MovementInput): Promise<Movement> {
   return movement
 }
 
+/** Añade varios de una vez (p. ej. los de un extracto del banco): todos o ninguno. */
+export async function addMovements(inputs: MovementInput[]): Promise<Movement[]> {
+  const now = Date.now()
+  const movements = inputs.map((input) => ({ ...normalize(input), id: newId(), createdAt: now, updatedAt: now }))
+  await db.movements.bulkAdd(movements)
+  return movements
+}
+
 /**
  * Sustituye los datos editables. Se escriben también los campos ausentes para
  * que al cambiar de categoría no sobreviva un motivo antiguo.
@@ -45,6 +54,7 @@ export async function updateMovement(id: string, input: MovementInput): Promise<
     motivo: n.motivo,
     nota: n.nota,
     puntual: n.puntual,
+    wallet: n.wallet,
     updatedAt: Date.now(),
   })
 }

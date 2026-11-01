@@ -26,6 +26,7 @@ import { Button } from '../button'
 import { useSheet } from '../sheet'
 import { InitialBalanceForm } from '../forms/initial-balance-form'
 import { MovementForm } from '../forms/movement-form'
+import { WALLET_TITLE, WalletSheet } from '../forms/wallet-sheet'
 import type { ScreenKey } from '../bottom-navigation'
 import { cn } from '@/lib/utils'
 import type { Category, MovementType } from '@/lib/types'
@@ -277,6 +278,20 @@ function WealthView({ overview, range, onRange, onNavigate }: ViewProps) {
             <dd className="font-semibold text-grafito tabular-nums">{formatCents(available)}</dd>
           </div>
         </dl>
+        <button
+          type="button"
+          onClick={() => open(WALLET_TITLE, <WalletSheet />)}
+          className="mt-3 w-full space-y-1.5 rounded-2xl bg-muted/60 px-3.5 py-2.5 text-left text-[12.5px] transition-opacity active:opacity-70"
+        >
+          <span className="flex justify-between gap-3">
+            <span className="font-medium text-muted-foreground">En tarjeta / banco</span>
+            <span className="font-semibold text-grafito tabular-nums">{formatCents(overview.wallets.bankCents)}</span>
+          </span>
+          <span className="flex justify-between gap-3">
+            <span className="font-medium text-muted-foreground">En efectivo</span>
+            <span className="font-semibold text-grafito tabular-nums">{formatCents(overview.wallets.cashCents)}</span>
+          </span>
+        </button>
       </FinancialCard>
 
       <FinancialCard>

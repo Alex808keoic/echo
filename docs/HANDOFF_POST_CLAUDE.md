@@ -12,6 +12,15 @@
 
 ---
 
+## Efectivo/tarjeta e importar extractos en PDF (2026-11-01)
+
+- **Efectivo y tarjeta:** `Movement.wallet?: 'efectivo'` (ausente = tarjeta/banco) y tabla nueva `cashTransfers` (Dexie v10) para sacar del cajero / ingresar en el banco: no son ingreso ni gasto, solo cambian dónde está el dinero. `AppConfig.initialCashCents?` (hoy sin formulario: se corrige con «Corregir cuánto efectivo tengo», que crea un traspaso). El reparto sale de `lib/finance/wallets.ts` (`overview.wallets`; banco = líquido − efectivo). Líquido, patrimonio, AXIS y el ecosistema no cambian.
+- **UI:** selector «Pagado con / Lo recibes en: Tarjeta · Efectivo» en el formulario de movimiento; fila «Dinero» en el detalle; «· Efectivo» en la lista; tira «Tarjeta X · Efectivo Y» en Inicio y bloque en «Desglose del patrimonio», que abren `forms/wallet-sheet.tsx`.
+- **Importar extracto (Movimientos → «Importar extracto del banco»):** `pdfjs-dist` lee el PDF en el navegador (`lib/import/pdf-text.ts`, se carga solo al usarlo; nada sale del dispositivo); `lib/import/bank-statement.ts` reconoce filas (fecha + importe; con dos importes, el último es el saldo; signo por el importe, por el saldo o por palabras) y adivina la categoría por el concepto; `lib/import/plan.ts` marca duplicados (misma fecha, importe y tipo) y convierte las retiradas de cajero en traspasos a efectivo. Siempre hay revisión antes de guardar; todo en una transacción (`saveImport`). Probado con un PDF sintético en el navegador; **con extractos reales de cada banco NO VERIFICADO**: si uno falla, añadir su formato como test en `lib/import/__tests__/`.
+- **Copia de seguridad v5:** lleva `cashTransfers`; una copia anterior conserva los traspasos del dispositivo.
+
+---
+
 ## Ecosistema AXIS (2026-10-31)
 
 Finax puede conectarse, si el usuario quiere, con la **app AXIS** (repo `github.com/Alex808keoic/axis`), que une Finax, Axthletics y Mentax. No cambia nada del AXIS consultor de Finax.

@@ -15,6 +15,7 @@ import { ScreenLoading } from '../loading'
 import { useSheet } from '../sheet'
 import { MOVEMENT_DETAIL_TITLE, MovementDetail } from '../forms/movement-detail'
 import { MovementForm } from '../forms/movement-form'
+import { IMPORT_STATEMENT_TITLE, ImportStatement } from '../forms/import-statement'
 import { ChevronRight, SettingsIcon, SearchIcon } from '../icons'
 import { RecurringPending } from '../recurring-pending'
 import { useRecurring } from '@/hooks/use-recurring'
@@ -85,6 +86,18 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
               ? 'Nómina, alquiler, suscripciones: te los proponemos cada vez'
               : `${fixed.recurring.length} fijo${fixed.recurring.length === 1 ? '' : 's'}${fixed.pending.length > 0 ? ` · ${fixed.pending.length} por confirmar` : ''}`}
           </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => open(IMPORT_STATEMENT_TITLE, <ImportStatement onDone={close} />)}
+        className="-mt-2 flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13.5px] font-bold text-grafito">Importar extracto del banco</span>
+          <span className="block text-[12px] font-medium text-muted-foreground text-pretty">Sube el PDF y revisa los movimientos antes de añadirlos</span>
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
       </button>

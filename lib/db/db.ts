@@ -4,7 +4,7 @@
  * Índices declarados: solo los que se consultan. `id` es la clave primaria.
  */
 import Dexie, { type EntityTable } from 'dexie'
-import { currentCategory, type AppConfig, type Debt, type Movement, type Objective, type Position, type RecurringMovement } from '../types'
+import { currentCategory, type AppConfig, type CashTransfer, type Debt, type Movement, type Objective, type Position, type RecurringMovement } from '../types'
 import type { MarketCacheEntry } from './market'
 import type { AxisMemoryEntry } from './axis-memory'
 import type { ConversationEntry } from './axis-conversation'
@@ -43,6 +43,8 @@ export const db = new Dexie('finax') as Dexie & {
   meta: EntityTable<MetaEntry, 'key'>
   /** Movimientos fijos (plantillas que se proponen cada vez que tocan; entran en el backup desde la v4). */
   recurring: EntityTable<RecurringMovement, 'id'>
+  /** Dinero que pasa del banco al efectivo o al revés (entra en el backup desde la v5). */
+  cashTransfers: EntityTable<CashTransfer, 'id'>
 }
 
 db.version(1).stores({
@@ -114,6 +116,10 @@ db.version(9)
         })
     }
   })
+
+db.version(10).stores({
+  cashTransfers: 'id, date',
+})
 
 /** UUID v4. `crypto.randomUUID` solo existe en contextos seguros (https/localhost); en http por IP local se usa el fallback. */
 export function newId(): string {

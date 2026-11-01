@@ -20,7 +20,7 @@ export function TransactionRow({ movement, fixedName, onClick }: TransactionRowP
   const isIncome = movement.type === 'ingreso'
   const label = fixedName ?? movementLabel(movement)
   const kind = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
-  const subtitle = movement.puntual ? `${kind} · Puntual` : kind
+  const subtitle = [kind, movement.puntual ? 'Puntual' : null, movement.wallet === 'efectivo' ? 'Efectivo' : null].filter(Boolean).join(' · ')
 
   return (
     <button

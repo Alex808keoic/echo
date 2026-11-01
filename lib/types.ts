@@ -146,9 +146,43 @@ export interface Movement {
   recurringId?: string
   /** Vez del movimiento fijo que cubre (`YYYY-MM-DD` previsto; `date` es cuándo pasó de verdad). */
   occurrence?: string
+  /**
+   * Con qué dinero se pagó o dónde se cobró: solo se guarda `'efectivo'`.
+   * Ausente = tarjeta o cuenta del banco (todos los movimientos anteriores).
+   */
+  wallet?: 'efectivo'
   createdAt: number
   updatedAt: number
 }
+
+/* -------------------------- Efectivo y tarjeta -------------------------- */
+
+/** Dónde está el dinero líquido: en el banco (tarjeta) o en efectivo. */
+export type Wallet = 'banco' | 'efectivo'
+
+export function movementWallet(movement: Pick<Movement, 'wallet'>): Wallet {
+  return movement.wallet === 'efectivo' ? 'efectivo' : 'banco'
+}
+
+/**
+ * Dinero que pasa del banco al efectivo (sacar del cajero) o al revés
+ * (ingresarlo en la cuenta). No es ingreso ni gasto: el líquido y el
+ * patrimonio no cambian, solo dónde está el dinero.
+ */
+export interface CashTransfer {
+  id: string
+  /** `'a-efectivo'`: sacas del banco. `'a-banco'`: ingresas efectivo en la cuenta. */
+  direction: 'a-efectivo' | 'a-banco'
+  /** Céntimos, siempre positivo. */
+  amountCents: number
+  /** `YYYY-MM-DD` */
+  date: string
+  nota?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export type CashTransferInput = Omit<CashTransfer, 'id' | 'createdAt' | 'updatedAt'>
 
 /** Datos que el usuario introduce; el resto los genera la capa de datos. */
 export type MovementInput = Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>
@@ -340,6 +374,8 @@ export type RecurringMovementInput = Pick<RecurringMovement, 'name' | 'type' | '
 export interface AppConfig {
   key: 'config'
   initialBalanceCents: number
+  /** Parte del saldo inicial que era efectivo. Ausente: 0 (todo en el banco). */
+  initialCashCents?: number
   /** Marca que los datos actuales proceden de la carga de demostración. */
   demo?: boolean
   /** Lo que se comparte con la app AXIS del ecosistema. Ausente: nada. */
