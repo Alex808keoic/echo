@@ -15,11 +15,13 @@ import { RecurringForm } from './recurring-form'
 import { ProfileForm } from './profile-form'
 import { MovementForm } from './movement-form'
 import { cn } from '@/lib/utils'
+import { useEcosystem } from '@/hooks/use-ecosystem'
+import { AxisMark } from '../axis-mark'
 
 export const ONBOARDING_TITLE = 'Empezar en Finax'
 
-type Step = 'balance' | 'fixed' | 'profile' | 'done'
-const STEPS: readonly Step[] = ['balance', 'profile', 'fixed']
+type Step = 'balance' | 'fixed' | 'profile' | 'axis' | 'done'
+const STEPS: readonly Step[] = ['balance', 'profile', 'fixed', 'axis']
 
 /** Atajos del paso de fijos: rellenan lo típico y el resto lo eliges tú. */
 const PRESETS: ReadonlyArray<{ label: string; preset: Partial<RecurringMovementInput> }> = [
@@ -32,9 +34,9 @@ const PRESETS: ReadonlyArray<{ label: string; preset: Partial<RecurringMovementI
 
 /**
  * Primer uso guiado, en la misma hoja: saldo inicial → «Tu perfil» → fijos
- * (la edad del perfil decide qué categorías se ven en los fijos).
- * Solo el saldo es obligatorio (sin él no hay punto de partida); los otros dos
- * pasos se pueden saltar y hacer después.
+ * (la edad del perfil decide qué categorías se ven en los fijos) → conectar con
+ * el ecosistema AXIS. Solo el saldo es obligatorio (sin él no hay punto de
+ * partida); los otros pasos se pueden saltar y hacer después.
  */
 export function Onboarding() {
   const [step, setStep] = useState<Step>('balance')
@@ -50,7 +52,8 @@ export function Onboarding() {
         </section>
       )}
       {step === 'profile' && <ProfileStep onNext={() => setStep('fixed')} />}
-      {step === 'fixed' && <FixedStep onNext={() => setStep('done')} />}
+      {step === 'fixed' && <FixedStep onNext={() => setStep('axis')} />}
+      {step === 'axis' && <AxisStep onSkip={() => setStep('done')} />}
       {step === 'done' && <DoneStep onClose={close} />}
     </div>
   )
@@ -63,7 +66,7 @@ function Progress({ step }: { step: Step }) {
       <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-finax-dark">
         Paso {index + 1} de {STEPS.length}
       </p>
-      <div className="mt-2 grid grid-cols-3 gap-1.5" aria-hidden>
+      <div className="mt-2 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }} aria-hidden>
         {STEPS.map((s, i) => (
           <span key={s} className={cn('h-1 rounded-full', i <= index ? 'bg-finax-dark' : 'bg-muted')} />
         ))}
@@ -150,6 +153,61 @@ function ProfileStep({ onNext }: { onNext: () => void }) {
       <Button type="button" variant="ghost" fullWidth onClick={onNext}>
         Ahora no
       </Button>
+    </section>
+  )
+}
+
+const AXIS_POINTS = [
+  { title: 'Qué es AXIS', text: 'La app que une Finax con Axthletics y Mentax: cada semana te resume cómo vas en dinero, cuerpo y mente, y te propone un paso para mejorar.' },
+  { title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
+  { title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo cifras por semana, como lo que ingresas o gastas: nunca tus movimientos, conceptos, notas ni lo que hablas con AXIS.' },
+] as const
+
+/**
+ * Invitación a conectar con el ecosistema AXIS. Opcional: «Ahora no» sigue al final.
+ * Entrar con Google lleva a Google y, al volver, a Ajustes, donde se eligen las cifras:
+ * entrar no comparte nada por sí solo. El saldo ya está guardado desde el primer paso.
+ */
+function AxisStep({ onSkip }: { onSkip: () => void }) {
+  const { signIn } = useEcosystem()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-3">
+        <AxisMark size={40} />
+        <StepIntro title="Conecta con AXIS" text="Opcional. Puedes hacerlo cuando quieras desde Ajustes." />
+      </div>
+      <ul className="space-y-2">
+        {AXIS_POINTS.map((point) => (
+          <li key={point.title} className="rounded-2xl bg-muted px-4 py-3">
+            <p className="text-[13.5px] font-bold text-grafito">{point.title}</p>
+            <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-muted-foreground text-pretty">{point.text}</p>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="text-[12.5px] font-medium text-negative">No se ha podido abrir Google: {error}</p>}
+      <div className="grid gap-2">
+        <Button
+          type="button"
+          variant="axis"
+          fullWidth
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            const failure = await signIn()
+            if (failure) {
+              setError(failure)
+              setBusy(false)
+            }
+          }}
+        >
+          Entrar con Google
+        </Button>
+        <Button type="button" variant="ghost" fullWidth onClick={onSkip} disabled={busy}>
+          Ahora no
+        </Button>
+      </div>
     </section>
   )
 }
