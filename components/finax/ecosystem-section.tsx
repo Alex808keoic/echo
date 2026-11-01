@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useEcosystem } from '@/hooks/use-ecosystem'
+import { AXIS_URL } from '@/lib/ecosystem/client'
 import { DEFAULT_METRICS, FINAX_METRICS, METRIC_LABELS, type FinaxMetric } from '@/lib/ecosystem/sharing'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
@@ -54,8 +55,8 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
   return (
     <Group title="Ecosistema AXIS">
       <Row
-        title="AXIS, la app que une tus apps"
-        description="Si quieres, le mandas un resumen de cada semana: solo cifras por semana, nunca tus movimientos, conceptos, notas ni lo que hablas aquí con AXIS."
+        title="Finax es parte del ecosistema AXIS"
+        description="AXIS es la app que une Finax, Axthletics y Mentax. Si quieres, le mandas un resumen de cada semana: solo cifras por semana, nunca tus movimientos, conceptos, notas ni lo que hablas aquí con AXIS."
       />
       {account.status === 'checking' && <Row title="Comprobando la conexión…" description="Un momento." />}
       {account.status === 'signedOut' && (
@@ -90,6 +91,7 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
         </>
       )}
       {message && <Row title="AXIS" description={message} />}
+      <Row title="Abrir AXIS" description="Tu semana en Finax, Axthletics y Mentax, en un solo lugar." onClick={() => window.open(AXIS_URL, '_blank', 'noopener')} />
     </Group>
   )
 }

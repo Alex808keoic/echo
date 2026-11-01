@@ -22,6 +22,9 @@ const AUTH_STORAGE_KEY = 'sb-dfqyzqvjuarujxdftfjs-auth-token'
 /** Marca que se deja antes de ir a Google, para volver a abrir Ajustes al regresar. */
 export const RETURN_TO_SETTINGS_KEY = 'finax.ecosystem.return'
 
+/** La app AXIS, para abrirla desde aquí. */
+export const AXIS_URL = 'https://axis-kohl-rho.vercel.app'
+
 /** Entre envíos automáticos pasan al menos estos minutos. */
 const MIN_MINUTES_BETWEEN_PUSHES = 5
 
