@@ -175,6 +175,15 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
             'No lo necesitan ni tu colchón ni tus objetivos. Como esperas necesitar tu dinero en menos de 2 años, mejor en ahorro seguro: una cuenta remunerada, un depósito o Letras del Tesoro (mira «Ahorro seguro» en la Guía).' +
             (plan.inflation ? ` Ahí rinde algo y compensa en parte ${inflationPhrase(plan.inflation)}.` : ''),
         }
+    if (step.boost) {
+      const b = step.boost
+      return {
+        title: `La bolsa ha caído: invierte ya ${eur(b.nowCents)} de tus ${eur(step.idleCents)} sin destino`,
+        detail: `No lo necesitan ni tu colchón ni tus objetivos. El ${b.label} ha caído un ${pctText(Math.abs(b.dropPct))} en un mes y decidiste aprovechar las caídas: con la bolsa más barata, el mismo dinero compra más. Tu plan propone adelantar la mitad ahora y el resto, ${eur(b.restPerMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Ahora sería: ${mixAmounts(b.mix)}.`,
+        warning: 'Que haya caído no garantiza que no siga bajando: por eso solo se adelanta la mitad y nunca el colchón ni el dinero de tus objetivos.',
+        ...minorNote(step.adult, b.mix),
+      }
+    }
     {
       const loss = plan.inflation ? idleLossSentence(step.idleCents, plan.inflation) : null
       return {

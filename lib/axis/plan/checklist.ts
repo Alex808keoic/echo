@@ -63,6 +63,11 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
         items.push({ id: s.kind, text: s.noObjectives ? `Deja ${eur(s.monthlyCents)} en tu cuenta` : `Deja ${eur(s.monthlyCents)} en tu cuenta para tus objetivos` })
         break
       case 'idle-money':
+        if (s.boost) {
+          for (const p of s.boost.mix)
+            if (p.cents > 0) items.push({ id: `idle-now:${p.key}`, text: `Invierte ya ${eur(p.cents)} de tu dinero sin destino en ${p.key === 'risky' ? 'la ' : ''}${lower(p.label)} (la bolsa ha caído)`, invest: { sleeve: p.key, cents: p.cents } })
+          break
+        }
         items.push({
           id: s.kind,
           text: s.safe

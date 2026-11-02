@@ -79,6 +79,10 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
     }
     case 'idle-money':
       why.push('Tu colchón está completo y tus objetivos tienen lo que necesitan: este dinero no tiene ningún destino.')
+      if (step.boost) {
+        why.push('Decidiste que, cuando la bolsa cae con fuerza, tu plan adelante parte de tu dinero sin destino: con la bolsa más barata, el mismo dinero compra más.')
+        why.push('Solo se adelanta la mitad: si sigue bajando, todavía te queda para seguir comprando. Lo que inviertes cada mes no cambia.')
+      }
       if (step.safe && horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}: por eso no se invierte.`)
       else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
       break

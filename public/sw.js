@@ -229,7 +229,7 @@ async function notifyDueReminders() {
     due.push({
       id: 'equity-move',
       period: marketCache.baseline.id + ':' + move.direction,
-      text: move.direction === 'drop' ? 'La bolsa ha bajado un ' + amount + ' % en un mes. Tu plan no cambia: mira por qué en «Tu plan».' : 'La bolsa ha subido un ' + amount + ' % en un mes. Tu plan no cambia: mira por qué en «Tu plan».',
+      text: move.direction === 'drop' ? 'La bolsa ha bajado un ' + amount + ' % en un mes. Mira en «Tu plan» qué significa para tu dinero.' : 'La bolsa ha subido un ' + amount + ' % en un mes. Tu plan no cambia: mira por qué en «Tu plan».',
     })
   }
   if (due.length === 0) return

@@ -27,6 +27,6 @@ export function useAllocationPlan(overview: FinancialOverview | undefined): { pl
   return useMemo(() => {
     if (!overview || memory === undefined || memories === undefined) return undefined
     const decision = decide({ context: buildFinancialContext(overview.axisSnapshot), ...(memory ? { memory } : {}) })
-    return { plan: buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, inflation: inflationFrom(market) }), decision }
+    return { plan: buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, inflation: inflationFrom(market), equityMove: market?.equityMove ?? null }), decision }
   }, [overview, memory, memories, market])
 }

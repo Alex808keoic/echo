@@ -126,7 +126,8 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
                 </div>
                 {(step.kind === 'invest-long-term' || step.kind === 'idle-money' || step.kind === 'invest-goal-money' || step.kind === 'invest-for-goals') && step.mix.length > 0 && (
                   <ul className="space-y-2 rounded-xl bg-muted px-3 py-2.5">
-                    {step.mix.map((p) => (
+                    {/* Tras una caída fuerte, lo que se invierte ya (la mitad del dinero parado). */}
+                    {(step.kind === 'idle-money' && step.boost ? step.boost.mix : step.mix).map((p) => (
                       <li key={p.key} className="space-y-0.5">
                         <p className="flex items-baseline justify-between gap-3 text-[12.5px] font-bold text-grafito">
                           <span className="min-w-0">

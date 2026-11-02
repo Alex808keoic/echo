@@ -163,3 +163,45 @@ describe('vender solo cuando el descuadre es grande', () => {
     assert.equal(planProposesMoves(chatPlanOf(setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long')).decision)), false)
   })
 })
+
+describe('aprovechar una caída fuerte de la bolsa (dinero parado)', () => {
+  const DROP = { key: 'stoxx50', label: 'Euro Stoxx 50', pct: -12.3, direction: 'drop' as const, days: 28, asOf: TODAY }
+  // Colchón completo y sin objetivos: 5.000 € de dinero parado.
+  const idleSetup = (equityMove: PlanOptions['equityMove']) => setup(800_000, [CUSHION()], profile('balanced', 'long'), [], { equityMove })
+
+  it('con una caída del 8 % o más: invertir ya la mitad y el resto en 6 meses', () => {
+    const s = idleSetup(DROP)
+    const idle = step(s.plan, 'idle-money')!
+    assert.equal(idle.idleCents, 500_000)
+    assert.deepEqual([idle.boost?.nowCents, idle.boost?.restPerMonthCents], [250_000, 41_600])
+    assert.equal(idle.boost!.mix.reduce((t, p) => t + p.cents, 0), 250_000)
+    const v = describeStep(idle, s.plan, s.objectives)
+    assert.equal(v.title, 'La bolsa ha caído: invierte ya 2.500,00 € de tus 5.000,00 € sin destino')
+    assert.match(v.detail!, /Euro Stoxx 50 ha caído un 12,3 % en un mes/)
+    assert.match(v.warning!, /no garantiza que no siga bajando.*nunca el colchón/)
+    assert.deepEqual(monthChecklist(s.plan, s.objectives).filter((i) => i.id.startsWith('idle-now:')).map((i) => i.invest?.cents), [175_000, 75_000])
+    assert.ok(stepReasons(idle, s.plan, s.decision.profile.fields).some((w) => w.includes('el mismo dinero compra más')))
+  })
+
+  it('lo que se invierte cada mes no cambia por la caída', () => {
+    assert.deepEqual(step(idleSetup(DROP).plan, 'invest-long-term'), step(idleSetup(null).plan, 'invest-long-term'))
+  })
+
+  it('sin caída, una subida o una caída pequeña: como siempre, de una vez o poco a poco', () => {
+    for (const move of [null, { ...DROP, pct: 12, direction: 'rise' as const }, { ...DROP, pct: -5 }]) assert.equal(step(idleSetup(move).plan, 'idle-money')!.boost, undefined)
+  })
+
+  it('con plazo corto no se invierte aunque caiga la bolsa', () => {
+    const s = setup(800_000, [CUSHION()], profile('balanced', 'short'), [], { equityMove: DROP })
+    assert.equal(step(s.plan, 'idle-money')!.boost, undefined)
+  })
+
+  it('nunca toca el colchón: sin dinero parado no hay nada que adelantar', () => {
+    const s = setup(300_000, [CUSHION()], profile('balanced', 'long'), [], { equityMove: DROP })
+    assert.equal(step(s.plan, 'idle-money'), undefined)
+  })
+
+  it('un movimiento con forma rara (llega del cliente) se ignora', () => {
+    assert.equal(step(idleSetup({ ...DROP, pct: Number.NaN }).plan, 'idle-money')!.boost, undefined)
+  })
+})

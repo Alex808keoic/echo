@@ -184,7 +184,7 @@ function planForbidsInvesting({ plan }: ChatPlan): boolean {
  * 2026-11-02): explicarlo no contradice nada, aunque hable de vender o de invertir.
  */
 export function planProposesMoves({ plan }: ChatPlan): boolean {
-  return plan.steps.some((s) => s.kind === 'trim-risky' || s.kind === 'rebalance-sell')
+  return plan.steps.some((s) => s.kind === 'trim-risky' || s.kind === 'rebalance-sell' || (s.kind === 'idle-money' && s.boost !== undefined))
 }
 
 function adviceViolations(text: string, clauses: AdviceClause[], decision: AxisDecision, plan?: ChatPlan): string[] {

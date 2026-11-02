@@ -38,6 +38,7 @@ export function useMarketSignals(overview: FinancialOverview | undefined, plan: 
       invests: investsMonthly || holdsEquity,
       inflation: plan?.inflation ?? inflationFrom(market),
       debts: overview.debts,
+      boostsIdle: plan?.steps.some((s) => s.kind === 'idle-money' && s.boost !== undefined) ?? false,
     })
     return { signals, safeRatePct: safeRatePct(indicators) }
   }, [overview, plan, market, marketState.research, marketState.baseline])

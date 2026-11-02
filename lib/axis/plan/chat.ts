@@ -24,7 +24,7 @@ export interface ChatPlan {
 }
 
 export function chatPlanOf(decision: AxisDecision, market?: MarketContext | null): ChatPlan {
-  const plan = buildAllocationPlan(decision, { inflation: inflationFrom(market) })
+  const plan = buildAllocationPlan(decision, { inflation: inflationFrom(market), equityMove: market?.equityMove ?? null })
   const steps = plan.steps.map((s) => {
     const v = describeStep(s, plan, decision.context.objectives)
     const why = stepReasons(s, plan, decision.profile.fields)

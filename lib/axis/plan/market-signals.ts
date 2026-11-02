@@ -40,6 +40,8 @@ export interface MarketSignalsInput {
   debts: readonly Debt[]
   /** Dinero sin destino del plan (paso `idle-money`), para decir cuánto pierde quieto. */
   idleCents?: number
+  /** El plan adelanta parte del dinero sin destino por esta caída (paso `idle-money` con `boost`). */
+  boostsIdle?: boolean
 }
 
 /** Cambio de cuota a partir del cual se avisa (en % de la cuota de ahora). */
@@ -70,7 +72,9 @@ export function marketSignals(input: MarketSignalsInput): MarketSignal[] {
             id: 'equity-drop',
             tone: 'calm',
             title: `La bolsa ha bajado un ${amount} en un mes`,
-            text: `El ${m.label} ha caído un ${amount} en unas ${Math.round(m.days / 7)} semanas. Pasa de vez en cuando con la renta variable y tu plan no cambia: sigue con tus aportaciones de cada mes; con la bolsa más barata, compras más con el mismo dinero. Vender ahora convertiría la bajada en una pérdida de verdad.`,
+            text: input.boostsIdle
+              ? `El ${m.label} ha caído un ${amount} en unas ${Math.round(m.days / 7)} semanas. Pasa de vez en cuando con la renta variable. Tu plan lo aprovecha: te propone adelantar parte de tu dinero sin destino (míralo en «Tu plan») y seguir con tus aportaciones de cada mes. Vender ahora convertiría la bajada en una pérdida de verdad.`
+              : `El ${m.label} ha caído un ${amount} en unas ${Math.round(m.days / 7)} semanas. Pasa de vez en cuando con la renta variable y tu plan no cambia: sigue con tus aportaciones de cada mes; con la bolsa más barata, compras más con el mismo dinero. Vender ahora convertiría la bajada en una pérdida de verdad.`,
           }
         : {
             id: 'equity-rise',

@@ -157,6 +157,12 @@ export interface MarketContext {
   warnings: string[]
   sources: string[]
   history: MarketHistoryEntry[]
+  /**
+   * Caída o subida fuerte de la bolsa en el último mes (`strongEquityMove`), calculada en el dispositivo con
+   * la investigación de hace unas 4 semanas. El plan la usa para adelantar dinero parado tras una caída
+   * (decidido el 2026-11-02). Ausente si no la hay o no hay con qué comparar.
+   */
+  equityMove?: import('./moves').EquityMove
 }
 
 export const MARKET_CONTEXT_LIMITS = {

@@ -40,6 +40,7 @@ import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCen
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
+import { MARKET_MOVES, type EquityMove } from '../../market/moves'
 import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, sellProposals, splitMix, type MixPart, type SleeveKey } from './mix'
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
 import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS } from '../../finance/objectives'
@@ -147,7 +148,20 @@ export type PlanStep =
       drawdownPct?: number
     }
   /** Dinero sin destino (por encima del colchón y de todos tus objetivos): de una vez o repartido; eliges tú. */
-  | { kind: 'idle-money'; idleCents: number; safe: boolean; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null }
+  | {
+      kind: 'idle-money'
+      idleCents: number
+      safe: boolean
+      mix: MixPart[]
+      spreadMonths: number
+      perMonthCents: number
+      adult: boolean | null
+      /**
+       * La bolsa ha caído con fuerza en el último mes (decidido con el usuario el 2026-11-02: aprovechar las caídas):
+       * se propone invertir ya la mitad (`nowCents`, repartida en `mix`) y el resto en `spreadMonths` meses.
+       */
+      boost?: { dropPct: number; label: string; nowCents: number; mix: MixPart[]; restPerMonthCents: number }
+    }
   /**
    * Ahorro del mes para objetivos a más de `LONG_GOAL_MONTHS`, invertido (sin parte arriesgada): lo que falta
    * entre los meses que quedan, sin contar con la rentabilidad. `atRisk`: no cabe entero en tu ahorro.
@@ -287,6 +301,17 @@ export interface PlanOptions {
   pendingNotes?: number
   /** Inflación de referencia (plan/inflation.ts): solo cambia textos, nunca importes. */
   inflation?: InflationRef
+  /** Caída o subida fuerte de la bolsa en el último mes: una caída adelanta parte del dinero parado. */
+  equityMove?: EquityMove | null
+}
+
+/** Parte del dinero parado que se adelanta tras una caída fuerte de la bolsa. */
+export const DROP_BOOST_SHARE = 0.5
+
+/** Solo una caída fuerte de verdad (puede venir del cliente: nunca se confía en su forma). */
+function strongDrop(move: EquityMove | null | undefined): EquityMove | null {
+  if (!move || typeof move !== 'object' || move.direction !== 'drop' || typeof move.label !== 'string') return null
+  return typeof move.pct === 'number' && Number.isFinite(move.pct) && move.pct <= MARKET_MOVES.DROP_PCT && move.pct > -100 ? move : null
 }
 
 export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions = {}): AllocationPlan {
@@ -528,6 +553,8 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // 5. Dinero parado: de una vez o repartido en meses (eliges tú); con plazo corto, a ahorro seguro.
   if (!needsProfile && idleCents >= Math.max(IDLE_MIN_CENTS, monthly.spendingCents)) {
     const safe = profile.horizon === 'short'
+    const drop = strongDrop(options.equityMove)
+    const nowCents = euros(idleCents * DROP_BOOST_SHARE)
     steps.push({
       kind: 'idle-money',
       idleCents,
@@ -536,6 +563,10 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       spreadMonths: IDLE_SPREAD_MONTHS,
       perMonthCents: euros(idleCents / IDLE_SPREAD_MONTHS),
       adult: profile.adult ?? null,
+      // Con la bolsa más barata, se adelanta la mitad; el resto, poco a poco. Nunca el colchón ni lo de tus objetivos.
+      ...(drop && !safe && mixFor && nowCents > 0
+        ? { boost: { dropPct: drop.pct, label: drop.label, nowCents, mix: mixFor(nowCents), restPerMonthCents: euros((idleCents - nowCents) / IDLE_SPREAD_MONTHS) } }
+        : {}),
     })
   }
 

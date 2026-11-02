@@ -41,6 +41,12 @@ describe('bolsa', () => {
     assert.match(s.text, /tu plan no cambia/)
   })
 
+  it('si el plan adelanta dinero parado por la caída, lo dice en vez de «tu plan no cambia»', () => {
+    const [s] = marketSignals(input({ move: DROP, indicators: [], boostsIdle: true }))
+    assert.match(s.text, /Tu plan lo aprovecha: te propone adelantar parte de tu dinero sin destino/)
+    assert.doesNotMatch(s.text, /tu plan no cambia/)
+  })
+
   it('solo si inviertes', () => {
     assert.ok(!ids(input({ move: DROP, invests: false })).includes('equity-drop'))
   })
