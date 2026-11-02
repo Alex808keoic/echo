@@ -110,6 +110,8 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
       case 'risky-drop':
         items.push({ id: `risky-drop:${s.positionId}`, text: `Revisa por qué ha caído «${s.name}» antes de meterle más dinero` })
         break
+      // «Actualiza el valor de tus inversiones» ya lo añade Finax cada mes (`UPDATE_INVESTMENTS_ITEM`).
+      case 'stale-values':
       case 'forecast-basis':
         break
     }

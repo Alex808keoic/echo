@@ -12,6 +12,20 @@
 
 ---
 
+## Caídas y subidas en el plan de inversión (2026-11-02)
+
+**Cambia una regla de diseño** (`docs/AXIS_MARKET_INTELLIGENCE.md` §4.1/§4.4 decían que el mercado nunca cambia lo que haces). Decidido con el usuario: las caídas y subidas influyen en el plan, siempre con reglas fijas, por tipos de inversión y nunca en lo que se invierte cada mes ni en el colchón u objetivos.
+
+- **Cómo va cada inversión** (`lib/axis/plan/performance.ts`): sobre lo aportado, último mes y último año, con los valores que apunta el usuario (`valueHistory`; Finax sigue sin consultar cotizaciones). Va en `PositionContext` (`changePct`, `monthChangePct`, `yearChangePct`, `valueAgeDays`) y se ve en Inversiones.
+- **Parte arriesgada que cae ≥ 30 %** sobre lo aportado: paso `risky-drop` (revisar por qué) y la parte arriesgada no recibe dinero nuevo mientras siga así.
+- **Reequilibrio con el dinero nuevo desde 5 puntos** (antes 10).
+- **Vender** (`sellProposals` en `plan/mix.ts`): `trim-risky` si la parte arriesgada pasa del 15 % (vuelve al 10 %); `rebalance-sell` si renta variable o renta fija sobran ≥ 5 puntos y 12 meses de aportaciones no bastan. Con nota de impuestos (traspaso entre fondos sin tributar).
+- **Caída fuerte de la bolsa** (≥ 8 % en un mes, `strongEquityMove`): el paso `idle-money` lleva `boost` e invierte ya la mitad del dinero parado; el resto, en 6 meses. El movimiento viaja en `MarketContext.equityMove` (calculado en el dispositivo) para que el chat recalcule el mismo plan.
+- **Valores viejos** (> 35 días): paso `stale-values`.
+- El chat de AXIS puede explicar ventas y adelantos (`planProposesMoves` en `lib/axis/chat/semantic.ts`, regla del prompt en `lib/axis/prompts/safety.ts`). Pruebas: `lib/axis/__tests__/plan-performance.test.ts`.
+
+---
+
 ## «¿Ya usas Finax? Entrar con Google» en la bienvenida (2026-11-02)
 
 - En la primera pantalla de la bienvenida, debajo de «Empezar», un botón **«¿Ya usas …? Entrar con Google»** (en Finax, Axthletics y Mentax). Va a Google sin guardar nada de la bienvenida y, al volver, la app enseña **«Recuperando tus datos…»** hasta que termina la primera sincronización (`markRestorePending` / `cloud.restoring` en `lib/ecosystem/use-cloud-sync.ts`; marca en sessionStorage, máximo 30 s). Al volver no se abre Ajustes/Perfil: se queda en Inicio.

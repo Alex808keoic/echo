@@ -205,3 +205,21 @@ describe('aprovechar una caída fuerte de la bolsa (dinero parado)', () => {
     assert.equal(step(idleSetup({ ...DROP, pct: Number.NaN }).plan, 'idle-money')!.boost, undefined)
   })
 })
+
+describe('valores viejos', () => {
+  it('una inversión sin actualizar hace más de 35 días: el plan pide actualizarla', () => {
+    const old = position({ name: 'Fondo indexado global', valueCents: 500_000, valueHistory: [{ date: '2026-07-01', valueCents: 500_000 }] })
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long'), [old])
+    const stale = step(s.plan, 'stale-values')!
+    assert.deepEqual([stale.count, stale.oldestDays], [1, 76])
+    const v = describeStep(stale, s.plan, s.objectives)
+    assert.equal(v.title, 'Actualiza el valor de tu inversión')
+    assert.match(v.detail!, /solo cuentan si apuntas el valor\. Es de hace 76 días/)
+    assert.ok(!monthChecklist(s.plan, s.objectives).some((i) => i.id === 'stale-values'), 'la lista del mes ya lo tiene')
+  })
+
+  it('con el valor al día, no dice nada', () => {
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long'), [fresh({ name: 'Fondo indexado global', valueCents: 500_000 })])
+    assert.equal(step(s.plan, 'stale-values'), undefined)
+  })
+})

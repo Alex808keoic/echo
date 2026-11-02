@@ -341,6 +341,8 @@ Cada peldaño debe estar razonablemente cubierto antes de considerar el siguient
 
 ### 4.4 Cómo puede (y no puede) intervenir el mercado
 
+> **Actualización 2026-11-02 (decisión del usuario):** las caídas y subidas sí influyen en el plan, con reglas fijas: tras una caída de la bolsa de al menos un 8 % en un mes se adelanta la mitad del dinero parado (nunca el colchón, los objetivos ni la aportación mensual), y un descuadre grande de la mezcla o de la parte arriesgada puede llevar a proponer vender. Detalle en `docs/HANDOFF_POST_CLAUDE.md` («Caídas y subidas en el plan de inversión»). La tabla de abajo se conserva como el diseño original.
+
 | Situación de mercado | Lo que AXIS **puede** hacer | Lo que AXIS **no** debe hacer |
 |---|---|---|
 | Valoraciones altas | Decir que las expectativas a 10 años son históricamente más bajas cuando se parte de valoraciones altas; reforzar diversificación | Decir «espera a que baje» o «no inviertas» por eso |

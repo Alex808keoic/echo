@@ -45,7 +45,7 @@ import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWe
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
 import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS } from '../../finance/objectives'
 import type { DebtContext } from '../types'
-import { RISKY_DROP_PCT } from './performance'
+import { RISKY_DROP_PCT, STALE_VALUE_DAYS } from './performance'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 /**
@@ -188,6 +188,8 @@ export type PlanStep =
    * Mientras esté así, la parte arriesgada no recibe dinero nuevo (decidido el 2026-11-02).
    */
   | { kind: 'risky-drop'; positionId: string; name: string; changePct: number }
+  /** Inversiones con el valor de hace más de `STALE_VALUE_DAYS` días: sus caídas y subidas no cuentan hasta que lo actualices. */
+  | { kind: 'stale-values'; count: number; oldestDays: number }
   /**
    * Vender para volver a tu mezcla (decidido el 2026-11-02), solo con un descuadre grande (`sellProposals`):
    * `trim-risky`, la parte arriesgada vuelve a su tope (`gainCents`: lo que ha ganado sobre lo aportado);
@@ -286,6 +288,14 @@ function priorityStep(decision: AxisDecision, active: readonly ObjectiveContext[
   if (index <= 0) return []
   const target = order[index]
   return [{ kind: 'follow-priority', objectiveId: target.id, rank: target.rank ?? index + 1, aheadIds: order.slice(0, index).map((o) => o.id) }]
+}
+
+/** Valores viejos: Finax no consulta cotizaciones, así que una caída o subida sin apuntar no existe para el plan. */
+function staleValuesStep(positions: AxisDecision['context']['investments']['positions']): PlanStep[] {
+  const ages = positions
+    .filter((p) => p.valueCents > 0 && typeof p.valueAgeDays === 'number' && Number.isFinite(p.valueAgeDays) && p.valueAgeDays > STALE_VALUE_DAYS)
+    .map((p) => p.valueAgeDays as number)
+  return ages.length > 0 ? [{ kind: 'stale-values', count: ages.length, oldestDays: Math.max(...ages) }] : []
 }
 
 /** Mediana del ahorro (ingresos − gastos) de los mismos meses que el gasto habitual. */
@@ -395,7 +405,14 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
 
   const needsProfile = profile.riskAttitude === undefined || profile.horizon === undefined
   // Detrás de los importes: de dónde sale el plan si es provisional, tu prioridad, el perfil y las notas pendientes.
-  const tail: PlanStep[] = [...debtLoadStep(debts, monthly), ...leading, ...priorityStep(decision, active), ...(needsProfile ? [{ kind: 'answer-profile' as const }] : []), ...notesStep]
+  const tail: PlanStep[] = [
+    ...debtLoadStep(debts, monthly),
+    ...leading,
+    ...priorityStep(decision, active),
+    ...(needsProfile ? [{ kind: 'answer-profile' as const }] : []),
+    ...staleValuesStep(ctx.investments.positions),
+    ...notesStep,
+  ]
   const withProfileStep = (plan: AllocationPlan): AllocationPlan => (tail.length > 0 ? { ...plan, steps: [...plan.steps, ...tail] } : plan)
 
   // 1b. Deudas caras: más que lo que cabe esperar de tu mezcla (o del 7 % sin perfil), nunca por debajo del 3 %.

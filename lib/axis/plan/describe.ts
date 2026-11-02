@@ -309,6 +309,12 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         action: { kind: 'review-investments', label: 'Ver mis inversiones' },
       }
     }
+    case 'stale-values':
+      return {
+        title: step.count === 1 ? 'Actualiza el valor de tu inversión' : `Actualiza el valor de tus ${step.count} inversiones`,
+        detail: `Finax no consulta cotizaciones: las caídas y subidas solo cuentan si apuntas el valor. ${step.count === 1 ? 'Es' : 'El más antiguo es'} de hace ${plural(step.oldestDays, 'día', 'días')}: con valores viejos, tu plan puede no ver una caída o una subida que ya ha pasado.`,
+        action: { kind: 'review-investments', label: 'Ver mis inversiones' },
+      }
     case 'risky-drop':
       return {
         title: `«${step.name}» ha caído un ${pctText(Math.abs(step.changePct))}`,
