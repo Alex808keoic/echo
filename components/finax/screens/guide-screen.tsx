@@ -6,6 +6,7 @@ import { type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
 import { COMPARE_DEFAULT_MONTHLY_CENTS, COMPARE_YEARS, feeComparison, investEstimate, monthlyForType, sleeveGuide, type InvestEstimate, type SleeveGuide } from '@/lib/axis/guide/invest'
 import type { AllocationPlan } from '@/lib/axis/plan/allocation'
 import { AUTHORIZED_SERVICES, EXAMPLES_NOTICE, groupRiskRange, OFFICIAL_LINKS, RISK_LABEL, type InvestmentGroupId, type ProductType } from '@/lib/axis/guide/products'
+import { HISTORY_NOTICE } from '@/lib/axis/guide/history'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
 import { defaultYears, monthsLabel, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
 import { formatWholeCurrency } from '@/lib/format'
@@ -374,6 +375,17 @@ function TypeDetail({ type, fit, plan, mine, onPlan }: { type: ProductType; fit:
       </div>
 
       <ScenarioSection type={type} mine={mine} />
+
+      <div className="space-y-1.5">
+        <p className="font-semibold text-grafito">Su historia</p>
+        <p className="text-pretty">
+          <span className="font-semibold text-grafito">Qué lo mueve: </span>
+          {type.history.drivers}
+        </p>
+        <Bullets items={type.history.timeline} />
+        <p className="text-pretty font-semibold text-grafito">{type.history.lesson}</p>
+        <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">{HISTORY_NOTICE}</p>
+      </div>
 
       {type.choose && type.choose.length > 0 && (
         <div className="space-y-1">

@@ -14,6 +14,7 @@
  */
 
 import { TYPE_EXPERTISE } from './expertise'
+import { TYPE_HISTORY, type TypeHistory } from './history'
 
 export type ProductRisk = 'muy-bajo' | 'bajo' | 'medio' | 'alto' | 'muy-alto'
 /** Familia para revisar el encaje con el plan (guide/fit.ts). */
@@ -56,6 +57,8 @@ export interface ProductType {
   liquidity: string
   /** Quién lo supervisa y qué te protege. */
   protection: string
+  /** Su historia: qué lo mueve, momentos clave y la lección (guide/history.ts). */
+  history: TypeHistory
   /**
    * Encaje con el plan propio del tipo, cuando la regla por familia no lo explica bien (planes de pensiones,
    * vivienda para alquilar): se usa con el plan listo, el colchón completo y un plazo que no es corto.
@@ -64,7 +67,7 @@ export interface ProductType {
 }
 
 /** Lo que se escribe en cada tipo; lo de experto (impuestos, liquidez, protección) sale de guide/expertise.ts. */
-type ProductTypeBase = Omit<ProductType, 'taxes' | 'liquidity' | 'protection'>
+type ProductTypeBase = Omit<ProductType, 'taxes' | 'liquidity' | 'protection' | 'history'>
 
 export const RISK_LABEL: Record<ProductRisk, string> = { 'muy-bajo': 'Muy bajo', bajo: 'Bajo', medio: 'Medio', alto: 'Alto', 'muy-alto': 'Muy alto' }
 const RISK_ORDER: readonly ProductRisk[] = ['muy-bajo', 'bajo', 'medio', 'alto', 'muy-alto']
@@ -935,8 +938,10 @@ const BASE_TYPES: readonly ProductTypeBase[] = [
 /** Cada tipo con lo que sabría un experto: impuestos, liquidez y protección (y «cómo reconocer uno bueno» si faltaba). */
 export const PRODUCT_TYPES: readonly ProductType[] = BASE_TYPES.map((t) => {
   const x = TYPE_EXPERTISE[t.id]
+  const history = TYPE_HISTORY[t.id]
   if (!x) throw new Error(`Falta guide/expertise.ts para «${t.id}»`)
-  return { ...t, taxes: x.taxes, liquidity: x.liquidity, protection: x.protection, ...(t.choose ? {} : x.choose ? { choose: x.choose } : {}) }
+  if (!history) throw new Error(`Falta guide/history.ts para «${t.id}»`)
+  return { ...t, taxes: x.taxes, liquidity: x.liquidity, protection: x.protection, history, ...(t.choose ? {} : x.choose ? { choose: x.choose } : {}) }
 })
 
 export function groupById(id: InvestmentGroupId): InvestmentGroup {

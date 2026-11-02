@@ -234,3 +234,21 @@ describe('Finax como experto en cada tipo (2026-11-02)', () => {
     assert.match(tipo.que_te_protege, /Dirección General de Seguros/)
   })
 })
+
+describe('la historia de cada tipo (2026-11-02)', () => {
+  it('cada tipo sabe qué lo mueve, sus momentos clave y la lección que deja', () => {
+    for (const p of PRODUCT_TYPES) {
+      assert.ok(p.history.drivers.length > 20, p.id)
+      assert.ok(p.history.timeline.length >= 2, p.id)
+      assert.ok(p.history.lesson.length > 20, p.id)
+    }
+  })
+
+  it('si preguntas por el oro, AXIS recibe su historia', () => {
+    const guide = chatGuideOf('Estoy pensando en invertir en oro', setup(800_000, PROFILE).decision)!
+    const historia = guideForPrompt(guide).tipos[0].historia
+    assert.match(historia.que_lo_mueve, /bancos centrales/)
+    assert.ok(historia.momentos_clave.some((m: string) => /1971/.test(m)))
+    assert.ok(historia.momentos_clave.some((m: string) => /28 años/.test(m)))
+  })
+})

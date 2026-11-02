@@ -17,7 +17,8 @@
 - **10 familias y 50 tipos** (antes 8 y 29). Nuevas familias: «Planes de pensiones y seguros de ahorro» (`prevision`: plan individual, de empleo, PIAS, SIALP/CIALP, unit linked) y «Productos complejos» (`complejos`: CFD, futuros y opciones, estructurados, warrants y turbos). Tipos nuevos en las demás: bonos ligados a la inflación, high yield, pagarés, preferentes y subordinada, crowdlending; fondos garantizados, a vencimiento, carteras gestionadas/robo-advisor, capital riesgo y ELTIF; ETF de factores y dividendos; vivienda para alquilar; staking.
 - **Cada tipo sabe** cómo tributa en España (tramos del ahorro 2026), cuándo recuperas el dinero y qué te protege (FGD, FOGAIN, DGSFP o nada), y «cómo reconocer uno bueno» en todos: `lib/axis/guide/expertise.ts`. Se ve en la ficha de la Guía y llega al chat (`guideForPrompt`).
 - `fitOverride` en `ProductType`: encaje propio cuando la regla por familia no lo explica (planes de pensiones, seguros, vivienda). Renta fija de riesgo alto (high yield, pagarés): «en parte». `assetType: 'other'` para que un plan de pensiones o un piso apuntados no cuenten en la mezcla.
-- Al añadir un tipo: entrada en `TYPE_EXPERTISE` (si falta, `PRODUCT_TYPES` lanza un error) y en `SCENARIO_ASSUMPTIONS`.
+- **Historia de cada tipo** (`lib/axis/guide/history.ts`): qué lo mueve, 2–5 momentos clave con cifras redondeadas y la lección. Se ve en la ficha («Su historia») y llega al chat (`historia` en `guideForPrompt`); lo de esta semana sigue saliendo del panorama de mercado. Son hechos estáticos: revisar los del último año cuando se actualice la guía.
+- Al añadir un tipo: entrada en `TYPE_EXPERTISE` y en `TYPE_HISTORY` (si falta alguna, `PRODUCT_TYPES` lanza un error) y en `SCENARIO_ASSUMPTIONS`.
 
 ---
 
