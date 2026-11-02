@@ -160,8 +160,8 @@ function ProfileStep({ onNext }: { onNext: () => void }) {
 
 const AXIS_POINTS = [
   { icon: null, title: 'Qué es AXIS', text: 'La app que une Finax con Axthletics y Mentax: cada semana te resume cómo vas en dinero, cuerpo y mente, y te propone un paso para mejorar.' },
-  { icon: UserIcon, title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
-  { icon: ShieldIcon, title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo cifras por semana, como lo que ingresas o gastas: nunca tus movimientos, conceptos, notas ni lo que hablas con AXIS.' },
+  { icon: UserIcon, title: 'Por qué con Google', text: 'Tus datos se guardan en tu cuenta y los tienes en cualquier móvil donde entres. Con la misma cuenta en todas las apps, se conectan solas. Sin contraseñas nuevas.' },
+  { icon: ShieldIcon, title: 'Qué se comparte', text: 'Con AXIS, nada hasta que lo confirmes. Después, solo cifras por semana, como lo que ingresas o gastas: nunca tus movimientos, conceptos, notas ni lo que hablas con AXIS.' },
 ] as const
 
 /**

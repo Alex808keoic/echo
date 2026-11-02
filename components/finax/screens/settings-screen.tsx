@@ -145,7 +145,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
     open(
       'Borrar todos los datos',
       <Confirm
-        message="Se eliminarán movimientos, objetivos, inversiones, deudas, saldo inicial y toda la memoria y conversación de AXIS de este dispositivo. Exporta una copia antes si quieres conservar tus datos."
+        message="Se eliminarán movimientos, objetivos, inversiones, deudas, saldo inicial y toda la memoria y conversación de AXIS de este dispositivo. Exporta una copia antes si quieres conservar tus datos. Si tienes activada la copia en la nube, se volverán a descargar: bórrala antes en Ecosistema AXIS."
         confirmLabel="Borrar todo"
         destructive
         onCancel={close}
@@ -234,7 +234,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       <Group title="Privacidad">
         <Row
           title="Tus datos se guardan en este dispositivo"
-          description="Finax funciona sin cuenta: movimientos, objetivos, inversiones y memorias de AXIS viven en el almacenamiento local del navegador, y la app funciona sin conexión con el motor local de AXIS."
+          description="Finax funciona sin cuenta: movimientos, objetivos, inversiones y memorias de AXIS viven en el almacenamiento local del navegador, y la app funciona sin conexión con el motor local de AXIS. Si entras con Google en Ecosistema AXIS, se guarda además una copia en tu cuenta (servidor en la UE, solo tú puedes leerla) para tenerlos en cualquier móvil donde entres. Puedes borrarla cuando quieras."
         />
         <Row
           title="Qué sale del dispositivo al usar AXIS con IA"

@@ -12,12 +12,13 @@ import { useSheet } from './sheet'
 const time = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' })
 
 /**
- * Ecosistema AXIS en Ajustes: entrar con Google y elegir qué resumen semanal se
- * comparte con la app AXIS. Nada sale del dispositivo hasta confirmarlo, y Finax
- * funciona igual sin conectar. Sin configurar Finax no aparece: no hay qué compartir.
+ * Ecosistema AXIS en Ajustes: entrar con Google, la copia en la nube (tus datos en
+ * cualquier móvil con la misma cuenta) y qué resumen semanal se comparte con la app
+ * AXIS. Sin entrar, nada sale del dispositivo, y Finax funciona igual. Sin configurar
+ * Finax no aparece.
  */
 export function EcosystemSection({ configured }: { configured: boolean }) {
-  const { account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut } = useEcosystem()
+  const { account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud } = useEcosystem()
   const { open, close } = useSheet()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -46,6 +47,38 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
       />,
     )
 
+  const confirmRemoveCloud = () =>
+    open(
+      'Borrar la copia de la nube',
+      <div className="space-y-4">
+        <p className="text-[13px] font-medium leading-snug text-muted-foreground text-pretty">
+          Se borran tus datos de Finax de la nube y este móvil deja de sincronizar. En este móvil no se toca nada. Los otros móviles conservan lo que ya tengan.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={close} fullWidth>
+            Cancelar
+          </Button>
+          <Button
+            onClick={async () => {
+              close()
+              await run(async () => ((await cloud.removeCloudCopy()) ? 'Copia de la nube borrada. Este móvil ya no sincroniza.' : 'No he podido borrarla. Inténtalo con conexión.'))
+            }}
+            fullWidth
+          >
+            Borrar
+          </Button>
+        </div>
+      </div>,
+    )
+
+  const cloudStatus = cloud.failed
+    ? 'No he podido sincronizar ahora. Lo intento otra vez en un momento.'
+    : cloud.syncing
+      ? 'Sincronizando…'
+      : cloud.lastSyncAt
+        ? `Al día. Última vez a las ${time.format(new Date(cloud.lastSyncAt))}. Toca para sincronizar ahora.`
+        : 'Tus datos se guardan en tu cuenta y aparecen en cualquier móvil donde entres con ella.'
+
   const status = failed
     ? 'No he podido enviar el último resumen. Lo intento otra vez la próxima vez que abras Finax.'
     : lastSentAt
@@ -65,7 +98,7 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
           description={
             sharedMetrics
               ? 'Compartías con AXIS, pero has cerrado la sesión. Vuelve a entrar con la misma cuenta para seguir enviando.'
-              : 'Usa la misma cuenta de Google en todas las apps: así se conectan solas.'
+              : 'Guarda tus datos en tu cuenta para tenerlos en cualquier móvil. Usa la misma cuenta en todas las apps: así se conectan solas.'
           }
           onClick={() => void run(signIn)}
           disabled={busy}
@@ -74,6 +107,19 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
       {account.status === 'signedIn' && (
         <>
           <Row title="Conectado" description={account.email ?? 'Tu cuenta de Google'} />
+          {cloud.enabled ? (
+            <>
+              <Row title="Copia en la nube activada" description={cloudStatus} onClick={() => void cloud.syncNow()} disabled={busy || cloud.syncing} />
+              <Row title="Borrar la copia de la nube" description="Deja de sincronizar en este móvil. Aquí no se borra nada." onClick={confirmRemoveCloud} disabled={busy} />
+            </>
+          ) : (
+            <Row
+              title="Activar la copia en la nube"
+              description="Tus datos, en cualquier móvil donde entres con esta cuenta."
+              onClick={() => void cloud.enable()}
+              disabled={busy}
+            />
+          )}
           {sharedMetrics ? (
             <>
               <Row title={`Compartiendo ${sharedMetrics.length} cifra${sharedMetrics.length === 1 ? '' : 's'}`} description={status} onClick={chooseMetrics} disabled={busy} />
@@ -87,7 +133,7 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
           ) : (
             <Row title="Elegir qué compartes" description="Nada se envía hasta que lo confirmes." onClick={chooseMetrics} disabled={busy} />
           )}
-          <Row title="Cerrar sesión" description="Deja de enviar hasta que vuelvas a entrar." onClick={() => void run(async () => (await signOut(), null))} disabled={busy} />
+          <Row title="Cerrar sesión" description="Deja de sincronizar y de enviar hasta que vuelvas a entrar. Tus datos siguen en este móvil." onClick={() => void run(async () => (await signOut(), null))} disabled={busy} />
         </>
       )}
       {message && <Row title="AXIS" description={message} />}

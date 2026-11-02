@@ -123,3 +123,6 @@ export async function deleteSharedData(): Promise<boolean> {
   lastPushAt = 0
   return true
 }
+
+/** El cliente del proyecto compartido, para la copia en la nube (`cloud-sync.ts`). */
+export const ecosystemClient = client

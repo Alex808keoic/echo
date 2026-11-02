@@ -20,7 +20,7 @@ const POINTS: ReadonlyArray<{ icon: ((props: SVGProps<SVGSVGElement>) => React.R
   { icon: StatsIcon, title: 'Entiende tus gastos', text: 'En qué se va tu dinero cada mes, por categorías.' },
   { icon: TargetIcon, title: 'Tus objetivos', text: 'Un fondo de emergencia, un viaje… y cuánto te falta.' },
   { icon: null, title: 'AXIS, tu consultor', text: 'Te prepara un plan: cuánto ahorrar, cuánto invertir y en qué tipo de inversión.' },
-  { icon: ShieldIcon, title: 'Solo en tu móvil', text: 'Tus datos se guardan en este dispositivo. Sin cuenta.' },
+  { icon: ShieldIcon, title: 'Tus datos, tuyos', text: 'Se guardan en tu móvil, sin cuenta. Si entras con Google, también en tu cuenta, para tenerlos en cualquier móvil.' },
 ]
 
 /**

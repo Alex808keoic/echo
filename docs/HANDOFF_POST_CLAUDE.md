@@ -12,6 +12,20 @@
 
 ---
 
+## Copia en la nube entre dispositivos (2026-11-02)
+
+Pedido por Alex: al entrar con Google en otro móvil deben aparecer los mismos datos.
+
+- **Cómo:** con la sesión de Google del ecosistema, cada registro local (almacén + clave) es una fila de `app_records` en el Supabase compartido (UE, RLS: cada usuario solo ve las suyas; SQL en el repo de AXIS, `supabase/002_app_records.sql`). El motor `lib/ecosystem/cloud-sync.ts` es idéntico en Finax, AXTHLETICS y Mentax; lo propio de cada app es su adaptador.
+- **Reglas:** se baja lo cambiado en la nube y se sube lo cambiado aquí (se detecta comparando huellas, sin tocar los sitios donde la app escribe). Si un registro cambió en los dos sitios, gana el del dispositivo, salvo en la **primera** sincronización de un dispositivo con esa cuenta, en la que manda la nube (así un móvil nuevo recupera tu perfil). Los borrados viajan. Si la base local aparece vacía entera con datos ya sincronizados, se vuelve a descargar todo en vez de borrar la nube.
+- **Cuándo:** al abrir con sesión, al volver a la app, al salir y cada minuto a la vista. Sin sesión, nada.
+- **Control:** en Ecosistema AXIS, «Sincronizar ahora» y «Borrar la copia de la nube» (borra la nube y apaga la copia en ese dispositivo; los datos locales no se tocan). Borrar los datos del móvil no borra la nube: con la sesión abierta, se vuelven a descargar (lo dice la pantalla).
+- **Cambia la promesa de privacidad:** sin entrar con Google, nada sale del dispositivo, como antes; al entrar, los datos completos se guardan en la cuenta del usuario. Los textos de bienvenida, privacidad y Ecosistema lo dicen. Lo que se comparte con la app AXIS (resúmenes semanales) no cambia.
+- **Finax:** viajan movimientos, objetivos, inversiones, configuración, memoria y conversación de AXIS, pasos del plan, deudas, fijos y efectivo (`lib/ecosystem/finax-sync.ts`). No viajan `market` (caché) ni `meta` (propio del dispositivo). Se escribe en Dexie, así que `useLiveQuery` refresca solo. Enganche en `hooks/use-ecosystem.tsx` (`cloud`), UI en `components/finax/ecosystem-section.tsx`. En un móvil nuevo: bienvenida → saldo → «Entrar con Google» y se recupera todo.
+- **Requisito:** la tabla `app_records` tiene que existir en Supabase; sin ella la sincronización falla en silencio y la app funciona igual.
+
+---
+
 ## Efectivo/tarjeta e importar extractos en PDF (2026-11-01)
 
 - **Efectivo y tarjeta:** `Movement.wallet?: 'efectivo'` (ausente = tarjeta/banco) y tabla nueva `cashTransfers` (Dexie v10) para sacar del cajero / ingresar en el banco: no son ingreso ni gasto, solo cambian dónde está el dinero. `AppConfig.initialCashCents?` (hoy sin formulario: se corrige con «Corregir cuánto efectivo tengo», que crea un traspaso). El reparto sale de `lib/finance/wallets.ts` (`overview.wallets`; banco = líquido − efectivo). Líquido, patrimonio, AXIS y el ecosistema no cambian.

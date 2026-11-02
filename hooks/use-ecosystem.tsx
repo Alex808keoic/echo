@@ -7,6 +7,9 @@
  * hace ninguna petición. Con sesión y consentimiento, envía los resúmenes al abrir
  * la app y al salir de ella (como mucho cada pocos minutos). Si falla, no molesta:
  * se vuelve a intentar la próxima vez. Finax nunca espera a AXIS.
+ *
+ * Con sesión, además, la copia en la nube (`cloud`): tus datos en cualquier
+ * dispositivo donde entres con la misma cuenta.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -16,7 +19,9 @@ import { getConfig, setEcosystemSharing } from '@/lib/db/config'
 import { todayISO } from '@/lib/dates'
 import { buildWeeklySnapshots } from '@/lib/ecosystem/snapshot'
 import type { FinaxMetric } from '@/lib/ecosystem/sharing'
-import { deleteSharedData, hasEcosystemSignal, pushSnapshots, signInWithGoogle, signOutOfEcosystem, watchEcosystemSession } from '@/lib/ecosystem/client'
+import { deleteSharedData, ecosystemClient, hasEcosystemSignal, pushSnapshots, signInWithGoogle, signOutOfEcosystem, watchEcosystemSession } from '@/lib/ecosystem/client'
+import { finaxSyncAdapter } from '@/lib/ecosystem/finax-sync'
+import { useCloudSync, type CloudSyncApi } from '@/lib/ecosystem/use-cloud-sync'
 
 export type EcosystemAccount = { status: 'checking' } | { status: 'signedOut' } | { status: 'signedIn'; email: string | null }
 
@@ -34,6 +39,8 @@ export interface EcosystemApi {
   /** Deja de compartir y borra en AXIS todo lo recibido de Finax. */
   stopSharing(): Promise<boolean>
   signOut(): Promise<void>
+  /** Copia en la nube de tus datos (independiente de lo que se comparte con AXIS). */
+  cloud: CloudSyncApi
 }
 
 const APP_VERSION = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'
@@ -64,6 +71,7 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   const [lastSentAt, setLastSentAt] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const sharedMetrics = config?.ecosystem?.metrics ?? null
+  const cloud = useCloudSync({ adapter: finaxSyncAdapter, session, getClient: ecosystemClient })
 
   useEffect(() => {
     if (!hasEcosystemSignal()) {
@@ -137,8 +145,8 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => signOutOfEcosystem(), [])
 
   const value = useMemo<EcosystemApi>(
-    () => ({ account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut }),
-    [account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut],
+    () => ({ account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud }),
+    [account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud],
   )
   return <EcosystemContext.Provider value={value}>{children}</EcosystemContext.Provider>
 }
