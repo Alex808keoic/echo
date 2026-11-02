@@ -118,6 +118,14 @@ export interface PositionContext {
   assetType?: PositionAssetType
   /** Comisión anual en %, si la has indicado. */
   feePct?: number
+  /** Subida o bajada sobre lo aportado, en % (plan/performance.ts). */
+  changePct?: number
+  /** Frente al valor apuntado hace un mes, en %; ausente si no lo hay. */
+  monthChangePct?: number
+  /** Frente al valor apuntado hace un año, en %; ausente si no lo hay. */
+  yearChangePct?: number
+  /** Días desde el último valor apuntado. */
+  valueAgeDays?: number
 }
 
 export interface DebtContext {

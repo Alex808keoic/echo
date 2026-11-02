@@ -58,7 +58,7 @@ describe('tipo de cada inversión', () => {
 })
 
 describe('tu mezcla real frente a la del plan', () => {
-  it('cerca de tu mezcla (< 10 puntos): se reparte con los pesos de siempre', () => {
+  it('cerca de tu mezcla (< 5 puntos): se reparte con los pesos de siempre', () => {
     const held = heldBySleeve([{ valueCents: 700_000, assetType: 'global-equity' }, { valueCents: 300_000, assetType: 'bonds' }])
     assert.equal(needsRebalance(held, { 'global-equity': 70, bonds: 30, risky: 0 }), false)
   })

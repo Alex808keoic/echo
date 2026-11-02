@@ -96,6 +96,9 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
       case 'review-notes':
         items.push({ id: s.kind, text: s.count === 1 ? 'Convierte tu nota en un dato o márcala como que no cuenta' : `Convierte tus ${s.count} notas en datos o márcalas como que no cuentan` })
         break
+      case 'risky-drop':
+        items.push({ id: `risky-drop:${s.positionId}`, text: `Revisa por qué ha caído «${s.name}» antes de meterle más dinero` })
+        break
       case 'forecast-basis':
         break
     }

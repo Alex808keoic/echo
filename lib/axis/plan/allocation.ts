@@ -44,6 +44,7 @@ import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWe
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
 import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS } from '../../finance/objectives'
 import type { DebtContext } from '../types'
+import { RISKY_DROP_PCT } from './performance'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 /**
@@ -168,6 +169,11 @@ export type PlanStep =
   | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
   /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
   | { kind: 'review-notes'; count: number }
+  /**
+   * Inversión de la parte arriesgada que vale un `RISKY_DROP_PCT` % o menos de lo aportado: puede no recuperarse.
+   * Mientras esté así, la parte arriesgada no recibe dinero nuevo (decidido el 2026-11-02).
+   */
+  | { kind: 'risky-drop'; positionId: string; name: string; changePct: number }
 
 export interface AllocationPlan {
   status: 'ready' | 'blocked'
@@ -348,6 +354,12 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     const spreadMonths = Math.max(1, Math.floor(o.monthsLeft - INVESTED_GOAL_MIN_MONTHS))
     steps.push({ kind: 'move-goal-to-safe', objectiveId: o.id, investedCents: invested, monthsLeft: Math.floor(o.monthsLeft), spreadMonths, perMonthCents: Math.ceil(invested / spreadMonths / 100) * 100 })
   }
+  // Una acción concreta, un sector o una cripto que se hunde puede no recuperarse (un índice mundial, sí): se revisa
+  // y, mientras tanto, la parte arriesgada no recibe dinero nuevo.
+  const riskyDrops = ctx.investments.positions.filter(
+    (p) => p.assetType === 'risky' && p.valueCents > 0 && typeof p.changePct === 'number' && Number.isFinite(p.changePct) && p.changePct <= -RISKY_DROP_PCT,
+  )
+  for (const p of riskyDrops) steps.push({ kind: 'risky-drop', positionId: p.id, name: p.name, changePct: p.changePct as number })
 
   const needsProfile = profile.riskAttitude === undefined || profile.horizon === undefined
   // Detrás de los importes: de dónde sale el plan si es provisional, tu prioridad, el perfil y las notas pendientes.
@@ -452,6 +464,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       idleCents,
       spendingCents: monthly.spendingCents,
       noExperience: profile.investingExperience === 'none',
+      paused: riskyDrops.length > 0,
     })
     const weights = mixWeights(risk as RiskAttitude, horizon, risky)
     // Si tu mezcla real se ha alejado de la del plan, lo nuevo va a lo que falta (sin vender nada).

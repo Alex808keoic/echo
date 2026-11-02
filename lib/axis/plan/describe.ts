@@ -277,6 +277,14 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         action: { kind: 'review-objectives', label: 'Ordenar objetivos' },
       }
     }
+    case 'risky-drop':
+      return {
+        title: `«${step.name}» ha caído un ${pctText(Math.abs(step.changePct))}`,
+        detail:
+          'Es de tu parte arriesgada: una acción concreta, un sector o una criptomoneda. A diferencia de un fondo que reparte tu dinero entre miles de empresas de todo el mundo, puede no recuperarse nunca. Antes de meterle más dinero, revisa por qué ha caído: si es toda la bolsa o algo de esa inversión en concreto.',
+        note: 'Mientras tanto, tu plan no mete dinero nuevo en la parte arriesgada. Lo diversificado sigue igual.',
+        action: { kind: 'review-investments', label: 'Ver mis inversiones' },
+      }
     case 'review-notes':
       return {
         title: step.count === 1 ? 'Tienes 1 nota que tu plan todavía no usa' : `Tienes ${step.count} notas que tu plan todavía no usa`,

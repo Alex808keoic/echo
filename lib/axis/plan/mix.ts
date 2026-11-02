@@ -59,12 +59,15 @@ export interface RiskyConditions {
   spendingCents: number
   /** Respondió que no ha invertido nunca: se empieza por lo diversificado. */
   noExperience?: boolean
+  /** Alguna inversión de la parte arriesgada ha caído mucho (plan/performance.ts): no recibe dinero nuevo hasta revisarla. */
+  paused?: boolean
 }
 
 export function riskyAllowed(c: RiskyConditions): boolean {
   return (
     c.riskAttitude === 'dynamic' &&
     c.noExperience !== true &&
+    c.paused !== true &&
     c.horizon === 'long' &&
     c.cushionComplete &&
     !c.shortTermAtRisk &&
@@ -141,7 +144,7 @@ export function splitMix(totalCents: number, weights: Record<SleeveKey, number>)
 /* -------------------------- tu mezcla real (reequilibrar) -------------------------- */
 
 /** Desviación (puntos porcentuales) a partir de la cual el plan reequilibra con las aportaciones. */
-export const REBALANCE_THRESHOLD_PP = 10
+export const REBALANCE_THRESHOLD_PP = 5
 /** Caída del valor de tus inversiones (respecto a lo aportado) a partir de la cual el plan lo comenta. */
 export const DRAWDOWN_NOTICE_PCT = 15
 

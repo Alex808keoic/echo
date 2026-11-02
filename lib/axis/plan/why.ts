@@ -10,6 +10,7 @@ import type { ReconciledProfile } from '../profile/types'
 import { CUSHION_MONTHS, planRisk, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
 import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS } from './mix'
 import { inflationPhrase } from './inflation'
+import { RISKY_DROP_PCT } from './performance'
 
 type Profile = Pick<
   ReconciledProfile,
@@ -107,6 +108,10 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       break
     case 'debt-load':
       why.push('Los bancos consideran sano que las cuotas no pasen del 30–35 % de tus ingresos: por encima, cualquier imprevisto te aprieta.')
+      break
+    case 'risky-drop':
+      why.push('Con una sola empresa, un sector o una cripto no hay nada que compense la caída: si el problema es suyo, puede no volver a subir. Un índice mundial, en cambio, siempre se ha recuperado con el tiempo.')
+      why.push(`A partir de una caída del ${RISKY_DROP_PCT} % sobre lo que pusiste, el plan deja de meterle dinero nuevo hasta que lo revises: así una mala apuesta no se hace más grande.`)
       break
     case 'forecast-basis':
       why.push('Declaraste un ingreso fijo, así que no hace falta esperar a tener dos meses completos para empezar.')

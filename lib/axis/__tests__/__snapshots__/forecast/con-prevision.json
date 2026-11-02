@@ -174,7 +174,9 @@
           "investedCents": 15000,
           "valueCents": 20000,
           "weightPct": 100,
-          "assetType": "other"
+          "assetType": "other",
+          "changePct": 33.3,
+          "valueAgeDays": 137
         }
       ],
       "totalInvestedCents": 15000,

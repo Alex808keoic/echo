@@ -23,6 +23,8 @@ import { feeSummary, isHighFee, LOW_FEE_PCT, portfolioReturn, type FeeSummary, t
 import { inflationFrom, inflationPhrase, type InflationRef } from '@/lib/axis/plan/inflation'
 import { pctText } from '@/lib/axis/plan/describe'
 import { todayISO } from '@/lib/dates'
+import { positionPerformance, RISKY_DROP_PCT, STALE_VALUE_DAYS } from '@/lib/axis/plan/performance'
+import { guessAssetType } from '@/lib/axis/plan/mix'
 
 export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const { open, close } = useSheet()
@@ -125,6 +127,13 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
               <div className="divide-y divide-border">
                 {positions.map((p) => {
                   const g = positionGain(p)
+                  // Cómo va: último mes y último año con los valores apuntados (plan/performance.ts).
+                  const perf = positionPerformance(p, todayISO())
+                  const moves = [
+                    perf.monthChangePct !== null ? `último mes ${formatPct(perf.monthChangePct, true)}` : null,
+                    perf.yearChangePct !== null ? `último año ${formatPct(perf.yearChangePct, true)}` : null,
+                  ].filter((m): m is string => m !== null)
+                  const riskyDrop = (p.assetType ?? guessAssetType(p.name)) === 'risky' && perf.changePct !== null && perf.changePct <= -RISKY_DROP_PCT && p.valueCents > 0
                   return (
                     <button
                       key={p.id}
@@ -142,7 +151,10 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
                           <span className="whitespace-nowrap">· {formatShortDate(p.date)}</span>
                           {p.feeBp !== undefined && <span className="whitespace-nowrap">· comisión {pctText(p.feeBp / 100)}</span>}
                         </p>
+                        {moves.length > 0 && <p className="text-[11.5px] font-medium text-muted-foreground tabular-nums">{moves.join(' · ')}</p>}
                         {isHighFee(p) && <p className="text-[11.5px] font-semibold text-negative">Comisión alta para su tipo</p>}
+                        {riskyDrop && <p className="text-[11.5px] font-semibold text-negative">Ha caído mucho: revisa por qué antes de meterle más</p>}
+                        {perf.staleDays > STALE_VALUE_DAYS && <p className="text-[11.5px] font-medium text-muted-foreground">Valor de hace {perf.staleDays} días: actualízalo</p>}
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[14px] font-bold text-grafito tabular-nums">{formatCents(p.valueCents)}</p>

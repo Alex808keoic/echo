@@ -10,6 +10,7 @@ import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { todayISO } from '../dates'
 import { goalInvestedPool, guessAssetType } from './plan/mix'
+import { positionPerformance } from './plan/performance'
 import { aprPctOf, payoffMonths } from '../finance/debts'
 import type { AppConfig, Debt, Movement, Objective, Position } from '../types'
 import type {
@@ -137,17 +138,25 @@ function objectiveContext(item: ObjectiveAllocation, aheadRemainingCents: number
   return ctx
 }
 
-function positionContexts(positions: Position[]): PositionContext[] {
+function positionContexts(positions: Position[], asOf: string): PositionContext[] {
   const weights = roundedShares(positions.map((p) => p.valueCents))
-  return positions.map((p, i) => ({
-    id: p.id,
-    name: p.name,
-    investedCents: p.investedCents,
-    valueCents: p.valueCents,
-    weightPct: weights[i],
-    assetType: p.assetType ?? guessAssetType(p.name),
-    ...(p.feeBp !== undefined ? { feePct: p.feeBp / 100 } : {}),
-  }))
+  return positions.map((p, i) => {
+    // Cómo va cada inversión, con los valores que apunta el usuario (plan/performance.ts).
+    const perf = positionPerformance(p, asOf)
+    return {
+      id: p.id,
+      name: p.name,
+      investedCents: p.investedCents,
+      valueCents: p.valueCents,
+      weightPct: weights[i],
+      assetType: p.assetType ?? guessAssetType(p.name),
+      ...(p.feeBp !== undefined ? { feePct: p.feeBp / 100 } : {}),
+      ...(perf.changePct !== null ? { changePct: perf.changePct } : {}),
+      ...(perf.monthChangePct !== null ? { monthChangePct: perf.monthChangePct } : {}),
+      ...(perf.yearChangePct !== null ? { yearChangePct: perf.yearChangePct } : {}),
+      valueAgeDays: perf.staleDays,
+    }
+  })
 }
 
 /** Deudas con algo pendiente, de la más cara a la más barata. */
@@ -226,7 +235,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
     },
     objectives: objectiveCtxs,
     investments: {
-      positions: positionContexts(positions),
+      positions: positionContexts(positions, asOf),
       totalInvestedCents: totalInvestedCents(positions),
       totalValueCents: investedCents,
       shareOfWealthPct: totalCents > 0 ? Math.round((investedCents / totalCents) * 100) : 0,

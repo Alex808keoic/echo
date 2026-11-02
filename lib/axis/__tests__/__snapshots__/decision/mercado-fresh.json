@@ -127,7 +127,9 @@
           "investedCents": 150000,
           "valueCents": 158000,
           "weightPct": 100,
-          "assetType": "global-equity"
+          "assetType": "global-equity",
+          "changePct": 5.3,
+          "valueAgeDays": 137
         }
       ],
       "totalInvestedCents": 150000,
