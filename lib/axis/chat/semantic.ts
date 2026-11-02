@@ -179,14 +179,24 @@ function planForbidsInvesting({ plan }: ChatPlan): boolean {
   return plan.longTerm.reason === 'cushion-incomplete' || plan.longTerm.reason === 'short-horizon' || plan.longTerm.reason === 'no-room' || plan.longTerm.reason === 'debt-first'
 }
 
+/**
+ * El plan propone mover dinero entre tipos (vender lo que sobra, recoger beneficios de la parte arriesgada:
+ * 2026-11-02): explicarlo no contradice nada, aunque hable de vender o de invertir.
+ */
+export function planProposesMoves({ plan }: ChatPlan): boolean {
+  return plan.steps.some((s) => s.kind === 'trim-risky' || s.kind === 'rebalance-sell')
+}
+
 function adviceViolations(text: string, clauses: AdviceClause[], decision: AxisDecision, plan?: ChatPlan): string[] {
   const out: string[] = []
+  const moves = plan ? planProposesMoves(plan) : false
   for (const c of clauses) {
     if (c.negated) continue
     if (c.target.kind === 'external') {
       out.push(`destino externo «${c.target.text}»: ${c.clause}`)
       continue
     }
+    if (moves && (c.verbClass === 'sell' || c.verbClass === 'invest' || c.verbClass === 'buy')) continue
     // Si el plan tiene un motivo firme para no invertir este mes, proponer invertir lo contradice.
     const conditional = CONDITIONAL.test(sentenceHead(text, c.clause) + ' ' + normalizeForMatching(c.clause))
     if (plan && planForbidsInvesting(plan) && (c.verbClass === 'invest' || c.verbClass === 'buy') && !conditional) {

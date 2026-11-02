@@ -8,7 +8,7 @@ import { formatCents } from '../../money'
 import { PROFILE_QUESTIONS, type ProfileQuestionId } from '../profile/questionnaire'
 import type { ReconciledProfile } from '../profile/types'
 import { CUSHION_MONTHS, planRisk, SHORT_TERM_MONTHS, type AllocationPlan, type PlanStep } from './allocation'
-import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS } from './mix'
+import { RISKY_MAX_PCT, RISKY_MIN_IDLE_MONTHS, RISKY_TRIM_PCT, REBALANCE_SELL_MONTHS } from './mix'
 import { inflationPhrase } from './inflation'
 import { RISKY_DROP_PCT } from './performance'
 
@@ -108,6 +108,14 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       break
     case 'debt-load':
       why.push('Los bancos consideran sano que las cuotas no pasen del 30–35 % de tus ingresos: por encima, cualquier imprevisto te aprieta.')
+      break
+    case 'trim-risky':
+      why.push(`La parte arriesgada puede perderlo casi todo. Por encima del ${RISKY_TRIM_PCT} % de lo que tienes invertido, una mala racha se notaría en todo tu dinero.`)
+      why.push('Recoger beneficios cuando algo se ha disparado no es adivinar el mercado: es volver al riesgo que elegiste.')
+      break
+    case 'rebalance-sell':
+      if (risk) why.push(`Tu mezcla sale de tu respuesta sobre el riesgo (${risk}) y de tu plazo: si se descuadra mucho, llevas más (o menos) riesgo del que elegiste.`)
+      why.push(`Solo se propone vender cuando el descuadre es grande y el dinero nuevo de ${REBALANCE_SELL_MONTHS} meses no bastaría: así no pagas impuestos ni comisiones por diferencias pequeñas.`)
       break
     case 'risky-drop':
       why.push('Con una sola empresa, un sector o una cripto no hay nada que compense la caída: si el problema es suyo, puede no volver a subir. Un índice mundial, en cambio, siempre se ha recuperado con el tiempo.')

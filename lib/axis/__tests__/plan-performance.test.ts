@@ -14,6 +14,8 @@ import { monthChecklist } from '../plan/checklist'
 import { stepReasons } from '../plan/why'
 import { heldBySleeve, needsRebalance } from '../plan/mix'
 import { positionPerformance, RISKY_DROP_PCT } from '../plan/performance'
+import { chatPlanOf } from '../plan/chat'
+import { planProposesMoves } from '../chat/semantic'
 import type { MemoryFact, RiskAttitude, Horizon } from '../profile/types'
 import type { Movement, Objective, Position } from '../../types'
 import { config, gasto, ingreso, objective, position, snapshot, TODAY } from './fixtures'
@@ -111,5 +113,53 @@ describe('reequilibrar a partir de 5 puntos', () => {
   it('a 4 puntos todavía no', () => {
     const held = heldBySleeve([{ valueCents: 660_000, assetType: 'global-equity' }, { valueCents: 340_000, assetType: 'bonds' }])
     assert.equal(needsRebalance(held, { 'global-equity': 70, bonds: 30, risky: 0 }), false)
+  })
+})
+
+describe('vender solo cuando el descuadre es grande', () => {
+  const dynamicIdle = profile('dynamic', 'long', [{ kind: 'investingExperience', value: 'some' }])
+
+  it('la parte arriesgada se dispara (30 %): recoger beneficios hasta el 10 %, hacia lo diversificado', () => {
+    const crypto = fresh({ name: 'Bitcoin', investedCents: 100_000, valueCents: 300_000, assetType: 'risky' })
+    const fund = fresh({ name: 'Fondo indexado global', valueCents: 700_000 })
+    const s = setup(1_000_000, [CUSHION()], dynamicIdle, [crypto, fund])
+    const trim = step(s.plan, 'trim-risky')!
+    assert.equal(trim.sellCents, 200_000)
+    assert.deepEqual(trim.to.map((p) => [p.key, p.cents]), [['global-equity', 200_000]])
+    assert.equal(trim.gainCents, 200_000)
+    const v = describeStep(trim, s.plan, s.objectives)
+    assert.match(v.title, /Tu parte arriesgada ya es el 30 % de lo invertido/)
+    assert.match(v.detail!, /recoger beneficios.*vender unos 2\.000,00 € de la parte arriesgada/)
+    assert.match(v.note!, /traspaso.*no pagas impuestos.*tributa/)
+    assert.equal(step(s.plan, 'invest-long-term')!.rebalance, undefined, 'después de vender ya está en su mezcla')
+  })
+
+  it('renta fija muy por encima y el dinero nuevo de un año no basta: pasar lo que sobra a renta variable', () => {
+    const equity = fresh({ name: 'Fondo indexado global', valueCents: 300_000 })
+    const bonds = fresh({ name: 'Fondo de renta fija', valueCents: 700_000, assetType: 'bonds' })
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long'), [equity, bonds])
+    const sell = step(s.plan, 'rebalance-sell')!
+    assert.deepEqual([sell.from, sell.sellCents, sell.to[0].key], ['bonds', 400_000, 'global-equity'])
+    const v = describeStep(sell, s.plan, s.objectives)
+    assert.equal(v.title, 'Pasa 4.000,00 € de la renta fija a la renta variable global')
+    assert.match(v.detail!, /Ahora tienes 30 % renta variable global y 70 % renta fija, y tu mezcla es 70 % renta variable global y 30 % renta fija/)
+    assert.ok(monthChecklist(s.plan, s.objectives).some((i) => i.id === 'rebalance-sell:bonds'))
+    assert.ok(stepReasons(sell, s.plan, s.decision.profile.fields).some((w) => w.includes('diferencias pequeñas')))
+  })
+
+  it('si el dinero nuevo lo corrige en menos de un año, no se vende: lo nuevo va a lo que falta', () => {
+    const equity = fresh({ name: 'Fondo indexado global', valueCents: 600_000 })
+    const bonds = fresh({ name: 'Fondo de renta fija', valueCents: 400_000, assetType: 'bonds' })
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long'), [equity, bonds])
+    assert.equal(step(s.plan, 'rebalance-sell'), undefined)
+    assert.ok(step(s.plan, 'invest-long-term')!.rebalance)
+  })
+
+  it('el chat de AXIS puede explicar la venta sin que cuente como contradicción', () => {
+    const equity = fresh({ name: 'Fondo indexado global', valueCents: 300_000 })
+    const bonds = fresh({ name: 'Fondo de renta fija', valueCents: 700_000, assetType: 'bonds' })
+    const s = setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long'), [equity, bonds])
+    assert.equal(planProposesMoves(chatPlanOf(s.decision)), true)
+    assert.equal(planProposesMoves(chatPlanOf(setup(800_000, [CUSHION(), COCHE()], profile('balanced', 'long')).decision)), false)
   })
 })

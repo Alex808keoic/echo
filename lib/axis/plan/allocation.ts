@@ -40,7 +40,7 @@ import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCen
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
-import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, splitMix, type MixPart, type SleeveKey } from './mix'
+import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, sellProposals, splitMix, type MixPart, type SleeveKey } from './mix'
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
 import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS } from '../../finance/objectives'
 import type { DebtContext } from '../types'
@@ -174,6 +174,13 @@ export type PlanStep =
    * Mientras esté así, la parte arriesgada no recibe dinero nuevo (decidido el 2026-11-02).
    */
   | { kind: 'risky-drop'; positionId: string; name: string; changePct: number }
+  /**
+   * Vender para volver a tu mezcla (decidido el 2026-11-02), solo con un descuadre grande (`sellProposals`):
+   * `trim-risky`, la parte arriesgada vuelve a su tope (`gainCents`: lo que ha ganado sobre lo aportado);
+   * `rebalance-sell`, lo que más sobra de renta variable o renta fija pasa al otro tipo.
+   */
+  | { kind: 'trim-risky'; sellCents: number; to: MixPart[]; heldPct: Record<SleeveKey, number>; targetPct: Record<SleeveKey, number>; gainCents: number }
+  | { kind: 'rebalance-sell'; from: SleeveKey; sellCents: number; to: MixPart[]; heldPct: Record<SleeveKey, number>; targetPct: Record<SleeveKey, number> }
 
 export interface AllocationPlan {
   status: 'ready' | 'blocked'
@@ -467,16 +474,27 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       paused: riskyDrops.length > 0,
     })
     const weights = mixWeights(risk as RiskAttitude, horizon, risky)
-    // Si tu mezcla real se ha alejado de la del plan, lo nuevo va a lo que falta (sin vender nada).
-    const current = heldPct(held)
-    if (current && needsRebalance(held, weights)) rebalance = { heldPct: current, targetPct: weights }
-    mixFor = (cents) => (rebalance ? rebalanceSplit(cents, weights, held) : splitMix(cents, weights))
-    plainFor = (cents) => splitMix(cents, weights)
     if (room <= 0) longTerm = noLongTerm('no-room')
     else {
       const pct = (noObjectives ? LONG_TERM_PCT_NO_OBJECTIVES : LONG_TERM_PCT)[risk as RiskAttitude]
       longTerm = { pct, monthlyCents: euros((room * pct) / 100), reason: 'ok' }
     }
+    // Descuadre grande (una subida o una caída fuerte): vender lo que sobra. El dinero nuevo se reparte con la mezcla de después.
+    const { proposals, heldAfter } = sellProposals(held, weights, longTerm.monthlyCents)
+    const riskyGain = ctx.investments.positions
+      .filter((p) => p.assetType === 'risky')
+      .reduce((t, p) => t + Math.max(0, p.valueCents) - Math.max(0, p.investedCents), 0)
+    for (const s of proposals)
+      steps.push(
+        s.kind === 'trim-risky'
+          ? { kind: 'trim-risky', sellCents: s.sellCents, to: s.to, heldPct: s.heldPct, targetPct: s.targetPct, gainCents: Math.max(0, riskyGain) }
+          : { kind: 'rebalance-sell', from: s.from, sellCents: s.sellCents, to: s.to, heldPct: s.heldPct, targetPct: s.targetPct },
+      )
+    // Si tu mezcla real se ha alejado de la del plan, lo nuevo va a lo que falta (sin vender nada).
+    const current = heldPct(heldAfter)
+    if (current && needsRebalance(heldAfter, weights)) rebalance = { heldPct: current, targetPct: weights }
+    mixFor = (cents) => (rebalance ? rebalanceSplit(cents, weights, heldAfter) : splitMix(cents, weights))
+    plainFor = (cents) => splitMix(cents, weights)
   }
   if (longTerm.monthlyCents > 0 && mixFor) {
     const invested = ctx.investments.positions.reduce((t, p) => t + Math.max(0, p.investedCents), 0)

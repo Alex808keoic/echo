@@ -7,7 +7,7 @@ import { formatCents } from '../../money'
 import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './allocation'
-import { RISKY_MAX_PCT, type MixPart, type SleeveKey } from './mix'
+import { RISKY_MAX_PCT, REBALANCE_SELL_MONTHS, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
 
 /** Lo que la pantalla puede hacer desde un paso. */
@@ -86,7 +86,14 @@ function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: str
 }
 
 export const PLAN_DISCLAIMER =
-  'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos ni el momento de comprar o vender.'
+  'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos: cuando propone vender o adelantar dinero, es por tipos de inversión y con reglas fijas, nunca una predicción del mercado.'
+
+/** Impuestos al mover dinero entre inversiones en España (regla general, a nivel de tipo). */
+export const SELL_TAX_NOTE =
+  'Si son fondos de inversión, hazlo con un traspaso de un fondo a otro: en España no pagas impuestos al cambiar. Si son ETF, acciones o criptomonedas, vender tributa por lo que hayas ganado (del 19 % al 30 %).'
+
+/** «la renta variable global», «la renta fija», «la parte arriesgada». */
+const sleeveName = (key: SleeveKey) => `la ${SEGMENT_OF[key].label.toLowerCase()}`
 
 export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: readonly ObjectiveContext[]): StepView {
   switch (step.kind) {
@@ -275,6 +282,22 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         title: `Dijiste que «${name(step.objectiveId)}» es tu prioridad`,
         detail: `En el reparto va en el ${step.rank}.º lugar: antes recibe${ahead.length === 1 ? '' : 'n'} dinero ${ahead.join(', ')}. Si sigue siendo lo primero para ti, súbelo en Objetivos.`,
         action: { kind: 'review-objectives', label: 'Ordenar objetivos' },
+      }
+    }
+    case 'trim-risky':
+      return {
+        title: `Tu parte arriesgada ya es el ${step.heldPct.risky} % de lo invertido`,
+        detail: `${step.gainCents > 0 ? `Ha subido mucho (ganas ${eur(step.gainCents)} sobre lo que pusiste) y es buen momento para recoger beneficios. ` : ''}El tope es el ${Math.max(RISKY_MAX_PCT, step.targetPct.risky)} %: tu plan propone vender unos ${eur(step.sellCents)} de la parte arriesgada y pasarlos ${step.to.length === 1 ? toPart(step.to[0]) : `a lo diversificado: ${mixAmounts(step.to)}`}. Así, si se da la vuelta, no arrastra a todo lo demás.`,
+        note: SELL_TAX_NOTE,
+        action: { kind: 'review-investments', label: 'Ver mis inversiones' },
+      }
+    case 'rebalance-sell': {
+      const to = step.to[0]
+      return {
+        title: `Pasa ${eur(step.sellCents)} de ${sleeveName(step.from)} a ${to ? sleeveName(to.key) : 'lo que falta'}`,
+        detail: `Ahora tienes ${pctSentence(step.heldPct)}, y tu mezcla es ${pctSentence(step.targetPct)}. Con lo que inviertes cada mes tardarías más de ${plural(REBALANCE_SELL_MONTHS / 12, 'año', 'años')} en corregirlo, así que tu plan propone mover ese dinero. Es la forma disciplinada de vender caro y comprar barato: lo que más ha subido paga lo que se ha quedado atrás, y vuelves al riesgo que elegiste.`,
+        note: SELL_TAX_NOTE,
+        action: { kind: 'review-investments', label: 'Ver mis inversiones' },
       }
     }
     case 'risky-drop':

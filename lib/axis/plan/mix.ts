@@ -205,3 +205,82 @@ export function rebalanceSplit(totalCents: number, weights: Record<SleeveKey, nu
   // `pct` es el peso de cada parte en ESTA aportación.
   return parts.filter((p) => p.cents > 0).map((p) => ({ ...p, pct: Math.round((p.cents / totalCents) * 100) }))
 }
+
+/* ------------------------- vender para volver a tu mezcla ------------------------- */
+
+/** Parte arriesgada (en % de lo invertido en los tipos del plan) a partir de la cual se propone recoger beneficios. */
+export const RISKY_TRIM_PCT = 15
+/** Meses de aportaciones con los que el dinero nuevo debería poder corregir un descuadre; si no, se propone vender. */
+export const REBALANCE_SELL_MONTHS = 12
+
+export interface SellProposal {
+  /** `trim-risky`: la parte arriesgada vuelve a su tope. `rebalance`: lo que más sobra pasa a lo que falta. */
+  kind: 'trim-risky' | 'rebalance'
+  from: SleeveKey
+  sellCents: number
+  /** A dónde va lo vendido (nunca a la parte arriesgada). */
+  to: MixPart[]
+  /** Peso real antes de vender y el del plan, en % enteros. */
+  heldPct: Record<SleeveKey, number>
+  targetPct: Record<SleeveKey, number>
+}
+
+const euroFloor = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
+
+/**
+ * Propuestas de venta (decidido con el usuario el 2026-11-02), solo cuando el descuadre es grande:
+ *   1. La parte arriesgada pasa del `RISKY_TRIM_PCT` %: se vende hasta su tope (`RISKY_MAX_PCT` %, o su peso
+ *      si es mayor) y va a lo diversificado con tu mezcla.
+ *   2. Renta variable o renta fija sobran al menos `REBALANCE_THRESHOLD_PP` puntos y lo que inviertes en
+ *      `REBALANCE_SELL_MONTHS` meses no bastaría para corregirlo sin vender: lo que sobra pasa al otro tipo.
+ * Devuelve también cómo queda tu mezcla después, para repartir el dinero nuevo del mes.
+ */
+export function sellProposals(
+  held: Record<SleeveKey, number>,
+  weights: Record<SleeveKey, number>,
+  monthlyInvestCents: number,
+): { proposals: SellProposal[]; heldAfter: Record<SleeveKey, number> } {
+  const total = SLEEVE_KEYS.reduce((t, k) => t + held[k], 0)
+  const proposals: SellProposal[] = []
+  const after = { ...held }
+  const before = heldPct(held)
+  if (total <= 0 || !before) return { proposals, heldAfter: after }
+  const diversified = weights['global-equity'] + weights.bonds
+  const plainWeights: Record<SleeveKey, number> =
+    diversified > 0
+      ? { 'global-equity': (weights['global-equity'] / diversified) * 100, bonds: (weights.bonds / diversified) * 100, risky: 0 }
+      : { 'global-equity': 100, bonds: 0, risky: 0 }
+
+  // 1. Parte arriesgada demasiado grande.
+  const riskyCap = Math.max(RISKY_MAX_PCT, weights.risky)
+  if ((held.risky / total) * 100 > RISKY_TRIM_PCT) {
+    const sellCents = euroFloor(held.risky - (total * riskyCap) / 100)
+    if (sellCents > 0) {
+      const to = splitMix(sellCents, plainWeights).map((p) => ({ ...p, pct: Math.round(plainWeights[p.key]) }))
+      proposals.push({ kind: 'trim-risky', from: 'risky', sellCents, to, heldPct: before, targetPct: weights })
+      after.risky -= sellCents
+      for (const p of to) after[p.key] += p.cents
+    }
+  }
+
+  // 2. Renta variable o renta fija: el tipo que más sobra, si el dinero nuevo de un año no lo corrige.
+  const over = (['global-equity', 'bonds'] as const)
+    .map((k) => ({ k, gap: (after[k] / total) * 100 - weights[k] }))
+    .filter((x) => x.gap >= REBALANCE_THRESHOLD_PP)
+    .sort((a, b) => b.gap - a.gap)[0]
+  if (over) {
+    const w = weights[over.k]
+    // Lo que habría que invertir de nuevo, sin vender, para que este tipo bajara a su peso.
+    const extraNeeded = w > 0 ? (after[over.k] * 100) / w - total : Infinity
+    if (extraNeeded > monthlyInvestCents * REBALANCE_SELL_MONTHS) {
+      const other: SleeveKey = over.k === 'global-equity' ? 'bonds' : 'global-equity'
+      const sellCents = euroFloor(after[over.k] - (total * w) / 100)
+      if (sellCents > 0) {
+        proposals.push({ kind: 'rebalance', from: over.k, sellCents, to: [{ key: other, label: SLEEVES[other].label, pct: 100, cents: sellCents }], heldPct: before, targetPct: weights })
+        after[over.k] -= sellCents
+        after[other] += sellCents
+      }
+    }
+  }
+  return { proposals, heldAfter: after }
+}

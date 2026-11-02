@@ -96,6 +96,12 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
       case 'review-notes':
         items.push({ id: s.kind, text: s.count === 1 ? 'Convierte tu nota en un dato o márcala como que no cuenta' : `Convierte tus ${s.count} notas en datos o márcalas como que no cuentan` })
         break
+      case 'trim-risky':
+        items.push({ id: s.kind, text: `Vende unos ${eur(s.sellCents)} de la parte arriesgada y pásalos a lo diversificado` })
+        break
+      case 'rebalance-sell':
+        items.push({ id: `${s.kind}:${s.from}`, text: `Pasa ${eur(s.sellCents)} de ${lower(s.from === 'bonds' ? 'Renta fija' : 'Renta variable global')} a ${lower(s.to[0]?.key === 'bonds' ? 'Renta fija' : 'Renta variable global')} (con un traspaso si son fondos)` })
+        break
       case 'risky-drop':
         items.push({ id: `risky-drop:${s.positionId}`, text: `Revisa por qué ha caído «${s.name}» antes de meterle más dinero` })
         break
