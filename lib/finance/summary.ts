@@ -2,7 +2,7 @@
  * Resúmenes de ingresos/gastos por periodo y por categoría.
  * Todo en céntimos enteros. No inventa nada: sin movimientos no hay resumen.
  */
-import { formatMonthLabel, shiftedMonthKey, toISODate } from '../dates'
+import { formatMonthLabel, formatWeekdayLong, formatWeekdayShort, shiftedISO, shiftedMonthKey, toISODate } from '../dates'
 import { expenseNeed, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
 
 export interface PeriodSummary {
@@ -132,9 +132,11 @@ export function needSplit(movements: Movement[]): NeedSplit {
 
 /* -------------------------------- Periodos ------------------------------- */
 
-export type PeriodId = '1M' | '3M' | '6M' | '1A' | 'Todo'
+export type PeriodId = '1S' | '1M' | '3M' | '6M' | '1A' | 'Todo'
 
-export const PERIODS: ReadonlyArray<{ id: PeriodId; months: number | null }> = [
+/** `days`: periodo en días (la última semana = hoy y los 6 días anteriores). `months: null` sin `days` = todo. */
+export const PERIODS: ReadonlyArray<{ id: PeriodId; months: number | null; days?: number }> = [
+  { id: '1S', months: null, days: 7 },
   { id: '1M', months: 1 },
   { id: '3M', months: 3 },
   { id: '6M', months: 6 },
@@ -144,7 +146,9 @@ export const PERIODS: ReadonlyArray<{ id: PeriodId; months: number | null }> = [
 
 /** Fecha de inicio del periodo (`YYYY-MM-DD`) o `null` para todo el historial. */
 export function periodStartISO(id: PeriodId, today: Date = new Date()): string | null {
-  const months = PERIODS.find((p) => p.id === id)?.months ?? null
+  const period = PERIODS.find((p) => p.id === id)
+  if (period?.days) return shiftedISO(toISODate(today), -(period.days - 1))
+  const months = period?.months ?? null
   if (months === null) return null
   return toISODate(new Date(today.getFullYear(), today.getMonth() - months, today.getDate()))
 }
@@ -182,6 +186,17 @@ export function historyMonthCount(movements: Movement[], min: number): number {
   const [fy, fm] = first.split('-').map(Number)
   const [cy, cm] = current.split('-').map(Number)
   return Math.max(min, (cy - fy) * 12 + (cm - fm) + 1)
+}
+
+/** Totales por día de un tipo de movimiento: los últimos `days` días hasta `today` (incluido), en euros. */
+export function dailyTotals(movements: Movement[], type: MovementType, days: number, today: string): Array<MonthTotal & { fullLabel: string }> {
+  const result: Array<MonthTotal & { fullLabel: string }> = []
+  for (let offset = days - 1; offset >= 0; offset--) {
+    const date = shiftedISO(today, -offset)
+    const cents = movements.reduce((t, m) => (m.type === type && m.date === date ? t + m.amountCents : t), 0)
+    result.push({ monthKey: date, month: formatWeekdayShort(date), value: cents / 100, fullLabel: formatWeekdayLong(date) })
+  }
+  return result
 }
 
 export function monthlyTotals(movements: Movement[], type: MovementType, count: number): MonthTotal[] {

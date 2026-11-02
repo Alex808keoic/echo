@@ -10,6 +10,8 @@ interface BarDatum {
   monthKey: string
   month: string
   value: number
+  /** Nombre completo para lectores de pantalla cuando la barra no es un mes (p. ej. un día). */
+  fullLabel?: string
 }
 
 /** Más barras que esto no caben a 360 px: el gráfico se desplaza en horizontal (rango «Todo»). */
@@ -21,6 +23,8 @@ interface BarChartProps {
   selected: string | null
   onSelect: (monthKey: string) => void
   height?: number
+  /** Sin elección, resaltar la última barra (por defecto). `false`: ninguna, para cuando se ve el periodo entero. */
+  highlightLast?: boolean
 }
 
 /**
@@ -28,7 +32,7 @@ interface BarChartProps {
  * muestra su importe en euros enteros y avisa a la pantalla (que enseña ese
  * mes en el resto de gráficos); por defecto, la del mes actual.
  */
-export function BarChart({ data, selected, onSelect, height = 130 }: BarChartProps) {
+export function BarChart({ data, selected, onSelect, height = 130, highlightLast = true }: BarChartProps) {
   const max = Math.max(...data.map((d) => d.value))
   // Tras el primer pintado, el importe de una barra tocada aparece sin esperar. Ref y no estado:
   // un re-render cambiaría el retraso a mitad de la animación de entrada.
@@ -46,7 +50,7 @@ export function BarChart({ data, selected, onSelect, height = 130 }: BarChartPro
   }, [scrolls, data.length])
   // Un mes elegido que ya no está en el rango (al cambiar 6M/1A/Todo) vuelve al mes actual.
   const pickedIndex = data.findIndex((d) => d.monthKey === selected)
-  const highlight = pickedIndex >= 0 ? pickedIndex : data.length - 1
+  const highlight = pickedIndex >= 0 ? pickedIndex : highlightLast ? data.length - 1 : -1
 
   return (
     <div ref={scrollRef} className={cn(scrolls && 'no-scrollbar -mx-1 overflow-x-auto px-1')}>
@@ -65,7 +69,7 @@ export function BarChart({ data, selected, onSelect, height = 130 }: BarChartPro
                 type="button"
                 onClick={() => onSelect(d.monthKey)}
                 aria-pressed={active}
-                aria-label={`${formatMonthYear(d.monthKey)}: ${formatWholeCurrency(d.value)}`}
+                aria-label={`${d.fullLabel ?? formatMonthYear(d.monthKey)}: ${formatWholeCurrency(d.value)}`}
                 className="relative flex h-full flex-1 items-end"
               >
                 {active && (

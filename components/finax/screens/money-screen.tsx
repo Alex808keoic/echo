@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { formatPct } from '@/lib/format'
-import { currentMonthKey, formatMonthLabel, formatMonthYear, todayISO } from '@/lib/dates'
-import { historyMonthCount, inMonth, monthlyTotals, needSplit, pctChange, periodStartISO, totalsByCategory, type NeedSplit, type PeriodId } from '@/lib/finance/summary'
+import { currentMonthKey, formatMonthLabel, formatMonthYear, formatWeekdayLong, todayISO } from '@/lib/dates'
+import { dailyTotals, filterFrom, historyMonthCount, inMonth, onDate, monthlyTotals, needSplit, pctChange, periodStartISO, totalsByCategory, type NeedSplit, type PeriodId } from '@/lib/finance/summary'
 import { wealthBreakdown } from '@/lib/finance/wealth-breakdown'
 import { seriesDelta, wealthSources } from '@/lib/finance/patrimonio'
 import { useIsMinor } from '@/hooks/use-minor'
@@ -34,7 +34,7 @@ import type { ScreenProps } from './types'
 
 const VIEWS = ['Patrimonio', 'Gastos', 'Ingresos'] as const
 export type MoneyView = (typeof VIEWS)[number]
-const RANGES = ['6M', '1A', 'Todo'] as const
+const RANGES = ['1S', '6M', '1A', 'Todo'] as const
 const MONTHS_FOR_RANGE = { '6M': 6, '1A': 12 } as const
 
 /**
@@ -407,24 +407,38 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
   }
 
   const rangeKey = range as (typeof RANGES)[number]
+  // «1S» = la última semana, día a día: sin tocar ninguna barra se ven los 7 días juntos.
+  const week = rangeKey === '1S'
+  const today = todayISO()
   // «Todo» = desde el primer movimiento (nunca menos que «1A»); con más de 12 meses las barras se desplazan.
-  const barMonths = rangeKey === 'Todo' ? historyMonthCount(overview.movements, MONTHS_FOR_RANGE['1A']) : MONTHS_FOR_RANGE[rangeKey]
-  const bars = monthlyTotals(overview.movements, type, barMonths)
-  // Un mes que ya no está en las barras (otro rango) vuelve al mes actual, igual que en BarChart.
+  const barMonths = rangeKey === 'Todo' ? historyMonthCount(overview.movements, MONTHS_FOR_RANGE['1A']) : rangeKey === '1S' ? 0 : MONTHS_FOR_RANGE[rangeKey]
+  const bars = week ? dailyTotals(overview.movements, type, 7, today) : monthlyTotals(overview.movements, type, barMonths)
+  // Lo elegido que ya no está en las barras (otro rango) vuelve a lo de por defecto, igual que en BarChart.
+  const picked = pickedMonth !== null && bars.some((b) => b.monthKey === pickedMonth) ? pickedMonth : null
   const thisMonth = currentMonthKey()
-  const month = pickedMonth !== null && bars.some((b) => b.monthKey === pickedMonth) ? pickedMonth : thisMonth
+  const month = week ? thisMonth : (picked ?? thisMonth)
+  const day = week ? picked : null
   const isThisMonth = month === thisMonth
-  const monthMovements = inMonth(overview.movements, month)
+  const periodKey = week ? (day ?? 'semana') : month
+  const monthMovements = week
+    ? day
+      ? onDate(overview.movements, day)
+      : filterFrom(overview.movements, periodStartISO('1S')).filter((m) => m.date <= today)
+    : inMonth(overview.movements, month)
   const categories = totalsByCategory(monthMovements, type)
   const monthTotal = categories.reduce((t, c) => t + c.cents, 0)
   // Donut y leyenda salen de las mismas porciones: cada color tiene su fila; lo que no cabe va a «Resto».
   const slices = donutSlices(categories, type)
-  const restOpen = restOpenFor === month
+  const restOpen = restOpenFor === periodKey
   const rest = categories.slice(slices.filter((s) => s.key !== REST_KEY).length)
-  const showAllCategories = allCategoriesFor === month
+  const showAllCategories = allCategoriesFor === periodKey
   // Necesario frente a prescindible: solo en gastos y nunca para menores de edad.
   const need = type === 'gasto' && !minor && categories.length > 0 ? needSplit(monthMovements) : null
-  const monthPhrase = isThisMonth ? 'este mes' : `en ${formatMonthYear(month)}`
+  const monthPhrase = week ? (day ? `el ${formatWeekdayLong(day)}` : 'en los últimos 7 días') : isThisMonth ? 'este mes' : `en ${formatMonthYear(month)}`
+  const donutCaption = week ? (day ? `· ${formatWeekdayLong(day)}` : '· 7 días') : isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`
+  const categoriesTitle = week ? `Categorías · ${day ? formatWeekdayLong(day) : '7 días'}` : isThisMonth ? 'Categorías' : `Categorías · ${formatMonthLabel(month)}`
+  // En la semana, tocar otra vez el mismo día vuelve a los 7 días.
+  const onPick = (key: string) => setPickedMonth(week && key === day ? null : key)
   const hasBars = bars.some((b) => b.value > 0)
   const noun = type === 'gasto' ? 'Gastos' : 'Ingresos'
 
@@ -439,7 +453,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
           <div className="flex items-center gap-3">
             <DonutChart
               // key = mes: al tocar otra barra, el donut se vuelve a dibujar con ese mes.
-              key={month}
+              key={periodKey}
               segments={slices.map((c) => ({ pct: c.pct, color: c.color }))}
               size={120}
               thickness={14}
@@ -448,7 +462,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
                 {formatCents(monthTotal)}
               </span>
               <span className="text-[11px] font-medium leading-tight text-muted-foreground">
-                {noun} {isThisMonth ? 'este mes' : `· ${formatMonthLabel(month)}`}
+                {noun} {donutCaption}
               </span>
             </DonutChart>
             <ul className="min-w-0 flex-1 space-y-2.5">
@@ -458,7 +472,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
                     <button
                       type="button"
                       aria-expanded={restOpen}
-                      onClick={() => setRestOpenFor(restOpen ? null : month)}
+                      onClick={() => setRestOpenFor(restOpen ? null : periodKey)}
                       className="tap block w-full text-left"
                     >
                       <LegendRow color={c.color} label={restOpen ? 'Resto ▴' : 'Resto ▾'} pct={c.pct} />
@@ -496,7 +510,7 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
           <Segmented options={RANGES} value={range} onChange={onRange} />
         </div>
         {hasBars ? (
-          <BarChart key={range} data={bars} selected={month} onSelect={setPickedMonth} />
+          <BarChart key={range} data={bars} selected={week ? day : month} onSelect={onPick} highlightLast={!week} />
         ) : (
           <p className="text-[13px] font-medium text-muted-foreground text-pretty">
             Sin {noun.toLowerCase()} en este periodo.
@@ -507,9 +521,9 @@ function FlowView({ overview, type, range, onRange, onNavigate }: ViewProps & { 
       {categories.length > 0 && (
         <section>
           <SectionHeader
-            title={isThisMonth ? 'Categorías' : `Categorías · ${formatMonthLabel(month)}`}
+            title={categoriesTitle}
             actionLabel={categories.length > 5 ? (showAllCategories ? 'Ver menos' : `Ver las ${categories.length}`) : 'Ver movimientos'}
-            onAction={() => (categories.length > 5 ? setAllCategoriesFor(showAllCategories ? null : month) : onNavigate('movimientos'))}
+            onAction={() => (categories.length > 5 ? setAllCategoriesFor(showAllCategories ? null : periodKey) : onNavigate('movimientos'))}
           />
           <FinancialCard className="space-y-4">
             {(showAllCategories ? categories : categories.slice(0, 5)).map((c) => (

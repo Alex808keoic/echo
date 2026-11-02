@@ -65,6 +65,25 @@ export function formatDayHeading(iso: string): string {
   return short
 }
 
+const WEEKDAYS_SHORT = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá']
+const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+function weekdayOf(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).getDay()
+}
+
+/** Día de la semana corto: "Lu". */
+export function formatWeekdayShort(iso: string): string {
+  return WEEKDAYS_SHORT[weekdayOf(iso)]
+}
+
+/** "lunes 15 abr" */
+export function formatWeekdayLong(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number)
+  return `${WEEKDAYS_LONG[weekdayOf(iso)]} ${d} ${MONTHS_SHORT[m - 1]}`
+}
+
 /** Etiqueta corta de mes a partir de `YYYY-MM`: "Abr". */
 export function formatMonthLabel(monthKey: string): string {
   const label = MONTHS_SHORT[Number(monthKey.slice(5, 7)) - 1]
