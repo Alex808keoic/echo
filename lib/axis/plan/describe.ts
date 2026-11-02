@@ -35,6 +35,13 @@ export function durationText(months: number): string {
 }
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+/**
+ * De una vez frente a poco a poco, sin presentarlas como iguales (decidido el 2026-11-02): con los datos
+ * históricos, de una vez sale mejor unas 2 de cada 3 veces; poco a poco sirve sobre todo para estar tranquilo.
+ */
+export const LUMP_SUM_NOTE =
+  'Con los datos históricos, invertir de una vez ha salido mejor unas 2 de cada 3 veces: el dinero empieza antes a trabajar y la bolsa sube más años de los que baja. Poco a poco sirve sobre todo para estar más tranquilo, porque si llega una caída justo después te pilla con menos dentro. Las dos opciones son razonables y ninguna garantiza nada.'
+
 export const LONG_TERM_EXPLANATION =
   'Fondos que reparten tu dinero entre muchas empresas de todo el mundo, con comisiones bajas (por ejemplo, fondos indexados globales). Pueden bajar mucho en un año malo: solo son para dinero que no vayas a necesitar en más de 5 años.'
 
@@ -165,7 +172,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const loss = plan.inflation ? idleLossSentence(step.idleCents, plan.inflation) : null
       return {
         title: `Tienes ${eur(step.idleCents)} sin destino`,
-        detail: `No lo necesitan ni tu colchón ni tus objetivos. Puedes invertirlo con la misma mezcla, como prefieras: de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Poco a poco reduce el riesgo de entrar justo antes de una caída; de una vez, el dinero empieza antes a trabajar. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${loss ? ` ${loss}` : ''}`,
+        detail: `No lo necesitan ni tu colchón ni tus objetivos. Puedes invertirlo con la misma mezcla, de una vez o poco a poco: ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${loss ? ` ${loss}` : ''}`,
         ...riskyWarning(step.mix),
         ...minorNote(step.adult, step.mix),
       }
@@ -196,7 +203,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Puedes invertir los ${eur(step.cents)} de ${list}`,
-        detail: `Faltan más de 5 años, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.`,
+        detail: `Faltan más de 5 años, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.`,
         ...minorNote(step.adult, step.mix),
       }
     }

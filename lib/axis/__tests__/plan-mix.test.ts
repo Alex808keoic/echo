@@ -121,7 +121,10 @@ describe('dinero parado', () => {
     assert.equal(idle.mix.reduce((t, p) => t + p.cents, 0), 500_000)
     const v = describeStep(idle, s.plan, s.objectives)
     assert.equal(v.title, 'Tienes 5.000,00 € sin destino')
-    assert.match(v.detail!, /de una vez o poco a poco, 833,00 € al mes durante 6 meses.*Tú eliges/)
+    assert.match(v.detail!, /de una vez o poco a poco: 833,00 € al mes durante 6 meses.*Tú eliges/)
+    // No las presenta como iguales: de una vez suele salir mejor; poco a poco, más tranquilidad.
+    assert.match(v.detail!, /de una vez ha salido mejor unas 2 de cada 3 veces/)
+    assert.match(v.detail!, /Poco a poco sirve sobre todo para estar más tranquilo/)
   })
 
   it('con plazo corto, propone ahorro seguro y no inversión', () => {
