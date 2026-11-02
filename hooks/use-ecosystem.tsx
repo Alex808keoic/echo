@@ -21,7 +21,7 @@ import { buildWeeklySnapshots } from '@/lib/ecosystem/snapshot'
 import type { FinaxMetric } from '@/lib/ecosystem/sharing'
 import { deleteSharedData, ecosystemClient, hasEcosystemSignal, pushSnapshots, signInWithGoogle, signOutOfEcosystem, watchEcosystemSession } from '@/lib/ecosystem/client'
 import { finaxSyncAdapter } from '@/lib/ecosystem/finax-sync'
-import { useCloudSync, type CloudSyncApi } from '@/lib/ecosystem/use-cloud-sync'
+import { markRestorePending, useCloudSync, type CloudSyncApi } from '@/lib/ecosystem/use-cloud-sync'
 
 export type EcosystemAccount = { status: 'checking' } | { status: 'signedOut' } | { status: 'signedIn'; email: string | null }
 
@@ -34,6 +34,8 @@ export interface EcosystemApi {
   /** El último envío falló (sin red o AXIS no responde). */
   failed: boolean
   signIn(): Promise<string | null>
+  /** «¿Ya usas la app?»: entra con Google y, al volver, recupera los datos de la nube. */
+  restoreWithGoogle(): Promise<string | null>
   /** Confirma qué se comparte y envía la historia completa. */
   share(metrics: FinaxMetric[]): Promise<boolean>
   /** Deja de compartir y borra en AXIS todo lo recibido de Finax. */
@@ -123,6 +125,19 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   // Navega a Google; la sesión se recoge al volver (`hasEcosystemSignal` ve el `?code=`).
   const signIn = useCallback(() => signInWithGoogle(), [])
 
+  const restoreWithGoogle = useCallback(async () => {
+    markRestorePending('finax')
+    const failure = await signInWithGoogle()
+    if (failure) cloud.endRestore()
+    return failure
+  }, [cloud])
+
+  // Si se esperaba recuperar pero al final no hay sesión (se canceló en Google), se sigue.
+  const { restoring, endRestore } = cloud
+  useEffect(() => {
+    if (restoring && account.status === 'signedOut') endRestore()
+  }, [restoring, account.status, endRestore])
+
   const share = useCallback(
     async (metrics: FinaxMetric[]) => {
       await setEcosystemSharing({ metrics, since: new Date().toISOString() })
@@ -145,8 +160,8 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => signOutOfEcosystem(), [])
 
   const value = useMemo<EcosystemApi>(
-    () => ({ account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud }),
-    [account, sharedMetrics, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud],
+    () => ({ account, sharedMetrics, lastSentAt, failed, signIn, restoreWithGoogle, share, stopSharing, signOut, cloud }),
+    [account, sharedMetrics, lastSentAt, failed, signIn, restoreWithGoogle, share, stopSharing, signOut, cloud],
   )
   return <EcosystemContext.Provider value={value}>{children}</EcosystemContext.Provider>
 }

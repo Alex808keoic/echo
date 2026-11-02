@@ -22,6 +22,8 @@ import { PlusIcon } from '@/components/finax/icons'
 import { SheetOutlet, SheetProvider, useSheet } from '@/components/finax/sheet'
 import { MovementForm } from '@/components/finax/forms/movement-form'
 import { FirstRunWelcome } from '@/components/finax/first-run-welcome'
+import { RestoreOverlay } from '@/components/finax/restore-overlay'
+import { isRestorePending } from '@/lib/ecosystem/use-cloud-sync'
 import { useFinancialOverview } from '@/hooks/use-financial-overview'
 import { EcosystemProvider } from '@/hooks/use-ecosystem'
 import { RETURN_TO_SETTINGS_KEY } from '@/lib/ecosystem/client'
@@ -54,7 +56,8 @@ function App() {
     try {
       if (window.sessionStorage.getItem(RETURN_TO_SETTINGS_KEY) === null) return
       window.sessionStorage.removeItem(RETURN_TO_SETTINGS_KEY)
-      setScreen('ajustes')
+      // Si se entró para recuperar los datos, se queda en Inicio.
+      if (!isRestorePending('finax')) setScreen('ajustes')
     } catch {
       // Sin sessionStorage se queda en Inicio.
     }
@@ -125,6 +128,7 @@ function App() {
           overlay={
             <>
               <FirstRunWelcome overview={overview} />
+              <RestoreOverlay overview={overview} />
               <SheetOutlet />
             </>
           }

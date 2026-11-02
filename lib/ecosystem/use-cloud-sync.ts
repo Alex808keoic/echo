@@ -31,9 +31,51 @@ export interface CloudSyncApi {
   enable(): Promise<boolean>
   /** Borra la copia de la nube y la apaga en este dispositivo. */
   removeCloudCopy(): Promise<boolean>
+  /**
+   * Se volvió de Google desde «¿Ya usas…? Entrar con Google» y aún no ha
+   * terminado la primera sincronización: la app enseña «Recuperando tus datos…»
+   * en vez de la bienvenida.
+   */
+  restoring: boolean
+  /** Deja de esperar la recuperación (p. ej. no se llegó a entrar). */
+  endRestore(): void
 }
 
 const TICK_MS = 60_000
+/** Si la recuperación no acaba en este tiempo (sin red…), se sigue con la app. */
+const RESTORE_TIMEOUT_MS = 30_000
+
+const restoreKey = (app: string) => `${app}.cloudsync.restore`
+
+/**
+ * Antes de ir a Google para recuperar los datos: al volver, la app espera a la
+ * primera sincronización. Activa también la copia por si estaba apagada aquí.
+ */
+export function markRestorePending(app: SyncAdapter['app']): void {
+  setCloudSyncEnabled(app, true)
+  try {
+    window.sessionStorage.setItem(restoreKey(app), '1')
+  } catch {
+    // Sin sessionStorage se ve la bienvenida un momento; los datos llegan igual.
+  }
+}
+
+/** `true` si se está volviendo de Google para recuperar los datos. */
+export function isRestorePending(app: SyncAdapter['app']): boolean {
+  try {
+    return window.sessionStorage.getItem(restoreKey(app)) !== null
+  } catch {
+    return false
+  }
+}
+
+function clearRestore(app: SyncAdapter['app']): void {
+  try {
+    window.sessionStorage.removeItem(restoreKey(app))
+  } catch {
+    // Nada que olvidar.
+  }
+}
 
 export function useCloudSync(options: {
   adapter: SyncAdapter
@@ -51,13 +93,26 @@ export function useCloudSync(options: {
   const [syncing, setSyncing] = useState(false)
   const [failed, setFailed] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null)
+  const [restoring, setRestoring] = useState(false)
   const onPulled = useRef(options.onPulled)
   onPulled.current = options.onPulled
 
   useEffect(() => {
     setEnabled(isCloudSyncEnabled(adapter.app))
     setLastSyncAt(lastCloudSyncAt(adapter.app))
+    setRestoring(isRestorePending(adapter.app))
   }, [adapter.app])
+
+  const endRestore = useCallback(() => {
+    clearRestore(adapter.app)
+    setRestoring(false)
+  }, [adapter.app])
+
+  useEffect(() => {
+    if (!restoring) return
+    const timer = window.setTimeout(endRestore, RESTORE_TIMEOUT_MS)
+    return () => window.clearTimeout(timer)
+  }, [restoring, endRestore])
 
   const userId = session?.user.id ?? null
 
@@ -71,16 +126,19 @@ export function useCloudSync(options: {
         const result = await runCloudSync(adapter, await getClient(), userId, { mode })
         setLastSyncAt(result.at)
         setFailed(false)
+        // Antes de avisar: si la app recarga, al volver no debe seguir esperando.
+        if (reason === 'open') endRestore()
         if (result.pulled > 0) onPulled.current?.(result, reason)
         return true
       } catch {
         setFailed(true)
+        if (reason === 'open') endRestore()
         return false
       } finally {
         setSyncing(false)
       }
     },
-    [adapter, getClient, userId, refreshesItself],
+    [adapter, getClient, userId, refreshesItself, endRestore],
   )
 
   useEffect(() => {
@@ -115,7 +173,7 @@ export function useCloudSync(options: {
   }, [adapter.app, getClient])
 
   return useMemo(
-    () => ({ enabled, syncing, failed, lastSyncAt, syncNow, enable, removeCloudCopy }),
-    [enabled, syncing, failed, lastSyncAt, syncNow, enable, removeCloudCopy],
+    () => ({ enabled, syncing, failed, lastSyncAt, syncNow, enable, removeCloudCopy, restoring, endRestore }),
+    [enabled, syncing, failed, lastSyncAt, syncNow, enable, removeCloudCopy, restoring, endRestore],
   )
 }

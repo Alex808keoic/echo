@@ -9,6 +9,7 @@ import { AxisMark } from './axis-mark'
 import { Button } from './button'
 import { Onboarding, ONBOARDING_TITLE } from './forms/onboarding'
 import { useSheet } from './sheet'
+import { useEcosystem } from '@/hooks/use-ecosystem'
 
 /** Si ya se vio la bienvenida en este dispositivo. */
 const SEEN_KEY = 'finax.welcomeSeen'
@@ -27,10 +28,14 @@ const POINTS: ReadonlyArray<{ icon: ((props: SVGProps<SVGSVGElement>) => React.R
  * La primera vez que se abre Finax: dos pantallas con la estética de la bienvenida de
  * AXIS (marca centrada, título grande, puntos con icono, puntos de avance, botón grande).
  * «Empezar» abre la guía de siempre; «Saltar» deja en Inicio. Solo sin configurar.
+ * «¿Ya usas Finax?» entra con Google y recupera los datos de la nube sin pasar por la guía.
  */
 export function FirstRunWelcome({ overview }: { overview: Overview }) {
   const { open } = useSheet()
   const [step, setStep] = useState<0 | 1 | null>(null)
+  const { restoreWithGoogle } = useEcosystem()
+  const [restoreError, setRestoreError] = useState<string | null>(null)
+  const [restoring, setRestoring] = useState(false)
 
   const fresh = overview !== undefined && overview.isEmpty && overview.config === null
   useEffect(() => {
@@ -52,6 +57,21 @@ export function FirstRunWelcome({ overview }: { overview: Overview }) {
     }
     setStep(null)
     if (startGuide) open(ONBOARDING_TITLE, <Onboarding />)
+  }
+
+  const restore = async () => {
+    setRestoring(true)
+    setRestoreError(null)
+    try {
+      window.localStorage.setItem(SEEN_KEY, '1')
+    } catch {
+      // Ver la bienvenida otra vez no rompe nada.
+    }
+    const failure = await restoreWithGoogle()
+    if (failure) {
+      setRestoreError(failure)
+      setRestoring(false)
+    }
   }
 
   return (
@@ -110,10 +130,18 @@ export function FirstRunWelcome({ overview }: { overview: Overview }) {
             <span key={i} className={cn('h-1.5 rounded-full transition-all duration-300', i === step ? 'w-5 bg-finax-dark' : 'w-1.5 bg-muted')} />
           ))}
         </div>
-        <Button fullWidth className="min-h-[52px]" onClick={() => (step === 0 ? setStep(1) : close(true))}>
+        <Button fullWidth className="min-h-[52px]" onClick={() => (step === 0 ? setStep(1) : close(true))} disabled={restoring}>
           {step === 0 ? 'Empezar' : 'Configurar Finax'}
           <ChevronRight className="h-4 w-4" />
         </Button>
+        {step === 0 && (
+          <>
+            <Button variant="ghost" fullWidth className="mt-2 min-h-[48px]" onClick={() => void restore()} disabled={restoring}>
+              {restoring ? 'Abriendo Google…' : '¿Ya usas Finax? Entrar con Google'}
+            </Button>
+            {restoreError && <p className="mt-2 text-center text-[12.5px] font-medium text-negative">No se ha podido abrir Google: {restoreError}</p>}
+          </>
+        )}
       </div>
     </div>
   )
