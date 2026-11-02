@@ -44,10 +44,10 @@ describe('chat · cómo van las inversiones', () => {
     assert.equal(p.datos_actuales.como_van_las_inversiones, undefined)
   })
 
-  it('con ellos, el prompt lleva las 8 familias y no repite los indicadores', () => {
+  it('con ellos, el prompt lleva las 10 familias y no repite los indicadores', () => {
     const p = payload(input(ASSETS))
     const familias = p.datos_actuales.como_van_las_inversiones.familias
-    assert.equal(familias.length, 8)
+    assert.equal(familias.length, 10)
     const cripto = familias.find((f: { familia: string }) => f.familia === 'Criptomonedas')
     assert.equal(cripto.como_va, 'Sube con fuerza')
     assert.match(cripto.resumen, /bitcoin ha subido un 46,2 %/)

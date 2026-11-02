@@ -69,6 +69,28 @@ export const SCENARIO_ASSUMPTIONS: Readonly<Record<string, ScenarioAssumption>> 
   cripto: { kind: 'none', reason: 'No hay una base razonable para aproximarlo: su precio no depende de beneficios ni de intereses y ha pasado de subidas enormes a caídas enormes.', badYearPct: 75 },
   'cripto-otras': { kind: 'none', reason: 'La mayoría acaba valiendo casi cero y unas pocas se disparan: cualquier cifra sería inventada.', badYearPct: 95 },
   stablecoins: { kind: 'none', reason: 'No está pensada para crecer: intenta valer siempre lo mismo que un dólar o un euro.' },
+  // Tipos añadidos el 2026-11-02.
+  'bonos-inflacion': g(2.8, 4, 10),
+  'high-yield': g(5, 10, 25),
+  pagares: g(4, 4, 20),
+  preferentes: { kind: 'none', reason: 'Pueden pagar durante años y de repente dejar de pagar, convertirse en acciones o quedarse a cero: una media no lo refleja.', badYearPct: 60 },
+  crowdlending: { kind: 'none', reason: 'Depende de cuántos préstamos se devuelvan: el interés anunciado no es lo que se cobra y los impagos llegan juntos en las crisis.' },
+  'fondo-garantizado': g(2.5, 1, 2),
+  'fondo-vencimiento': g(2.8, 2, 5),
+  'cartera-gestionada': g(5.5, 11, 25),
+  'capital-riesgo': { kind: 'none', reason: 'Cada fondo es muy distinto y su valor solo se conoce al final, tras 7 a 12 años: cualquier cifra sería inventada.' },
+  'etf-factor': g(7, 18, 40),
+  'plan-pensiones': g(5, 12, 25),
+  'plan-empleo': g(4.5, 9, 15),
+  pias: g(2.5, 2, 5),
+  sialp: g(2.5, 1, 2),
+  'unit-linked': g(5, 12, 25),
+  'vivienda-alquiler': g(5, 8, 15),
+  'cripto-staking': { kind: 'none', reason: 'Las recompensas se cobran en cripto: el resultado depende sobre todo de su precio, que no tiene una base razonable que aproximar.', badYearPct: 75 },
+  cfd: { kind: 'none', reason: 'Con apalancamiento, el resultado depende de cada operación: la mayoría de pequeños inversores pierde dinero.', badYearPct: 100 },
+  'futuros-opciones': { kind: 'none', reason: 'Cada contrato tiene su fecha y su apalancamiento: no hay un patrón razonable que aproximar.', badYearPct: 100 },
+  estructurados: { kind: 'none', reason: 'Lo que cobras depende de condiciones concretas de cada producto (barreras, fechas, cancelaciones): no se puede aproximar con una media.' },
+  'warrants-turbos': { kind: 'none', reason: 'Pueden valer cero en un momento y el tiempo les resta valor: no hay una base razonable que aproximar.', badYearPct: 100 },
 }
 
 export const SCENARIO_NOTICE =

@@ -13,11 +13,13 @@
  *   plataformas) y nunca llega al chat ni al modelo.
  */
 
+import { TYPE_EXPERTISE } from './expertise'
+
 export type ProductRisk = 'muy-bajo' | 'bajo' | 'medio' | 'alto' | 'muy-alto'
 /** Familia para revisar el encaje con el plan (guide/fit.ts). */
 export type ProductFamily = 'cash' | 'short-debt' | 'bonds' | 'diversified-equity' | 'concentrated-equity' | 'speculative'
 
-export type InvestmentGroupId = 'ahorro' | 'renta-fija' | 'fondos' | 'etf' | 'acciones' | 'materias' | 'inmobiliario' | 'cripto'
+export type InvestmentGroupId = 'ahorro' | 'renta-fija' | 'fondos' | 'etf' | 'prevision' | 'acciones' | 'materias' | 'inmobiliario' | 'cripto' | 'complejos'
 
 export interface InvestmentGroup {
   id: InvestmentGroupId
@@ -46,7 +48,23 @@ export interface ProductType {
   examples?: string[]
   /** Palabras con las que el usuario lo nombra (minúsculas, sin tildes). */
   keywords: string[]
+  /** Cómo cuenta en tu mezcla una inversión de este tipo, si no es la de su familia (un plan de pensiones o un piso: «otro»). */
+  assetType?: 'other'
+  /** Cómo tributa en España (guide/expertise.ts). */
+  taxes: string
+  /** Cuándo y cómo recuperas tu dinero. */
+  liquidity: string
+  /** Quién lo supervisa y qué te protege. */
+  protection: string
+  /**
+   * Encaje con el plan propio del tipo, cuando la regla por familia no lo explica bien (planes de pensiones,
+   * vivienda para alquilar): se usa con el plan listo, el colchón completo y un plazo que no es corto.
+   */
+  fitOverride?: { verdict: 'partial' | 'outside-plan'; reasons: string[] }
 }
+
+/** Lo que se escribe en cada tipo; lo de experto (impuestos, liquidez, protección) sale de guide/expertise.ts. */
+type ProductTypeBase = Omit<ProductType, 'taxes' | 'liquidity' | 'protection'>
 
 export const RISK_LABEL: Record<ProductRisk, string> = { 'muy-bajo': 'Muy bajo', bajo: 'Bajo', medio: 'Medio', alto: 'Alto', 'muy-alto': 'Muy alto' }
 const RISK_ORDER: readonly ProductRisk[] = ['muy-bajo', 'bajo', 'medio', 'alto', 'muy-alto']
@@ -63,20 +81,26 @@ export const INVESTMENT_GROUPS: readonly InvestmentGroup[] = [
   {
     id: 'renta-fija',
     name: 'Renta fija',
-    summary: 'Bonos de estados y de empresas',
+    summary: 'Bonos de estados y empresas, ligados a la inflación, high yield, pagarés, preferentes y crowdlending',
     intro: 'Prestas tu dinero a un estado o a una empresa y te paga un interés. Tiene menos riesgo que las acciones, pero su precio se mueve con los tipos de interés.',
   },
   {
     id: 'fondos',
     name: 'Fondos de inversión',
-    summary: 'Indexados, de gestión activa y mixtos',
+    summary: 'Indexados, activos, mixtos, garantizados, a vencimiento, carteras gestionadas y capital riesgo',
     intro: 'Juntas tu dinero con el de muchas personas y una gestora lo invierte por todos. En España, pasar el dinero de un fondo a otro no tributa (traspaso).',
   },
   {
     id: 'etf',
     name: 'ETF',
-    summary: 'Fondos que cotizan en bolsa: mundiales, por país, por sector…',
+    summary: 'Fondos que cotizan en bolsa: mundiales, por país, por sector, por factores…',
     intro: 'Un ETF es un fondo que se compra y vende en bolsa como una acción, a través de un bróker. Casi todos copian un índice: lo importante es cuál.',
+  },
+  {
+    id: 'prevision',
+    name: 'Planes de pensiones y seguros de ahorro',
+    summary: 'Planes de pensiones, de empleo, PIAS, SIALP y unit linked',
+    intro: 'Productos para la jubilación o el ahorro a largo plazo con ventajas fiscales, a cambio de condiciones: no poder sacar el dinero hasta cierta fecha o perder la ventaja si lo haces. Por dentro invierten como un fondo o como un seguro.',
   },
   {
     id: 'acciones',
@@ -93,20 +117,26 @@ export const INVESTMENT_GROUPS: readonly InvestmentGroup[] = [
   {
     id: 'inmobiliario',
     name: 'Inmobiliario',
-    summary: 'SOCIMI, fondos inmobiliarios y crowdfunding',
+    summary: 'SOCIMI, fondos inmobiliarios, crowdfunding y vivienda para alquilar',
     intro: 'Invertir en inmuebles sin comprar una vivienda entera: a través de empresas en bolsa, de fondos o de plataformas de financiación participativa.',
   },
   {
     id: 'cripto',
     name: 'Criptomonedas',
-    summary: 'Bitcoin, otras criptomonedas y stablecoins',
+    summary: 'Bitcoin, otras criptomonedas, stablecoins y staking',
     intro: 'Activos digitales muy volátiles, sin rentas y con poca protección para el inversor. La CNMV y el Banco de España advierten de su riesgo.',
+  },
+  {
+    id: 'complejos',
+    name: 'Productos complejos',
+    summary: 'CFD, futuros y opciones, estructurados, warrants y turbos',
+    intro: 'Productos que multiplican lo que ganas y lo que pierdes (apalancamiento) o cuyo resultado depende de condiciones difíciles de entender. La CNMV los considera complejos: la mayoría de los pequeños inversores que operan con ellos pierde dinero.',
   },
 ]
 
 const EQUITY_DROP = 'Puede caer mucho en un año malo, incluso más de un 30 %: solo para dinero que puedas dejar quieto'
 
-export const PRODUCT_TYPES: readonly ProductType[] = [
+const BASE_TYPES: readonly ProductTypeBase[] = [
   /* ------------------------------ Ahorro seguro ------------------------------ */
   {
     id: 'cuenta-deposito',
@@ -198,7 +228,7 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     compare: ['La calificación de la empresa (su solvencia)', 'El plazo', 'Si te conviene más tenerlos a través de un fondo, con muchos bonos a la vez'],
     warnings: ['Más interés suele significar más riesgo de impago', 'Un bono suelto de una empresa concentra mucho riesgo'],
     examples: ['Bonos de grandes empresas con buena calificación («investment grade»)', 'Bonos de alto rendimiento («high yield»): más interés y bastante más riesgo'],
-    keywords: ['bonos de empresa', 'bonos de empresas', 'bonos corporativos', 'renta fija privada', 'high yield'],
+    keywords: ['bonos de empresa', 'bonos de empresas', 'bonos corporativos', 'renta fija privada'],
   },
   {
     id: 'fondo-renta-fija',
@@ -220,6 +250,73 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     keywords: ['renta fija', 'fondo de renta fija', 'fondos de renta fija'],
   },
 
+  {
+    id: 'bonos-inflacion',
+    group: 'renta-fija',
+    name: 'Bonos ligados a la inflación',
+    family: 'bonds',
+    risk: 'bajo',
+    horizon: 'De 3 a 30 años, según el bono',
+    what: 'Bonos de un estado cuyo valor y cuyos intereses se actualizan con la inflación: si los precios suben, lo que cobras sube con ellos. El Tesoro español los emite ligados a la inflación de la zona euro.',
+    goodFor: 'Proteger del alza de los precios una parte del dinero de medio y largo plazo.',
+    compare: ['Su rentabilidad real (lo que paga por encima de la inflación)', 'El plazo: cuanto más largo, más se mueve su precio con los tipos', 'Qué inflación sigue (la de la zona euro, la de España…)'],
+    warnings: ['Si suben los tipos y lo vendes antes del vencimiento, puedes perder dinero aunque la inflación esté alta', 'Con inflación muy baja, rinden menos que un bono normal'],
+    examples: ['Bonos del Estado indexados a la inflación de la zona euro', 'Bonos de otros estados ligados a su inflación'],
+    keywords: ['bonos ligados a la inflacion', 'bonos indexados a la inflacion', 'bonos de inflacion', 'bonos ligados a inflacion'],
+  },
+  {
+    id: 'high-yield',
+    group: 'renta-fija',
+    name: 'Bonos de alto rendimiento (high yield)',
+    family: 'bonds',
+    risk: 'alto',
+    horizon: 'Más de 5 años',
+    what: 'Bonos de empresas con peor calificación de crédito (por debajo de BBB-). Pagan bastante más interés porque es más probable que alguna no devuelva lo prestado.',
+    goodFor: 'Como mucho, una parte pequeña de la renta fija, siempre repartida entre muchas empresas.',
+    compare: ['Cuántas empresas lleva y de qué sectores', 'Lo que paga de más frente a un bono del Estado', 'La comisión total anual (TER)'],
+    warnings: ['En las crisis caen casi como las acciones', 'Un interés muy alto suele avisar de un riesgo de impago alto'],
+    examples: ['Fondos de bonos high yield europeos', 'ETF de bonos high yield en euros'],
+    keywords: ['high yield', 'alto rendimiento', 'bonos basura', 'bonos de alto rendimiento'],
+  },
+  {
+    id: 'pagares',
+    group: 'renta-fija',
+    name: 'Pagarés de empresa',
+    family: 'bonds',
+    risk: 'alto',
+    horizon: 'De unos días a 2 años',
+    what: 'Préstamos a corto plazo a una empresa: le das dinero y te devuelve una cantidad mayor en una fecha. Los suelen emitir empresas medianas que buscan financiarse sin un banco.',
+    goodFor: 'Muy poco: ofrecen algo más que un depósito a cambio de un riesgo que un depósito no tiene.',
+    compare: ['Quién es la empresa, su tamaño y su calificación de crédito', 'Cuánto paga frente a un depósito o unas Letras al mismo plazo'],
+    warnings: ['Si la empresa no paga, puedes perderlo todo: no hay fondo de garantía', 'Casi no se pueden vender antes del vencimiento', 'Varias empresas medianas españolas han dejado de pagar sus pagarés'],
+    keywords: ['pagares', 'pagare', 'pagares de empresa'],
+  },
+  {
+    id: 'preferentes',
+    group: 'renta-fija',
+    name: 'Preferentes y deuda subordinada',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'Sin vencimiento o muy lejano',
+    what: 'Deuda de bancos y empresas que, si tienen problemas, es de las primeras en perder: puede dejar de pagar intereses, convertirse en acciones o quedarse a cero. Incluye las participaciones preferentes, la deuda subordinada y los bonos convertibles contingentes («CoCos»).',
+    goodFor: 'No es un producto de ahorro: es para inversores profesionales que entienden el riesgo.',
+    compare: ['Cuándo puede dejar de pagar o convertirse en acciones', 'Si tiene fecha de vencimiento o es perpetua'],
+    warnings: ['En España, en 2012, miles de ahorradores perdieron dinero con preferentes que les vendieron como si fueran depósitos', 'Pagan más porque arriesgan mucho más: pueden valer cero aunque el banco siga abierto'],
+    keywords: ['preferentes', 'participaciones preferentes', 'deuda subordinada', 'cocos', 'bonos convertibles contingentes'],
+  },
+  {
+    id: 'crowdlending',
+    group: 'renta-fija',
+    name: 'Préstamos por plataformas (crowdlending)',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'De meses a 5 años',
+    what: 'Prestas dinero a empresas o a particulares a través de una plataforma de internet, junto a muchas otras personas, a cambio de un interés.',
+    goodFor: 'Solo una parte pequeña de dinero que puedes dejar bloqueado y perder.',
+    compare: ['Que la plataforma esté autorizada por la CNMV', 'Su historial de impagos y retrasos', 'Si hay garantías y qué pasa si el prestatario no paga'],
+    warnings: ['Los impagos son frecuentes: el interés anunciado no es lo que acabas cobrando', 'No puedes sacar el dinero antes de que se devuelva cada préstamo', 'Si la plataforma cierra, recuperar tu dinero puede ser lento'],
+    keywords: ['crowdlending', 'prestamos p2p', 'prestamos entre particulares', 'financiacion participativa'],
+  },
   /* --------------------------------- Fondos --------------------------------- */
   {
     id: 'fondo-indexado',
@@ -273,6 +370,58 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     keywords: ['fondo mixto', 'fondos mixtos'],
   },
 
+  {
+    id: 'fondo-garantizado',
+    group: 'fondos',
+    name: 'Fondo garantizado o de rentabilidad objetivo',
+    family: 'bonds',
+    risk: 'bajo',
+    horizon: 'Hasta su fecha de vencimiento (de 2 a 7 años)',
+    what: 'Un fondo que promete devolverte lo invertido (o lo invertido más algo) en una fecha concreta. Los «de rentabilidad objetivo» buscan una cifra, pero no la garantizan.',
+    goodFor: 'Dinero que puedes dejar quieto hasta la fecha y que no quieres arriesgar.',
+    compare: ['Qué garantiza exactamente y en qué fecha', 'La comisión de reembolso si sales antes', 'Lo que da frente a una Letra o un bono del Estado al mismo plazo'],
+    warnings: ['La garantía solo vale en la fecha: antes puedes perder', 'Suelen rendir poco para el tiempo que te atan', 'Normalmente solo se puede entrar durante un periodo corto'],
+    keywords: ['fondo garantizado', 'fondos garantizados', 'rentabilidad objetivo', 'fondo de rentabilidad objetivo'],
+  },
+  {
+    id: 'fondo-vencimiento',
+    group: 'fondos',
+    name: 'Fondo de renta fija a vencimiento',
+    family: 'bonds',
+    risk: 'bajo',
+    horizon: 'Hasta su fecha objetivo (de 1 a 5 años)',
+    what: 'Un fondo que compra bonos que vencen en una fecha parecida y los mantiene hasta entonces. Anuncia una rentabilidad estimada si te quedas hasta el final.',
+    goodFor: 'Dinero que sabes que no tocarás hasta una fecha concreta.',
+    compare: ['La rentabilidad estimada después de comisiones', 'La calidad de los bonos que lleva', 'La comisión de reembolso si sales antes'],
+    warnings: ['La rentabilidad anunciada es una estimación: si alguna empresa no paga, cobrarás menos', 'Si sales antes, cobras el valor de ese día y puede haber comisión'],
+    keywords: ['fondo a vencimiento', 'fondos a vencimiento', 'renta fija a vencimiento', 'fondo de renta fija a vencimiento'],
+  },
+  {
+    id: 'cartera-gestionada',
+    group: 'fondos',
+    name: 'Cartera gestionada o gestión automatizada',
+    family: 'diversified-equity',
+    risk: 'alto',
+    horizon: 'Más de 5 años (según el perfil)',
+    what: 'Delegas en una entidad autorizada que invierte tu dinero en una cartera de fondos según tu perfil de riesgo y la reequilibra por ti. Si lo hace con reglas y por internet, se llama gestor automatizado («robo-advisor»).',
+    goodFor: 'Quien quiere una cartera diversificada sin ocuparse de elegir ni de reequilibrar.',
+    compare: ['El coste total: el de la gestión más el de los fondos', 'Qué fondos usa (indexados o de gestión activa)', 'El perfil que te asigna y cuánto lleva en renta variable'],
+    warnings: [EQUITY_DROP, 'Una cartera de fondos caros puede costar más del 2 % al año: se come buena parte de lo que ganes'],
+    keywords: ['cartera gestionada', 'gestion discrecional', 'gestion automatizada', 'roboadvisor', 'robo advisor', 'robo-advisor', 'cartera de fondos'],
+  },
+  {
+    id: 'capital-riesgo',
+    group: 'fondos',
+    name: 'Capital riesgo y fondos ELTIF',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'De 7 a 12 años, sin poder salir antes',
+    what: 'Fondos que invierten en empresas que no cotizan en bolsa (capital riesgo o «private equity») o en infraestructuras. Las ELTIF son fondos europeos de este tipo que desde 2024 pueden comercializarse a pequeños inversores con condiciones.',
+    goodFor: 'Solo una parte muy pequeña de un patrimonio grande, que no vayas a necesitar en muchos años.',
+    compare: ['Cuánto tiempo queda el dinero comprometido', 'Las comisiones de gestión y de éxito', 'Los resultados de los fondos anteriores de la misma gestora'],
+    warnings: ['No puedes sacar el dinero hasta que el fondo termina', 'Sus resultados varían muchísimo de un fondo a otro', 'Las comisiones suelen ser altas'],
+    keywords: ['capital riesgo', 'private equity', 'eltif', 'eltifs'],
+  },
   /* ----------------------------------- ETF ---------------------------------- */
   {
     id: 'etf',
@@ -321,7 +470,21 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     warnings: ['Las temáticas de moda a menudo se compran cuando ya han subido mucho', 'Un sector entero puede caer más de un 50 %'],
     examples: ['Tecnología', 'Salud', 'Energía', 'Bancos', 'Energías renovables', 'Semiconductores o inteligencia artificial'],
     keywords: ['etf sectorial', 'etf tematico', 'etf de tecnologia', 'etf de salud'],
+  },  {
+    id: 'etf-factor',
+    group: 'etf',
+    name: 'ETF de factores y de dividendos',
+    family: 'concentrated-equity',
+    risk: 'alto',
+    horizon: 'Más de 7 años',
+    what: 'ETF que eligen empresas por una característica («factor»): baratas respecto a lo que ganan (valor), pequeñas, de alta calidad, que suben con fuerza (momento), que se mueven poco o que reparten mucho dividendo.',
+    goodFor: 'Como complemento de una cartera mundial, para quien entiende el factor y tiene paciencia.',
+    compare: ['Qué factor sigue y cómo elige las empresas', 'La comisión total anual (TER)', 'Cuánto se parece en realidad a un ETF mundial'],
+    warnings: ['Un factor puede ir peor que el mercado durante muchos años seguidos', 'Los de dividendos reparten rentas que tributan cada año'],
+    examples: ['Factor valor', 'Empresas pequeñas', 'Calidad', 'Momento', 'Mínima volatilidad', 'Altos dividendos'],
+    keywords: ['etf de factores', 'etf factorial', 'smart beta', 'etf de dividendos', 'etf value', 'etf de valor'],
   },
+
   {
     id: 'etf-bonos',
     group: 'etf',
@@ -356,6 +519,114 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     keywords: ['etf apalancado', 'apalancado', 'apalancados', 'etf inverso'],
   },
 
+  /* ------------------------- Planes de pensiones y seguros ------------------------- */
+  {
+    id: 'plan-pensiones',
+    group: 'prevision',
+    name: 'Plan de pensiones individual',
+    family: 'diversified-equity',
+    assetType: 'other',
+    risk: 'medio',
+    horizon: 'Hasta tu jubilación',
+    what: 'Ahorro para la jubilación que invierte como un fondo (en acciones, bonos o una mezcla). Lo que aportas cada año desgrava en la renta, pero normalmente no puedes sacarlo hasta jubilarte.',
+    goodFor: 'La parte de tu largo plazo pensada para la jubilación, sobre todo si hoy pagas un tipo alto en la renta.',
+    compare: ['La comisión total anual (gestión más depósito)', 'Qué lleva dentro y cuánto en renta variable', 'Su resultado frente a planes parecidos durante muchos años'],
+    warnings: ['El dinero queda bloqueado hasta la jubilación, salvo casos concretos o lo aportado hace más de 10 años', 'Al rescatarlo tributa todo como sueldo: la ventaja es diferir el impuesto, no evitarlo', 'Muchos planes de banco cobran cerca del máximo legal'],
+    examples: ['Planes de renta variable global', 'Planes indexados', 'Planes mixtos', 'Planes de renta fija'],
+    keywords: ['plan de pensiones', 'planes de pensiones', 'fondo de pensiones', 'jubilacion'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Es para tu jubilación: lo que aportas desgrava en la renta, pero normalmente no puedes sacarlo hasta jubilarte (o con 10 años de antigüedad, o en casos concretos).',
+        'Puede ser una buena forma de invertir la parte de tu largo plazo pensada para la jubilación; dentro, busca renta variable global y comisiones bajas.',
+      ],
+    },
+  },
+  {
+    id: 'plan-empleo',
+    group: 'prevision',
+    name: 'Plan de pensiones de empleo',
+    family: 'diversified-equity',
+    assetType: 'other',
+    risk: 'medio',
+    horizon: 'Hasta tu jubilación',
+    what: 'Un plan de pensiones que promueve tu empresa (y en el que a menudo pone dinero) o, si eres autónomo, un plan de empleo simplificado. Permite aportar más cada año con ventaja fiscal.',
+    goodFor: 'Si tu empresa aporta, es dinero extra para tu jubilación; si eres autónomo, desgravar más que con un plan individual.',
+    compare: ['Cuánto aporta la empresa y si depende de lo que aportes tú', 'La comisión total anual', 'Qué lleva dentro'],
+    warnings: ['El dinero queda bloqueado hasta la jubilación, salvo casos concretos', 'Al rescatarlo tributa como sueldo'],
+    examples: ['Plan de empleo de tu empresa', 'Plan de empleo simplificado para autónomos', 'Fondos de pensiones de promoción pública'],
+    keywords: ['plan de empleo', 'planes de empleo', 'plan de pensiones de empresa', 'plan de empleo simplificado'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Es para tu jubilación y queda bloqueado hasta entonces, salvo casos concretos.',
+        'Si tu empresa pone dinero cuando tú aportas, es de lo más rentable que hay: es parte de tu sueldo que de otra forma no cobras.',
+      ],
+    },
+  },
+  {
+    id: 'pias',
+    group: 'prevision',
+    name: 'PIAS (plan individual de ahorro sistemático)',
+    family: 'bonds',
+    assetType: 'other',
+    risk: 'bajo',
+    horizon: 'Más de 5 años, para cobrarlo como renta',
+    what: 'Un seguro de ahorro a largo plazo: si lo mantienes al menos 5 años y lo cobras como una renta para toda la vida, lo ganado no paga impuestos.',
+    goodFor: 'Quien quiere asegurarse una renta para toda la vida al jubilarse, con ventaja fiscal.',
+    compare: ['Qué garantiza y cuánto cobra el seguro', 'Su rentabilidad después de gastos', 'Cuánto te penalizan si lo rescatas antes'],
+    warnings: ['La ventaja fiscal solo existe si lo cobras como renta vitalicia', 'Los gastos del seguro pueden comerse buena parte de la ventaja'],
+    keywords: ['pias', 'plan individual de ahorro sistematico'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Es un seguro de ahorro con ventaja fiscal si cumples sus condiciones: al menos 5 años y cobrarlo como una renta para toda la vida.',
+        'Compara sus gastos con un fondo indexado: la ventaja fiscal a veces no compensa lo que cobra.',
+      ],
+    },
+  },
+  {
+    id: 'sialp',
+    group: 'prevision',
+    name: 'SIALP y CIALP (ahorro a 5 años)',
+    family: 'bonds',
+    assetType: 'other',
+    risk: 'bajo',
+    horizon: '5 años',
+    what: 'Un seguro (SIALP) o una cuenta (CIALP) de ahorro a 5 años: si no lo tocas en ese tiempo, lo ganado no paga impuestos. Solo se puede tener uno por persona y aportar hasta 5.000 € al año.',
+    goodFor: 'Ahorro a medio plazo que no quieres arriesgar, aprovechando que lo ganado no tributa.',
+    compare: ['Lo que garantiza y lo que puede rendir por encima', 'Sus gastos y comisiones'],
+    warnings: ['Si lo sacas antes de 5 años, pierdes la ventaja fiscal', 'Con tipos bajos, la ventaja fiscal es pequeña en euros'],
+    keywords: ['sialp', 'cialp', 'seguro individual de ahorro a largo plazo'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Es ahorro a 5 años con poco riesgo y sin impuestos sobre lo ganado si no lo tocas: puede servir para un objetivo de medio plazo.',
+        'Compáralo con unas Letras o un depósito después de impuestos: la ventaja depende de los tipos de ese momento.',
+      ],
+    },
+  },
+  {
+    id: 'unit-linked',
+    group: 'prevision',
+    name: 'Seguro unit linked',
+    family: 'diversified-equity',
+    assetType: 'other',
+    risk: 'alto',
+    horizon: 'Más de 5 años',
+    what: 'Un seguro de vida-ahorro en el que eliges en qué fondos se invierte tu dinero. Puedes cambiar de fondo dentro del seguro y, en ciertos casos, sin pagar impuestos.',
+    goodFor: 'Casos concretos (por ejemplo, de planificación de herencias); para la mayoría, un fondo directamente es más barato.',
+    compare: ['El coste total: el del seguro más el de los fondos', 'Qué fondos te deja elegir', 'Las penalizaciones por rescatar'],
+    warnings: ['Suele ser bastante más caro que tener los fondos directamente', 'Lo invertido sube y baja con los fondos: no está garantizado'],
+    keywords: ['unit linked', 'unit-linked', 'seguro de vida ahorro'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Por dentro invierte en fondos, como tu largo plazo, pero con los gastos de un seguro encima.',
+        'Con fondos de inversión directamente ya tienes traspasos sin pagar impuestos, normalmente más barato.',
+      ],
+    },
+  },
   /* -------------------------------- Compañías ------------------------------- */
   {
     id: 'acciones',
@@ -525,8 +796,29 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     goodFor: 'Solo dinero que puedes dejar bloqueado y perder.',
     compare: ['Que la plataforma esté autorizada por la CNMV como plataforma de financiación participativa', 'Qué garantías tiene el proyecto', 'Qué pasa si se retrasa'],
     warnings: ['No puedes sacar el dinero antes de que termine el proyecto', 'Los proyectos se retrasan o fallan: puedes perderlo todo', 'Una rentabilidad anunciada no es una rentabilidad asegurada'],
-    keywords: ['crowdfunding', 'crowdfunding inmobiliario', 'crowdlending'],
+    keywords: ['crowdfunding', 'crowdfunding inmobiliario'],
+  },  {
+    id: 'vivienda-alquiler',
+    group: 'inmobiliario',
+    name: 'Vivienda para alquilar',
+    family: 'concentrated-equity',
+    assetType: 'other',
+    risk: 'alto',
+    horizon: 'Más de 10 años',
+    what: 'Comprar un piso o una casa para alquilarlo: ganas con el alquiler y, si sube, con su precio. Casi siempre se compra con hipoteca, que multiplica lo que ganas y lo que pierdes.',
+    goodFor: 'Quien tiene ya colchón y una base invertida, dinero para la entrada y los gastos, y tiempo para gestionarla.',
+    compare: ['La rentabilidad neta: alquiler menos todos los gastos, sobre todo lo que cuesta comprar', 'La cuota de la hipoteca frente al alquiler', 'Cómo está la zona: demanda, precios y normas de alquiler'],
+    warnings: ['Mete mucho dinero en un solo inmueble y en una sola ciudad', 'Impagos, meses vacíos y reparaciones pueden dejarla en pérdidas', 'Venderla lleva meses y cuesta dinero', 'En zonas tensionadas hay límites a lo que puedes cobrar'],
+    keywords: ['vivienda para alquilar', 'piso para alquilar', 'comprar un piso para alquilar', 'alquilar un piso', 'invertir en vivienda', 'comprar para alquilar'],
+    fitOverride: {
+      verdict: 'partial',
+      reasons: [
+        'Puede ser una inversión a largo plazo, pero mete mucho dinero en un solo inmueble, casi siempre con hipoteca, y no se vende rápido.',
+        'No sustituye a la parte diversificada de tu plan: si la compras, que no deje tu colchón ni tus objetivos sin dinero.',
+      ],
+    },
   },
+
 
   /* ------------------------------- Criptomonedas ----------------------------- */
   {
@@ -570,8 +862,82 @@ export const PRODUCT_TYPES: readonly ProductType[] = [
     warnings: ['No las cubre el Fondo de Garantía de Depósitos', 'Algunas han perdido su valor de golpe'],
     examples: ['USDC (dólar)', 'EURC (euro)'],
     keywords: ['stablecoin', 'stablecoins', 'usdt', 'usdc'],
+  },  {
+    id: 'cripto-staking',
+    group: 'cripto',
+    name: 'Staking y préstamos de cripto',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'Ninguno es seguro',
+    what: 'Dejar tu cripto bloqueada para ayudar a funcionar a su red (staking) o prestarla en una plataforma, a cambio de recibir más cripto.',
+    goodFor: 'Nada que forme parte de un plan de ahorro.',
+    compare: ['Que la plataforma esté autorizada en la UE', 'Cuánto tiempo queda bloqueada', 'De dónde salen las recompensas'],
+    warnings: ['Las recompensas se pagan en cripto: si su precio cae, pierdes igual', 'En 2022 quebraron varias plataformas de préstamos de cripto y sus clientes perdieron su dinero'],
+    keywords: ['staking', 'defi', 'prestar cripto', 'prestamos de cripto'],
   },
+
+  /* ---------------------------- Productos complejos ---------------------------- */
+  {
+    id: 'cfd',
+    group: 'complejos',
+    name: 'CFD (contratos por diferencias)',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'Ninguno: pensado para horas o días',
+    what: 'Un contrato con un intermediario para ganar o perder la diferencia de precio de algo (una acción, un índice, una divisa) sin tenerlo, con apalancamiento: con poco dinero mueves mucho.',
+    goodFor: 'No sirve para ahorrar.',
+    compare: ['El apalancamiento y cuánto pierdes por cada 1 % que se mueve el precio', 'Los costes por mantener la posición abierta cada día'],
+    warnings: ['Los avisos obligatorios dicen que la mayoría de cuentas de pequeños inversores pierde dinero (a menudo más del 70 %)', 'La CNMV restringe su publicidad y su venta a pequeños inversores', 'Las ofertas de «trading» por redes sociales son a menudo estafas'],
+    keywords: ['cfd', 'cfds', 'contratos por diferencias', 'trading', 'forex'],
+  },
+  {
+    id: 'futuros-opciones',
+    group: 'complejos',
+    name: 'Futuros y opciones',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'Ninguno: cada contrato tiene su fecha',
+    what: 'Contratos para comprar o vender algo en el futuro a un precio fijado hoy. Un futuro te obliga; una opción te da el derecho. Se usan para cubrirse de riesgos o para especular con apalancamiento.',
+    goodFor: 'Empresas e inversores profesionales que saben cubrir riesgos. No para ahorrar.',
+    compare: ['Cuánto puedes perder en el peor caso', 'Las garantías que te pueden pedir si el precio va en tu contra'],
+    warnings: ['Con un futuro puedes perder más de lo que pusiste', 'Vender opciones sin cubrirte puede costarte muchísimo más de lo que cobraste', 'Una opción comprada puede acabar valiendo cero'],
+    keywords: ['futuros financieros', 'opciones financieras', 'opciones call', 'opciones put', 'derivados'],
+  },
+  {
+    id: 'estructurados',
+    group: 'complejos',
+    name: 'Productos estructurados',
+    family: 'speculative',
+    risk: 'alto',
+    horizon: 'Hasta su vencimiento (de 1 a 7 años)',
+    what: 'Productos que combinan un depósito o un bono con derivados: lo que cobras depende de lo que hagan un índice o unas acciones (por ejemplo, «si el índice no baja más de un 30 %, cobras un 6 %»). Algunos se cancelan solos antes de tiempo («autocancelables»).',
+    goodFor: 'Muy poco para la mayoría: son difíciles de comparar y a menudo caros por dentro.',
+    compare: ['En qué casos cobras, en cuáles no y en cuáles pierdes capital', 'Si el capital está garantizado y quién lo garantiza', 'Su indicador de riesgo del 1 al 7'],
+    warnings: ['Una cifra atractiva («hasta un 8 %») suele esconder escenarios en los que pierdes', 'Salir antes del vencimiento suele salir caro o no es posible'],
+    keywords: ['estructurado', 'estructurados', 'producto estructurado', 'productos estructurados', 'depositos estructurados', 'autocancelable'],
+  },
+  {
+    id: 'warrants-turbos',
+    group: 'complejos',
+    name: 'Warrants y turbos',
+    family: 'speculative',
+    risk: 'muy-alto',
+    horizon: 'Ninguno: pensados para días o semanas',
+    what: 'Productos que cotizan en bolsa y multiplican lo que se mueve una acción o un índice. Un turbo desaparece en cuanto el precio toca su barrera.',
+    goodFor: 'No sirven para ahorrar.',
+    compare: ['Dónde está la barrera y cuánto multiplica', 'Quién lo emite'],
+    warnings: ['Pueden valer cero en un momento', 'El paso del tiempo les resta valor aunque el precio no se mueva'],
+    keywords: ['warrant', 'warrants', 'turbo', 'turbos'],
+  },
+
 ]
+
+/** Cada tipo con lo que sabría un experto: impuestos, liquidez y protección (y «cómo reconocer uno bueno» si faltaba). */
+export const PRODUCT_TYPES: readonly ProductType[] = BASE_TYPES.map((t) => {
+  const x = TYPE_EXPERTISE[t.id]
+  if (!x) throw new Error(`Falta guide/expertise.ts para «${t.id}»`)
+  return { ...t, taxes: x.taxes, liquidity: x.liquidity, protection: x.protection, ...(t.choose ? {} : x.choose ? { choose: x.choose } : {}) }
+})
 
 export function groupById(id: InvestmentGroupId): InvestmentGroup {
   return INVESTMENT_GROUPS.find((g) => g.id === id) as InvestmentGroup

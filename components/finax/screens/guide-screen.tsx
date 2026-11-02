@@ -401,6 +401,21 @@ function TypeDetail({ type, fit, plan, mine, onPlan }: { type: ProductType; fit:
         <Bullets items={type.warnings} />
       </div>
 
+      <div className="space-y-2 rounded-2xl bg-muted/60 p-3.5">
+        <p className="text-pretty">
+          <span className="font-semibold text-grafito">Impuestos en España: </span>
+          {type.taxes}
+        </p>
+        <p className="text-pretty">
+          <span className="font-semibold text-grafito">Cuándo recuperas tu dinero: </span>
+          {type.liquidity}
+        </p>
+        <p className="text-pretty">
+          <span className="font-semibold text-grafito">Qué te protege: </span>
+          {type.protection}
+        </p>
+      </div>
+
       <div className="space-y-1">
         <p className="font-semibold text-grafito">Antes de decidir, comprueba</p>
         <Bullets items={fit.checks} />

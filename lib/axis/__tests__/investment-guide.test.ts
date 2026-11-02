@@ -11,6 +11,7 @@ import { productFit } from '../guide/fit'
 import { chatGuideOf, guideForPrompt } from '../guide/chat'
 import { AUTHORIZED_SERVICES, INVESTMENT_GROUPS, matchProductTypes, OFFICIAL_LINKS, PRODUCT_TYPES, type ProductType } from '../guide/products'
 import { recommendGuide } from '../guide/recommend'
+import { guessAssetType } from '../plan/mix'
 import { buildAllocationPlan, CUSHION_OBJECTIVE_NAME } from '../plan/allocation'
 import type { MemoryFact } from '../profile/types'
 import type { Movement, Objective } from '../../types'
@@ -26,7 +27,7 @@ function setup(liquidCents: number, facts: MemoryFact[], objectives: Objective[]
   const net = movements.reduce((t, m) => t + (m.type === 'ingreso' ? m.amountCents : -m.amountCents), 0)
   const ctx = buildFinancialContext(snapshot({ config: config(liquidCents - net), movements, objectives }), TODAY)
   const decision = decide({ context: ctx, memory: { profileFacts: facts.map((fact, i) => ({ id: `m-${i}`, updatedAt: i + 1, fact })) } })
-  return { plan: buildAllocationPlan(decision), profile: decision.profile.fields }
+  return { plan: buildAllocationPlan(decision), profile: decision.profile.fields, decision }
 }
 const PROFILE: MemoryFact[] = [
   { kind: 'horizon', value: 'long' },
@@ -182,5 +183,54 @@ describe('qué familia y qué tipo recomienda AXIS', () => {
 
   it('plan bloqueado: ninguna recomendación', () => {
     assert.equal(rec(setup(-50_000, PROFILE)).lead.fit.verdict, 'not-now')
+  })
+})
+
+describe('Finax como experto en cada tipo (2026-11-02)', () => {
+  const ready = setup(800_000, PROFILE)
+
+  it('10 familias; cada tipo sabe cómo tributa, cuándo recuperas el dinero, qué te protege y cómo reconocer uno bueno', () => {
+    assert.deepEqual(INVESTMENT_GROUPS.map((g) => g.id), ['ahorro', 'renta-fija', 'fondos', 'etf', 'prevision', 'acciones', 'materias', 'inmobiliario', 'cripto', 'complejos'])
+    assert.ok(PRODUCT_TYPES.length >= 50)
+    for (const p of PRODUCT_TYPES) {
+      for (const field of [p.taxes, p.liquidity, p.protection]) assert.ok(field.length > 40, p.id)
+      assert.ok((p.choose ?? []).length >= 2, `${p.id}: cómo reconocer uno bueno`)
+    }
+  })
+
+  it('reconoce las subfamilias nuevas por su nombre, sin confundirlas', () => {
+    const ids = (text: string) => matchProductTypes(text).map((p) => p.id)
+    assert.deepEqual(ids('¿Me conviene un plan de pensiones?'), ['plan-pensiones'])
+    assert.deepEqual(ids('¿Qué es el high yield?'), ['high-yield'])
+    assert.deepEqual(ids('Me ofrecen depósitos estructurados'), ['estructurados'])
+    assert.deepEqual(ids('¿Y el crowdlending?'), ['crowdlending'])
+    assert.deepEqual(ids('Estoy pensando en comprar un piso para alquilar'), ['vivienda-alquiler'])
+    assert.deepEqual(ids('¿Operar con CFD?'), ['cfd'])
+    assert.deepEqual(ids('¿Qué tal un robo-advisor?'), ['cartera-gestionada'])
+    // Palabras corrientes no son productos.
+    assert.deepEqual(ids('¿Qué opciones tengo para el futuro?'), [])
+  })
+
+  it('el encaje con el plan sabe lo que cada uno tiene de especial', () => {
+    const fit = (id: string) => productFit(PRODUCT_TYPES.find((p) => p.id === id)!, ready.plan, ready.profile)
+    assert.equal(fit('plan-pensiones').verdict, 'partial')
+    assert.ok(fit('plan-pensiones').reasons.some((r) => /jubilarte/.test(r)))
+    assert.equal(fit('vivienda-alquiler').verdict, 'partial')
+    assert.equal(fit('high-yield').verdict, 'partial', 'renta fija de más riesgo que la del plan')
+    assert.equal(fit('bonos-inflacion').verdict, fit('bonos-estado').verdict, 'renta fija de calidad, como un bono del Estado')
+    for (const id of ['cfd', 'futuros-opciones', 'warrants-turbos', 'preferentes', 'cripto-staking']) assert.equal(fit(id).verdict, 'outside-plan', id)
+  })
+
+  it('un plan de pensiones o un piso apuntados como inversión no cuentan en tu mezcla de renta variable', () => {
+    assert.equal(guessAssetType('Plan de pensiones'), 'other')
+    assert.equal(guessAssetType('Piso para alquilar'), 'other')
+  })
+
+  it('el chat de AXIS recibe los impuestos, la liquidez y la protección', () => {
+    const guide = chatGuideOf('¿Qué es un plan de pensiones?', ready.decision)!
+    const tipo = guideForPrompt(guide).tipos[0]
+    assert.match(tipo.impuestos_en_espana, /1\.500 €/)
+    assert.match(tipo.cuando_recuperas_el_dinero, /10 años/)
+    assert.match(tipo.que_te_protege, /Dirección General de Seguros/)
   })
 })

@@ -294,6 +294,19 @@ function vehicle(kind: 'fondos' | 'etf', equity: Built, bond: Built): Built {
   return { trend: 'depends', headline: what + now, figures: [] }
 }
 
+/** Planes de pensiones y seguros: van como lo que llevan dentro (2026-11-02). */
+function pensions(equity: Built, bond: Built): Built {
+  const parts = [
+    equity.trend !== 'no-data' ? `la bolsa ${equity.trend === 'calm' ? 'está tranquila' : lower(equity.trend)}` : null,
+    bond.trend !== 'no-data' ? `los bonos ${bond.trend === 'calm' ? 'están tranquilos' : lower(bond.trend).replace(/^sube/, 'suben').replace(/^cae/, 'caen').replace(/^baja/, 'bajan')}` : null,
+  ].filter(Boolean)
+  const now = parts.length > 0 ? ` Ahora mismo ${parts.join(' y ')}.` : ''
+  return { trend: 'depends', headline: `Un plan de pensiones o un seguro de ahorro va como lo que lleva dentro: uno de renta variable, como la bolsa; uno de renta fija o garantizado, como los bonos.${now}`, figures: [] }
+}
+
+/** Productos complejos: multiplican lo que hace aquello a lo que están ligados. */
+const COMPLEX: Built = { trend: 'depends', headline: 'Van con aquello a lo que están ligados (una acción, un índice, una divisa…), y a menudo multiplicado: un movimiento pequeño puede ser una ganancia o una pérdida grande.', figures: [] }
+
 const NO_NEWS = /sin (noticias|novedades|datos|informaci[oó]n)/i
 
 function noteFor(id: InvestmentGroupId, notes: readonly AssetClassNote[]): string | null {
@@ -303,7 +316,7 @@ function noteFor(id: InvestmentGroupId, notes: readonly AssetClassNote[]): strin
 }
 
 /**
- * Las 8 familias de la Guía, en su orden, con lo que ha pasado en cada una.
+ * Las 10 familias de la Guía, en su orden, con lo que ha pasado en cada una.
  * `notes` son las notas por clase de la investigación; pásalas solo si la
  * investigación es reciente (si no, `[]`).
  */
@@ -318,10 +331,12 @@ export function marketPanorama(indicators: readonly MarketIndicator[], notes: re
     'renta-fija': bond,
     fondos: vehicle('fondos', equity, bond),
     etf: vehicle('etf', equity, bond),
+    prevision: pensions(equity, bond),
     acciones: equity,
     materias: commodities(by),
     inmobiliario: housing(by),
     cripto: crypto(by),
+    complejos: COMPLEX,
   }
   return INVESTMENT_GROUPS.map((g) => ({ id: g.id, name: g.name, ...built[g.id], note: noteFor(g.id, notes) }))
 }

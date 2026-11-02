@@ -56,6 +56,13 @@ export function productFit(product: ProductType, plan: AllocationPlan, profile: 
   } else if (plan.longTerm.reason === 'cushion-incomplete') {
     verdict = 'not-now'
     reasons.push('Tu plan dice que primero conviene completar el colchón; después, una parte puede ir a largo plazo.')
+  } else if (product.fitOverride) {
+    // Planes de pensiones, seguros de ahorro, vivienda para alquilar: su encaje no es el de su familia.
+    verdict = product.fitOverride.verdict
+    reasons.push(...product.fitOverride.reasons)
+  } else if (product.family === 'bonds' && (product.risk === 'alto' || product.risk === 'muy-alto')) {
+    verdict = 'partial'
+    reasons.push('Es renta fija, pero con bastante más riesgo que la de tu plan (bonos de calidad de estados y empresas): como mucho una parte pequeña, y nunca en lugar de esa.')
   } else if ((product.family === 'speculative' || product.family === 'concentrated-equity') && planSleeves(plan).has('risky')) {
     verdict = 'fits'
     reasons.push(`Encaja con la parte arriesgada de tu plan: como mucho el ${RISKY_MAX_PCT} % de lo que inviertes.`)

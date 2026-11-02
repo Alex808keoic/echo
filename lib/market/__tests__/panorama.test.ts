@@ -33,10 +33,10 @@ const BASE: MarketIndicator[] = [
 const byId = (groups: GroupPanorama[]) => Object.fromEntries(groups.map((g) => [g.id, g]))
 
 describe('panorama de las familias de inversión', () => {
-  it('las 8 familias de la Guía, en su orden', () => {
+  it('las 10 familias de la Guía, en su orden', () => {
     assert.deepEqual(
       marketPanorama(BASE, [], NOW).map((g) => g.id),
-      ['ahorro', 'renta-fija', 'fondos', 'etf', 'acciones', 'materias', 'inmobiliario', 'cripto'],
+      ['ahorro', 'renta-fija', 'fondos', 'etf', 'prevision', 'acciones', 'materias', 'inmobiliario', 'cripto', 'complejos'],
     )
   })
 

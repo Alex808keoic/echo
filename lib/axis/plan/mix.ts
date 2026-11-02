@@ -103,7 +103,7 @@ export function goalInvestedPool(positions: ReadonlyArray<Pick<Position, 'name' 
 /** Tipo de una inversión por su nombre («MSCI World indexado» → renta variable global); sin pistas, «other». */
 export function guessAssetType(name: string): PositionAssetType {
   const [first] = matchProductTypes(name)
-  return first ? TYPE_OF_FAMILY[first.family] : 'other'
+  return first ? (first.assetType ?? TYPE_OF_FAMILY[first.family]) : 'other'
 }
 
 /** Porcentajes de cada parte (suman 100). */
