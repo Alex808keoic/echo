@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-02T17:19:49.871Z",
+  "checkedAt": "2026-11-03T15:24:43.926Z",
   "indicators": [
     {
       "key": "ecb-dfr",
@@ -10,18 +10,18 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.308,
+      "value": 3.304,
       "unit": "%",
-      "asOf": "2026-10-29",
-      "changePct": 0.018,
+      "asOf": "2026-11-02",
+      "changePct": -0.002,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "ine-ipc",
@@ -33,7 +33,7 @@
       "changePct": 0,
       "source": "INE",
       "status": "advance",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "ea-hicp",
@@ -45,43 +45,31 @@
       "changePct": 0.6,
       "source": "Eurostat",
       "publishedAt": "2026-10-16T21:00:00.000Z",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 18857.6,
+      "value": 18957.8,
       "unit": "pts",
-      "asOf": "2026-10-29",
-      "changePct": -0.78,
+      "asOf": "2026-11-02",
+      "changePct": -1.77,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
-    },
-    {
-      "key": "stoxx50",
-      "label": "EURO STOXX 50 (media mensual)",
-      "group": "index",
-      "value": 6170.73,
-      "unit": "pts",
-      "asOf": "2026-10",
-      "changePct": -2.31,
-      "changeDays": 30,
-      "source": "BCE",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "fed-funds",
       "label": "Fed · tipo de fondos federales",
       "group": "rate",
-      "value": 3.75,
+      "value": 3.88,
       "unit": "%",
-      "asOf": "2026-09",
-      "changePct": 0.12,
-      "changeDays": 31,
+      "asOf": "2026-10",
+      "changePct": 0.13,
+      "changeDays": 30,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "spx",
@@ -93,19 +81,19 @@
       "changePct": -1.85,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "ndq",
       "label": "Nasdaq 100",
       "group": "index",
-      "value": 29402.51,
+      "value": 27989.82,
       "unit": "pts",
-      "asOf": "2026-10-29",
-      "changePct": -3.6,
+      "asOf": "2026-11-02",
+      "changePct": -9.93,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "brent",
@@ -117,19 +105,19 @@
       "changePct": 8.02,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "us-10y",
       "label": "Bono a 10 años de EE. UU.",
       "group": "bond",
-      "value": 4.98,
+      "value": 4.94,
       "unit": "%",
-      "asOf": "2026-10-29",
-      "changePct": -0.26,
+      "asOf": "2026-10-30",
+      "changePct": -0.34,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "eu-hy",
@@ -141,7 +129,7 @@
       "changePct": 0.23,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "copper",
@@ -153,7 +141,7 @@
       "changePct": 0.99,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "gas-eu",
@@ -165,31 +153,7 @@
       "changePct": 21.85,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
-    },
-    {
-      "key": "ea-10y",
-      "label": "Bono a 10 años de la eurozona (AAA)",
-      "group": "bond",
-      "value": 3.37,
-      "unit": "%",
-      "asOf": "2026-10-30",
-      "changePct": -0.1,
-      "changeDays": 28,
-      "source": "BCE",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
-    },
-    {
-      "key": "es-10y",
-      "label": "Bono a 10 años de España (media mensual)",
-      "group": "bond",
-      "value": 3.93,
-      "unit": "%",
-      "asOf": "2026-09",
-      "changePct": 0.29,
-      "changeDays": 31,
-      "source": "BCE",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "ine-ipv",
@@ -201,19 +165,19 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "es-deposit-1y",
       "label": "Depósitos a plazo hasta 1 año (hogares, media)",
       "group": "rate",
-      "value": 2.01,
+      "value": 2.29,
       "unit": "%",
-      "asOf": "2026-08",
-      "changePct": -0.01,
+      "asOf": "2026-09",
+      "changePct": 0.27,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "es-deposit-sight",
@@ -221,11 +185,11 @@
       "group": "rate",
       "value": 0.16,
       "unit": "%",
-      "asOf": "2026-08",
+      "asOf": "2026-09",
       "changePct": 0,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "es-letras-1y",
@@ -237,47 +201,63 @@
       "changePct": -0.04,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "gold",
       "label": "Oro (dólares por onza)",
       "group": "commodity",
-      "value": 3968.1,
+      "value": 3929.5,
       "unit": "USD",
-      "asOf": "2026-11-02",
+      "asOf": "2026-11-03",
       "changePct": null,
       "source": "gold-api.com",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 69326,
+      "value": 69019,
       "unit": "EUR",
-      "asOf": "2026-11-02",
-      "changePct": -9.78,
+      "asOf": "2026-11-03",
+      "changePct": -9.73,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     },
     {
       "key": "eth",
       "label": "Ether (euros)",
       "group": "crypto",
-      "value": 2031,
+      "value": 2040,
       "unit": "EUR",
-      "asOf": "2026-11-02",
-      "changePct": -16.13,
+      "asOf": "2026-11-03",
+      "changePct": -15.56,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-11-02T17:19:49.871Z"
+      "fetchedAt": "2026-11-03T15:24:43.927Z"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "kind": "rate-change",
+      "detail": "Fed · tipo de fondos federales: 3.75 → 3.88"
+    },
+    {
+      "kind": "index-move",
+      "detail": "Nasdaq 100: -4.8 % desde 2026-10-29"
+    },
+    {
+      "kind": "headline",
+      "detail": "Banco de España · noticias: Estadísticas de los tipos de interés aplicados por las entidades de crédito de la zona del euro: septiembre de 2026"
+    }
+  ],
   "failedSources": [
+    "BCE (Euríbor)",
+    "BCE (EURO STOXX 50)",
+    "BCE (bonos)",
     "FMI (materias primas)"
   ],
-  "eventTriggered": false
+  "eventTriggered": true
 }
