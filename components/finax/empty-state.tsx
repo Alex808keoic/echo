@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { LeafLogo } from './icons'
 
 interface EmptyStateProps {
   title: string
@@ -16,7 +15,8 @@ export function EmptyState({ title, description, action, icon }: EmptyStateProps
   return (
     <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/60 px-6 py-10 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-finax-soft text-finax">
-        {icon ?? <LeafLogo className="h-7 w-7" />}
+        {/* Por defecto, la marca de Finax. Decorativa: el título ya dice qué pasa. */}
+        {icon ?? <img src="/logo-mark.png" alt="" aria-hidden="true" className="h-8 w-8 object-contain" />}
       </div>
       <p className="text-[15px] font-bold text-grafito text-balance">{title}</p>
       {description && (

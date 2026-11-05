@@ -23,27 +23,6 @@ function Base({ children, ...props }: IconProps & { children: React.ReactNode })
   )
 }
 
-/* --------------------------------- Marca ---------------------------------- */
-
-export function LeafLogo(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M20 4c0 8-5.5 13-13 13-1 0-2-.2-2-.2s.2-9 8-12c3-1.2 7-.8 7-.8Z"
-        fill="currentColor"
-        opacity="0.18"
-      />
-      <path
-        d="M20 4c0 8-5.5 13-13 13M20 4S8 4 5 13c-.7 2-1 4-1 4M20 4c-6 1-11 4-13 9"
-        stroke="currentColor"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 /* ------------------------------ Navegación -------------------------------- */
 
 export function HomeIcon(props: IconProps) {
