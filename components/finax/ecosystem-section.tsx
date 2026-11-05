@@ -80,10 +80,10 @@ export function EcosystemSection({ configured }: { configured: boolean }) {
         : 'Tus datos se guardan en tu cuenta y aparecen en cualquier móvil donde entres con ella.'
 
   const status = failed
-    ? 'No he podido enviar el último resumen. Lo intento otra vez la próxima vez que abras Finax.'
+    ? 'No he podido enviar el último resumen. Lo vuelvo a intentar yo solo.'
     : lastSentAt
       ? `Último envío a las ${time.format(new Date(lastSentAt))}.`
-      : 'El resumen se envía al abrir y al salir de Finax.'
+      : 'El resumen se envía solo mientras usas Finax.'
 
   return (
     <Group title="Ecosistema AXIS">
@@ -160,7 +160,7 @@ function MetricsForm({
   return (
     <div className="space-y-4">
       <p className="text-[13px] font-medium leading-snug text-muted-foreground text-pretty">
-        Cada semana, AXIS recibe estas cifras de esa semana. Las deudas solo tienen dato desde hoy: Finax no guarda cómo eran antes.
+        AXIS recibe estas cifras, semana a semana, mientras usas Finax. Las deudas solo tienen dato desde hoy: Finax no guarda cómo eran antes.
       </p>
       <div className="flex flex-wrap gap-2">
         {FINAX_METRICS.map((metric) => {

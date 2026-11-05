@@ -9,6 +9,7 @@
  */
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import type { Snapshot } from './contract'
+import { snapshotsFingerprint } from './snapshot-fingerprint'
 
 /**
  * Proyecto compartido del ecosistema. La clave publicable es pública por diseño:
@@ -25,11 +26,9 @@ export const RETURN_TO_SETTINGS_KEY = 'finax.ecosystem.return'
 /** La app AXIS, para abrirla desde aquí. */
 export const AXIS_URL = 'https://axis-life.vercel.app'
 
-/** Entre envíos automáticos pasan al menos estos minutos. */
-const MIN_MINUTES_BETWEEN_PUSHES = 5
-
 let clientPromise: Promise<SupabaseClient> | null = null
-let lastPushAt = 0
+/** Lo último que AXIS recibió en esta sesión de la app; al abrirla se vuelve a enviar. */
+let lastSentFingerprint: string | null = null
 
 /**
  * Candado dentro de la pestaña. El de por defecto (`navigator.locks`) lo comparten
@@ -95,11 +94,12 @@ export async function signOutOfEcosystem(): Promise<void> {
 
 /**
  * Envía todos los snapshots de una vez. Cada uno sustituye al de su semana, así que
- * reenviar es inofensivo y no hace falta recordar qué se mandó.
- * Con `force` no espera los minutos entre envíos (lo pide el usuario).
+ * reenviar es inofensivo. Si nada cambió desde el último envío correcto no se hace
+ * la petición, salvo con `force` (lo pide el usuario).
  */
 export async function pushSnapshots(snapshots: readonly Snapshot[], options: { force?: boolean } = {}): Promise<'sent' | 'skipped' | 'failed'> {
-  if (!options.force && Date.now() - lastPushAt < MIN_MINUTES_BETWEEN_PUSHES * 60_000) return 'skipped'
+  const fingerprint = snapshotsFingerprint(snapshots)
+  if (!options.force && fingerprint === lastSentFingerprint) return 'skipped'
   const supabase = await client()
   const rows = snapshots.map((snapshot) => ({
     app: snapshot.app,
@@ -111,7 +111,7 @@ export async function pushSnapshots(snapshots: readonly Snapshot[], options: { f
   }))
   const { error } = await supabase.from('snapshots').upsert(rows, { onConflict: 'user_id,app,week_start' })
   if (error) return 'failed'
-  lastPushAt = Date.now()
+  lastSentFingerprint = fingerprint
   return 'sent'
 }
 
@@ -120,7 +120,7 @@ export async function deleteSharedData(): Promise<boolean> {
   const supabase = await client()
   const { error } = await supabase.from('snapshots').delete().eq('app', 'finax')
   if (error) return false
-  lastPushAt = 0
+  lastSentFingerprint = null
   return true
 }
 
