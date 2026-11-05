@@ -10,6 +10,7 @@ import { HISTORY_NOTICE } from '@/lib/axis/guide/history'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
 import { defaultYears, monthsLabel, SCENARIO_AMOUNTS_CENTS, SCENARIO_ASSUMPTIONS, SCENARIO_NOTICE, SCENARIO_YEARS, scenarioSeries, type GrowthAssumption } from '@/lib/axis/guide/scenarios'
 import { formatWholeCurrency } from '@/lib/format'
+import { useBackLayer } from '@/lib/navigation/use-back'
 import { cn } from '@/lib/utils'
 import { ScenarioChart } from '../charts/scenario-chart'
 import { SubPageHeader } from '../page-header'
@@ -65,6 +66,11 @@ export function GuideScreen({ overview, onNavigate, onBack }: ScreenProps) {
   const [groupId, setGroupId] = useState<InvestmentGroupId | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const top = useRef<HTMLDivElement>(null)
+  // Dentro de una familia, «atrás» vuelve a la guía.
+  useBackLayer(groupId !== null, () => {
+    setGroupId(null)
+    setOpen(null)
+  })
   if (!result) return <ScreenLoading />
   const { plan, decision } = result
   const rec = recommendGuide(plan, decision.profile.fields)

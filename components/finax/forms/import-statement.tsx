@@ -11,6 +11,7 @@ import { listMovements } from '@/lib/db/movements'
 import { listCashTransfers, saveImport } from '@/lib/db/cash'
 import { attemptWrite } from '@/lib/db/storage-errors'
 import { useIsMinor } from '@/hooks/use-minor'
+import { useBackLayer } from '@/lib/navigation/use-back'
 import { Button } from '../button'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +38,8 @@ export function ImportStatement({ onDone }: { onDone: () => void }) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const minor = useIsMinor()
+  // Revisando, «atrás» vuelve a elegir archivo, como su botón.
+  useBackLayer(step.name === 'review', () => setStep({ name: 'pick' }))
 
   async function readFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

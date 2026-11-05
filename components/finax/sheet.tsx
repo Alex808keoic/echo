@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useBackLayer } from '@/lib/navigation/use-back'
 import { inertOutside } from '@/lib/ui/inert-outside'
 import { IconButton } from './page-header'
 import { CloseIcon } from './icons'
@@ -62,6 +63,9 @@ export function SheetOutlet() {
   const layerRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // «Atrás» del móvil cierra la hoja, no la pantalla de debajo.
+  useBackLayer(isOpen, () => close?.())
 
   // Escape cierra la hoja.
   useEffect(() => {

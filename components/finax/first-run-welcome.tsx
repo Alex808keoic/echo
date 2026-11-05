@@ -10,6 +10,7 @@ import { Button } from './button'
 import { Onboarding, ONBOARDING_TITLE } from './forms/onboarding'
 import { useSheet } from './sheet'
 import { useEcosystem } from '@/hooks/use-ecosystem'
+import { useBackLayer } from '@/lib/navigation/use-back'
 
 /** Si ya se vio la bienvenida en este dispositivo. */
 const SEEN_KEY = 'finax.welcomeSeen'
@@ -46,6 +47,9 @@ export function FirstRunWelcome({ overview }: { overview: Overview }) {
       setStep(0)
     }
   }, [fresh])
+
+  // La primera pantalla de la bienvenida es la raíz: desde ella, «atrás» sale de la app.
+  useBackLayer(step === 1 && fresh, () => setStep(0))
 
   if (step === null || !fresh) return null
 

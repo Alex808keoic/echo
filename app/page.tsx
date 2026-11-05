@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { PhoneFrame, type ScreenEnter } from '@/components/finax/phone-frame'
-import { BottomNavigation, isTab, tabIndex, type ScreenKey, type TabKey } from '@/components/finax/bottom-navigation'
+import { BottomNavigation, isTab, tabIndex, type ScreenKey } from '@/components/finax/bottom-navigation'
 import { HomeScreen } from '@/components/finax/screens/home-screen'
 import { MoneyScreen, openMoneyView } from '@/components/finax/screens/money-screen'
 import { TransactionsScreen } from '@/components/finax/screens/transactions-screen'
@@ -27,10 +27,17 @@ import { isRestorePending } from '@/lib/ecosystem/use-cloud-sync'
 import { useFinancialOverview } from '@/hooks/use-financial-overview'
 import { EcosystemProvider } from '@/hooks/use-ecosystem'
 import { RETURN_TO_SETTINGS_KEY } from '@/lib/ecosystem/client'
+import { useScreenStack, type ScreenChange } from '@/lib/navigation/use-back'
 
 type NavDirection = 'forward' | 'back' | 'left' | 'right'
 
 const FALLBACK_ENTER: Record<NavDirection, ScreenEnter> = { forward: 'forward', back: 'back', left: 'fade', right: 'fade' }
+
+/** Entre pestañas, hacia el lado de la pestaña; al abrir una secundaria, hacia delante; al volver, hacia atrás. */
+function directionOf({ from, to, kind }: ScreenChange<ScreenKey>): NavDirection {
+  if (isTab(from) && isTab(to)) return tabIndex(to) > tabIndex(from) ? 'right' : 'left'
+  return kind === 'pop' || isTab(to) ? 'back' : 'forward'
+}
 
 export default function Page() {
   return (
@@ -43,13 +50,16 @@ export default function Page() {
 }
 
 function App() {
-  const [screen, setScreen] = useState<ScreenKey>('inicio')
-  /** Última pestaña principal visitada: se resalta en la barra y es el destino de «volver». */
-  const [origin, setOrigin] = useState<TabKey>('inicio')
   // Animación de entrada: ninguna al abrir la app; después, según de dónde a dónde se va.
   const [enter, setEnter] = useState<ScreenEnter | undefined>(undefined)
   const overview = useFinancialOverview()
   const { open, close } = useSheet()
+  // Cada pantalla es una entrada del historial, con Inicio como raíz: desde ella, «atrás» sale de la app.
+  const { screens, current: screen, navigate: goTo, back: backScreen } = useScreenStack<ScreenKey>('inicio', Object.is, (update, change) => {
+    transition(directionOf(change), update)
+  })
+  /** Última pestaña principal de la pila: es la que se resalta en la barra. */
+  const origin = screens.filter(isTab).at(-1) ?? 'inicio'
 
   // Al volver de entrar con Google para el ecosistema AXIS, se reabre Ajustes, donde se empezó.
   useEffect(() => {
@@ -57,11 +67,11 @@ function App() {
       if (window.sessionStorage.getItem(RETURN_TO_SETTINGS_KEY) === null) return
       window.sessionStorage.removeItem(RETURN_TO_SETTINGS_KEY)
       // Si se entró para recuperar los datos, se queda en Inicio.
-      if (!isRestorePending('finax')) setScreen('ajustes')
+      if (!isRestorePending('finax')) goTo('ajustes')
     } catch {
       // Sin sessionStorage se queda en Inicio.
     }
-  }, [])
+  }, [goTo])
 
   const showFab = screen === 'movimientos' || screen === 'dinero'
   const openNewMovement = () => open('Nuevo movimiento', <MovementForm onDone={close} />)
@@ -91,22 +101,9 @@ function App() {
     if (target === 'plan') openAxisTab('plan')
     // Estadísticas es la vista de gastos de «Tu dinero».
     if (target === 'estadisticas') openMoneyView('Gastos')
-    const next = target === 'plan' ? 'axis' : target === 'estadisticas' ? 'dinero' : target
-    if (next === screen) return
-    // Entre pestañas, hacia el lado de la pestaña; a una secundaria, hacia delante; de una secundaria a una pestaña, hacia atrás.
-    const direction: NavDirection = isTab(next)
-      ? isTab(screen)
-        ? tabIndex(next) > tabIndex(screen)
-          ? 'right'
-          : 'left'
-        : 'back'
-      : 'forward'
-    transition(direction, () => {
-      if (isTab(next)) setOrigin(next)
-      setScreen(next)
-    })
+    goTo(target === 'plan' ? 'axis' : target === 'estadisticas' ? 'dinero' : target)
   }
-  const back = () => transition('back', () => setScreen(origin))
+  const back = backScreen
 
   return (
     <main className="min-h-dvh w-full bg-background">

@@ -12,6 +12,14 @@
 
 ---
 
+## El botón «atrás» del móvil (2026-11-05)
+
+- «Atrás» vuelve a la pantalla anterior y solo sale de la app desde Inicio, sin nada detrás. Cierra también las hojas, el segundo paso de la bienvenida, la familia abierta de la Guía y la revisión de un extracto.
+- La flecha de las pantallas secundarias ahora hace lo mismo: vuelve a la pantalla anterior, no a la última pestaña. Ir a una pantalla que ya está en la pila vuelve a ella.
+- Código: `lib/navigation/`, el mismo módulo en las cuatro apps del ecosistema (AXIS D-027). Toda hoja nueva lo hereda; un paso o detalle nuevo necesita su `useBackLayer`.
+
+---
+
 ## Guía para invertir: Finax como experto en cada tipo (2026-11-02)
 
 - **10 familias y 50 tipos** (antes 8 y 29). Nuevas familias: «Planes de pensiones y seguros de ahorro» (`prevision`: plan individual, de empleo, PIAS, SIALP/CIALP, unit linked) y «Productos complejos» (`complejos`: CFD, futuros y opciones, estructurados, warrants y turbos). Tipos nuevos en las demás: bonos ligados a la inflación, high yield, pagarés, preferentes y subordinada, crowdlending; fondos garantizados, a vencimiento, carteras gestionadas/robo-advisor, capital riesgo y ELTIF; ETF de factores y dividendos; vivienda para alquilar; staking.
