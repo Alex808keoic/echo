@@ -1,10 +1,10 @@
 {
   "version": 1,
   "month": "2026-11",
-  "monthCalls": 1,
-  "monthTokens": 5151,
-  "deepResearchThisMonth": 1,
-  "day": "2026-11-03",
+  "monthCalls": 2,
+  "monthTokens": 10067,
+  "deepResearchThisMonth": 2,
+  "day": "2026-11-07",
   "dayCalls": 1,
   "week": "2026-W45",
   "eventResearchThisWeek": 1,
@@ -155,6 +155,13 @@
       "reason": "event",
       "ok": true,
       "tokens": 5151
+    },
+    {
+      "at": "2026-11-07T12:45:38.449Z",
+      "provider": "cloudflare:@cf/google/gemma-4-26b-a4b-it",
+      "reason": "scheduled",
+      "ok": true,
+      "tokens": 4916
     }
   ]
 }
