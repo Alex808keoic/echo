@@ -211,6 +211,8 @@ describe('Finax como experto en cada tipo (2026-11-02)', () => {
     assert.deepEqual(ids('¿Un ETF de dividendos?'), ['etf-dividendo'])
     assert.deepEqual(ids('Me interesa un ETF temático de inteligencia artificial'), ['etf-tematico'])
     assert.deepEqual(ids('¿Qué tal un ETF de energía limpia?'), ['etf-tematico'])
+    assert.deepEqual(ids('¿Qué tal un ETF de computación cuántica?'), ['etf-tematico'])
+    assert.deepEqual(ids('¿Merece la pena invertir en computación cuántica?'), ['etf-tematico'])
     assert.deepEqual(ids('¿Qué tal un ETF de tecnología?'), ['etf-sector'])
     assert.deepEqual(ids('¿Y un ETF inverso para cuando caiga el mercado?'), ['etf-inverso'])
     assert.deepEqual(ids('¿Un ETF apalancado x3?'), ['etf-apalancado'])

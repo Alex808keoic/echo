@@ -551,8 +551,8 @@ const BASE_TYPES: readonly ProductTypeBase[] = [
     goodFor: 'Como mucho, una parte pequeña, si crees en la tendencia a muy largo plazo y aceptas que puede ir muy mal.',
     compare: ['Cuántas empresas lleva y cuánto pesan las mayores', 'Cuánto de cada empresa depende de verdad de la temática', 'La comisión total anual: suelen ser más caros que los sectoriales', 'Desde cuándo existe: muchos se lanzan justo después de una gran subida'],
     warnings: ['Las temáticas de moda a menudo se compran cuando ya han subido mucho', 'Una tendencia puede ser real y aun así sus empresas estar demasiado caras', 'Muchos ETF temáticos cierran a los pocos años por falta de dinero'],
-    examples: ['Inteligencia artificial', 'Semiconductores', 'Energías renovables o hidrógeno', 'Robótica y automatización', 'Ciberseguridad', 'Envejecimiento y salud'],
-    keywords: ['etf tematico', 'etf tematicos', 'tematico', 'tematicos', 'etf de inteligencia artificial', 'etf de ia', 'etf de energia limpia', 'etf de renovables', 'etf de ciberseguridad', 'etf de robotica', 'megatendencias'],
+    examples: ['Inteligencia artificial', 'Semiconductores', 'Computación cuántica', 'Energías renovables o hidrógeno', 'Robótica y automatización', 'Ciberseguridad', 'Envejecimiento y salud'],
+    keywords: ['etf tematico', 'etf tematicos', 'tematico', 'tematicos', 'etf de inteligencia artificial', 'etf de ia', 'etf de energia limpia', 'etf de renovables', 'etf de ciberseguridad', 'etf de robotica', 'megatendencias', 'computacion cuantica', 'etf de computacion cuantica', 'etf cuantico', 'quantum computing'],
   },
   {
     id: 'etf-factor',
