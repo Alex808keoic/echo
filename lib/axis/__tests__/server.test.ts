@@ -60,9 +60,9 @@ describe('IA de AXIS · configuración · fallback y modelos por proveedor', () 
     assert.deepEqual(ids({ AXIS_AI_PROVIDER: 'groq', GROQ_API_KEY: 'g', AXIS_AI_MODEL: 'openai/gpt-oss-20b' }), ['groq:openai/gpt-oss-20b'], 'la configuración actual de producción no cambia')
   })
 
-  it('topes de salida por proveedor: Cloudflare 1.200, Groq 3.000', () => {
-    assert.equal(AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.cloudflare, 1_200)
-    assert.equal(AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.groq, 3_000)
+  it('topes de salida por proveedor: Cloudflare 2.000, Groq 2.000', () => {
+    assert.equal(AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.cloudflare, 2_000)
+    assert.equal(AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.groq, 2_000)
   })
 
   it('las claves nunca aparecen en el id del modelo', () => {

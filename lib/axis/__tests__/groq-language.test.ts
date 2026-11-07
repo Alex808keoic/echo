@@ -110,7 +110,8 @@ describe('Groq como modelo de lenguaje de AXIS', () => {
     assert.deepEqual(body.response_format.json_schema.schema, AXIS_EXPRESSION_SCHEMA)
     assert.equal(body.tools, undefined, 'sin herramientas')
     assert.equal(body.max_completion_tokens, AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.groq, 'el tope de salida es el de Groq en el servidor, no uno propio del adapter')
-    assert.equal(body.max_completion_tokens, 3_000, 'gpt-oss razona dentro de este tope: no se baja al de Cloudflare')
+    assert.equal(body.max_completion_tokens, 2_000, 'gpt-oss razona dentro de este tope')
+    assert.equal((body as { reasoning_effort?: string }).reasoning_effort, 'low', 'razonamiento bajo: responde antes y deja cupo a la petición')
   })
 
   it('el JSON de Groq pasa por parse/validate/merge de Decision First y la decisión sigue siendo de AXIS', async () => {

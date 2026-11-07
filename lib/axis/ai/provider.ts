@@ -15,6 +15,11 @@ export interface AIRequest {
   user: string
   /** JSON Schema que la salida debe cumplir. */
   schema: Record<string, unknown>
+  /**
+   * Versión reducida de la misma petición, para el proveedor al que la completa no le cabe (Groq gratuito):
+   * con ella responde el fallback en lugar del motor local. Los proveedores solo leen system, user y schema.
+   */
+  compact?: Omit<AIRequest, 'compact'>
 }
 
 export interface AIProvider {

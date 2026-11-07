@@ -187,8 +187,12 @@ export function fallbackChain(models: AxisLanguageModel[], timing: ChainTiming):
       const errors: unknown[] = []
       // Un proveedor que no admite una petición tan grande no se intenta ni se le reserva tiempo: el plazo
       // entero va a los que sí (Groq gratuito responde 413 a lo que no cabe en su cupo por minuto).
+      // Si la completa no cabe pero hay versión reducida que sí (`compact`), ese proveedor recibe la reducida.
       const size = requestChars(request)
-      const fitting = usable.filter((m) => m.maxRequestChars === undefined || size <= m.maxRequestChars)
+      const compactSize = request.compact ? requestChars(request.compact) : Infinity
+      const requestFor = (m: AxisLanguageModel): AIRequest | null =>
+        m.maxRequestChars === undefined || size <= m.maxRequestChars ? request : request.compact && compactSize <= m.maxRequestChars ? request.compact : null
+      const fitting = usable.filter((m) => requestFor(m) !== null)
       const order = fitting.length > 0 ? fitting : usable
       for (const model of usable) {
         if (order.includes(model)) continue
@@ -210,7 +214,7 @@ export function fallbackChain(models: AxisLanguageModel[], timing: ChainTiming):
         if (options.signal?.aborted) controller.abort()
         options.signal?.addEventListener('abort', onAbort)
         try {
-          return await model.complete(request, { ...options, signal: controller.signal, onAttempt: (r) => options.onAttempt?.({ ...r, attempt }) })
+          return await model.complete(requestFor(model) ?? request, { ...options, signal: controller.signal, onAttempt: (r) => options.onAttempt?.({ ...r, attempt }) })
         } catch (error) {
           if (options.signal?.aborted || !isProviderFailure(error)) throw error
           errors.push(error)

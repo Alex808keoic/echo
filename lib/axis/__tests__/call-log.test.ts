@@ -183,12 +183,12 @@ describe('AXIS · registro de llamadas · cadena Cloudflare → Groq', () => {
     }
   }
 
-  it('Cloudflare responde: una línea con neuronas y el tope de 1.200', async () => {
+  it('Cloudflare responde: una línea con neuronas y el tope de 2.000', async () => {
     const out = await run(cfOk)
     assert.equal(out.length, 1)
     const e = out[0].entry
     assert.equal(e.model, 'cloudflare:@cf/google/gemma-4-26b-a4b-it')
-    assert.deepEqual([e.attempt, e.fallback, e.outcome, e.maxOutputTokens], [1, false, 'ok', 1_200])
+    assert.deepEqual([e.attempt, e.fallback, e.outcome, e.maxOutputTokens], [1, false, 'ok', 2_000])
     assert.equal(e.diagnostics.neurons, 42.25)
   })
 
@@ -197,8 +197,8 @@ describe('AXIS · registro de llamadas · cadena Cloudflare → Groq', () => {
     assert.deepEqual(
       out.map(({ entry: e }) => [e.model, e.attempt, e.fallback, e.outcome, e.errorKind, e.maxOutputTokens]),
       [
-        ['cloudflare:@cf/google/gemma-4-26b-a4b-it', 1, false, 'error', 'rate-limit', 1_200],
-        ['groq:openai/gpt-oss-20b', 2, true, 'ok', undefined, 3_000],
+        ['cloudflare:@cf/google/gemma-4-26b-a4b-it', 1, false, 'error', 'rate-limit', 2_000],
+        ['groq:openai/gpt-oss-20b', 2, true, 'ok', undefined, 2_000],
       ],
     )
     assert.equal(out[0].entry.diagnostics.retryAfter, '60')

@@ -116,9 +116,30 @@ export function buildChatRequest(input: ChatInput, { tools = false }: { tools?: 
     ...(offerTools ? { consultas_disponibles: TOOLS_FOR_PROMPT } : {}),
     ...(toolResults ? { resultados_de_consultas: toolResults.map((r) => ({ consulta: r.consulta, resultado: r.resultado })) } : {}),
   }
+  // Versión reducida para el fallback al que la completa no le cabe (Groq gratuito, ~21.000 caracteres): sin
+  // histórico, mercado, conversación antigua, conclusiones ni consultas, y la guía sin su historia. Con datos
+  // reales la completa pesaba 28.000 y Groq se saltaba: respondía el motor local (2026-11-07).
+  const compactGuide = guide ? guideForPrompt(guide) : null
+  const compactPayload = {
+    datos_actuales: {
+      contexto_financiero: payload.datos_actuales.contexto_financiero,
+      senales_detectadas_por_finax: payload.datos_actuales.senales_detectadas_por_finax,
+      plan_de_reparto: payload.datos_actuales.plan_de_reparto,
+      tono_sugerido: payload.datos_actuales.tono_sugerido,
+    },
+    memoria: { memorias_del_usuario: payload.memoria.memorias_del_usuario },
+    conversacion_actual: { resumen_de_lo_anterior: conversation.summary, ultimos_mensajes: conversation.recent.slice(-2).map((m) => ({ ...m, text: m.text.length > 600 ? `${m.text.slice(0, 600)}…` : m.text })) },
+    consulta_actual: message,
+    ...(compactGuide
+      ? { guia_para_invertir: { ...compactGuide, tipos: compactGuide.tipos.map(({ historia: _h, como_compararlo: _c, ...t }) => (void _h, void _c, t)) } }
+      : {}),
+    ...(toolResults ? { resultados_de_consultas: payload.resultados_de_consultas } : {}),
+  }
+  const intro = 'Responde a «consulta_actual» y devuelve el JSON de la respuesta.\n\n'
   return {
     system: AXIS_CHAT_SYSTEM_PROMPT,
-    user: `Responde a «consulta_actual» y devuelve el JSON de la respuesta.\n\n${JSON.stringify(payload)}`,
+    user: `${intro}${JSON.stringify(payload)}`,
     schema: (offerTools ? AXIS_CHAT_TOOL_SCHEMA : AXIS_CHAT_SCHEMA) as unknown as Record<string, unknown>,
+    compact: { system: AXIS_CHAT_SYSTEM_PROMPT, user: `${intro}${JSON.stringify(compactPayload)}`, schema: AXIS_CHAT_SCHEMA as unknown as Record<string, unknown> },
   }
 }

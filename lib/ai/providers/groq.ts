@@ -30,6 +30,9 @@ export function createGroqProvider(opts: { apiKey: string; model?: string; timeo
         { role: 'user', content: request.user },
       ],
       response_format: { type: 'json_schema', json_schema: { name: 'market_research', strict: true, schema: request.schema } },
+      // `gpt-oss` razona antes de responder y ese razonamiento cuenta en `max_completion_tokens` y en el cupo
+      // por minuto: con «low» responde antes y deja sitio a la petición (2026-11-07).
+      ...(model.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low' } : {}),
       // Sin `tools`.
     }
     let res: Response

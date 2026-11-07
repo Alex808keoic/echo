@@ -25,13 +25,14 @@ type Behavior = (signal?: AbortSignal) => Promise<unknown>
 
 /** Proveedor simulado que cuenta llamadas y guarda el tope de salida recibido. */
 function fake(id: string, behavior: Behavior) {
-  const seen = { calls: 0, maxOutputTokens: [] as number[] }
+  const seen = { calls: 0, maxOutputTokens: [] as number[], users: [] as string[] }
   const provider: MarketAIProvider = {
     id,
     model: id,
-    async completeWithUsage(_request, options) {
+    async completeWithUsage(request, options) {
       seen.calls++
       seen.maxOutputTokens.push(options.maxOutputTokens)
+      seen.users.push(request.user)
       const output = await behavior(options.signal)
       return { output, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 }, diagnostics: { status: 200, finishReason: 'stop' } }
     },
@@ -266,24 +267,24 @@ describe('AXIS · cadena desde la configuración (Cloudflare → Groq)', () => {
     assert.equal(model.id, 'cloudflare:@cf/google/gemma-4-26b-a4b-it > groq:openai/gpt-oss-20b')
   })
 
-  it('Cloudflare responde: una sola llamada, con 1.200 tokens de salida', async () => {
+  it('Cloudflare responde: una sola llamada, con 2.000 tokens de salida', async () => {
     const i = input()
     const { result, calls } = await withProviders(
       { cloudflare: () => chatCompletion(expressionJSON(decide(i))), groq: () => chatCompletion('{}') },
       () => analyzeWithProvider(languageModelFromConfig(readAIServerConfig(ENV)), i.context, undefined, undefined, null, 'decision-first'),
     )
-    assert.deepEqual(calls.map((c) => [c.host, c.body.max_completion_tokens]), [['cloudflare', 1_200]])
+    assert.deepEqual(calls.map((c) => [c.host, c.body.max_completion_tokens]), [['cloudflare', 2_000]])
     assert.match((result as { engine: { label: string } }).engine.label, /cloudflare:/)
   })
 
-  it('Cloudflare 429 → Groq (con 3.000 tokens) responde y la etiqueta dice que respondió Groq', async () => {
+  it('Cloudflare 429 → Groq (con 2.000 tokens) responde y la etiqueta dice que respondió Groq', async () => {
     const i = input()
     const d = decide(i)
     const { result, calls } = await withProviders(
       { cloudflare: () => new Response('{"errors":[{"code":4006}]}', { status: 429 }), groq: () => chatCompletion(expressionJSON(d)) },
       () => analyzeWithProvider(languageModelFromConfig(readAIServerConfig(ENV)), i.context, undefined, undefined, null, 'decision-first'),
     )
-    assert.deepEqual(calls.map((c) => [c.host, c.body.max_completion_tokens]), [['cloudflare', 1_200], ['groq', 3_000]])
+    assert.deepEqual(calls.map((c) => [c.host, c.body.max_completion_tokens]), [['cloudflare', 2_000], ['groq', 2_000]])
     const analysis = result as { engine: { label: string }; recommendation?: { what: string } }
     assert.match(analysis.engine.label, /groq:openai\/gpt-oss-20b/)
     assert.equal(analysis.recommendation?.what, d.recommendation?.what, 'la decisión sigue siendo de AXIS')
@@ -390,7 +391,27 @@ describe('AXIS · cadena de proveedores · peticiones demasiado grandes (2026-10
   })
 
   it('Groq tiene tope y Cloudflare no', () => {
-    assert.equal(AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER.groq, 18_000)
+    assert.equal(AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER.groq, 21_000)
     assert.equal(AXIS_AI_LIMITS.MAX_REQUEST_CHARS_BY_PROVIDER.cloudflare, undefined)
+  })
+
+  // 2026-11-07: con datos reales el chat pesaba 28.000 y Groq nunca llegaba a responder; respondía el motor local.
+  it('si la completa no cabe pero la reducida sí, el de reserva responde con la reducida', async () => {
+    const a = fake('cloudflare:a', fail('malformed'))
+    const b = fake('groq:b', ok({ ok: 'reserva' }))
+    const withCompact: AIRequest = { ...big, compact: { system: 's', user: 'reducida', schema: { type: 'object' } } }
+    const chain = fallbackChain([fromProvider(a.provider), fromProvider(b.provider, { maxRequestChars: 100 })], FAST)
+    assert.deepEqual(await chain.complete(withCompact, { maxOutputTokens: 100 }), { ok: 'reserva' })
+    assert.deepEqual(a.seen.users, [big.user], 'el principal recibe la completa')
+    assert.deepEqual(b.seen.users, ['reducida'])
+  })
+
+  it('si ni la reducida cabe, el de reserva sigue sin intentarse', async () => {
+    const a = fake('cloudflare:a', ok({ ok: 'principal' }))
+    const b = fake('groq:b', ok({ ok: 'reserva' }))
+    const withCompact: AIRequest = { ...big, compact: { system: 's', user: 'y'.repeat(300), schema: { type: 'object' } } }
+    const chain = fallbackChain([fromProvider(a.provider), fromProvider(b.provider, { maxRequestChars: 100 })], FAST)
+    assert.deepEqual(await chain.complete(withCompact, { maxOutputTokens: 100 }), { ok: 'principal' })
+    assert.equal(b.seen.calls, 0)
   })
 })

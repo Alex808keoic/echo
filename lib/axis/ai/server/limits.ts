@@ -28,19 +28,23 @@ export const AXIS_AI_LIMITS = Object.freeze({
    * Tope de salida de cada proveedor.
    * - Cloudflare (Gemma 4, sin razonamiento): la expresión de una decisión
    *   ocupa ~430 tokens en el peor escenario dorado y una respuesta de chat
-   *   cabe en ~570 (2.000 caracteres); 1.200 deja más del doble de margen.
+   *   cabe en ~570 (2.000 caracteres). Con 1.200, un análisis real ya usó 878 y una pregunta del chat
+   *   («¿qué es la computación cuántica?») se truncó (2026-11-07): 2.000.
    * - Groq (`gpt-oss`): el razonamiento cuenta dentro de `max_completion_tokens`,
-   *   así que un tope bajo trunca la respuesta (`finish_reason: length`).
+   *   así que un tope bajo trunca la respuesta (`finish_reason: length`). Con razonamiento «low»
+   *   (providers/groq.ts) un análisis usaba ~1.100–1.500 con «medium»: 2.000 deja margen y libera cupo.
    */
-  MAX_OUTPUT_TOKENS_BY_PROVIDER: Object.freeze({ cloudflare: 1_200, groq: 3_000, gemini: 3_000 }),
+  MAX_OUTPUT_TOKENS_BY_PROVIDER: Object.freeze({ cloudflare: 2_000, groq: 2_000, gemini: 3_000 }),
   /**
    * Petición más grande (instrucciones + datos + esquema, en caracteres) que admite cada proveedor; sin
    * entrada, cualquiera. Groq gratuito: 8.000 tokens por minuto contando la petición Y el tope de salida
    * (3.000), así que la petición debe quedar por debajo de ~5.000 tokens. En producción, 17.691 caracteres
    * fueron 4.598 tokens (~3,85 por token): 18.000 deja margen. Por encima respondía 413 (2026-10-25, con
    * 37.201 caracteres) y además le quitaba 8 s al principal. Una petición que no cabe no se intenta.
+   * Con el tope de salida en 2.000 (2026-11-07) caben ~5.800 tokens de petición: 21.000 caracteres con margen.
+   * El chat manda a Groq su versión reducida (`AIRequest.compact`) cuando la completa no cabe.
    */
-  MAX_REQUEST_CHARS_BY_PROVIDER: Object.freeze({ groq: 18_000 } as Partial<Record<'cloudflare' | 'groq' | 'gemini', number>>),
+  MAX_REQUEST_CHARS_BY_PROVIDER: Object.freeze({ groq: 21_000 } as Partial<Record<'cloudflare' | 'groq' | 'gemini', number>>),
   /** Timeout de cada llamada a un proveedor (tope; la cadena puede dar menos). Cubre el plazo del chat. */
   TIMEOUT_MS: 36_000,
   /**

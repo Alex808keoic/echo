@@ -90,7 +90,7 @@ describe('Cloudflare Workers AI · configuración', () => {
 })
 
 describe('Cloudflare Workers AI · adapter', () => {
-  it('endpoint de la cuenta, Bearer CF_API_TOKEN, Gemma 4 sin razonamiento, json_schema strict, sin tools y tope de 1.200', async () => {
+  it('endpoint de la cuenta, Bearer CF_API_TOKEN, Gemma 4 sin razonamiento, json_schema strict, sin tools y tope de 2.000', async () => {
     const i = input()
     const d = decide(i)
     const { captured } = await withFetch(
@@ -111,7 +111,7 @@ describe('Cloudflare Workers AI · adapter', () => {
     assert.equal(body.response_format.json_schema.strict, true)
     assert.deepEqual(body.response_format.json_schema.schema, AXIS_EXPRESSION_SCHEMA)
     assert.equal(body.tools, undefined, 'sin herramientas')
-    assert.equal(body.max_completion_tokens, 1_200)
+    assert.equal(body.max_completion_tokens, 2_000)
     assert.equal(body.max_completion_tokens, AXIS_AI_LIMITS.MAX_OUTPUT_TOKENS_BY_PROVIDER.cloudflare)
   })
 

@@ -12,6 +12,14 @@
 
 ---
 
+## El chat de AXIS respondía «en local» con datos reales (2026-11-07)
+
+- Causa, vista en `vercel logs`: Cloudflare truncaba en 1.200 tokens de salida (`finishReason: length`) y Groq se saltaba como `too-large`, porque la petición del chat con datos reales pesa ~28.000 caracteres y el tope de Groq era de 18.000. En la práctica, Groq casi nunca respondía en el chat.
+- Arreglo: Cloudflare a 2.000 tokens de salida; Groq (`gpt-oss`) con `reasoning_effort: 'low'`, salida de 2.000 y petición de hasta 21.000 caracteres; y `AIRequest.compact`, una versión reducida del chat (sin histórico, mercado, conversación antigua ni historia de la guía) que la cadena (`fallbackChain`) manda al proveedor al que no le cabe la completa. Con una conversación larga, la completa pesa ~29.000 y la reducida ~18.000.
+- Sin verificar: los límites reales de la cuenta de Groq (no se pudo leer la clave). Si en los logs sale un 413 o un 429 de Groq con `requestChars` de unos 18.000, baja `MAX_REQUEST_CHARS_BY_PROVIDER.groq`.
+
+---
+
 ## Guía para invertir: más ETF y fondos (2026-11-07)
 
 - **56 tipos** (antes 50). El usuario eligió el bloque «Más ETF y fondos» entre cuatro propuestos; los otros tres quedaron sin hacer y **no están decididos**: familia «Alternativos» (arte, relojes y vino, startups, factoring, divisas, royalties), más ahorro y renta fija (cuentas remuneradas aparte, convertibles, bonos verdes, emergentes, cédulas, PPA) y más cripto e inmobiliario (Ethereum aparte, ETP de cripto, memecoins/DeFi/NFT, garajes y locales, tokenizados, REIT extranjeros).
