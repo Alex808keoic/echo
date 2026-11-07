@@ -65,10 +65,18 @@ describe('ingreso fijo previsto (recurringIncome)', () => {
     assert.equal(planForPrompt(chatPlanOf(decision)).ahorro_es_prevision, true)
   })
 
-  it('si el previsto no cubre el gasto, no hay nada que repartir', () => {
-    const { plan } = planFor({ movements: oneMonth(), facts: [PAGA(20_000)] })
+  it('si ni el previsto ni lo que ingresaste ese mes cubren el gasto, no hay nada que repartir', () => {
+    const short = [ingreso('2026-08-01', 10_000), gasto('2026-08-10', 30_000), ingreso('2026-09-01', 50_000)]
+    const { plan } = planFor({ movements: short, facts: [PAGA(20_000)] })
     assert.equal(plan.blocker, 'no-surplus')
     assert.ok(step(plan, 'forecast-basis'))
+  })
+
+  it('si el previsto no cubre el gasto pero lo que ingresaste ese mes sí, sobra lo real (2026-11-07)', () => {
+    // Agosto: 500 € de ingresos y 300 € de gasto; previsto, 200 €: el plan usa los 500 €.
+    const { plan } = planFor({ movements: oneMonth(), facts: [PAGA(20_000)] })
+    assert.equal(plan.monthly?.savingsCents, 20_000)
+    assert.equal(step(plan, 'forecast-basis')?.lastMonthIncomeCents, 50_000)
   })
 
   it('con meses suficientes mandan los datos; el previsto solo se anota', () => {
