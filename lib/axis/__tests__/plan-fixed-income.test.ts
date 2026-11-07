@@ -79,6 +79,25 @@ describe('el plan con la paga fija', () => {
     assert.ok(plan.steps.some((s) => s.kind === 'forecast-basis'), 'con un solo mes completo, plan provisional con la paga fija')
   })
 
+  it('el plan provisional usa lo que ingresaste de verdad ese mes si es más que la paga (con la paga pendiente incluida)', () => {
+    // Octubre: 10 € de otro ingreso + 35 € de paga pendiente = 45 €, frente a 15 € de gasto → sobran 30 €, no 35 − 15 = 20.
+    const plan = planOf([paga()])
+    const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
+    assert.ok(basis && basis.kind === 'forecast-basis')
+    assert.equal(basis.lastMonthIncomeCents, 4_500)
+    assert.equal(plan.monthly?.savingsCents, 3_000)
+  })
+
+  it('si octubre ingresó menos que la paga, se queda con la paga', () => {
+    const plan = buildAllocationPlan(
+      decide({ context: buildFinancialContext(snapshot({ config: startedOn('2026-09-21'), movements: movements.filter((m) => m.date !== '2026-10-25'), recurring: [paga({ doneThrough: '2026-10-01' })] }), ASOF) }),
+    )
+    const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
+    assert.ok(basis && basis.kind === 'forecast-basis')
+    assert.equal(basis.lastMonthIncomeCents, undefined)
+    assert.equal(plan.monthly?.savingsCents, 3_500 - 1_500)
+  })
+
   it('sin la paga en «Fijos», faltan datos (septiembre está incompleto), no «no te sobra nada»', () => {
     assert.equal(planOf(undefined).blocker, 'insufficient-data')
   })

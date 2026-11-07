@@ -280,7 +280,10 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
     case 'forecast-basis':
       return {
         title: 'Plan provisional con tu ingreso previsto',
-        detail: `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos lo que gastaste en tu último mes completo (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`,
+        detail:
+          step.lastMonthIncomeCents !== undefined
+            ? `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso lo que ingresaste en tu último mes completo (${eur(step.lastMonthIncomeCents)}, más que tu ingreso fijo de ${eur(step.recurringIncomeCents)}) menos lo que gastaste ese mes (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`
+            : `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos lo que gastaste en tu último mes completo (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`,
         note: `${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')} para que el plan salga de tus datos reales.`,
         action: { kind: 'register-data', label: 'Registrar movimientos' },
       }

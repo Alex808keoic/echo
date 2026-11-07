@@ -178,7 +178,8 @@ export type PlanStep =
   | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
   /** Plan provisional: el ahorro sale del ingreso fijo previsto, no de meses registrados. */
-  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number }
+  /** `lastMonthIncomeCents`: lo que ingresaste en tu último mes completo, cuando fue más que el ingreso fijo (y es lo que se usa). */
+  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number }
   /** La prioridad que declaraste no va la primera del reparto (después del colchón). */
   | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
   /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
@@ -366,8 +367,13 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       return blocked('insufficient-data', [{ kind: 'register-data', monthsNeeded }, ...notesStep])
     }
     const lastSpending = Math.ceil(regularExpenseCents(last) / 100) * 100
-    monthly = { savingsCents: euros(declaredIncome.monthlyCents - lastSpending), spendingCents: lastSpending, months: months.length, forecast: true, recurringIncomeCents: declaredIncome.monthlyCents }
-    leading.push({ kind: 'forecast-basis', recurringIncomeCents: declaredIncome.monthlyCents, spendingCents: lastSpending, monthsNeeded })
+    // Lo que ingresaste ese mes (sin lo puntual, con los fijos pendientes) si es más que el ingreso fijo: la paga
+    // no suele ser el único ingreso (2026-11-07: 35 € de paga − 46 € de gasto ignoraba el resto de ingresos).
+    const lastIncome = Math.floor(habitualIncomeCents(last) / 100) * 100
+    const fromLastMonth = lastIncome > declaredIncome.monthlyCents
+    const incomeCents = fromLastMonth ? lastIncome : declaredIncome.monthlyCents
+    monthly = { savingsCents: euros(incomeCents - lastSpending), spendingCents: lastSpending, months: months.length, forecast: true, recurringIncomeCents: declaredIncome.monthlyCents }
+    leading.push({ kind: 'forecast-basis', recurringIncomeCents: declaredIncome.monthlyCents, spendingCents: lastSpending, monthsNeeded, ...(fromLastMonth ? { lastMonthIncomeCents: lastIncome } : {}) })
   } else {
     monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }
