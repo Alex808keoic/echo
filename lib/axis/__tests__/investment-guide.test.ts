@@ -207,6 +207,16 @@ describe('Finax como experto en cada tipo (2026-11-02)', () => {
     assert.deepEqual(ids('Estoy pensando en comprar un piso para alquilar'), ['vivienda-alquiler'])
     assert.deepEqual(ids('¿Operar con CFD?'), ['cfd'])
     assert.deepEqual(ids('¿Qué tal un robo-advisor?'), ['cartera-gestionada'])
+    // Bloque «Más ETF y fondos» (2026-11-07): separados de sus vecinos.
+    assert.deepEqual(ids('¿Un ETF de dividendos?'), ['etf-dividendo'])
+    assert.deepEqual(ids('Me interesa un ETF temático de inteligencia artificial'), ['etf-tematico'])
+    assert.deepEqual(ids('¿Qué tal un ETF de energía limpia?'), ['etf-tematico'])
+    assert.deepEqual(ids('¿Qué tal un ETF de tecnología?'), ['etf-sector'])
+    assert.deepEqual(ids('¿Y un ETF inverso para cuando caiga el mercado?'), ['etf-inverso'])
+    assert.deepEqual(ids('¿Un ETF apalancado x3?'), ['etf-apalancado'])
+    assert.deepEqual(ids('Quiero invertir en fondos ESG'), ['fondo-sostenible'])
+    assert.deepEqual(ids('Me ofrecen un fondo de retorno absoluto'), ['fondo-retorno-absoluto'])
+    assert.deepEqual(ids('¿Qué es un fondo perfilado?'), ['fondo-perfilado'])
     // Palabras corrientes no son productos.
     assert.deepEqual(ids('¿Qué opciones tengo para el futuro?'), [])
   })
@@ -218,7 +228,9 @@ describe('Finax como experto en cada tipo (2026-11-02)', () => {
     assert.equal(fit('vivienda-alquiler').verdict, 'partial')
     assert.equal(fit('high-yield').verdict, 'partial', 'renta fija de más riesgo que la del plan')
     assert.equal(fit('bonos-inflacion').verdict, fit('bonos-estado').verdict, 'renta fija de calidad, como un bono del Estado')
-    for (const id of ['cfd', 'futuros-opciones', 'warrants-turbos', 'preferentes', 'cripto-staking']) assert.equal(fit(id).verdict, 'outside-plan', id)
+    for (const id of ['cfd', 'futuros-opciones', 'warrants-turbos', 'preferentes', 'cripto-staking', 'etf-inverso']) assert.equal(fit(id).verdict, 'outside-plan', id)
+    assert.equal(fit('fondo-sostenible').verdict, fit('fondo-indexado').verdict, 'un indexado mundial sostenible encaja como uno normal')
+    for (const id of ['fondo-perfilado', 'fondo-retorno-absoluto']) assert.equal(fit(id).verdict, 'partial', id)
   })
 
   it('un plan de pensiones o un piso apuntados como inversión no cuentan en tu mezcla de renta variable', () => {

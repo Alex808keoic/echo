@@ -137,6 +137,27 @@ export const TYPE_EXPERTISE: Readonly<Record<string, TypeExpertise>> = {
     ],
   },
   'fondo-mixto': { taxes: FUND_TAX, liquidity: FUND_LIQUIDITY, protection: FUND_PROTECTION },
+  'fondo-perfilado': {
+    taxes: `${FUND_TAX} Los cambios que hace el gestor entre los fondos de dentro tampoco te hacen tributar.`,
+    liquidity: FUND_LIQUIDITY,
+    protection: FUND_PROTECTION,
+  },
+  'fondo-sostenible': {
+    taxes: `Si es un fondo: ${FUND_TAX} Si es un ETF, tributa al venderlo y no tiene traspaso.`,
+    liquidity: `Si es un fondo, ${FUND_LIQUIDITY.toLowerCase()} Si es un ETF, se vende en bolsa cuando el mercado está abierto.`,
+    protection: `${FUND_PROTECTION} Desde 2021, la UE obliga a explicar qué criterios sostenibles sigue (reglamento SFDR) y, desde 2024, limita el uso de palabras como «ESG» o «sostenible» en el nombre.`,
+  },
+  'fondo-retorno-absoluto': {
+    taxes: FUND_TAX,
+    liquidity: `${FUND_LIQUIDITY} Algunos alternativos solo permiten salir una vez por semana o por mes.`,
+    protection: `${FUND_PROTECTION} Pueden usar derivados y apostar a la baja: el riesgo depende de la estrategia, no de la etiqueta.`,
+    choose: [
+      'Que entiendas cómo intenta ganar dinero y en qué situaciones pierde',
+      'Que en los años malos de la bolsa (2008, 2020, 2022) haya perdido bastante menos que ella',
+      'Comisión total por debajo del 1,5 % y, si cobra comisión de éxito, solo por encima de un mínimo y recuperando antes lo perdido',
+      'Que después de comisiones haya rendido más que una Letra durante 5 años o más',
+    ],
+  },
   'fondo-garantizado': {
     taxes: FUND_TAX,
     liquidity: 'La garantía solo vale en la fecha de vencimiento. Si sacas el dinero antes, cobras su valor de ese día y suele haber una comisión de reembolso de hasta un 5 %.',
@@ -193,7 +214,19 @@ export const TYPE_EXPERTISE: Readonly<Record<string, TypeExpertise>> = {
     protection: `El ETF está supervisado y su dinero separado de la gestora. ${BROKER_PROTECTION}`,
     choose: [
       'Que lleve muchas empresas y ninguna pese más del 10 %',
-      'Comisión total por debajo del 0,5 %: los temáticos suelen cobrar más',
+      'Comisión total por debajo del 0,4 %',
+      'Del sector en todo el mundo mejor que en un solo país',
+      'Como mucho una parte pequeña, y nunca porque haya subido mucho últimamente',
+    ],
+  },
+  'etf-tematico': {
+    taxes: ETF_TAX,
+    liquidity: `${MARKET_LIQUIDITY} En los temáticos pequeños, comprar y vender puede salir algo más caro (poca compraventa diaria).`,
+    protection: `El ETF está supervisado y su dinero separado de la gestora. Si cierra por falta de dinero, te devuelven su valor de ese día (y tributa como una venta). ${BROKER_PROTECTION}`,
+    choose: [
+      'Que lleve al menos 30–50 empresas y ninguna pese más del 10 %',
+      'Comisión total por debajo del 0,6 %: por encima, es mucho para lo que hace',
+      'Con varios años de historia y bastante dinero invertido: los pequeños y recién lanzados cierran a menudo',
       'Como mucho una parte pequeña, y nunca porque esté de moda o haya subido mucho',
     ],
   },
@@ -203,9 +236,14 @@ export const TYPE_EXPERTISE: Readonly<Record<string, TypeExpertise>> = {
     protection: `El ETF está supervisado y su dinero separado de la gestora. ${BROKER_PROTECTION}`,
     choose: [
       'Comisión total por debajo del 0,4 % al año',
-      'Que entiendas el factor que sigue (valor, tamaño, calidad, dividendo…) y aceptes que puede ir peor que el mercado durante años',
+      'Que entiendas el factor que sigue (valor, tamaño, calidad, momento…) y aceptes que puede ir peor que el mercado durante años',
       'Como complemento de una base mundial, no como sustituto',
     ],
+  },
+  'etf-dividendo': {
+    taxes: `Cada dividendo que reparte tributa ese año en la ${SAVINGS_TAX}, con una retención del 19 % al cobrarlo (y a veces también en el país del ETF). Al venderlo, la ganancia tributa igual. Cambiar de ETF no tiene traspaso.`,
+    liquidity: `${MARKET_LIQUIDITY} Los dividendos llegan a tu cuenta en las fechas de reparto (cada mes, trimestre o semestre).`,
+    protection: `El ETF está supervisado y su dinero separado de la gestora. ${BROKER_PROTECTION} Las empresas pueden recortar o suprimir su dividendo cuando les va mal.`,
   },
   'etf-bonos': { taxes: ETF_TAX, liquidity: MARKET_LIQUIDITY, protection: `El ETF está supervisado y su dinero separado de la gestora. ${BROKER_PROTECTION}` },
   'etf-apalancado': {
@@ -213,6 +251,16 @@ export const TYPE_EXPERTISE: Readonly<Record<string, TypeExpertise>> = {
     liquidity: MARKET_LIQUIDITY,
     protection: `El ETF está supervisado, pero eso no limita lo que puedes perder dentro. ${BROKER_PROTECTION}`,
     choose: ['Si no entiendes al detalle cómo se recalcula cada día, ninguno', 'Nunca para dejarlo meses: está pensado para días'],
+  },
+  'etf-inverso': {
+    taxes: `${ETF_TAX} Las pérdidas se pueden compensar con ganancias, pero no si vuelves a comprar lo mismo en los 2 meses siguientes.`,
+    liquidity: MARKET_LIQUIDITY,
+    protection: `El ETF está supervisado, pero eso no limita lo que puedes perder dentro. La CNMV lo considera un producto complejo. ${BROKER_PROTECTION}`,
+    choose: [
+      'Para ahorrar o invertir a largo plazo, ninguno',
+      'Si lo usas para cubrir una cartera, solo unos días y sabiendo cuánto pierdes si la bolsa sube',
+      'Mejor sin apalancamiento: un −2x o −3x multiplica el efecto del recálculo diario',
+    ],
   },
 
   /* ------------------------------ Planes y seguros ------------------------------ */

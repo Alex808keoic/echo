@@ -157,6 +157,26 @@ export const TYPE_HISTORY: Readonly<Record<string, TypeHistory>> = {
     ],
     lesson: 'Mezclar suaviza, pero no siempre: hay años en que todo baja junto.',
   },
+  'fondo-perfilado': {
+    drivers: 'La bolsa y los bonos según la proporción de su perfil, menos las comisiones de sus dos capas.',
+    timeline: [
+      '2000s: los bancos españoles empiezan a vender fondos de fondos por perfiles como solución «todo en uno».',
+      '2008: los perfiles conservadores pierden en torno a un 5–10 % y los dinámicos más de un 30 %.',
+      '2016–2020s: aparecen fondos de fondos indexados con comisiones bastante más bajas que los de antes.',
+      '2022: bolsa y bonos caen a la vez y hasta los perfiles conservadores pierden cerca de un 10 %.',
+    ],
+    lesson: 'El perfil marca cuánto puede caer; la comisión, cuánto te queda al final.',
+  },
+  'fondo-sostenible': {
+    drivers: 'La bolsa en general y, sobre todo, cómo van los sectores que excluye (energía, armas, tabaco) frente al resto.',
+    timeline: [
+      '1971: nace en EE. UU. uno de los primeros fondos que excluye empresas por motivos éticos.',
+      '2019–2021: entra en los fondos ESG más dinero que nunca y, sin petróleo, ganan a sus índices.',
+      '2022: suben la energía y las armas tras la invasión de Ucrania y muchos fondos ESG quedan por detrás de sus índices.',
+      '2023–2024: cientos de fondos europeos bajan de «artículo 9» a «artículo 8» y la UE limita el uso de palabras sostenibles en sus nombres.',
+    ],
+    lesson: 'Excluir sectores cambia el resultado unos años a favor y otros en contra: elígelo por tus valores, no por la rentabilidad.',
+  },
   'fondo-garantizado': {
     drivers: 'Los tipos de interés del momento en que se crea: con tipos altos pueden prometer más.',
     timeline: [
@@ -183,6 +203,17 @@ export const TYPE_HISTORY: Readonly<Record<string, TypeHistory>> = {
       '2022: las carteras pierden entre un 10 % y un 15 % porque caen a la vez la bolsa y los bonos.',
     ],
     lesson: 'Te ahorran trabajo y errores, pero no las caídas del mercado.',
+  },
+  'fondo-retorno-absoluto': {
+    drivers: 'La habilidad del gestor con su estrategia, los tipos de interés y lo que cobra.',
+    timeline: [
+      '1949: nace en EE. UU. el primer fondo que compra unas acciones y apuesta contra otras para no depender de la bolsa.',
+      '1998: un fondo de este tipo dirigido por premios Nobel pierde casi todo en semanas y obliga a un rescate coordinado por la Reserva Federal.',
+      '2008: de media pierden en torno a un 20 %, menos que la bolsa, pero lejos de «ganar pase lo que pase».',
+      '2010s: con los tipos en cero, muchos rinden poco más que nada después de comisiones y cierran.',
+      '2022: algunas estrategias de tendencias ganan con fuerza mientras caen a la vez la bolsa y los bonos.',
+    ],
+    lesson: 'Pueden diversificar de verdad, pero la diferencia entre gestores es enorme y el nombre no garantiza nada.',
   },
   'capital-riesgo': {
     drivers: 'La marcha de empresas que no cotizan y el precio al que se venden al final.',
@@ -215,14 +246,24 @@ export const TYPE_HISTORY: Readonly<Record<string, TypeHistory>> = {
     lesson: 'Un solo país puede ir mal durante décadas: por eso la base se diversifica en todo el mundo.',
   },
   'etf-sector': {
-    drivers: 'Las expectativas sobre un sector, que a menudo se adelantan a la realidad.',
+    drivers: 'El ciclo económico y lo que mueve a ese sector (los tipos de interés a los bancos, el petróleo a la energía…).',
     timeline: [
-      '2000–2002: las tecnológicas de EE. UU. caen cerca de un 80 % al pinchar la burbuja de internet.',
-      '2008: los bancos caen más de un 70 %.',
-      '2021–2023: tras multiplicarse, los ETF de energías renovables pierden más del 60 %.',
+      '2000–2002: las tecnológicas de EE. UU. caen cerca de un 80 % al pinchar la burbuja de internet y tardan unos 15 años en recuperar el máximo.',
+      '2008: los bancos caen más de un 70 %; los europeos siguen lejos de su máximo más de 15 años después.',
+      '2014–2020: el sector de la energía pierde más de la mitad con la caída del petróleo; en 2021–2022 es el que más sube.',
+      '2010s–2020s: la tecnología pasa a ser el sector más grande de la bolsa mundial.',
+    ],
+    lesson: 'Cada sector tiene sus décadas buenas y malas: el líder de una época rara vez lo es en la siguiente.',
+  },
+  'etf-tematico': {
+    drivers: 'Las expectativas sobre una tendencia, que a menudo se adelantan años a la realidad.',
+    timeline: [
+      '1999–2000: los fondos «de internet» se disparan y luego pierden más del 80 %, aunque internet sí cambió el mundo.',
+      '2020–2021: los ETF temáticos de innovación, energías limpias o vehículos eléctricos se multiplican y captan dinero récord.',
+      '2021–2023: muchos de ellos pierden entre un 60 % y un 75 %; según los estudios, la mayoría de los temáticos rinde menos que la bolsa mundial en los 5 años siguientes a su lanzamiento.',
       '2023–2025: la inteligencia artificial dispara a los semiconductores; su historia aún se está escribiendo.',
     ],
-    lesson: 'Las temáticas de moda suelen comprarse cuando ya han subido mucho.',
+    lesson: 'Que una tendencia sea real no significa que sus acciones no estén ya demasiado caras.',
   },
   'etf-factor': {
     drivers: 'Si el mercado premia o no la característica que siguen (valor, tamaño, calidad…).',
@@ -232,6 +273,16 @@ export const TYPE_HISTORY: Readonly<Record<string, TypeHistory>> = {
       '2022: el valor vuelve a ganar con fuerza cuando caen las tecnológicas.',
     ],
     lesson: 'Los factores funcionan a muy largo plazo, pero pueden pasar más de diez años sin hacerlo.',
+  },
+  'etf-dividendo': {
+    drivers: 'Los beneficios de empresas maduras, sobre todo bancos, energía, eléctricas y consumo, y los tipos de interés.',
+    timeline: [
+      '2008–2009: muchos bancos, grandes repartidores de dividendo, recortan o suprimen sus pagos y los ETF de dividendos caen tanto como la bolsa.',
+      '2020: el BCE pide a los bancos europeos que no repartan dividendos durante la pandemia y muchas empresas los recortan.',
+      '2010s: con los tipos en cero, se buscan como sustituto de los bonos, pero quedan por detrás de la bolsa mundial, más tirada por tecnológicas que reparten poco.',
+      '2022: caen bastante menos que la bolsa porque pesan mucho la energía y los bancos.',
+    ],
+    lesson: 'El dividendo no es un interés fijo: se recorta justo en las crisis, y en total no rinden más que la bolsa.',
   },
   'etf-bonos': {
     drivers: 'Los tipos de interés y la calidad de los bonos que lleva.',
@@ -245,11 +296,21 @@ export const TYPE_HISTORY: Readonly<Record<string, TypeHistory>> = {
   'etf-apalancado': {
     drivers: 'Lo que hace cada día el índice que siguen, multiplicado.',
     timeline: [
-      'Febrero de 2018: varios productos inversos sobre la volatilidad de la bolsa pierden más del 90 % en un solo día y se liquidan.',
+      '2006: aparecen en EE. UU. los primeros ETF apalancados.',
       '2020: algunos productos apalancados sobre el petróleo pierden casi todo su valor en semanas.',
+      '2022: los ETF que multiplican por 3 la bolsa tecnológica de EE. UU. pierden cerca de un 80 %, mientras su índice cae un 33 %.',
       'Muchos ETF apalancados acaban perdiendo en años en los que su índice queda plano, por cómo se recalculan cada día.',
     ],
     lesson: 'Están hechos para días: con el tiempo, el apalancamiento diario juega en contra.',
+  },
+  'etf-inverso': {
+    drivers: 'Lo contrario de lo que hace cada día el índice que siguen.',
+    timeline: [
+      'Febrero de 2018: varios productos inversos sobre la volatilidad de la bolsa pierden más del 90 % en un solo día y se liquidan.',
+      'Marzo de 2020: suben con fuerza durante la caída por la pandemia y lo devuelven todo en los meses siguientes, cuando la bolsa se recupera.',
+      '2009–2021: un ETF inverso sobre la bolsa de EE. UU. mantenido todo el periodo pierde más del 80 % de su valor.',
+    ],
+    lesson: 'Como la bolsa sube más años de los que baja, apostar contra ella a largo plazo casi siempre pierde.',
   },
 
   /* ------------------------------ Planes y seguros ------------------------------ */

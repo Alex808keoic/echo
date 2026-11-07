@@ -91,6 +91,13 @@ export const SCENARIO_ASSUMPTIONS: Readonly<Record<string, ScenarioAssumption>> 
   'futuros-opciones': { kind: 'none', reason: 'Cada contrato tiene su fecha y su apalancamiento: no hay un patrón razonable que aproximar.', badYearPct: 100 },
   estructurados: { kind: 'none', reason: 'Lo que cobras depende de condiciones concretas de cada producto (barreras, fechas, cancelaciones): no se puede aproximar con una media.' },
   'warrants-turbos': { kind: 'none', reason: 'Pueden valer cero en un momento y el tiempo les resta valor: no hay una base razonable que aproximar.', badYearPct: 100 },
+  // Tipos añadidos el 2026-11-07.
+  'fondo-perfilado': g(4.5, 9, 18),
+  'fondo-sostenible': g(7, 16, 35),
+  'fondo-retorno-absoluto': g(3.5, 6, 12),
+  'etf-tematico': g(6, 30, 60),
+  'etf-dividendo': g(6.5, 15, 35),
+  'etf-inverso': { kind: 'none', reason: 'Se recalcula cada día y va contra la bolsa, que sube la mayoría de los años: a varios años suele perder casi todo, aunque haya caídas por el camino.', badYearPct: 40 },
 }
 
 export const SCENARIO_NOTICE =

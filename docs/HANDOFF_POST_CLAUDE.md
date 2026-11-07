@@ -12,6 +12,14 @@
 
 ---
 
+## Guía para invertir: más ETF y fondos (2026-11-07)
+
+- **56 tipos** (antes 50). El usuario eligió el bloque «Más ETF y fondos» entre cuatro propuestos; los otros tres quedaron sin hacer y **no están decididos**: familia «Alternativos» (arte, relojes y vino, startups, factoring, divisas, royalties), más ahorro y renta fija (cuentas remuneradas aparte, convertibles, bonos verdes, emergentes, cédulas, PPA) y más cripto e inmobiliario (Ethereum aparte, ETP de cripto, memecoins/DeFi/NFT, garajes y locales, tokenizados, REIT extranjeros).
+- Nuevos en Fondos: `fondo-perfilado` (perfilados y fondos de fondos), `fondo-sostenible` (fondos y ETF ESG, artículos 8/9) y `fondo-retorno-absoluto` (retorno absoluto y alternativos). Perfilado y retorno absoluto llevan `fitOverride` «en parte»; el sostenible encaja como un indexado mundial.
+- Nuevos en ETF, separados de tipos que antes los mezclaban: `etf-tematico` (sale de «sectorial o temático», que pasa a ser solo «ETF sectorial»), `etf-dividendo` (sale de «factores y dividendos», ahora «ETF de factores») y `etf-inverso` (sale de «apalancado o inverso», ahora «ETF apalancado»). Las palabras clave se movieron con ellos.
+
+---
+
 ## El botón «atrás» del móvil (2026-11-05)
 
 - «Atrás» vuelve a la pantalla anterior y solo sale de la app desde Inicio, sin nada detrás. Cierra también las hojas, el segundo paso de la bienvenida, la familia abierta de la Guía y la revisión de un extracto.
