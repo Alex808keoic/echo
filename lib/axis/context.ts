@@ -8,11 +8,12 @@
 import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctChange } from '../finance/summary'
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
-import { todayISO } from '../dates'
+import { toISODate, todayISO } from '../dates'
+import { isHandled, occurrencesThrough } from '../finance/recurring'
 import { goalInvestedPool, guessAssetType } from './plan/mix'
 import { positionPerformance } from './plan/performance'
 import { aprPctOf, payoffMonths } from '../finance/debts'
-import type { AppConfig, Debt, Movement, Objective, Position } from '../types'
+import type { AppConfig, Debt, Movement, Objective, Position, RecurringMovement } from '../types'
 import type {
   CategoryShare,
   ClosedMonth,
@@ -32,7 +33,12 @@ export interface FinancialSnapshot {
   positions: Position[]
   /** Deudas (opcional: las instantáneas anteriores no las traen). */
   debts?: Debt[]
+  /** Movimientos fijos (opcional: las instantáneas anteriores no los traen). */
+  recurring?: RecurringMovement[]
 }
+
+/** A partir de este día, empezar a usar Finax deja el mes incompleto. */
+export const PARTIAL_MONTH_FROM_DAY = 8
 
 const DAY_MS = 86_400_000
 const MONTH_DAYS = 30.44
@@ -85,14 +91,45 @@ export const MAX_CLOSED_MONTHS = 6
  * es falta de datos). Los más recientes primero, como mucho `MAX_CLOSED_MONTHS`.
  * Misma agregación que `flows.current`/`previous` (`summarize` sobre `inMonth`).
  */
-export function closedMonthsOf(movements: Movement[], asOf: string): ClosedMonth[] {
+export function closedMonthsOf(movements: Movement[], asOf: string, opts: { startedOn?: string; recurring?: readonly RecurringMovement[] } = {}): ClosedMonth[] {
   const currentKey = monthKeyOf(asOf)
   const keys = [...new Set(movements.map((m) => m.date.slice(0, 7)))].filter((k) => k < currentKey).sort().reverse().slice(0, MAX_CLOSED_MONTHS)
   return keys.map((key) => {
     const inPeriod = inMonth(movements, key)
     const s = summarize(inPeriod)
-    return { key, incomeCents: s.incomeCents, expenseCents: s.expenseCents, movementCount: s.movementCount, ...oneOffFields(inPeriod) }
+    const partial = isPartialStart(key, inPeriod, opts.startedOn)
+    const pending = pendingFixedIncome(key, opts.recurring ?? [])
+    return {
+      key,
+      incomeCents: s.incomeCents,
+      expenseCents: s.expenseCents,
+      movementCount: s.movementCount,
+      ...oneOffFields(inPeriod),
+      ...(partial ? { partial: true as const } : {}),
+      ...(pending > 0 ? { pendingFixedIncomeCents: pending } : {}),
+    }
   })
+}
+
+/** El mes en que empezaste a usar Finax, pasado el día 7 y sin nada apuntado de antes de esa fecha. */
+function isPartialStart(key: string, inPeriod: readonly Movement[], startedOn: string | undefined): boolean {
+  if (!startedOn || startedOn.slice(0, 7) !== key || Number(startedOn.slice(8, 10)) < PARTIAL_MONTH_FROM_DAY) return false
+  return !inPeriod.some((m) => m.date < startedOn)
+}
+
+/** Ingresos fijos que tocaban en el mes `key` y no se han confirmado ni omitido. */
+function pendingFixedIncome(key: string, recurring: readonly RecurringMovement[]): number {
+  let total = 0
+  for (const r of recurring) {
+    if (r.type !== 'ingreso' || !(r.amountCents > 0)) continue
+    for (const o of occurrencesThrough(r, `${key}-31`)) if (o.startsWith(key) && !isHandled(r, o)) total += r.amountCents
+  }
+  return total
+}
+
+/** Suma mensual de los ingresos fijos mensuales. */
+function fixedMonthlyIncome(recurring: readonly RecurringMovement[]): number {
+  return recurring.filter((r) => r.type === 'ingreso' && r.frequency === 'monthly' && r.amountCents > 0).reduce((t, r) => t + r.amountCents, 0)
 }
 
 /**
@@ -231,7 +268,8 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       incomeChangePct: pctChange(current.incomeCents, previous.incomeCents),
       expenseChangePct: pctChange(current.expenseCents, previous.expenseCents),
       history,
-      closedMonths: closedMonthsOf(movements, asOf),
+      closedMonths: closedMonthsOf(movements, asOf, { startedOn: config && config.configuredAt > 1 ? toISODate(new Date(config.configuredAt)) : undefined, recurring: snapshot.recurring }),
+      ...(fixedMonthlyIncome(snapshot.recurring ?? []) > 0 ? { fixedMonthlyIncomeCents: fixedMonthlyIncome(snapshot.recurring ?? []) } : {}),
     },
     objectives: objectiveCtxs,
     investments: {

@@ -15,6 +15,7 @@ import { listObjectives } from '@/lib/db/objectives'
 import { listPositions } from '@/lib/db/positions'
 import { listDebts } from '@/lib/db/debts'
 import { listCashTransfers } from '@/lib/db/cash'
+import { listRecurring } from '@/lib/db/recurring'
 import { walletBalances, type WalletBalances } from '@/lib/finance/wallets'
 import {
   buildWealthSeries,
@@ -27,7 +28,7 @@ import { allocateObjectives, totalValueCents, type ObjectivesAllocation } from '
 import type { FinancialSnapshot } from '@/lib/axis/context'
 import { goalInvestedPool } from '@/lib/axis/plan/mix'
 import { currentMonthKey, shiftedMonthKey, todayISO } from '@/lib/dates'
-import type { AppConfig, CashTransfer, Debt, Movement, Objective, Position } from '@/lib/types'
+import type { AppConfig, CashTransfer, Debt, Movement, Objective, Position, RecurringMovement } from '@/lib/types'
 
 export interface FinancialOverview {
   config: AppConfig | null
@@ -74,6 +75,8 @@ export function useFinancialOverview(): FinancialOverview | undefined {
   const positions = useLiveQuery(listPositions, [])
   const debts = useLiveQuery(listDebts, [])
   const cashTransfers = useLiveQuery(listCashTransfers, [])
+  // Los fijos solo los usa AXIS: una paga pendiente de confirmar cuenta para lo que te sobra cada mes.
+  const recurring = useLiveQuery(listRecurring, [])
 
   // Identidad estable mientras no cambien los datos: evita recalcular (y
   // relanzar el análisis de AXIS) en cada render del shell.
@@ -84,12 +87,13 @@ export function useFinancialOverview(): FinancialOverview | undefined {
       objectives === undefined ||
       positions === undefined ||
       debts === undefined ||
-      cashTransfers === undefined
+      cashTransfers === undefined ||
+      recurring === undefined
     ) {
       return undefined
     }
-    return buildOverview(config, movements, objectives, positions, debts, cashTransfers)
-  }, [config, movements, objectives, positions, debts, cashTransfers])
+    return buildOverview(config, movements, objectives, positions, debts, cashTransfers, recurring)
+  }, [config, movements, objectives, positions, debts, cashTransfers, recurring])
 }
 
 function buildOverview(
@@ -99,6 +103,7 @@ function buildOverview(
   positions: Position[],
   debts: Debt[],
   cashTransfers: CashTransfer[],
+  recurring: RecurringMovement[],
 ): FinancialOverview {
   const initialBalanceCents = config?.initialBalanceCents ?? 0
   const liquidCents = computeLiquidCents(initialBalanceCents, movements, positions)
@@ -134,7 +139,7 @@ function buildOverview(
     today: summarize(onDate(movements, todayISO())),
     series,
     objectivesAllocation: allocateObjectives(objectives, liquidCents, goalInvestedPool(positions, todayISO())),
-    axisSnapshot: { config, movements, objectives, positions, debts },
+    axisSnapshot: { config, movements, objectives, positions, debts, recurring },
     isEmpty: movements.length === 0 && config === null,
   }
 }

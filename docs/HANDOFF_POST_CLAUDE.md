@@ -12,6 +12,16 @@
 
 ---
 
+## El plan decía «no te sobra nada» con una paga fija (2026-11-07)
+
+- Caso real: empezó el 21-09 y tiene una paga fija de 35 €/mes en «Fijos» que no siempre confirma. «Tu plan» se quedaba en «Primero, consigue que te sobre algo cada mes» (`no-surplus`): septiembre tenía gastos pero no la paga (llegó antes de empezar) y la paga pendiente no contaba.
+- `ClosedMonth.partial`: el mes de `config.configuredAt`, si es a partir del día 8 y no hay movimientos anteriores a esa fecha, no entra en `usualExpenseMonths` (ni en el gasto ni en el ahorro habituales).
+- `ClosedMonth.pendingFixedIncomeCents`: ingresos de «Fijos» que tocaban ese mes y siguen sin confirmar ni omitir. Cuentan para el ahorro habitual del plan (`habitualIncomeCents`), nunca como dinero real. Por eso `FinancialSnapshot.recurring` ahora llega desde `useFinancialOverview`.
+- `flows.fixedMonthlyIncomeCents`: si no hay un ingreso declarado a AXIS, el plan provisional (1 mes completo) usa los ingresos fijos mensuales.
+- Pendiente, sin decidir: el bloqueo `overspending` mira solo el mes en curso. A principios de mes, con la paga aún sin llegar, puede bloquear el plan aunque los meses cerrados ahorren.
+
+---
+
 ## El chat de AXIS respondía «en local» con datos reales (2026-11-07)
 
 - Causa, vista en `vercel logs`: Cloudflare truncaba en 1.200 tokens de salida (`finishReason: length`) y Groq se saltaba como `too-large`, porque la petición del chat con datos reales pesa ~28.000 caracteres y el tope de Groq era de 18.000. En la práctica, Groq casi nunca respondía en el chat.

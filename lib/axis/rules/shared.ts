@@ -160,6 +160,11 @@ export function regularIncomeCents(m: WithOneOff): number {
   return Math.max(0, m.incomeCents - oneOff(m.oneOffIncomeCents))
 }
 
+/** Ingresos habituales del mes: sin lo puntual y con los fijos que tocaban aunque sigan sin confirmar. */
+export function habitualIncomeCents(m: WithOneOff & { pendingFixedIncomeCents?: number }): number {
+  return regularIncomeCents(m) + oneOff(m.pendingFixedIncomeCents)
+}
+
 /** Hay algo puntual en el mes. */
 export function hasOneOff(m: WithOneOff): boolean {
   return oneOff(m.oneOffIncomeCents) > 0 || oneOff(m.oneOffExpenseCents) > 0
@@ -209,7 +214,8 @@ export function regularSavingsFalls(current: WithOneOff, previous: WithOneOff): 
  */
 export function usualExpenseMonths(closedMonths: readonly ClosedMonth[] | undefined): ClosedMonth[] {
   return (Array.isArray(closedMonths) ? closedMonths : [])
-    .filter((m) => typeof m?.key === 'string' && isCount(m.expenseCents) && isCount(m.movementCount) && m.movementCount > 0)
+    // El mes en que empezaste a mitad de mes no es un mes normal (`ClosedMonth.partial`).
+    .filter((m) => typeof m?.key === 'string' && isCount(m.expenseCents) && isCount(m.movementCount) && m.movementCount > 0 && m.partial !== true)
     .sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0))
     .slice(0, MAX_USUAL_EXPENSE_MONTHS)
 }

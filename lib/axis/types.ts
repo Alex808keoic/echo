@@ -55,6 +55,16 @@ export interface ClosedMonth {
   /** Parte puntual (incluida en `incomeCents`/`expenseCents`): no cuenta como habitual. Solo existe cuando es mayor que 0. */
   oneOffIncomeCents?: number
   oneOffExpenseCents?: number
+  /**
+   * El mes en que empezaste a usar Finax, si fue a mitad de mes y no apuntaste nada de antes: lo anterior está
+   * en el saldo inicial, así que sus cifras no son las de un mes normal y no cuentan como habituales (2026-11-07).
+   */
+  partial?: true
+  /**
+   * Ingresos fijos (paga, nómina) que tocaban ese mes y siguen pendientes de confirmar. No son dinero real
+   * (no están en `incomeCents`), pero sí cuentan para lo habitual: el ingreso existe aunque no lo hayas confirmado.
+   */
+  pendingFixedIncomeCents?: number
 }
 
 export interface WealthPoint {
@@ -184,6 +194,8 @@ export interface FinancialContext {
      * `minimalContext` lo quita antes de enviar el contexto al modelo.
      */
     closedMonths: ClosedMonth[]
+    /** Ingresos fijos mensuales apuntados en «Fijos» (paga, nómina): base del plan provisional. Solo si hay alguno. */
+    fixedMonthlyIncomeCents?: number
   }
   objectives: ObjectiveContext[]
   investments: {

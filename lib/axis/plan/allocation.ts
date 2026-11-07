@@ -36,7 +36,7 @@
  * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
-import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
+import { prioritiesOf, recurringIncomesOf, regularExpenseCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ObjectiveContext } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
@@ -301,7 +301,7 @@ function staleValuesStep(positions: AxisDecision['context']['investments']['posi
 /** Mediana del ahorro (ingresos − gastos) de los mismos meses que el gasto habitual. */
 function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): number | null {
   if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
-  const values = months.map((m) => regularIncomeCents(m) - regularExpenseCents(m)).sort((a, b) => a - b)
+  const values = months.map((m) => habitualIncomeCents(m) - regularExpenseCents(m)).sort((a, b) => a - b)
   const mid = Math.floor(values.length / 2)
   return values.length % 2 === 1 ? values[mid] : Math.floor((values[mid - 1] + values[mid]) / 2)
 }
@@ -332,7 +332,9 @@ export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions
 function buildPlanCore(decision: AxisDecision, options: PlanOptions): AllocationPlan {
   const ctx = decision.context
   const profile = decision.profile.fields
-  const declaredIncome = recurringIncomesOf(profile)
+  // Ingreso fijo para el plan provisional: el que le contaste a AXIS o, si no, tus ingresos fijos mensuales de «Fijos».
+  const fixedIncome = decision.context.flows.fixedMonthlyIncomeCents
+  const declaredIncome = recurringIncomesOf(profile) ?? (fixedIncome !== undefined && fixedIncome > 0 ? { monthlyCents: fixedIncome } : null)
   const debts = debtsOf(ctx.debts)
   const notesStep: PlanStep[] = options.pendingNotes && options.pendingNotes > 0 ? [{ kind: 'review-notes', count: options.pendingNotes }] : []
   const ids = new Set(decision.signals.map((s) => s.id))
