@@ -91,19 +91,23 @@ function habitualMarkedOneOff(recent: readonly Movement[], recurring: readonly R
   const out: DataIssue[] = []
   for (const m of [...expenses].sort(newestFirst)) {
     if (m.puntual !== true) continue
+    // Un préstamo marcado como puntual está bien apuntado (2026-11-08: «Se lo he prestado a Lucas» salía como «se repite»).
+    if (LENT.test(textOf(m))) continue
     const label = movementLabel(m)
-    const key = normalize(label)
-    if (seen.has(key)) continue
+    // «Se repite» solo con un texto propio (motivo o nota): la categoría sola se repite siempre («Restaurantes»).
+    const own = ownText(m)
+    const seenKey = own ?? `#${m.id}`
+    if (seen.has(seenKey)) continue
     const reason: 'subscription' | 'fixed' | 'repeats' | null =
       m.recurringId !== undefined && fixedIds.has(m.recurringId)
         ? 'fixed'
         : m.category === 'Suscripciones'
           ? 'subscription'
-          : expenses.some((o) => o.id !== m.id && o.date.slice(0, 7) !== m.date.slice(0, 7) && normalize(movementLabel(o)) === key && sameAmount(o.amountCents, m.amountCents))
+          : own !== null && expenses.some((o) => o.id !== m.id && o.date.slice(0, 7) !== m.date.slice(0, 7) && ownText(o) === own && sameAmount(o.amountCents, m.amountCents))
             ? 'repeats'
             : null
     if (!reason) continue
-    seen.add(key)
+    seen.add(seenKey)
     out.push({ kind: 'habitual-marked-one-off', movementId: m.id, label, cents: m.amountCents, date: m.date, reason })
     if (out.length >= MAX_PER_KIND) break
   }
@@ -111,6 +115,12 @@ function habitualMarkedOneOff(recent: readonly Movement[], recurring: readonly R
 }
 
 const sameAmount = (a: number, b: number) => Math.abs(a - b) <= Math.max(a, b) * SAME_AMOUNT_TOLERANCE
+const textOf = (m: Movement) => `${m.motivo ?? ''} ${m.nota ?? ''}`
+/** El texto que identifica un movimiento más allá de su categoría (motivo o nota), normalizado; `null` si no tiene. */
+const ownText = (m: Movement): string | null => {
+  const t = normalize(m.motivo || m.nota || '')
+  return t.length > 0 ? t : null
+}
 
 /* ------------------------- objetivo frente a memoria ------------------------- */
 

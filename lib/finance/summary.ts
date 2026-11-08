@@ -3,7 +3,7 @@
  * Todo en céntimos enteros. No inventa nada: sin movimientos no hay resumen.
  */
 import { formatMonthLabel, formatWeekdayLong, formatWeekdayShort, shiftedISO, shiftedMonthKey, toISODate } from '../dates'
-import { expenseNeed, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
+import { CATEGORY_DEUDA, expenseNeed, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
 
 export interface PeriodSummary {
   incomeCents: number
@@ -28,16 +28,58 @@ export function summarize(movements: Movement[]): PeriodSummary {
   }
 }
 
-/** Parte puntual (marcados como `puntual` e ingresos por deudas, `isOneOff`) de los ingresos y gastos. */
-export function oneOffTotals(movements: Movement[]): { incomeCents: number; expenseCents: number } {
+/**
+ * Parte puntual (marcados como `puntual` e ingresos por deudas, `isOneOff`) de los ingresos y gastos.
+ * `reimbursed` (de `reimbursedExpenses`): lo que te devolvieron de un gasto tampoco es gasto habitual.
+ */
+export function oneOffTotals(movements: Movement[], reimbursed?: ReadonlyMap<string, number>): { incomeCents: number; expenseCents: number } {
   let incomeCents = 0
   let expenseCents = 0
   for (const m of movements) {
-    if (!isOneOff(m)) continue
+    if (!isOneOff(m)) {
+      if (m.type === 'gasto') expenseCents += reimbursed?.get(m.id) ?? 0
+      continue
+    }
     if (m.type === 'ingreso') incomeCents += m.amountCents
     else expenseCents += m.amountCents
   }
   return { incomeCents, expenseCents }
+}
+
+/** Días hacia atrás en los que se busca el gasto que te devuelven. */
+export const REIMBURSE_WINDOW_DAYS = 45
+
+const normalizeText = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+const ownTextOf = (m: Movement) => normalizeText(m.motivo || m.nota || '')
+const sameText = (a: string, b: string) => a.length > 0 && b.length > 0 && (a === b || ` ${a} `.includes(` ${b} `) || ` ${b} `.includes(` ${a} `))
+
+/**
+ * Gastos que te devolvieron (2026-11-08: «Peluquero» 18 € y, días después, 20 € de «Deuda: Peluquero»).
+ * Un ingreso de «Deuda» con el mismo texto (motivo o nota) que un gasto no puntual de los
+ * `REIMBURSE_WINDOW_DAYS` días anteriores lo cubre, hasta su importe. Devuelve, por id de gasto, lo cubierto.
+ * El dinero real no cambia: solo deja de contar como gasto habitual.
+ */
+export function reimbursedExpenses(movements: readonly Movement[]): Map<string, number> {
+  const covered = new Map<string, number>()
+  const expenses = movements.filter((m) => m.type === 'gasto' && !isOneOff(m) && ownTextOf(m).length > 0)
+  const refunds = movements.filter((m) => m.type === 'ingreso' && m.category === CATEGORY_DEUDA && ownTextOf(m).length > 0).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  for (const r of refunds) {
+    const text = ownTextOf(r)
+    const from = shiftedISO(r.date, -REIMBURSE_WINDOW_DAYS)
+    const match = expenses
+      .filter((e) => e.date <= r.date && e.date >= from && sameText(ownTextOf(e), text) && (covered.get(e.id) ?? 0) < e.amountCents)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0]
+    if (!match) continue
+    const already = covered.get(match.id) ?? 0
+    covered.set(match.id, already + Math.min(match.amountCents - already, r.amountCents))
+  }
+  return covered
 }
 
 export function inMonth(movements: Movement[], monthKey: string): Movement[] {

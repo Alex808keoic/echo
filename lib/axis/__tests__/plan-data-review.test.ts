@@ -17,7 +17,9 @@ import { isSmallSplit } from '../plan/mix'
 import { monthChecklist } from '../plan/checklist'
 import type { UserMemory } from '../chat/types'
 import type { AppConfig, Movement, RecurringMovement } from '../../types'
-import { gasto, ingreso, objective, snapshot } from './fixtures'
+import { gasto, ingreso, movement, objective, snapshot } from './fixtures'
+import { reimbursedExpenses } from '../../finance/summary'
+import type { MemoryFact } from '../profile/types'
 
 const ASOF = '2026-11-08'
 const startedOn = (iso: string): AppConfig => {
@@ -172,5 +174,78 @@ describe('aportaciones muy pequeñas: un solo fondo', () => {
   it('la nota compara comisiones y no nombra ningún producto', () => {
     const note = smallSplitNote([{ key: 'global-equity', label: 'Renta variable global', pct: 50, cents: 500 }, { key: 'bonds', label: 'Renta fija', pct: 50, cents: 500 }] as never)
     assert.ok(note && /fondo mixto/.test(note) && /comisión total/.test(note))
+  })
+})
+
+/* Fallos vistos con la copia real del 2026-11-08 (menor, 35 € de paga, 1.099 €). */
+const withNote = (m: Movement, nota: string): Movement => ({ ...m, nota })
+const deuda = (date: string, cents: number, nota: string): Movement => movement({ type: 'ingreso', amountCents: cents, date, category: 'Deuda', nota })
+
+describe('caso real: falsa alarma de «se repite»', () => {
+  it('un préstamo marcado como puntual no se avisa aunque su categoría se repita', () => {
+    const issues = checkData({ movements: [puntual(withNote(gasto('2026-09-28', 1_000, 'Restaurantes'), 'Se lo he prestado a Lucas')), gasto('2026-11-06', 900, 'Restaurantes')], objectives: [], memories: [], asOf: ASOF })
+    assert.deepEqual(issues, [])
+  })
+
+  it('la categoría sola no basta para decir que se repite', () => {
+    const issues = checkData({ movements: [puntual(gasto('2026-10-17', 500, 'Restaurantes')), gasto('2026-09-10', 450, 'Restaurantes')], objectives: [], memories: [], asOf: ASOF })
+    assert.deepEqual(issues, [])
+  })
+})
+
+describe('caso real: lo que te devuelven no es gasto habitual', () => {
+  it('«Peluquero» 18 € y 20 € de «Deuda: Peluquero» días después: cubre los 18 €', () => {
+    const corte = withNote(gasto('2026-11-04', 1_800, 'Ropa'), 'Peluquero')
+    const covered = reimbursedExpenses([corte, deuda('2026-11-07', 2_000, 'Peluquero')])
+    assert.equal(covered.get(corte.id), 1_800)
+  })
+
+  it('sin el mismo texto, fuera de plazo o con el gasto ya puntual, no cubre nada', () => {
+    const corte = withNote(gasto('2026-11-04', 1_800, 'Ropa'), 'Peluquero')
+    assert.equal(reimbursedExpenses([corte, deuda('2026-11-07', 5_000, 'Mi madre me debía 50 euros')]).size, 0)
+    assert.equal(reimbursedExpenses([corte, deuda('2027-01-30', 2_000, 'Peluquero')]).size, 0)
+    assert.equal(reimbursedExpenses([puntual(corte), deuda('2026-11-07', 2_000, 'Peluquero')]).size, 0)
+  })
+
+  it('el plan provisional ya no cuenta el corte devuelto como gasto de este mes', () => {
+    const at = new Date(2026, 8, 22, 12).getTime()
+    const movements = [
+      gasto('2026-09-25', 2_698, 'Ropa'),
+      ingreso('2026-10-02', 3_500),
+      gasto('2026-10-12', 2_390, 'Restaurantes'),
+      ingreso('2026-11-01', 3_500),
+      withNote(gasto('2026-11-04', 1_800, 'Ropa'), 'Peluquero'),
+      gasto('2026-11-06', 1_089, 'Restaurantes'),
+      deuda('2026-11-07', 2_000, 'Peluquero'),
+    ]
+    const recurring: RecurringMovement[] = [fixed({ startDate: '2026-11-01' })]
+    const ctx = buildFinancialContext(snapshot({ config: { key: 'config', initialBalanceCents: 50_000, configuredAt: at, updatedAt: at }, movements, recurring }), ASOF)
+    const plan = buildAllocationPlan(decide({ context: ctx }))
+    const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
+    assert.ok(basis && basis.kind === 'forecast-basis')
+    assert.equal(basis.spendingFrom, undefined, 'este mes (10,89 € sin el corte) ya no supera a octubre')
+    assert.equal(plan.monthly?.spendingCents, 2_400)
+  })
+})
+
+describe('caso real: la lista del mes y la nota dicen lo mismo', () => {
+  it('5 € y 1 € → una sola línea con un fondo mixto, sin una línea por fondo', () => {
+    const facts: MemoryFact[] = [
+      { kind: 'riskAttitude', value: 'balanced' },
+      { kind: 'horizon', value: 'long' },
+      { kind: 'adult', value: false },
+      { kind: 'lossCapacity', value: 'high' },
+      { kind: 'recurringIncome', cents: 3_500, frequency: 'monthly', category: 'Paga' },
+    ]
+    const movements = ['08', '09', '10'].flatMap((m) => [ingreso(`2026-${m}-01`, 3_500), gasto(`2026-${m}-10`, 2_900)])
+    const objectives = [objective({ id: 'p', name: 'Patrimonio ideal 18 años', targetCents: 500_000, targetDate: '2029-06-29', keepGrowing: true, priority: 2 }), objective({ id: 'c', name: 'Fondo de emergencia', targetCents: 14_400, priority: 1 })]
+    const ctx = buildFinancialContext(snapshot({ config: { key: 'config', initialBalanceCents: 100_000, configuredAt: 1, updatedAt: 1 }, movements, objectives }), ASOF)
+    const plan = buildAllocationPlan(decide({ context: ctx, memory: { profileFacts: facts.map((fact, i) => ({ id: `f${i}`, updatedAt: i + 1, fact })) } }))
+    const step = plan.steps.find((s) => s.kind === 'invest-for-goals')
+    assert.ok(step && step.kind === 'invest-for-goals' && isSmallSplit(step.mix), 'aportación pequeña repartida')
+    const items = monthChecklist(plan, ctx.objectives).filter((i) => i.id.startsWith('goal-invest'))
+    assert.equal(items.length, 1)
+    assert.equal(items[0].id, 'goal-invest:together')
+    assert.match(items[0].text, /un solo fondo mixto \(unos \d+ % acciones y \d+ % bonos\)/)
   })
 })

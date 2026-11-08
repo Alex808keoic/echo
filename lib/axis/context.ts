@@ -5,7 +5,7 @@
  * Dexie) y devuelve el contexto que consume el motor. No inventa nada: lo que
  * no existe queda como lista vacía, `null` o un flag en `quality`.
  */
-import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctChange } from '../finance/summary'
+import { roundedShares, summarize, totalsByCategory, inMonth, oneOffTotals, pctChange, reimbursedExpenses } from '../finance/summary'
 import { buildPatrimonioSeries, computeLiquidCents } from '../finance/patrimonio'
 import { allocateObjectives, totalInvestedCents, totalValueCents, type ObjectiveAllocation } from '../finance/objectives'
 import { toISODate, todayISO } from '../dates'
@@ -60,9 +60,12 @@ function toShares(totals: ReturnType<typeof totalsByCategory>): CategoryShare[] 
   return totals.map(({ label, cents, pct }) => ({ label, cents, pct }))
 }
 
-/** Parte puntual de un mes, solo con las claves mayores que 0 (sin puntuales, el objeto queda vacío). */
-function oneOffFields(inPeriod: Movement[]): { oneOffIncomeCents?: number; oneOffExpenseCents?: number } {
-  const o = oneOffTotals(inPeriod)
+/**
+ * Parte puntual de un mes, solo con las claves mayores que 0 (sin puntuales, el objeto queda vacío). Lo que te
+ * devolvieron de un gasto (`reimbursedExpenses`, sobre todos los movimientos) cuenta como gasto puntual.
+ */
+function oneOffFields(inPeriod: Movement[], all: readonly Movement[]): { oneOffIncomeCents?: number; oneOffExpenseCents?: number } {
+  const o = oneOffTotals(inPeriod, reimbursedExpenses(all))
   return { ...(o.incomeCents > 0 ? { oneOffIncomeCents: o.incomeCents } : {}), ...(o.expenseCents > 0 ? { oneOffExpenseCents: o.expenseCents } : {}) }
 }
 
@@ -78,7 +81,7 @@ function periodStats(movements: Movement[], key: string): PeriodStats {
     movementCount: s.movementCount,
     expensesByCategory: toShares(totalsByCategory(inPeriod, 'gasto')),
     incomeByCategory: toShares(totalsByCategory(inPeriod, 'ingreso')),
-    ...oneOffFields(inPeriod),
+    ...oneOffFields(inPeriod, movements),
   }
 }
 
@@ -104,7 +107,7 @@ export function closedMonthsOf(movements: Movement[], asOf: string, opts: { star
       incomeCents: s.incomeCents,
       expenseCents: s.expenseCents,
       movementCount: s.movementCount,
-      ...oneOffFields(inPeriod),
+      ...oneOffFields(inPeriod, movements),
       ...(partial ? { partial: true as const } : {}),
       ...(pending > 0 ? { pendingFixedIncomeCents: pending } : {}),
     }

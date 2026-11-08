@@ -7,7 +7,7 @@
 import { formatCents } from '../../money'
 import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, type AllocationPlan } from './allocation'
-import type { SleeveKey } from './mix'
+import { isSmallSplit, type MixPart, type SleeveKey } from './mix'
 
 export interface ChecklistItem {
   id: string
@@ -18,6 +18,27 @@ export interface ChecklistItem {
 
 const eur = (cents: number) => formatCents(cents)
 const lower = (s: string) => `${s.charAt(0).toLowerCase()}${s.slice(1)}`
+
+/**
+ * Aportación pequeña repartida en varias partes (`isSmallSplit`): una sola línea, como dice «Tu plan» (2026-11-08:
+ * «invierte 5 € en…» y «invierte 1 € en…» contradecían la nota de un solo fondo). La parte arriesgada sigue aparte.
+ */
+function togetherItems(idPrefix: string, lead: string, mix: readonly MixPart[]): ChecklistItem[] {
+  const diversified = mix.filter((p) => p.cents > 0 && p.key !== 'risky')
+  const total = diversified.reduce((t, p) => t + p.cents, 0)
+  // La proporción de tu mezcla (los `pct`), no la de los euros redondeados de este mes (11 € → 8 € y 3 € no es 73/27).
+  const pctTotal = diversified.reduce((t, p) => t + p.pct, 0)
+  const equity = diversified.find((p) => p.key === 'global-equity')?.pct ?? 0
+  const equityPct = pctTotal > 0 ? Math.round((equity / pctTotal) * 100) : 0
+  const items: ChecklistItem[] = [
+    {
+      id: `${idPrefix}:together`,
+      text: `${lead} ${eur(total)} en un solo fondo mixto (unos ${equityPct} % acciones y ${100 - equityPct} % bonos) o júntalos con los de los próximos meses`,
+    },
+  ]
+  for (const p of mix) if (p.key === 'risky' && p.cents > 0) items.push({ id: `${idPrefix}:${p.key}`, text: `${lead} ${eur(p.cents)} en la ${lower(p.label)}`, invest: { sleeve: p.key, cents: p.cents } })
+  return items
+}
 
 export function monthChecklist(plan: AllocationPlan, objectives: readonly ObjectiveContext[]): ChecklistItem[] {
   const name = (id: string) => objectives.find((o) => o.id === id)?.name ?? 'tu objetivo'
@@ -56,6 +77,10 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
         items.push({ id: s.kind, text: `Deja ${eur(s.monthlyCents)} en tu cuenta para ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}` })
         break
       case 'invest-long-term':
+        if (isSmallSplit(s.mix)) {
+          items.push(...togetherItems('invest', 'Invierte', s.mix))
+          break
+        }
         for (const p of s.mix)
           if (p.cents > 0) items.push({ id: `invest:${p.key}`, text: `Invierte ${eur(p.cents)} en ${p.key === 'risky' ? 'la ' : ''}${lower(p.label)}`, invest: { sleeve: p.key, cents: p.cents } })
         break
@@ -76,6 +101,10 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
         })
         break
       case 'invest-for-goals':
+        if (isSmallSplit(s.mix)) {
+          items.push(...togetherItems('goal-invest', `Para ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}, invierte`, s.mix))
+          break
+        }
         for (const p of s.mix)
           if (p.cents > 0)
             items.push({ id: `goal-invest:${p.key}`, text: `Para ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}, invierte ${eur(p.cents)} en ${lower(p.label)}`, invest: { sleeve: p.key, cents: p.cents } })
