@@ -11,7 +11,7 @@
  * con tu mezcla (o en ahorro seguro si necesitas el dinero en menos de 2 años).
  */
 import { roundedShares } from '../../finance/summary'
-import { LONG_GOAL_MONTHS } from '../../finance/objectives'
+import { isLongGoal } from '../../finance/objectives'
 import type { AxisDecision } from '../types'
 import { isCushionObjective, planRisk, planSleeves, type AllocationPlan } from './allocation'
 import { guessAssetType, mixWeights, type SleeveKey } from './mix'
@@ -123,7 +123,7 @@ export function idealSplit(plan: AllocationPlan, decision: AxisDecision): IdealS
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
   const farWeights = mixWeights(risk, 'long', false)
   for (const o of goals) {
-    if (o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS) spread(o.currentCents, farWeights)
+    if (isLongGoal(o)) spread(o.currentCents, farWeights)
     else take('objectives', o.currentCents)
   }
   const payDebt = plan.steps.find((s) => s.kind === 'pay-debt')

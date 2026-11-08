@@ -108,6 +108,8 @@ export interface ObjectiveContext {
   targetDate?: string
   /** Meses (aprox., puede ser fraccionario) hasta la fecha objetivo; negativo si ya pasó. */
   monthsLeft?: number
+  /** «Al llegar la fecha, sigue creciendo»: largo plazo aunque quede poco (finance/objectives `isLongGoal`). */
+  keepGrowing?: true
   /**
    * Ahorro mensual necesario para llegar a tiempo, en cascada: incluye lo que
    * falta a los objetivos que van antes (el ahorro llega primero a ellos).

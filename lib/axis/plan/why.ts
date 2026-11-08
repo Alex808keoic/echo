@@ -87,7 +87,7 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       else if (risk) why.push(`Se reparte con tu misma mezcla, que sale de tu respuesta sobre el riesgo: ${risk}.`)
       break
     case 'invest-for-goals':
-      why.push('Para un objetivo a más de 5 años, invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.')
+      why.push(step.keepGrowing ? 'No piensas gastar este dinero en la fecha: invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.' : 'Para un objetivo a más de 5 años, invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.')
       if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
       why.push('La cifra es lo que falta entre los meses que quedan, sin contar con la rentabilidad, para no prometer nada que el mercado no asegura.')
       break
@@ -96,9 +96,14 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       why.push('Hacerlo poco a poco evita venderlo todo justo en un mal momento.')
       break
     case 'invest-goal-money':
-      why.push('Para un objetivo a más de 5 años, el dinero quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.')
+      why.push(
+        step.keepGrowing
+          ? 'Es dinero que no piensas gastar en la fecha: quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.'
+          : 'Para un objetivo a más de 5 años, el dinero quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.',
+      )
       if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
-      why.push('Cuando falten unos 3 años, lo prudente es irlo pasando a ahorro seguro, para que una caída no te pille justo antes.')
+      if (step.keepGrowing) why.push('Lo que sí vayas a necesitar, como más gastos al hacerte mayor, lo cubre tu colchón: se calcula con tu gasto habitual y crece si tus gastos suben.')
+      else why.push('Cuando falten unos 3 años, lo prudente es irlo pasando a ahorro seguro, para que una caída no te pille justo antes.')
       break
     case 'pay-debt':
       why.push(`Una deuda al ${String(step.aprPct).replace('.', ',')} % te cuesta ese interés cada año, pase lo que pase. Devolverla antes es una rentabilidad segura; invertir no lo es.`)

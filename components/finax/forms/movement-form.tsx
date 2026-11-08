@@ -146,7 +146,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
 
       {isDebtRepayment ? (
         <p className="rounded-2xl border border-border bg-background px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
-          Lo que te devuelven de una deuda cuenta en tu dinero, pero AXIS y tu plan no lo toman como un ingreso de cada mes.
+          Es dinero que te debían: vuelve a ti, no es un ingreso nuevo. Tu plan no lo cuenta como algo que ganas cada mes.
         </p>
       ) : (
         <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">

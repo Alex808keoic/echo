@@ -15,6 +15,7 @@ function normalize(input: ObjectiveInput): ObjectiveInput {
     name: input.name.trim(),
     targetCents: input.targetCents,
     targetDate: input.targetDate?.trim() || undefined,
+    keepGrowing: input.keepGrowing === true ? true : undefined,
   }
 }
 
@@ -38,7 +39,7 @@ export async function addObjective(input: ObjectiveInput): Promise<Objective> {
 /** Cambia nombre, meta y fecha. Conserva orden, «Conseguido» y el `currentCents` antiguo. */
 export async function updateObjective(id: string, input: ObjectiveInput): Promise<void> {
   const n = normalize(input)
-  await db.objectives.update(id, { name: n.name, targetCents: n.targetCents, targetDate: n.targetDate, updatedAt: Date.now() })
+  await db.objectives.update(id, { name: n.name, targetCents: n.targetCents, targetDate: n.targetDate, keepGrowing: n.keepGrowing, updatedAt: Date.now() })
 }
 
 /** Escribe `priority` 1..n en el orden dado (solo si cambia). */

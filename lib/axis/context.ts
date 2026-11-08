@@ -160,6 +160,7 @@ function objectiveContext(item: ObjectiveAllocation, aheadRemainingCents: number
     rank: item.rank,
     aheadRemainingCents,
     ageDays: Math.max(0, daysBetween(createdISO, asOf)),
+    ...(o.keepGrowing === true ? { keepGrowing: true as const } : {}),
   }
   if (o.targetDate) {
     const monthsLeft = daysBetween(asOf, o.targetDate) / MONTH_DAYS

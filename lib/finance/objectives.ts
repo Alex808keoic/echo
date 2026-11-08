@@ -30,13 +30,22 @@ export function monthsBetween(fromISO: string, toISO: string): number {
   return Math.round((new Date(ty, tm - 1, td).getTime() - new Date(fy, fm - 1, fd).getTime()) / DAY_MS) / MONTH_DAYS
 }
 
-/** El objetivo puede recibir lo invertido: tiene fecha y está a más de `INVESTED_GOAL_MIN_MONTHS`. */
-export function takesInvested(o: Pick<Objective, 'targetDate'>, asOf: string): boolean {
-  return o.targetDate !== undefined && monthsBetween(asOf, o.targetDate) > INVESTED_GOAL_MIN_MONTHS
+/**
+ * Objetivo a largo plazo: su dinero puede invertirse. Con fecha a más de `LONG_GOAL_MONTHS`, o
+ * marcado «sigue creciendo» (no se gasta en la fecha: decidido con el usuario el 2026-11-08).
+ */
+export function isLongGoal(o: { monthsLeft?: number; keepGrowing?: boolean }): boolean {
+  return o.keepGrowing === true || (o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS)
 }
 
-/** El objetivo puede recibir lo que tienes en ahorro seguro: tiene fecha y no ha pasado. */
-export function takesSafe(o: Pick<Objective, 'targetDate'>, asOf: string): boolean {
+/** El objetivo puede recibir lo invertido: «sigue creciendo», o con fecha a más de `INVESTED_GOAL_MIN_MONTHS`. */
+export function takesInvested(o: Pick<Objective, 'targetDate' | 'keepGrowing'>, asOf: string): boolean {
+  return o.keepGrowing === true || (o.targetDate !== undefined && monthsBetween(asOf, o.targetDate) > INVESTED_GOAL_MIN_MONTHS)
+}
+
+/** El objetivo puede recibir lo que tienes en ahorro seguro: «sigue creciendo», o con fecha que no ha pasado. */
+export function takesSafe(o: Pick<Objective, 'targetDate' | 'keepGrowing'>, asOf: string): boolean {
+  if (o.keepGrowing === true) return true
   return o.targetDate !== undefined && monthsBetween(asOf, o.targetDate) > 0
 }
 

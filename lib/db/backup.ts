@@ -145,6 +145,7 @@ function isObjective(v: unknown): v is Objective {
     (v.targetDate === undefined || (isStr(v.targetDate) && isValidISODate(v.targetDate))) &&
     (v.priority === undefined || (isInt(v.priority) && v.priority > 0)) &&
     (v.achievedAt === undefined || isInt(v.achievedAt)) &&
+    (v.keepGrowing === undefined || typeof v.keepGrowing === 'boolean') &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

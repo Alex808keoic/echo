@@ -104,6 +104,13 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         action: { kind: 'review-money', label: 'Ver tu dinero' },
       }
     case 'reduce-spending':
+      if (step.withSavings)
+        return {
+          title: 'Este mes no te sobra nada, pero ya tienes dinero que repartir',
+          detail: 'Tu ingreso habitual no cubre tu gasto habitual, así que no hay ahorro nuevo cada mes. Lo que ya tienes sí: abajo te digo qué hacer con ello. Los extras (trabajos, regalos) entran en tu dinero y el plan los reparte igual.',
+          note: 'Si gastas un poco menos de lo que ingresas cada mes, el plan también repartirá ese ahorro.',
+          action: { kind: 'review-spending', label: 'Ver tus gastos' },
+        }
       return {
         title: plan.blocker === 'no-surplus' ? 'Primero, consigue que te sobre algo cada mes' : 'Primero, gasta menos de lo que ingresas',
         detail: 'Mientras no ahorres, no hay nada que repartir. Mira en qué se va tu dinero.',
@@ -198,7 +205,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
-        detail: `Faltan más de 5 años: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.`,
+        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.`,
         ...(step.atRisk ? { warning: 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.' } : {}),
         ...minorNote(step.adult, step.mix),
       }
@@ -219,7 +226,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Puedes invertir los ${eur(step.cents)} de ${list}`,
-        detail: `Faltan más de 5 años, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.`,
+        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. ${step.keepGrowing ? 'Lo invertido puede bajar, pero como no lo necesitas en la fecha, tiene tiempo de recuperarse. Tu colchón cubre los imprevistos y crece solo si tus gastos suben.' : 'Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.'}`,
         ...minorNote(step.adult, step.mix),
       }
     }

@@ -43,7 +43,7 @@ import type { InflationRef } from './inflation'
 import { MARKET_MOVES, type EquityMove } from '../../market/moves'
 import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, sellProposals, splitMix, type MixPart, type SleeveKey } from './mix'
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
-import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS } from '../../finance/objectives'
+import { INVESTED_GOAL_MIN_MONTHS, TO_SAFE_MONTHS, isLongGoal } from '../../finance/objectives'
 import type { DebtContext } from '../types'
 import { RISKY_DROP_PCT, STALE_VALUE_DAYS } from './performance'
 
@@ -100,7 +100,8 @@ export type LongTermReason =
 
 export type PlanStep =
   | { kind: 'fix-negative-liquidity' }
-  | { kind: 'reduce-spending' }
+  /** `withSavings`: no te sobra nada al mes, pero el plan reparte lo que ya tienes (colchón completo). */
+  | { kind: 'reduce-spending'; withSavings?: true }
   | { kind: 'register-data'; monthsNeeded: number }
   | { kind: 'create-cushion'; targetCents: number }
   | { kind: 'move-cushion-first'; objectiveId: string }
@@ -166,14 +167,15 @@ export type PlanStep =
    * Ahorro del mes para objetivos a más de `LONG_GOAL_MONTHS`, invertido (sin parte arriesgada): lo que falta
    * entre los meses que quedan, sin contar con la rentabilidad. `atRisk`: no cabe entero en tu ahorro.
    */
-  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null }
+  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null; keepGrowing?: true }
   /**
    * Objetivo a `TO_SAFE_MONTHS` o menos con parte invertida: pásala poco a poco a ahorro seguro, en
    * `spreadMonths` (hasta un año antes de la fecha, cuando lo invertido deja de contar).
    */
   | { kind: 'move-goal-to-safe'; objectiveId: string; investedCents: number; monthsLeft: number; spreadMonths: number; perMonthCents: number }
   /** Líquido apartado para objetivos a más de `LONG_GOAL_MONTHS`: puede invertirse (sin parte arriesgada) y seguir contando para ellos. */
-  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null }
+  /** `keepGrowing`: todos sus objetivos son para seguir creciendo (no se gastan en la fecha). */
+  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true }
   /** `noObjectives` solo existe (true) si no hay objetivos pendientes: el resto se queda en el líquido sin destino. */
   | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
@@ -377,7 +379,11 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   } else {
     monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }
-  if (monthly.savingsCents <= 0) return blocked('no-surplus', [{ kind: 'reduce-spending' }, ...debtLoadStep(debts, monthly), ...leading, ...notesStep], monthly)
+  const noSurplusBlock = () => blocked('no-surplus', [{ kind: 'reduce-spending' }, ...debtLoadStep(debts, monthly), ...leading, ...notesStep], monthly)
+  // Sin ahorro al mes, el plan sigue solo para repartir lo que ya tienes (2026-11-08: 1.100 € parados y el plan
+  // bloqueado por 11 € de diferencia). Hace falta el perfil, el colchón completo y ninguna deuda cara.
+  const noSurplus = monthly.savingsCents <= 0
+  if (noSurplus) monthly = { ...monthly, savingsCents: 0 }
 
   // 1. Colchón.
   const active = ctx.objectives.filter((o) => o.status !== 'achieved')
@@ -394,13 +400,13 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const remainingCents = Math.max(0, targetCents - Math.max(0, ctx.wealth.liquidCents))
   const cushion = { objectiveId: cushionObjective?.id ?? null, isFirst, targetCents, source, months: source === 'months' ? cushionMonths : null, remainingCents }
 
-  const steps: PlanStep[] = []
+  const steps: PlanStep[] = noSurplus ? [{ kind: 'reduce-spending', withSavings: true }] : []
   if (!cushionObjective) steps.push({ kind: 'create-cushion', targetCents })
   else if (!isFirst) steps.push({ kind: 'move-cushion-first', objectiveId: cushionObjective.id })
   // Objetivos cerca de su fecha con dinero invertido: va antes que nada nuevo, una caída ya no tendría tiempo de recuperarse.
   for (const o of active) {
     const invested = o.investedCents ?? 0
-    if (invested <= 0 || o.monthsLeft === undefined || o.monthsLeft > TO_SAFE_MONTHS) continue
+    if (o.keepGrowing || invested <= 0 || o.monthsLeft === undefined || o.monthsLeft > TO_SAFE_MONTHS) continue
     const spreadMonths = Math.max(1, Math.floor(o.monthsLeft - INVESTED_GOAL_MIN_MONTHS))
     steps.push({ kind: 'move-goal-to-safe', objectiveId: o.id, investedCents: invested, monthsLeft: Math.floor(o.monthsLeft), spreadMonths, perMonthCents: Math.ceil(invested / spreadMonths / 100) * 100 })
   }
@@ -429,6 +435,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const expectedReturnPct = investable ? expectedMixReturnPct(mixWeights(risk as RiskAttitude, profile.horizon as 'medium' | 'long', false)) : null
   const payFirstPct = expectedReturnPct === null ? DEBT_EXPENSIVE_PCT : Math.min(DEBT_EXPENSIVE_PCT, Math.max(DEBT_CHEAP_PCT, expectedReturnPct))
   const expensive = debts.filter((d) => d.aprPct >= payFirstPct)
+  if (noSurplus && (needsProfile || remainingCents > 0 || expensive.length > 0)) return noSurplusBlock()
   if (expensive.length > 0) {
     const starter = Math.min(targetCents, monthly.spendingCents * DEBT_STARTER_CUSHION_MONTHS)
     const starterRemaining = Math.max(0, starter - Math.max(0, ctx.wealth.liquidCents))
@@ -470,7 +477,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   }
 
   // 2. Objetivos a corto plazo (su necesidad es acumulada: basta la mayor).
-  const shortTerm = active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && o.monthsLeft <= SHORT_TERM_MONTHS)
+  const shortTerm = active.filter((o) => !isCushionObjective(o) && !o.keepGrowing && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && o.monthsLeft <= SHORT_TERM_MONTHS)
   const shortNeed = shortTerm.reduce((max, o) => Math.max(max, o.requiredMonthlyCents ?? 0), 0)
   const shortMonthly = Math.min(monthly.savingsCents, Math.ceil(shortNeed / 100) * 100)
   if (shortTerm.length > 0 && shortMonthly > 0) {
@@ -482,7 +489,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // Lo que falta entre los meses que quedan, sin contar con la rentabilidad (lo que rinda, adelanta la meta).
   const farGoals = needsProfile
     ? []
-    : active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS)
+    : active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && isLongGoal(o))
   const farNeed = farGoals.reduce((t, o) => t + Math.ceil(o.remainingCents / (o.monthsLeft as number) / 100) * 100, 0)
   const farMonthly = Math.min(euros(afterShort), farNeed)
   if (farGoals.length > 0 && farMonthly > 0) {
@@ -493,6 +500,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       mix: splitMix(farMonthly, mixWeights(risk as RiskAttitude, 'long', false)),
       atRisk: farNeed > afterShort,
       adult: profile.adult ?? null,
+      ...(farGoals.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : {}),
     })
   }
   const room = afterShort - farMonthly
@@ -598,20 +606,27 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // 6. Lo apartado en la cuenta para objetivos lejanos: invertido sigue contando para ellos (decidido el 2026-10-25).
   // Su plazo es el del objetivo, no el de tu perfil; nunca la parte arriesgada.
   // También los cubiertos: lo que tienen en la cuenta puede invertirse igual.
-  const longGoals = active.filter((o) => !isCushionObjective(o) && o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS)
+  const longGoals = active.filter((o) => !isCushionObjective(o) && isLongGoal(o))
   const inCash = (o: ObjectiveContext) => Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0))
-  const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0))
+  // Sin el colchón el primero del reparto, el líquido de los objetivos aún incluye el dinero del colchón: nunca se invierte.
+  const cushionNotReserved = cushionObjective && isFirst ? 0 : targetCents
+  const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0) - cushionNotReserved)
   if (!needsProfile && goalCents >= IDLE_MIN_CENTS) {
+    const withMoney = longGoals.filter((o) => inCash(o) > 0)
     steps.push({
       kind: 'invest-goal-money',
       cents: goalCents,
-      objectiveIds: longGoals.filter((o) => inCash(o) > 0).map((o) => o.id),
+      objectiveIds: withMoney.map((o) => o.id),
       mix: splitMix(goalCents, mixWeights(risk as RiskAttitude, 'long', false)),
       spreadMonths: IDLE_SPREAD_MONTHS,
       perMonthCents: euros(goalCents / IDLE_SPREAD_MONTHS),
       adult: profile.adult ?? null,
+      ...(withMoney.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : {}),
     })
   }
+
+  // Sin ahorro al mes y sin nada que repartir de lo que ya tienes: el plan se queda en «gasta menos».
+  if (noSurplus && !steps.some((s) => s.kind === 'idle-money' || s.kind === 'invest-goal-money')) return noSurplusBlock()
 
   return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm, steps })
 }

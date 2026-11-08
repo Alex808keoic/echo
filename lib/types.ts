@@ -232,6 +232,11 @@ export interface Objective {
   priority?: number
   /** Marcado a mano como «Conseguido»: sale del reparto. Nunca se pone solo. */
   achievedAt?: number
+  /**
+   * «Al llegar la fecha, sigue creciendo»: no se gasta en la fecha, así que es largo plazo aunque
+   * quede poco (su dinero puede invertirse y no se pasa a ahorro seguro). Ausente = se gasta.
+   */
+  keepGrowing?: boolean
   createdAt: number
   updatedAt: number
 }
@@ -241,6 +246,7 @@ export interface ObjectiveInput {
   name: string
   targetCents: number
   targetDate?: string
+  keepGrowing?: boolean
 }
 
 /* ------------------------------- Inversiones ------------------------------ */

@@ -34,6 +34,7 @@ export function ObjectiveForm({ objective, initial, onCreated, onDone }: Objecti
   const [name, setName] = useState(objective?.name ?? initial?.name ?? '')
   const [target, setTarget] = useState(objective ? centsToInputValue(objective.targetCents) : (initial?.target ?? ''))
   const [date, setDate] = useState(objective?.targetDate ?? '')
+  const [keepGrowing, setKeepGrowing] = useState(objective?.keepGrowing === true)
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -50,7 +51,7 @@ export function ObjectiveForm({ objective, initial, onCreated, onDone }: Objecti
     setErrors(next)
     if (Object.keys(next).length > 0 || targetCents === null) return
 
-    const input: ObjectiveInput = { name, targetCents, targetDate: date || undefined }
+    const input: ObjectiveInput = { name, targetCents, targetDate: date || undefined, keepGrowing }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(async () => {
@@ -95,6 +96,20 @@ export function ObjectiveForm({ objective, initial, onCreated, onDone }: Objecti
       <Field label="Fecha objetivo (opcional)" error={errors.date}>
         <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <input
+          type="checkbox"
+          checked={keepGrowing}
+          onChange={(e) => setKeepGrowing(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-finax"
+        />
+        <span className="min-w-0">
+          <span className="block text-[13.5px] font-semibold text-grafito">Es para que siga creciendo</span>
+          <span className="mt-0.5 block text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
+            No lo vas a gastar al llegar la fecha: tu plan lo trata como largo plazo y puede proponerte invertirlo.
+          </span>
+        </span>
+      </label>
       {saveError && (
         <p role="alert" className="text-[12.5px] font-medium text-negative">
           {saveError}
