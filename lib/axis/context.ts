@@ -108,10 +108,16 @@ export function closedMonthsOf(movements: Movement[], asOf: string, opts: { star
       expenseCents: s.expenseCents,
       movementCount: s.movementCount,
       ...oneOffFields(inPeriod, movements),
-      ...(partial ? { partial: true as const } : {}),
+      ...(partial && opts.startedOn ? { partial: true as const, trackedDays: daysInMonthOf(key) - Number(opts.startedOn.slice(8, 10)) + 1 } : {}),
       ...(pending > 0 ? { pendingFixedIncomeCents: pending } : {}),
     }
   })
+}
+
+/** Días del mes `YYYY-MM`. */
+function daysInMonthOf(key: string): number {
+  const [y, m] = key.split('-').map(Number)
+  return new Date(y, m, 0).getDate()
 }
 
 /** El mes en que empezaste a usar Finax, pasado el día 7 y sin nada apuntado de antes de esa fecha. */

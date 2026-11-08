@@ -10,7 +10,8 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
-import { buildAllocationPlan } from '../plan/allocation'
+import { buildAllocationPlan, type PlanStep } from '../plan/allocation'
+import { checkPlan } from '../plan/invariants'
 import { checkData, goalAmountOf } from '../plan/data-checks'
 import { dataIssueSentence, describeStep, smallSplitNote } from '../plan/describe'
 import { isSmallSplit } from '../plan/mix'
@@ -83,9 +84,10 @@ describe('plan provisional: el gasto no sale solo de un mes', () => {
   it('si este mes ya gastaste más que el último mes completo, usa lo de este mes (sin lo puntual)', () => {
     const plan = planOf([...base, ingreso('2026-11-01', 3_500), gasto('2026-11-03', 2_000), puntual(gasto('2026-11-05', 900))], [fixed({})])
     const basis = basisOf(plan)
-    assert.equal(basis.spendingFrom, 'current-month')
-    assert.equal(plan.monthly?.spendingCents, 2_000)
-    assert.match(describeStep(basis, plan, []).detail ?? '', /lo que llevas gastado este mes/)
+    // 20 € en 8 días de noviembre supera a los 12 € de octubre; con septiembre, el ritmo es aún más alto (≈ 26 €).
+    assert.equal(basis.spendingFrom, 'pace')
+    assert.equal(plan.monthly?.spendingCents, 2_600)
+    assert.match(describeStep(basis, plan, []).detail ?? '', /tu ritmo de gasto/)
   })
 })
 
@@ -223,8 +225,10 @@ describe('caso real: lo que te devuelven no es gasto habitual', () => {
     const plan = buildAllocationPlan(decide({ context: ctx }))
     const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
     assert.ok(basis && basis.kind === 'forecast-basis')
-    assert.equal(basis.spendingFrom, undefined, 'este mes (10,89 € sin el corte) ya no supera a octubre')
-    assert.equal(plan.monthly?.spendingCents, 2_400)
+    // Este mes (10,89 € sin el corte) ya no supera a octubre. Manda el ritmo de todos los días: 26,98 € en los
+    // 9 días de septiembre + 23,90 € de octubre + 10,89 € en 8 días de noviembre ≈ 39,17 €/mes (2026-11-08).
+    assert.equal(basis.spendingFrom, 'pace')
+    assert.equal(plan.monthly?.spendingCents, 4_000, 'redondeado hacia arriba')
   })
 })
 
@@ -247,5 +251,91 @@ describe('caso real: la lista del mes y la nota dicen lo mismo', () => {
     assert.equal(items.length, 1)
     assert.equal(items[0].id, 'goal-invest:together')
     assert.match(items[0].text, /un solo fondo mixto \(unos \d+ % acciones y \d+ % bonos\)/)
+  })
+})
+
+describe('caso real (copia del 8-nov, 21:52): el colchón sigue a tu gasto y los extras tienen regla', () => {
+  // Menor, paga de 35 €, ingresos irregulares, empezó el 22-09. Gasto real sin lo puntual ni lo devuelto ≈ 43 €/mes;
+  // octubre solo eran 24 €, y con eso el plan proponía un colchón de 144 € e «invertir 11 € al mes».
+  const at = new Date(2026, 8, 22, 12).getTime()
+  const movements: Movement[] = [
+    puntual(gasto('2026-09-22', 4_500, 'Otros', 'Critique ai')),
+    gasto('2026-09-24', 180, 'Restaurantes'),
+    ingreso('2026-09-24', 800),
+    gasto('2026-09-25', 200, 'Regalos'),
+    gasto('2026-09-25', 2_698, 'Ropa'),
+    gasto('2026-09-26', 140, 'Restaurantes'),
+    puntual(gasto('2026-09-28', 1_000, 'Restaurantes')),
+    ingreso('2026-10-02', 3_500),
+    deuda('2026-10-07', 5_000, 'Mi madre me debía 50 euros'),
+    gasto('2026-10-08', 105),
+    movement({ type: 'ingreso', amountCents: 900, date: '2026-10-08', category: 'Deuda' }),
+    gasto('2026-10-09', 145, 'Restaurantes'),
+    puntual(ingreso('2026-10-11', 60_000)),
+    gasto('2026-10-12', 1_250, 'Restaurantes'),
+    gasto('2026-10-12', 200),
+    puntual(gasto('2026-10-13', 2_178, 'Otros', 'Claude')),
+    gasto('2026-10-16', 100),
+    puntual(gasto('2026-10-17', 500, 'Restaurantes')),
+    gasto('2026-10-25', 250, 'Caprichos'),
+    gasto('2026-10-26', 90),
+    gasto('2026-10-30', 50, 'Restaurantes'),
+    gasto('2026-10-31', 200),
+    ingreso('2026-11-01', 3_500),
+    withNote(gasto('2026-11-04', 1_800, 'Ropa'), 'Peluquero'),
+    gasto('2026-11-06', 189, 'Caprichos'),
+    gasto('2026-11-06', 900, 'Restaurantes'),
+    deuda('2026-11-07', 2_000, 'Peluquero'),
+  ]
+  const facts: MemoryFact[] = [
+    { kind: 'riskAttitude', value: 'balanced' },
+    { kind: 'horizon', value: 'long' },
+    { kind: 'irregularIncome', value: true },
+    { kind: 'adult', value: false },
+    { kind: 'work', value: 'student' },
+    { kind: 'dependents', value: false },
+    { kind: 'investingExperience', value: 'some' },
+    { kind: 'lossCapacity', value: 'high' },
+    { kind: 'recurringIncome', cents: 3_500, category: 'Paga', frequency: 'monthly' },
+  ]
+  const objectives = [
+    objective({ name: 'Fondo de emergencia', targetCents: 14_400, priority: 1 }),
+    objective({ name: 'Patrimonio ideal 18 años', targetCents: 500_000, targetDate: '2029-06-29', keepGrowing: true, priority: 2 }),
+  ]
+  const net = movements.reduce((t, m) => t + (m.type === 'ingreso' ? m.amountCents : -m.amountCents), 0)
+  const config: AppConfig = { key: 'config', initialBalanceCents: 109_937 - net, configuredAt: at, updatedAt: at }
+  const decision = decide({
+    context: buildFinancialContext(snapshot({ config, movements, objectives, recurring: [fixed({ startDate: '2026-10-01' })] }), ASOF),
+    memory: { profileFacts: facts.map((fact, i) => ({ id: `f-${i}`, updatedAt: i + 1, fact })) },
+  })
+  const plan = buildAllocationPlan(decision)
+  const step = <K extends PlanStep['kind']>(kind: K) => plan.steps.find((s): s is Extract<PlanStep, { kind: K }> => s.kind === kind)
+
+  it('el gasto es el ritmo de todos los días apuntados (43 €), no los 24 € de octubre', () => {
+    assert.equal(plan.monthly?.spendingCents, 4_300)
+    assert.equal(step('forecast-basis')?.spendingFrom, 'pace')
+    assert.equal(plan.monthly?.savingsCents, 0, 'la paga no cubre el gasto: no se propone invertir nada cada mes')
+    assert.equal(step('invest-for-goals'), undefined)
+  })
+
+  it('propone subir el colchón de 144 € a 258 € (6 × 43 €) y no invierte esa diferencia', () => {
+    const raise = step('raise-cushion')
+    assert.equal(raise?.targetCents, 14_400)
+    assert.equal(raise?.suggestedCents, 25_800)
+    assert.equal(step('invest-goal-money')?.cents, 84_100, '1.099 € − 258 € de colchón')
+    assert.ok(monthChecklist(plan, decision.context.objectives).some((i) => i.id === 'raise-cushion'))
+  })
+
+  it('dice qué hacer con cada extra, con la misma mezcla y aviso de menor', () => {
+    const extras = step('extras-split')
+    assert.ok(extras)
+    assert.deepEqual(extras.weights.map((w) => w.pct), step('invest-goal-money')!.mix.map((p) => p.pct))
+    const text = describeStep(extras, plan, decision.context.objectives)
+    assert.match(text.detail ?? '', /colchón no está completo, va primero/)
+    assert.match(text.note ?? '', /un adulto/)
+  })
+
+  it('cumple todas las reglas de asesor', () => {
+    assert.deepEqual(checkPlan(plan, decision), [])
   })
 })

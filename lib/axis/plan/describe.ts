@@ -13,7 +13,7 @@ import type { DataIssue } from './data-checks'
 import { CATEGORY_DEUDA } from '../../types'
 
 /** Lo que la pantalla puede hacer desde un paso. */
-export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts' | 'review-investments'
+export type StepAction = 'create-cushion' | 'move-cushion-first' | 'raise-cushion' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts' | 'review-investments'
 
 export interface StepView {
   title: string
@@ -174,6 +174,21 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
             : 'Es el mínimo de dinero líquido que quieres tener siempre. Podrás cambiar la cantidad.',
         ...cushionInflationNote(plan),
         action: { kind: 'create-cushion', label: 'Crearlo y ponerlo primero' },
+      }
+    case 'extras-split': {
+      const parts = step.weights.map((w) => `${w.pct} % a ${w.label.charAt(0).toLowerCase()}${w.label.slice(1)}`).join(', ')
+      return {
+        title: 'Cada vez que cobres un extra',
+        detail: `Tus ingresos cambian, así que la mayor parte de tu ahorro llegará con extras (trabajos, regalos). Con cada uno: apúntalo en Movimientos; si tu colchón no está completo, va primero ahí; lo demás, ${parts}. Si es menos de ${eur(step.minCents)}, déjalo en la cuenta y júntalo con el siguiente: invertir importes tan pequeños no compensa.`,
+        ...(step.adult === false ? { note: 'Como eres menor de edad, la parte de invertir tendría que hacerla un adulto a tu nombre (por ejemplo, tus padres o tutores).' } : {}),
+      }
+    }
+    case 'raise-cushion':
+      return {
+        title: `Sube tu «${CUSHION_OBJECTIVE_NAME}» a ${eur(step.suggestedCents)}`,
+        detail: `Ahora es de ${eur(step.targetCents)}, pero tu gasto es de unos ${eur(step.spendingCents)} al mes: ${plural(step.months, 'mes', 'meses')} de gasto son ${eur(step.suggestedCents)}. Con una meta más baja, un imprevisto te haría tocar el dinero de tus objetivos.`,
+        note: 'El dinero de la diferencia sale de tus otros objetivos: no gastas nada, solo cambia para qué está apartado.',
+        action: { kind: 'raise-cushion', label: `Subirlo a ${eur(step.suggestedCents)}` },
       }
     case 'move-cushion-first':
       return {
@@ -343,7 +358,9 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
           ? `tus gastos fijos de «Fijos» (${eur(step.spendingCents)} al mes, más que lo que apuntaste en tu último mes completo)`
           : step.spendingFrom === 'current-month'
             ? `lo que llevas gastado este mes (${eur(step.spendingCents)}, ya más que en tu último mes completo)`
-            : null
+            : step.spendingFrom === 'pace'
+              ? `tu ritmo de gasto de todos los días que llevas apuntando (${eur(step.spendingCents)} al mes, más que en tu último mes completo)`
+              : null
       return {
         title: 'Plan provisional con tu ingreso previsto',
         detail:

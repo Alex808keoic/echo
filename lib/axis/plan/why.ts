@@ -34,6 +34,11 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
   const risk = answer('riskAttitude', profile.riskAttitude)
   const horizon = answer('horizon', profile.horizon)
   switch (step.kind) {
+    case 'raise-cushion':
+      if (profile.irregularIncome === true || profile.work === 'self-employed' || profile.work === 'unemployed')
+        why.push(`Tus ingresos pueden cambiar o faltar, así que el colchón son ${CUSHION_MONTHS.irregular} meses de gasto y no ${CUSHION_MONTHS.regular}.`)
+      why.push('La meta se calculó con lo que gastabas al crearla y no se actualiza sola: si gastas más, el colchón tiene que crecer contigo.')
+      break
     case 'create-cushion':
     case 'fill-cushion':
     case 'move-cushion-first': {

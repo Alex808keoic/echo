@@ -1,7 +1,7 @@
 'use client'
 
 import { CUSHION_OBJECTIVE_NAME, isCushionObjective } from '@/lib/axis/plan/allocation'
-import { addObjectiveFirst, listObjectives, moveObjectiveToFirst } from '@/lib/db/objectives'
+import { addObjectiveFirst, listObjectives, moveObjectiveToFirst, updateObjective } from '@/lib/db/objectives'
 import { formatCents } from '@/lib/money'
 import { Confirm } from './confirm'
 import { useSheet } from './sheet'
@@ -44,6 +44,17 @@ export function useCushionActions() {
           const existing = await existingCushion()
           if (existing) return moveObjectiveToFirst(existing.id)
           return addObjectiveFirst({ name: CUSHION_OBJECTIVE_NAME, targetCents })
+        },
+      ),
+    raiseCushion: (objectiveId: string, targetCents: number) =>
+      confirm(
+        'Subir el colchón',
+        `Cambiaré la meta de «${CUSHION_OBJECTIVE_NAME}» a ${formatCents(targetCents)}. No gastas nada: la diferencia deja de contar para tus otros objetivos y pasa a estar apartada para imprevistos. Podrás cambiarla cuando quieras.`,
+        'Subirlo',
+        async () => {
+          const objective = (await listObjectives()).find((o) => o.id === objectiveId)
+          if (!objective) return
+          return updateObjective(objective.id, { name: objective.name, targetCents, targetDate: objective.targetDate, keepGrowing: objective.keepGrowing })
         },
       ),
     moveCushionFirst: (objectiveId: string) =>

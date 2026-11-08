@@ -80,12 +80,16 @@ describe('el plan con la paga fija', () => {
   })
 
   it('el plan provisional usa lo que ingresaste de verdad ese mes si es más que la paga (con la paga pendiente incluida)', () => {
-    // Octubre: 10 € de otro ingreso + 35 € de paga pendiente = 45 €, frente a 15 € de gasto → sobran 30 €, no 35 − 15 = 20.
+    // Octubre: 10 € de otro ingreso + 35 € de paga pendiente = 45 €, no solo los 35 € de paga.
+    // Gasto: el ritmo de todos los días apuntados (20 € en 10 días de septiembre, 15 € en octubre, 5 € en 7 días
+    // de noviembre ≈ 26 €/mes), no los 15 € de octubre solo (2026-11-08) → sobran 45 − 26 = 19 €.
     const plan = planOf([paga()])
     const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
     assert.ok(basis && basis.kind === 'forecast-basis')
     assert.equal(basis.lastMonthIncomeCents, 4_500)
-    assert.equal(plan.monthly?.savingsCents, 3_000)
+    assert.equal(basis.spendingFrom, 'pace')
+    assert.equal(plan.monthly?.spendingCents, 2_600, '25,37 € redondeado hacia arriba')
+    assert.equal(plan.monthly?.savingsCents, 1_900)
   })
 
   it('si octubre ingresó menos que la paga, se queda con la paga', () => {
@@ -95,7 +99,7 @@ describe('el plan con la paga fija', () => {
     const basis = plan.steps.find((s) => s.kind === 'forecast-basis')
     assert.ok(basis && basis.kind === 'forecast-basis')
     assert.equal(basis.lastMonthIncomeCents, undefined)
-    assert.equal(plan.monthly?.savingsCents, 3_500 - 1_500)
+    assert.equal(plan.monthly?.savingsCents, 3_500 - 2_600, 'la paga menos el ritmo de gasto')
   })
 
   it('sin la paga en «Fijos», faltan datos (septiembre está incompleto), no «no te sobra nada»', () => {

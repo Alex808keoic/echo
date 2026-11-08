@@ -9,7 +9,7 @@
 import { investEstimate } from '../guide/invest'
 import { recommendGuide } from '../guide/recommend'
 import type { AxisDecision } from '../types'
-import { horizonInDoubt, isCushionObjective, planInvestment, planRisk, type AllocationPlan, type PlanStep } from './allocation'
+import { CUSHION_SHORT_RATIO, PACE_MARGIN, cushionMonthsFor, horizonInDoubt, isCushionObjective, planInvestment, planRisk, spendingPaceCents, type AllocationPlan, type PlanStep } from './allocation'
 import { describeStep } from './describe'
 import { idealSplit } from './ideal-split'
 import { BONDS_PCT, RISKY_MAX_PCT, SLEEVES, type MixPart, type SleeveKey } from './mix'
@@ -27,6 +27,9 @@ export type InvariantRule =
   | 'split-adds-up'
   | 'minor-needs-adult'
   | 'text-matches-dates'
+  | 'cushion-follows-spending'
+  | 'spending-not-understated'
+  | 'extras-have-a-rule'
 
 export interface Violation {
   rule: InvariantRule
@@ -100,7 +103,10 @@ export function checkPlan(plan: AllocationPlan, decision: AxisDecision): Violati
     const nearReserved = objectives
       .filter((o) => o.status !== 'achieved' && !isCushionObjective(o) && !(o.keepGrowing === true || (o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS)))
       .reduce((t, o) => t + Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0)), 0)
-    const limit = Math.max(0, ctx.wealth.liquidCents) - plan.cushion.targetCents - nearReserved
+    // Si el plan propone subir el colchón, lo que manda es la meta propuesta.
+    const raise = plan.steps.find((s) => s.kind === 'raise-cushion')
+    const cushionCents = raise?.kind === 'raise-cushion' ? Math.max(plan.cushion.targetCents, raise.suggestedCents) : plan.cushion.targetCents
+    const limit = Math.max(0, ctx.wealth.liquidCents) - cushionCents - nearReserved
     if (inv.lumpCents > Math.max(0, limit) + TOLERANCE_CENTS)
       fail('cushion-not-invested', `Se propone invertir ${inv.lumpCents} de un líquido de ${ctx.wealth.liquidCents} con un colchón de ${plan.cushion.targetCents} y ${nearReserved} para objetivos cercanos.`)
   }
@@ -137,6 +143,23 @@ export function checkPlan(plan: AllocationPlan, decision: AxisDecision): Violati
     if (/No lo vas a gastar al llegar la fecha/.test(detail) && spent.length > 0) fail('text-matches-dates', `«${s.kind}» dice que no lo vas a gastar en la fecha y ${spent.map((o) => `«${o.name}»`).join(', ')} sí se gasta.`)
     if (/Faltan más de 5 años/.test(detail) && near.length > 0) fail('text-matches-dates', `«${s.kind}» dice «Faltan más de 5 años» y ${near.map((o) => `«${o.name}»`).join(', ')} no los tiene.`)
   }
+
+  // 12. El colchón sigue a tu gasto: si su meta se queda corta, el plan propone subirla (caso real 2026-11-08: 144 € con 43 €/mes de gasto).
+  if (plan.cushion?.source === 'objective' && plan.monthly && plan.monthly.spendingCents > 0) {
+    const suggested = plan.monthly.spendingCents * cushionMonthsFor(profile)
+    if (plan.cushion.targetCents < suggested * CUSHION_SHORT_RATIO && !plan.steps.some((s) => s.kind === 'raise-cushion'))
+      fail('cushion-follows-spending', `Colchón de ${plan.cushion.targetCents} con un gasto de ${plan.monthly.spendingCents} al mes y ningún paso que proponga subirlo.`)
+  }
+
+  // 13. Un plan provisional nunca supone menos gasto que tu ritmo real de todos los días apuntados (caso real: 24 € frente a 43 €).
+  if (plan.monthly?.forecast) {
+    const pace = spendingPaceCents(ctx.flows.closedMonths, ctx.flows.current, ctx.asOf)
+    if (plan.monthly.spendingCents * PACE_MARGIN + TOLERANCE_CENTS < pace) fail('spending-not-understated', `El plan provisional usa ${plan.monthly.spendingCents} de gasto y tu ritmo es de ${pace}.`)
+  }
+
+  // 14. Con ingresos que cambian, si el plan invierte, dice qué hacer con cada extra.
+  if (profile.irregularIncome === true && investing.some((s) => stepAmount(s) > 0) && !plan.steps.some((s) => s.kind === 'extras-split'))
+    fail('extras-have-a-rule', 'Ingresos irregulares y un plan que invierte sin decir qué hacer con los extras.')
 
   return out
 }

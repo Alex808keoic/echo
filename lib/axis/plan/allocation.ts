@@ -37,7 +37,7 @@
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
 import { prioritiesOf, recurringIncomesOf, regularExpenseCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
-import type { AxisDecision, ObjectiveContext } from '../types'
+import type { AxisDecision, ClosedMonth, ObjectiveContext, PeriodStats } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
 import { MARKET_MOVES, type EquityMove } from '../../market/moves'
@@ -75,6 +75,10 @@ export const SHORT_TERM_MONTHS = 24
 export const LONG_TERM_PCT: Record<RiskAttitude, number> = { conservative: 20, balanced: 40, dynamic: 60 }
 /** Sin objetivos pendientes (aparte del colchón), lo que sobra no tiene otro destino: se invierte más. */
 export const LONG_TERM_PCT_NO_OBJECTIVES: Record<RiskAttitude, number> = { conservative: 40, balanced: 70, dynamic: 90 }
+/** Por debajo de esta parte de lo que pide tu gasto, la meta del colchón se queda corta y el plan propone subirla. */
+export const CUSHION_SHORT_RATIO = 0.9
+/** Un extra por debajo de esto no se invierte suelto: se junta con el siguiente. */
+export const EXTRAS_MIN_CENTS = 5_000
 /** Meses en los que se propone repartir el dinero parado. */
 export const IDLE_SPREAD_MONTHS = 6
 /** Dinero parado mínimo para mencionarlo: 100 € y al menos un mes de gasto habitual. */
@@ -106,6 +110,13 @@ export type PlanStep =
   | { kind: 'register-data'; monthsNeeded: number }
   | { kind: 'create-cushion'; targetCents: number }
   | { kind: 'move-cushion-first'; objectiveId: string }
+  /** La meta del «Fondo de emergencia» se queda corta para tu gasto de ahora: `suggestedCents` = `months` × `spendingCents`. */
+  /**
+   * Ingresos irregulares: qué hacer con cada extra (trabajo, regalo). Colchón primero; el resto, con estos pesos.
+   * Por debajo de `minCents`, se junta con el siguiente (invertir importes pequeños no compensa).
+   */
+  | { kind: 'extras-split'; weights: Array<Pick<MixPart, 'key' | 'label' | 'pct'>>; minCents: number; adult: boolean | null }
+  | { kind: 'raise-cushion'; objectiveId: string; targetCents: number; suggestedCents: number; months: number; spendingCents: number }
   /** `starter`: con deudas caras, solo el colchón mínimo (1 mes de gasto) antes de ir a por ellas. */
   | { kind: 'fill-cushion'; monthlyCents: number; remainingCents: number; months: number; starter?: true }
   /**
@@ -193,7 +204,7 @@ export type PlanStep =
    * `spendingFrom`: el gasto no es el de tu último mes completo porque se quedaba corto: son tus gastos fijos de
    * «Fijos» (`fixed`) o lo que llevas gastado este mes sin lo puntual (`current-month`).
    */
-  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number; spendingFrom?: 'fixed' | 'current-month' }
+  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number; spendingFrom?: 'fixed' | 'current-month' | 'pace' }
   /** La prioridad que declaraste no va la primera del reparto (después del colchón). */
   | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
   /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
@@ -414,6 +425,36 @@ function strongDrop(move: EquityMove | null | undefined): EquityMove | null {
   return typeof move.pct === 'number' && Number.isFinite(move.pct) && move.pct <= MARKET_MOVES.DROP_PCT && move.pct > -100 ? move : null
 }
 
+/** Días que tiene que cubrir el ritmo de gasto para fiarse de él (con menos, una sola compra lo dispara). */
+export const PACE_MIN_DAYS = 35
+/** El ritmo solo sustituye al gasto de un mes si lo supera en más de un 10 %. */
+export const PACE_MARGIN = 1.1
+const DAYS_PER_MONTH = 30.44
+
+/**
+ * Ritmo de gasto (sin lo puntual) de todos los días apuntados, llevado a un mes: los meses cerrados (el del
+ * comienzo, solo desde el día en que empezaste) y lo que va del mes en curso. Solo para el plan provisional,
+ * cuando un único mes completo puede no ser representativo. 0 si no cubre `PACE_MIN_DAYS` días.
+ */
+export function spendingPaceCents(closedMonths: readonly ClosedMonth[] | undefined, current: PeriodStats | undefined, asOf: string): number {
+  let cents = 0
+  let days = 0
+  for (const m of Array.isArray(closedMonths) ? closedMonths : []) {
+    if (!(m?.movementCount > 0)) continue
+    const [y, mo] = m.key.split('-').map(Number)
+    const monthDays = m.partial ? (m.trackedDays ?? 0) : new Date(y, mo, 0).getDate()
+    if (!(monthDays > 0)) continue
+    cents += regularExpenseCents(m)
+    days += monthDays
+  }
+  const today = Number(asOf.slice(8, 10))
+  if (current && today > 0) {
+    cents += validCents(current.expenseCents) > 0 ? regularExpenseCents(current) : 0
+    days += today
+  }
+  return days >= PACE_MIN_DAYS ? Math.round((cents / days) * DAYS_PER_MONTH) : 0
+}
+
 export function buildAllocationPlan(decision: AxisDecision, options: PlanOptions = {}): AllocationPlan {
   const plan = buildPlanCore(decision, options)
   return options.inflation ? { ...plan, inflation: options.inflation } : plan
@@ -464,8 +505,14 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     const lastRegular = regularExpenseCents(last)
     const fixedExpense = validCents(ctx.flows.fixedMonthlyExpenseCents)
     const currentRegular = ctx.flows.current && validCents(ctx.flows.current.expenseCents) > 0 ? regularExpenseCents(ctx.flows.current) : 0
-    const spendingBase = Math.max(lastRegular, fixedExpense, currentRegular)
-    const spendingFrom = spendingBase === lastRegular ? undefined : spendingBase === currentRegular ? ('current-month' as const) : ('fixed' as const)
+    // Y tampoco del ritmo de todos los días que llevas apuntando (2026-11-08: 24 € de octubre ignoraban los 32 €
+    // gastados en los 9 días de septiembre; el ritmo real eran ~43 € al mes y el colchón salía de la mitad).
+    const pace = spendingPaceCents(ctx.flows.closedMonths, ctx.flows.current, ctx.asOf)
+    // Solo si es claramente más alto: una diferencia pequeña es ruido de redondeo, no información.
+    const others = Math.max(lastRegular, fixedExpense, currentRegular)
+    const spendingBase = pace > others * PACE_MARGIN ? pace : others
+    const spendingFrom =
+      spendingBase === lastRegular ? undefined : spendingBase === currentRegular ? ('current-month' as const) : spendingBase === fixedExpense ? ('fixed' as const) : ('pace' as const)
     const lastSpending = Math.ceil(spendingBase / 100) * 100
     // Lo que ingresaste ese mes (sin lo puntual, con los fijos pendientes) si es más que el ingreso fijo: la paga
     // no suele ser el único ingreso (2026-11-07: 35 € de paga − 46 € de gasto ignoraba el resto de ingresos).
@@ -508,6 +555,13 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const steps: PlanStep[] = noSurplus ? [{ kind: 'reduce-spending', withSavings: true }] : []
   if (!cushionObjective) steps.push({ kind: 'create-cushion', targetCents })
   else if (!isFirst) steps.push({ kind: 'move-cushion-first', objectiveId: cushionObjective.id })
+  // La meta del objetivo se fijó con el gasto de entonces y no se mueve sola (2026-11-08: 144 € = 6 × 24 €, con un
+  // gasto real de 43 €). Si se queda corta, el plan propone subirla; decides tú (puede que la pusieras a mano).
+  const suggestedCushionCents = monthly.spendingCents * cushionMonths
+  const cushionShort = cushionObjective !== null && source === 'objective' && objectiveTarget < suggestedCushionCents * CUSHION_SHORT_RATIO
+  const cushionShortfallCents = cushionShort ? suggestedCushionCents - objectiveTarget : 0
+  if (cushionShort && cushionObjective)
+    steps.push({ kind: 'raise-cushion', objectiveId: cushionObjective.id, targetCents: objectiveTarget, suggestedCents: suggestedCushionCents, months: cushionMonths, spendingCents: monthly.spendingCents })
   // Objetivos cerca de su fecha con dinero invertido: va antes que nada nuevo, una caída ya no tendría tiempo de recuperarse.
   for (const o of active) {
     const invested = o.investedCents ?? 0
@@ -532,7 +586,16 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     ...staleValuesStep(ctx.investments.positions),
     ...notesStep,
   ]
-  const withProfileStep = (plan: AllocationPlan): AllocationPlan => (tail.length > 0 ? { ...plan, steps: [...plan.steps, ...tail] } : plan)
+  // Con deudas caras, devolverlas va antes que subir el colchón (el mínimo de 1 mes ya lo cubre `fill-cushion`).
+  const debtBeforeCushion = (list: PlanStep[]): PlanStep[] => {
+    const lastDebt = list.map((s) => s.kind).lastIndexOf('pay-debt')
+    const raiseAt = list.findIndex((s) => s.kind === 'raise-cushion')
+    if (lastDebt < 0 || raiseAt < 0 || raiseAt > lastDebt) return list
+    const rest = list.filter((_, i) => i !== raiseAt)
+    rest.splice(lastDebt, 0, list[raiseAt])
+    return rest
+  }
+  const withProfileStep = (plan: AllocationPlan): AllocationPlan => ({ ...plan, steps: [...debtBeforeCushion(plan.steps), ...tail] })
 
   // 1b. Deudas caras: más que lo que cabe esperar de tu mezcla (o del 7 % sin perfil), nunca por debajo del 3 %.
   const investable = !needsProfile && profile.horizon !== 'short'
@@ -617,7 +680,11 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const room = afterShort - farMonthly
 
   // Dinero parado: el líquido que no necesitan ni el colchón ni ningún objetivo activo.
-  const idleCents = euros(ctx.wealth.liquidCents - Math.max(0, ctx.wealth.reservedForObjectivesCents) - (cushionObjective ? 0 : targetCents))
+  // Lo que le falta a un colchón que se queda corto (`raise-cushion`) nunca se invierte: sale primero del dinero
+  // parado y, si no llega, de lo apartado para objetivos lejanos.
+  const idleRaw = ctx.wealth.liquidCents - Math.max(0, ctx.wealth.reservedForObjectivesCents) - (cushionObjective ? 0 : targetCents)
+  const idleCents = euros(idleRaw - cushionShortfallCents)
+  const shortfallFromGoals = Math.max(0, cushionShortfallCents - Math.max(0, idleRaw))
   const pendingObjectives = active.filter((o) => !isCushionObjective(o) && !o.completed)
   const noObjectives = pendingObjectives.length === 0
   const atRisk = shortTerm.length > 0 && shortNeed > monthly.savingsCents
@@ -721,7 +788,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const inCash = (o: ObjectiveContext) => Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0))
   // Sin el colchón el primero del reparto, el líquido de los objetivos aún incluye el dinero del colchón: nunca se invierte.
   const cushionNotReserved = cushionObjective && isFirst ? 0 : targetCents
-  const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0) - cushionNotReserved)
+  const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0) - cushionNotReserved - shortfallFromGoals)
   if (!needsProfile && goalCents >= IDLE_MIN_CENTS) {
     const withMoney = longGoals.filter((o) => inCash(o) > 0)
     const horizon = goalHorizon(withMoney)
@@ -740,6 +807,15 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
 
   // Sin ahorro al mes y sin nada que repartir de lo que ya tienes: el plan se queda en «gasta menos».
   if (noSurplus && !steps.some((s) => s.kind === 'idle-money' || s.kind === 'invest-goal-money')) return noSurplusBlock()
+
+  // Con ingresos que cambian, los extras son la mayor parte del ahorro (2026-11-08: 600 € de un trabajo frente a
+  // 35 € de paga). El plan dice qué hacer con cada uno: colchón primero y el resto con la mezcla de este plan.
+  if (profile.irregularIncome === true) {
+    const invest = steps.find((s): s is Extract<PlanStep, { kind: 'invest-goal-money' | 'invest-for-goals' | 'invest-long-term' | 'idle-money' }> =>
+      (s.kind === 'invest-goal-money' || s.kind === 'invest-for-goals' || s.kind === 'invest-long-term' || (s.kind === 'idle-money' && !s.safe)) && s.mix.length > 0,
+    )
+    if (invest) steps.push({ kind: 'extras-split', weights: invest.mix.map(({ key, label, pct }) => ({ key, label, pct })), minCents: EXTRAS_MIN_CENTS, adult: profile.adult ?? null })
+  }
 
   return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm, steps })
 }

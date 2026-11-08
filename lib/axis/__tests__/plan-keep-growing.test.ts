@@ -69,7 +69,9 @@ describe('objetivo «sigue creciendo»', () => {
   it('con el colchón ya creado y el primero, se invierte todo lo del objetivo', () => {
     const cushion = objective({ name: CUSHION_OBJECTIVE_NAME, targetCents: 20_000, priority: 1 })
     const { plan } = setup(110_000, [cushion, goal({ keepGrowing: true, priority: 2 })])
-    assert.equal(step(plan, 'invest-goal-money')?.cents, 90_000)
+    // 200 € de colchón con 46 € de gasto: se queda corto (6 × 46 = 276 €). Se propone subirlo y esos 76 € no se invierten.
+    assert.equal(step(plan, 'raise-cushion')?.suggestedCents, 27_600)
+    assert.equal(step(plan, 'invest-goal-money')?.cents, 82_400)
   })
 })
 

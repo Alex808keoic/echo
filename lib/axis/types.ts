@@ -60,6 +60,8 @@ export interface ClosedMonth {
    * en el saldo inicial, así que sus cifras no son las de un mes normal y no cuentan como habituales (2026-11-07).
    */
   partial?: true
+  /** Solo en un mes `partial`: días desde que empezaste hasta fin de mes (su gasto cuenta como ritmo diario, 2026-11-08). */
+  trackedDays?: number
   /**
    * Ingresos fijos (paga, nómina) que tocaban ese mes y siguen pendientes de confirmar. No son dinero real
    * (no están en `incomeCents`), pero sí cuentan para lo habitual: el ingreso existe aunque no lo hayas confirmado.

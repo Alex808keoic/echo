@@ -82,6 +82,10 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
         return cushion.createCushion(plan.cushion?.targetCents ?? 0)
       case 'move-cushion-first':
         return cushion.moveCushionFirst(plan.cushion?.objectiveId ?? '')
+      case 'raise-cushion': {
+        const raise = plan.steps.find((s) => s.kind === 'raise-cushion')
+        return raise?.kind === 'raise-cushion' ? cushion.raiseCushion(raise.objectiveId, raise.suggestedCents) : undefined
+      }
       case 'answer-profile':
         return onNavigate('memoria')
       case 'register-data':

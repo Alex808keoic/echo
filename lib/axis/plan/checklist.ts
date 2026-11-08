@@ -60,6 +60,9 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
       case 'move-cushion-first':
         items.push({ id: s.kind, text: `Pon tu «${CUSHION_OBJECTIVE_NAME}» el primero de tus objetivos` })
         break
+      case 'raise-cushion':
+        items.push({ id: s.kind, text: `Sube tu «${CUSHION_OBJECTIVE_NAME}» a ${eur(s.suggestedCents)} (${s.months} meses de tu gasto de ahora)` })
+        break
       case 'fill-cushion':
         items.push({ id: s.kind, text: `Deja ${eur(s.monthlyCents)} en tu cuenta para el colchón${s.starter ? ' mínimo' : ''}, sin gastarlos` })
         break
