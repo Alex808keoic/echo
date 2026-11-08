@@ -88,6 +88,23 @@ function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: str
 /** Objetivo «sigue creciendo» cercano con un perfil de plazo medio: la mezcla lleva más renta fija hasta que lo aclares. */
 const MEDIUM_HORIZON_NOTE = ' Como en tu perfil dijiste que necesitarás tu dinero antes de 5 años, la mezcla lleva más renta fija hasta que lo aclares (mira el paso «¿Vas a usar el dinero…?»).'
 
+/**
+ * «No llega», con cifras (2026-11-08, revisión como asesor): a dónde llegarías al ritmo de hoy, sin contar
+ * lo que rinda, y cuánto haría falta al mes. Solo con fecha en todos los objetivos del paso; si no, la frase general.
+ */
+export function goalGapWarning(step: { monthlyCents: number; objectiveIds: readonly string[] }, objectives: readonly ObjectiveContext[]): string {
+  const generic = 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.'
+  const goals = objectives.filter((o) => step.objectiveIds.includes(o.id))
+  if (goals.length === 0 || goals.some((o) => o.monthsLeft === undefined || o.monthsLeft <= 0)) return generic
+  const months = Math.max(...goals.map((o) => Math.floor(o.monthsLeft as number)))
+  const target = goals.reduce((t, o) => t + o.targetCents, 0)
+  const reached = Math.min(target, goals.reduce((t, o) => t + Math.max(0, o.currentCents), 0) + step.monthlyCents * months)
+  const needed = goals.reduce((t, o) => t + Math.ceil(o.remainingCents / Math.max(1, Math.floor(o.monthsLeft as number)) / 100) * 100, 0)
+  const round = (c: number) => Math.round(c / 1_000) * 1_000
+  if (reached >= target) return generic
+  return `Con tu ahorro de ahora llegarías a la fecha con unos ${eur(round(reached))} de ${eur(target)}, sin contar lo que rinda. Para llegar harían falta unos ${eur(needed)} al mes: lo que ahorres de más (una paga más alta, un trabajo puntual) acerca la meta; si no, tendrás menos o tendrás que mover la fecha.`
+}
+
 /** Por qué ese dinero puede invertirse; con objetivos de los dos tipos, sin decir de todos lo que solo vale para unos. */
 function goalLead(step: { keepGrowing?: true; mixedGoals?: true }): string {
   if (step.keepGrowing) return 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo'
@@ -216,7 +233,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       return {
         title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
         detail: `${goalLead(step)}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''}`,
-        ...(step.atRisk ? { warning: 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.' } : {}),
+        ...(step.atRisk ? { warning: goalGapWarning(step, objectives) } : {}),
         ...minorNote(step.adult, step.mix),
       }
     }

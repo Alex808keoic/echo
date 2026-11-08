@@ -12,6 +12,18 @@
 
 ---
 
+## Revisión como asesor de un caso real: coherencia y reglas (2026-11-08)
+
+- Caso: menor, 35 €/mes de paga, ~24 € de gasto, 1.099 €, objetivo «Patrimonio ideal 18 años» (5.000 € a 2029-06-29, «sigue creciendo»), perfil equilibrado con plazo «2 a 5 años». El usuario pidió que Finax «piense como un asesor y no tenga fallos».
+- **Una sola fuente de lo que se invierte** (`planInvestment` en `plan/allocation.ts`): suma `invest-long-term`, `invest-for-goals`, `idle-money` (no seguro) e `invest-goal-money`. La Guía (`guide/invest.ts`), el encaje (`guide/fit.ts`), Inversiones, las señales de mercado y la foto del mes leen de ahí. Antes solo miraban `invest-long-term`: con objetivos lejanos la Guía decía «Este mes, nada» y destacaba la renta fija.
+- **Plazo en duda** (`horizonInDoubt`): objetivo «sigue creciendo» con fecha a ≤ 5 años (o sin fecha) y perfil que no es «más de 5 años» → mezcla del plazo del perfil (`mediumHorizon`, 50/50 equilibrado) y paso `confirm-horizon` que pregunta y lleva a «Tu perfil». Misma regla en `ideal-split.ts`. Decisión tomada por la IA en ausencia del usuario (opción prudente y reversible): si no la quiere, basta con quitar `horizonInDoubt` de los tres sitios.
+- Renta fija: a igualdad, la Guía destaca lo diversificado (`SIMPLE_FIRST` en `recommend.ts`: fondo antes que Bonos y Obligaciones sueltos); con plazo no largo, `productFit` añade «de corto plazo (1 a 3 años)».
+- **Reglas de asesor** (`plan/invariants.ts`, `checkPlan`): 11 reglas de coherencia. `plan-invariants.test.ts` las pasa a 600 situaciones generadas con semilla fija y al caso real; en desarrollo `useAllocationPlan` avisa en consola. **Cada fallo nuevo encontrado revisando casos reales debe acabar como regla aquí.** Ya encontró uno: pasos con objetivos «sigue creciendo» y lejanos por fecha decían «Faltan más de 5 años» de todos (`mixedGoals`).
+- «No llega» con cifras (`goalGapWarning`): a dónde llegarías al ritmo de hoy, sin rentabilidad, y cuánto haría falta al mes.
+- Pendiente de la revisión, **sin decidir por el usuario**: el gasto habitual sale de un solo mes y de lo que se marca «puntual» (p. ej. una suscripción marcada como puntual); avisar de datos que parecen mal registrados (préstamo apuntado como gasto, objetivo distinto del de la memoria); sugerir juntar aportaciones muy pequeñas en un solo fondo; revisar el lenguaje «consultor» + importes concretos frente a la CNMV.
+
+---
+
 ## El plan decía «no te sobra nada» con una paga fija (2026-11-07)
 
 - Caso real: empezó el 21-09 y tiene una paga fija de 35 €/mes en «Fijos» que no siempre confirma. «Tu plan» se quedaba en «Primero, consigue que te sobre algo cada mes» (`no-surplus`): septiembre tenía gastos pero no la paga (llegó antes de empezar) y la paga pendiente no contaba.

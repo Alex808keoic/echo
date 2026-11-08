@@ -11,6 +11,7 @@ import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
 import { buildAllocationPlan, monthlyInvestCents, planInvestment, type AllocationPlan, type PlanStep } from '../plan/allocation'
 import { investEstimate, monthlyForType, sleeveGuide } from '../guide/invest'
+import { describeStep } from '../plan/describe'
 import { recommendGuide } from '../guide/recommend'
 import { PRODUCT_TYPES } from '../guide/products'
 import type { MemoryFact } from '../profile/types'
@@ -63,6 +64,15 @@ describe('la Guía dice lo mismo que «Tu plan»', () => {
     assert.ok(equity.pct > bonds.pct)
     assert.equal(equity.lumpCents + bonds.lumpCents, step(plan, 'invest-goal-money')!.cents)
     assert.ok(equity.types.length > 0, 'enseña tipos para la renta variable global')
+  })
+
+  it('caso real: «no llega» dice con cifras a dónde llegaría y cuánto haría falta al mes', () => {
+    const { decision, plan } = setup(110_000, [goal({ keepGrowing: true })], habitual(2_400))
+    const forGoals = plan.steps.find((s): s is Extract<PlanStep, { kind: 'invest-for-goals' }> => s.kind === 'invest-for-goals')
+    assert.ok(forGoals?.atRisk)
+    const warning = describeStep(forGoals, plan, decision.context.objectives).warning ?? ''
+    assert.match(warning, /llegarías a la fecha con unos [\d.]+,00 € de 5\.000,00 €/)
+    assert.match(warning, /harían falta unos [\d.]+,00 € al mes/)
   })
 
   it('suma todos los pasos de inversión y respeta los pesos de la mezcla', () => {
