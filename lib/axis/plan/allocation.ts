@@ -272,6 +272,65 @@ export function monthlyInvestCents(plan: AllocationPlan): number {
   return plan.steps.reduce((t, s) => t + (s.kind === 'invest-long-term' || s.kind === 'invest-for-goals' ? s.monthlyCents : 0), 0)
 }
 
+/**
+ * Lo que el plan invierte, sumando TODOS sus pasos de inversión: el largo plazo, el ahorro de los
+ * objetivos lejanos, el dinero sin destino y el apartado para objetivos lejanos. Es la única fuente
+ * para las pantallas (Guía, Inversiones, señales, foto del mes): ninguna vuelve a deducirlo por su
+ * cuenta (2026-11-08: la Guía solo miraba `invest-long-term` y decía «este mes, nada» mientras el
+ * plan proponía invertir).
+ */
+export interface PlanInvestment {
+  /** Cada mes, de lo que ahorras. */
+  monthlyCents: number
+  monthlyMix: MixPart[]
+  /** Ahora, de una vez o repartido en `spreadMonths` meses. */
+  lumpCents: number
+  lumpMix: MixPart[]
+  spreadMonths: number
+  lumpPerMonthCents: number
+  /** Parte de `lumpCents` que es dinero apartado para objetivos lejanos (el resto no tiene destino). */
+  goalLumpCents: number
+}
+
+/** Suma mezclas por tipo; el peso es la media de los pesos ponderada por lo que lleva cada paso. */
+function mergeMixes(mixes: readonly (readonly MixPart[])[]): MixPart[] {
+  const out = new Map<SleeveKey, MixPart & { weighted: number }>()
+  for (const mix of mixes) {
+    const total = mix.reduce((t, p) => t + p.cents, 0)
+    for (const p of mix) {
+      const prev = out.get(p.key) ?? { ...p, cents: 0, pct: 0, weighted: 0 }
+      out.set(p.key, { ...prev, cents: prev.cents + p.cents, weighted: prev.weighted + p.pct * total })
+    }
+  }
+  const totals = mixes.reduce((t, mix) => t + mix.reduce((s, p) => s + p.cents, 0), 0)
+  return [...out.values()].map(({ weighted, ...p }) => ({ ...p, pct: totals > 0 ? Math.round(weighted / totals) : p.pct }))
+}
+
+export function planInvestment(plan: AllocationPlan): PlanInvestment {
+  const monthly: MixPart[][] = []
+  const lump: MixPart[][] = []
+  let monthlyCents = 0
+  let lumpCents = 0
+  let lumpPerMonthCents = 0
+  let spreadMonths = 0
+  let goalLumpCents = 0
+  for (const s of plan.steps) {
+    if ((s.kind === 'invest-long-term' || s.kind === 'invest-for-goals') && s.monthlyCents > 0) {
+      monthlyCents += s.monthlyCents
+      monthly.push(s.mix)
+    } else if ((s.kind === 'idle-money' && !s.safe) || s.kind === 'invest-goal-money') {
+      const cents = s.kind === 'idle-money' ? s.idleCents : s.cents
+      if (cents <= 0) continue
+      lumpCents += cents
+      if (s.kind === 'invest-goal-money') goalLumpCents += cents
+      lumpPerMonthCents += s.perMonthCents
+      spreadMonths = Math.max(spreadMonths, s.spreadMonths)
+      lump.push(s.mix)
+    }
+  }
+  return { monthlyCents, monthlyMix: mergeMixes(monthly), lumpCents, lumpMix: mergeMixes(lump), spreadMonths, lumpPerMonthCents, goalLumpCents }
+}
+
 export function planSleeves(plan: AllocationPlan): Set<SleeveKey> {
   const keys = new Set<SleeveKey>()
   for (const s of plan.steps) if (s.kind === 'invest-long-term' || s.kind === 'idle-money' || s.kind === 'invest-goal-money' || s.kind === 'invest-for-goals') for (const p of s.mix) if (p.cents > 0) keys.add(p.key)

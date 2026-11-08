@@ -83,7 +83,8 @@ export function productFit(product: ProductType, plan: AllocationPlan, profile: 
   } else if (plan.longTerm.reason === 'no-profile') {
     verdict = 'not-now'
     reasons.push('Responde «Tu perfil» para saber qué parte de tu ahorro tendría sentido a largo plazo.')
-  } else if (plan.longTerm.monthlyCents > 0) {
+  } else if (plan.longTerm.monthlyCents > 0 || planSleeves(plan).has('global-equity')) {
+    // Cualquier paso de inversión del plan cuenta, también los de tus objetivos lejanos (2026-11-08).
     verdict = 'fits'
     reasons.push(`Es del tipo que indica tu plan para el largo plazo: ${LONG_TERM_CATEGORY.label.toLowerCase()}.`)
   } else {

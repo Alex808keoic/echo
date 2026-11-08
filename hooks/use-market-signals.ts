@@ -10,7 +10,7 @@ import { marketSignals, safeRatePct, type MarketSignal } from '@/lib/axis/plan/m
 import { inflationFrom } from '@/lib/axis/plan/inflation'
 import { guessAssetType } from '@/lib/axis/plan/mix'
 import { strongEquityMove } from '@/lib/market/moves'
-import type { AllocationPlan } from '@/lib/axis/plan/allocation'
+import { monthlyInvestCents, type AllocationPlan } from '@/lib/axis/plan/allocation'
 import type { FinancialOverview } from './use-financial-overview'
 import { useMarketContext } from './use-market-context'
 
@@ -26,8 +26,7 @@ export function useMarketSignals(overview: FinancialOverview | undefined, plan: 
   return useMemo(() => {
     const indicators = market?.keyIndicators ?? []
     if (!overview) return { signals: [], safeRatePct: safeRatePct(indicators) }
-    const invest = plan?.steps.find((s) => s.kind === 'invest-long-term')
-    const investsMonthly = invest?.kind === 'invest-long-term' && invest.monthlyCents > 0
+    const investsMonthly = plan ? monthlyInvestCents(plan) > 0 : false
     const holdsEquity = overview.positions.some((p) => {
       const type = p.assetType ?? guessAssetType(p.name)
       return (type === 'global-equity' || type === 'risky') && p.valueCents > 0

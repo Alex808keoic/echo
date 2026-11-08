@@ -5,7 +5,7 @@
  * fijas y siempre por TIPO de producto: nunca un producto, una entidad ni un
  * momento de compra. Los importes, en céntimos.
  */
-import { buildAllocationPlan, type AllocationPlan, type PlanStep } from '../plan/allocation'
+import { buildAllocationPlan, planInvestment, type AllocationPlan, type PlanStep } from '../plan/allocation'
 import { SLEEVES, type MixPart, type SleeveKey } from '../plan/mix'
 import { futureValue } from '../plan/returns'
 import type { ReconciledProfile } from '../profile/types'
@@ -28,6 +28,8 @@ export type InvestEstimate =
       lumpCents: number
       spreadMonths: number
       lumpPerMonthCents: number
+      /** Parte de `lumpCents` apartada para objetivos lejanos: invertida sigue contando para ellos. */
+      goalLumpCents: number
       /** En un año: 12 meses de aportación más el dinero sin destino. */
       yearCents: number
       /** Tu dinero líquido y la parte que se queda para el colchón y los objetivos. */
@@ -51,24 +53,23 @@ export type InvestEstimate =
 function monthlyWithCushionDone(decision: AxisDecision, remainingCents: number): number | null {
   const w = decision.context.wealth
   const context = { ...decision.context, wealth: { ...w, liquidCents: w.liquidCents + remainingCents, reservedForObjectivesCents: Math.max(0, w.reservedForObjectivesCents) + remainingCents } }
-  const invest = stepOf(buildAllocationPlan({ ...decision, context }), 'invest-long-term')
-  return invest ? invest.monthlyCents : null
+  const monthly = planInvestment(buildAllocationPlan({ ...decision, context })).monthlyCents
+  return monthly > 0 ? monthly : null
 }
 
 export function investEstimate(decision: AxisDecision, plan: AllocationPlan): InvestEstimate {
   if (plan.status === 'blocked') return { kind: 'none', reason: 'blocked' }
-  const invest = stepOf(plan, 'invest-long-term')
-  const idle = stepOf(plan, 'idle-money')
-  const monthlyCents = invest?.monthlyCents ?? 0
-  const lumpCents = idle && !idle.safe ? idle.idleCents : 0
+  // Lo mismo que «Tu plan»: todos sus pasos de inversión, también los de tus objetivos lejanos.
+  const { monthlyCents, lumpCents, spreadMonths, lumpPerMonthCents, goalLumpCents } = planInvestment(plan)
   if (monthlyCents > 0 || lumpCents > 0) {
     const liquidCents = Math.max(0, decision.context.wealth.liquidCents)
     return {
       kind: 'now',
       monthlyCents,
       lumpCents,
-      spreadMonths: idle?.spreadMonths ?? 0,
-      lumpPerMonthCents: idle && lumpCents > 0 ? idle.perMonthCents : 0,
+      spreadMonths,
+      lumpPerMonthCents,
+      goalLumpCents,
       yearCents: monthlyCents * 12 + lumpCents,
       liquidCents,
       keptCents: Math.max(0, liquidCents - lumpCents),
@@ -129,9 +130,7 @@ export interface SleeveGuide {
 
 export function sleeveGuide(plan: AllocationPlan, profile: Pick<ReconciledProfile, 'horizon' | 'adult'>): SleeveGuide[] {
   const invest = stepOf(plan, 'invest-long-term')
-  const idle = stepOf(plan, 'idle-money')
-  const monthly = invest?.mix ?? []
-  const lump = idle && !idle.safe ? idle.mix : []
+  const { monthlyMix: monthly, lumpMix: lump } = planInvestment(plan)
   const keys = (['global-equity', 'bonds', 'risky'] as const).filter((k) => monthly.some((p) => p.key === k && p.cents > 0) || lump.some((p) => p.key === k && p.cents > 0))
   const cents = (parts: readonly MixPart[], k: SleeveKey) => parts.find((p) => p.key === k)?.cents ?? 0
   return keys.map((key) => {
@@ -157,8 +156,7 @@ export function sleeveGuide(plan: AllocationPlan, profile: Pick<ReconciledProfil
 
 /** Lo que tu plan pone cada mes en la parte a la que pertenece este tipo; `null` si no la usa. */
 export function monthlyForType(type: ProductType, plan: AllocationPlan): number | null {
-  const invest = stepOf(plan, 'invest-long-term')
-  const part = invest?.mix.find((p) => SLEEVES[p.key].families.includes(type.family) && p.cents > 0)
+  const part = planInvestment(plan).monthlyMix.find((p) => SLEEVES[p.key].families.includes(type.family) && p.cents > 0)
   return part ? part.cents : null
 }
 

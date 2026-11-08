@@ -19,6 +19,7 @@ import { PlusIcon, TrendUpIcon } from '../icons'
 import { cn } from '@/lib/utils'
 import type { ScreenProps } from './types'
 import { useAllocationPlan } from '@/hooks/use-allocation-plan'
+import { monthlyInvestCents } from '@/lib/axis/plan/allocation'
 import { feeSummary, isHighFee, LOW_FEE_PCT, portfolioReturn, type FeeSummary, type PortfolioReturn } from '@/lib/axis/plan/returns'
 import { inflationFrom, inflationPhrase, type InflationRef } from '@/lib/axis/plan/inflation'
 import { pctText } from '@/lib/axis/plan/describe'
@@ -31,8 +32,7 @@ export function InvestmentsScreen({ overview, onNavigate, onBack }: ScreenProps)
   const result = useAllocationPlan(overview)
   if (!overview) return <ScreenLoading />
   const inflation = result?.plan.inflation ?? inflationFrom(null)
-  const invest = result?.plan.steps.find((s) => s.kind === 'invest-long-term')
-  const monthlyInvest = invest?.kind === 'invest-long-term' ? invest.monthlyCents : 0
+  const monthlyInvest = result ? monthlyInvestCents(result.plan) : 0
   const ret = portfolioReturn(overview.positions, todayISO(), inflation.pct)
   const fees = feeSummary(overview.positions, monthlyInvest)
 

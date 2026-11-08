@@ -191,8 +191,14 @@ function EstimateCard({ estimate, onPlan }: { estimate: InvestEstimate; onPlan: 
           </div>
           <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">
             {estimate.lumpCents > 0
-              ? `De los ${euros(estimate.liquidCents)} que tienes en líquido, ${euros(estimate.keptCents)} se quedan para tu colchón y tus objetivos; el resto no tiene destino y puede trabajar a largo plazo${estimate.lumpPerMonthCents > 0 ? ` (repartido, unos ${euros(estimate.lumpPerMonthCents)} al mes)` : ''}.`
-              : `Tu líquido (${euros(estimate.liquidCents)}) lo necesitan tu colchón y tus objetivos: lo que inviertes sale de lo que ahorras cada mes.`}
+              ? `De los ${euros(estimate.liquidCents)} que tienes en líquido, ${euros(estimate.keptCents)} se quedan en la cuenta para tu colchón${estimate.goalLumpCents < estimate.lumpCents ? ' y tus objetivos' : ''}; ${
+                  estimate.goalLumpCents >= estimate.lumpCents
+                    ? 'el resto es de tus objetivos lejanos y, invertido, sigue contando para ellos'
+                    : estimate.goalLumpCents > 0
+                      ? 'el resto (lo de tus objetivos lejanos y lo que no tiene destino) puede trabajar a largo plazo'
+                      : 'el resto no tiene destino y puede trabajar a largo plazo'
+                }${estimate.lumpPerMonthCents > 0 ? ` (repartido, unos ${euros(estimate.lumpPerMonthCents)} al mes)` : ''}.`
+              :`Tu líquido (${euros(estimate.liquidCents)}) lo necesitan tu colchón y tus objetivos: lo que inviertes sale de lo que ahorras cada mes.`}
           </p>
         </>
       ) : estimate.kind === 'later' ? (
@@ -229,7 +235,7 @@ function MixGuide({ sleeves, rec, onOpen }: { sleeves: SleeveGuide[]; rec: Guide
             </p>
             {s.monthlyCents > 0 && <p className="whitespace-nowrap text-[13px] font-bold tabular-nums text-grafito">{euros(s.monthlyCents)}/mes</p>}
           </div>
-          {s.lumpCents > 0 && <p className="text-[12px] font-medium text-muted-foreground">Y {euros(s.lumpCents)} del dinero sin destino.</p>}
+          {s.lumpCents > 0 && <p className="text-[12px] font-medium text-muted-foreground">Y {euros(s.lumpCents)} de lo que ya tienes, de una vez o poco a poco.</p>}
           <p className="text-[12.5px] font-medium leading-snug text-grafito/80 text-pretty">{s.choice}</p>
           {s.types.length > 0 && (
             <div className="space-y-1.5">

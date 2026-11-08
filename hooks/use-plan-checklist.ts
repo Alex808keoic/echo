@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { investmentsUpToDate, monthChecklist, UPDATE_INVESTMENTS_ID, UPDATE_INVESTMENTS_ITEM, type ChecklistItem } from '@/lib/axis/plan/checklist'
 import type { Position } from '@/lib/types'
-import { monthlyInvestCents, type AllocationPlan } from '@/lib/axis/plan/allocation'
+import { monthlyInvestCents, planInvestment, type AllocationPlan } from '@/lib/axis/plan/allocation'
 import { plannedFromPlan, reviewMonth, type MonthReview } from '@/lib/axis/plan/review'
 import { inflationFrom } from '@/lib/axis/plan/inflation'
 import type { FinancialSnapshot } from '@/lib/axis/context'
@@ -56,11 +56,10 @@ export function usePlanChecklist(
   // Foto del plan de este mes (solo se escribe si cambia).
   useEffect(() => {
     if (!plan || !checklist || plan.status !== 'ready') return
-    const invest = plan.steps.find((s) => s.kind === 'invest-long-term')
     void savePlannedMonth(month, {
       savingsCents: plan.monthly?.savingsCents ?? 0,
       investCents: monthlyInvestCents(plan),
-      mix: invest?.kind === 'invest-long-term' ? invest.mix.map((p) => ({ key: p.key, cents: p.cents })) : [],
+      mix: planInvestment(plan).monthlyMix.map((p) => ({ key: p.key, cents: p.cents })),
       items: checklist.items.length,
     })
   }, [plan, checklist, month])
