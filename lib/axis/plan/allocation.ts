@@ -43,7 +43,7 @@ import type { InflationRef } from './inflation'
 import { MARKET_MOVES, type EquityMove } from '../../market/moves'
 import { DRAWDOWN_NOTICE_PCT, expectedMixReturnPct, heldBySleeve, heldPct, mixWeights, needsRebalance, rebalanceSplit, riskyAllowed, sellProposals, splitMix, type MixPart, type SleeveKey } from './mix'
 import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffect } from '../../finance/debts'
-import { INVESTED_GOAL_MIN_MONTHS, TO_SAFE_MONTHS, isLongGoal } from '../../finance/objectives'
+import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS, isLongGoal } from '../../finance/objectives'
 import type { DebtContext } from '../types'
 import { RISKY_DROP_PCT, STALE_VALUE_DAYS } from './performance'
 
@@ -167,7 +167,14 @@ export type PlanStep =
    * Ahorro del mes para objetivos a más de `LONG_GOAL_MONTHS`, invertido (sin parte arriesgada): lo que falta
    * entre los meses que quedan, sin contar con la rentabilidad. `atRisk`: no cabe entero en tu ahorro.
    */
-  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null; keepGrowing?: true }
+  /** `mediumHorizon`: la mezcla es la de un plazo medio (objetivo «sigue creciendo» cercano y tu perfil dice 2–5 años). */
+  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true }
+  /**
+   * Tu perfil dice que necesitarás el dinero en 2–5 años, pero estos objetivos (fecha a 5 años o menos) están
+   * marcados «sigue creciendo». El plan no adivina: usa la mezcla de tu plazo (más renta fija) y te pregunta.
+   * Si de verdad no lo vas a tocar, cambias tu plazo a «más de 5 años» y la mezcla pasa a la de largo plazo.
+   */
+  | { kind: 'confirm-horizon'; objectiveIds: string[] }
   /**
    * Objetivo a `TO_SAFE_MONTHS` o menos con parte invertida: pásala poco a poco a ahorro seguro, en
    * `spreadMonths` (hasta un año antes de la fecha, cuando lo invertido deja de contar).
@@ -175,7 +182,7 @@ export type PlanStep =
   | { kind: 'move-goal-to-safe'; objectiveId: string; investedCents: number; monthsLeft: number; spreadMonths: number; perMonthCents: number }
   /** Líquido apartado para objetivos a más de `LONG_GOAL_MONTHS`: puede invertirse (sin parte arriesgada) y seguir contando para ellos. */
   /** `keepGrowing`: todos sus objetivos son para seguir creciendo (no se gastan en la fecha). */
-  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true }
+  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true }
   /** `noObjectives` solo existe (true) si no hay objetivos pendientes: el resto se queda en el líquido sin destino. */
   | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
@@ -270,6 +277,16 @@ const sameMix = (a: readonly MixPart[], b: readonly MixPart[]) => a.length === b
 /** Lo que el plan invierte cada mes: el largo plazo y el ahorro de los objetivos lejanos. */
 export function monthlyInvestCents(plan: AllocationPlan): number {
   return plan.steps.reduce((t, s) => t + (s.kind === 'invest-long-term' || s.kind === 'invest-for-goals' ? s.monthlyCents : 0), 0)
+}
+
+/**
+ * Objetivo «sigue creciendo» cuyo plazo choca con tu perfil (2026-11-08, revisión como asesor): su fecha
+ * está a 5 años o menos (o no tiene) y tu perfil no dice «más de 5 años». Su plazo real no se sabe: el
+ * plan usa el de tu perfil y te lo pregunta (paso `confirm-horizon`), en vez de suponer el largo plazo.
+ */
+export function horizonInDoubt(o: Pick<ObjectiveContext, 'keepGrowing' | 'monthsLeft'>, profileHorizon: ReconciledProfile['horizon']): boolean {
+  const longByDate = o.monthsLeft !== undefined && o.monthsLeft > LONG_GOAL_MONTHS
+  return o.keepGrowing === true && !longByDate && profileHorizon !== 'long'
 }
 
 /**
@@ -551,12 +568,18 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     : active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && isLongGoal(o))
   const farNeed = farGoals.reduce((t, o) => t + Math.ceil(o.remainingCents / (o.monthsLeft as number) / 100) * 100, 0)
   const farMonthly = Math.min(euros(afterShort), farNeed)
+  // Plazo de la mezcla de los objetivos: largo, salvo que alguno sea «sigue creciendo» con el plazo en duda.
+  const goalHorizon = (goals: readonly ObjectiveContext[]): 'medium' | 'long' => (goals.some((o) => horizonInDoubt(o, profile.horizon)) ? 'medium' : 'long')
+  const doubtful = needsProfile ? [] : active.filter((o) => !isCushionObjective(o) && !o.completed && o.status !== 'achieved' && horizonInDoubt(o, profile.horizon))
+  if (doubtful.length > 0) steps.push({ kind: 'confirm-horizon', objectiveIds: doubtful.map((o) => o.id) })
   if (farGoals.length > 0 && farMonthly > 0) {
+    const horizon = goalHorizon(farGoals)
     steps.push({
       kind: 'invest-for-goals',
       monthlyCents: farMonthly,
       objectiveIds: farGoals.map((o) => o.id),
-      mix: splitMix(farMonthly, mixWeights(risk as RiskAttitude, 'long', false)),
+      mix: splitMix(farMonthly, mixWeights(risk as RiskAttitude, horizon, false)),
+      ...(horizon === 'medium' ? { mediumHorizon: true as const } : {}),
       atRisk: farNeed > afterShort,
       adult: profile.adult ?? null,
       ...(farGoals.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : {}),
@@ -672,11 +695,13 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0) - cushionNotReserved)
   if (!needsProfile && goalCents >= IDLE_MIN_CENTS) {
     const withMoney = longGoals.filter((o) => inCash(o) > 0)
+    const horizon = goalHorizon(withMoney)
     steps.push({
       kind: 'invest-goal-money',
       cents: goalCents,
       objectiveIds: withMoney.map((o) => o.id),
-      mix: splitMix(goalCents, mixWeights(risk as RiskAttitude, 'long', false)),
+      mix: splitMix(goalCents, mixWeights(risk as RiskAttitude, horizon, false)),
+      ...(horizon === 'medium' ? { mediumHorizon: true as const } : {}),
       spreadMonths: IDLE_SPREAD_MONTHS,
       perMonthCents: euros(goalCents / IDLE_SPREAD_MONTHS),
       adult: profile.adult ?? null,

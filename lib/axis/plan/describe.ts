@@ -48,7 +48,7 @@ export const LONG_TERM_EXPLANATION =
 /** Qué es cada tipo de la mezcla (pantalla «Tu plan»). */
 export const SLEEVE_EXPLANATION: Record<SleeveKey, string> = {
   'global-equity': LONG_TERM_EXPLANATION,
-  bonds: 'Préstamos a estados y empresas que pagan un interés (por ejemplo, fondos de renta fija). Se mueven menos que las acciones: dan estabilidad a la mezcla.',
+  bonds: 'Préstamos a estados y empresas que pagan un interés (por ejemplo, fondos de renta fija). Se mueven menos que las acciones: dan estabilidad a la mezcla. Si puedes necesitar el dinero en menos de 5 años, mejor de corto plazo (bonos que vencen en 1 a 3 años): se mueven aún menos cuando cambian los tipos de interés.',
   risky: `Acciones de empresas concretas, sectores, criptomonedas… Pueden subir mucho o perderlo casi todo: solo dinero que podrías perder entero, y nunca más del ${RISKY_MAX_PCT} % de lo que inviertes.`,
 }
 
@@ -84,6 +84,9 @@ function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: str
   const risky = mix.some((p) => p.key === 'risky') ? ' Las plataformas de acciones sueltas y de criptomonedas suelen exigir tener 18 años.' : ''
   return { note: `Como eres menor de edad, esta parte tendría que hacerla un adulto a tu nombre (por ejemplo, tus padres o tutores).${risky}` }
 }
+
+/** Objetivo «sigue creciendo» cercano con un perfil de plazo medio: la mezcla lleva más renta fija hasta que lo aclares. */
+const MEDIUM_HORIZON_NOTE = ' Como en tu perfil dijiste que necesitarás tu dinero antes de 5 años, la mezcla lleva más renta fija hasta que lo aclares (mira el paso «¿Vas a usar el dinero…?»).'
 
 export const PLAN_DISCLAIMER =
   'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos: cuando propone vender o adelantar dinero, es por tipos de inversión y con reglas fijas, nunca una predicción del mercado.'
@@ -205,7 +208,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
-        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.`,
+        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''}`,
         ...(step.atRisk ? { warning: 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.' } : {}),
         ...minorNote(step.adult, step.mix),
       }
@@ -226,7 +229,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Puedes invertir los ${eur(step.cents)} de ${list}`,
-        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}. ${step.keepGrowing ? 'Lo invertido puede bajar, pero como no lo necesitas en la fecha, tiene tiempo de recuperarse. Tu colchón cubre los imprevistos y crece solo si tus gastos suben.' : 'Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.'}`,
+        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''} ${step.keepGrowing ? 'Lo invertido puede bajar, pero como no lo necesitas en la fecha, tiene tiempo de recuperarse. Tu colchón cubre los imprevistos y crece solo si tus gastos suben.' : 'Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.'}`,
         ...minorNote(step.adult, step.mix),
       }
     }
@@ -278,6 +281,16 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         warning: 'No pidas más préstamos mientras tanto.',
         action: { kind: 'review-debts', label: 'Ver mis deudas' },
       }
+    case 'confirm-horizon': {
+      const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
+      const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tu objetivo'
+      return {
+        title: `¿Vas a usar el dinero de ${list} en su fecha?`,
+        detail: `Lo marcaste como «sigue creciendo», pero en tu perfil dijiste que necesitarás tu dinero antes de 5 años. Las dos cosas no encajan, y cambian mucho cuánto conviene arriesgar: la bolsa ha tardado a veces de 2 a 6 años en recuperarse de una caída. Mientras no lo aclares, tu plan usa la mezcla de tu plazo, con más renta fija.`,
+        note: 'Si de verdad no lo vas a tocar, cambia en «Tu perfil» cuándo necesitarás el dinero a «más de 5 años» y la mezcla pasará a la de largo plazo. Si sí lo vas a usar en la fecha, quítale la marca «sigue creciendo» en Objetivos.',
+        action: { kind: 'answer-profile', label: 'Revisar tu plazo' },
+      }
+    }
     case 'answer-profile':
       return {
         title: 'Responde «Tu perfil» para saber qué parte invertir',

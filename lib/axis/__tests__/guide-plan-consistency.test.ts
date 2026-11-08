@@ -51,7 +51,9 @@ describe('la Guía dice lo mismo que «Tu plan»', () => {
   })
 
   it('caso real: lo que más destaca es lo que más pesa en su mezcla (renta variable global, no renta fija)', () => {
-    const { decision, plan } = setup(110_000, [goal({ keepGrowing: true })], habitual(2_400))
+    // Con el plazo aclarado («más de 5 años») su mezcla es 70/30; con la duda, 50/50 (horizon-conflict.test.ts).
+    const LONG = MINOR.map((f): MemoryFact => (f.kind === 'horizon' ? { kind: 'horizon', value: 'long' } : f))
+    const { decision, plan } = setup(110_000, [goal({ keepGrowing: true })], habitual(2_400), LONG)
     const rec = recommendGuide(plan, decision.profile.fields)
     assert.equal(rec.lead.fit.verdict, 'fits')
     assert.equal(rec.lead.type.family, 'diversified-equity')

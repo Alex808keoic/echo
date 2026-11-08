@@ -109,7 +109,7 @@ export const SLEEVE_CHOICE: Record<SleeveKey, string> = {
   'global-equity':
     'Un fondo indexado y un ETF global hacen lo mismo: repartir tu dinero entre miles de empresas de todo el mundo. En España, el fondo se puede pasar a otro sin pagar impuestos (traspaso) y es fácil programar una aportación cada mes; el ETF se compra en bolsa, suele costar algo menos y cada venta tributa.',
   bonds:
-    'Un fondo o un ETF de renta fija reparten entre muchos bonos y no vencen nunca; un bono suelto vence en una fecha y, si lo mantienes hasta entonces, sabes lo que cobras. Para una parte de tu mezcla que va a durar años, lo repartido entre muchos bonos es lo más sencillo.',
+    'Un fondo o un ETF de renta fija reparten entre muchos bonos y no vencen nunca; un bono suelto vence en una fecha y, si lo mantienes hasta entonces, sabes lo que cobras. Para una parte de tu mezcla que va a durar años, lo repartido entre muchos bonos es lo más sencillo. Si puedes necesitar el dinero en menos de 5 años, elige uno de corto plazo (duración de 1 a 3 años): se mueve mucho menos cuando cambian los tipos de interés.',
   risky:
     'Es la parte que podrías perder entera, y como mucho una de cada diez partes de lo que inviertes. Cualquiera de estos tipos cabe aquí; si dudas, ponla también en renta variable global.',
 }

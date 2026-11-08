@@ -95,6 +95,9 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
       case 'follow-priority':
         items.push({ id: s.kind, text: `Decide si «${name(s.objectiveId)}» va el primero en Objetivos` })
         break
+      case 'confirm-horizon':
+        items.push({ id: s.kind, text: `Aclara si usarás el dinero de ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')} en su fecha (cambia tu plazo o la marca «sigue creciendo»)` })
+        break
       case 'answer-profile':
         items.push({ id: s.kind, text: 'Responde «Tu perfil» (4 preguntas)' })
         break

@@ -88,8 +88,13 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       break
     case 'invest-for-goals':
       why.push(step.keepGrowing ? 'No piensas gastar este dinero en la fecha: invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.' : 'Para un objetivo a más de 5 años, invertir cada mes da tiempo a que las caídas se recuperen y a crecer más que la inflación.')
-      if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
+      if (risk) why.push(step.mediumHorizon ? `Se reparte con tu respuesta sobre el riesgo (${risk}) y con tu plazo${horizon ? ` (${horizon})` : ''}, sin parte arriesgada: mientras no aclares si usarás el dinero en la fecha, lleva más renta fija.` : `Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
       why.push('La cifra es lo que falta entre los meses que quedan, sin contar con la rentabilidad, para no prometer nada que el mercado no asegura.')
+      break
+    case 'confirm-horizon':
+      if (horizon) why.push(`Sobre cuándo necesitarás el dinero respondiste ${horizon}, pero el objetivo está marcado «sigue creciendo»: no se gasta en la fecha.`)
+      why.push('Con 2 o 3 años por delante, una caída fuerte de la bolsa puede no haberse recuperado aún: por eso importa saber si vas a usar el dinero.')
+      why.push('Ante la duda, el plan elige lo prudente (más renta fija) y te pregunta, en vez de suponer que no lo tocarás.')
       break
     case 'move-goal-to-safe':
       why.push('Cerca de la fecha, una caída de la bolsa ya no tiene tiempo de recuperarse y podrías llegar con menos de lo que necesitas.')
@@ -101,7 +106,7 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
           ? 'Es dinero que no piensas gastar en la fecha: quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.'
           : 'Para un objetivo a más de 5 años, el dinero quieto en la cuenta pierde frente a la inflación; invertido tiene tiempo de recuperarse de las caídas.',
       )
-      if (risk) why.push(`Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
+      if (risk) why.push(step.mediumHorizon ? `Se reparte con tu respuesta sobre el riesgo (${risk}) y con tu plazo${horizon ? ` (${horizon})` : ''}, sin parte arriesgada: mientras no aclares si usarás el dinero en la fecha, lleva más renta fija.` : `Se reparte con tu respuesta sobre el riesgo (${risk}), a largo plazo y sin parte arriesgada: es dinero con destino.`)
       if (step.keepGrowing) why.push('Lo que sí vayas a necesitar, como más gastos al hacerte mayor, lo cubre tu colchón: se calcula con tu gasto habitual y crece si tus gastos suben.')
       else why.push('Cuando falten unos 3 años, lo prudente es irlo pasando a ahorro seguro, para que una caída no te pille justo antes.')
       break

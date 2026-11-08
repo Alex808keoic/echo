@@ -25,6 +25,14 @@ export const VERDICT_SHORT: Record<FitVerdict, string> = {
 
 const RISK_RANK: Record<ProductRisk, number> = { 'muy-bajo': 0, bajo: 1, medio: 2, alto: 3, 'muy-alto': 4 }
 
+/**
+ * A igualdad de encaje y de peso, lo diversificado y sencillo antes que lo suelto (2026-11-08, revisión como
+ * asesor): con importes pequeños, un fondo de renta fija reparte entre muchos bonos y se puede traspasar;
+ * un bono suelto, y más una Obligación a 10–30 años, concentra el riesgo de tipos de interés.
+ */
+const SIMPLE_FIRST: readonly string[] = ['fondo-indexado', 'etf', 'fondo-renta-fija', 'etf-bonos']
+const simpleRank = (t: TypeFit) => (SIMPLE_FIRST.includes(t.type.id) ? SIMPLE_FIRST.indexOf(t.type.id) : SIMPLE_FIRST.length)
+
 export interface TypeFit {
   type: ProductType
   fit: ProductFit
@@ -51,7 +59,7 @@ export const isRecommended = (v: FitVerdict): boolean => v === 'fits' || v === '
 /**
  * Mejor veredicto; a igualdad, el tipo con más peso en la mezcla del plan (si el
  * plan reparte 70 % renta variable y 30 % renta fija, destaca la renta variable);
- * después, el de menos riesgo y el orden de la guía.
+ * después, lo diversificado y sencillo (SIMPLE_FIRST), el de menos riesgo y el orden de la guía.
  */
 function betterFor(weight: (t: TypeFit) => number) {
   return (a: TypeFit, b: TypeFit): TypeFit => {
@@ -59,6 +67,7 @@ function betterFor(weight: (t: TypeFit) => number) {
     const vb = VERDICT_ORDER.indexOf(b.fit.verdict)
     if (va !== vb) return va < vb ? a : b
     if (weight(a) !== weight(b)) return weight(a) > weight(b) ? a : b
+    if (simpleRank(a) !== simpleRank(b)) return simpleRank(a) < simpleRank(b) ? a : b
     if (RISK_RANK[a.type.risk] !== RISK_RANK[b.type.risk]) return RISK_RANK[a.type.risk] < RISK_RANK[b.type.risk] ? a : b
     return PRODUCT_TYPES.indexOf(a.type) <= PRODUCT_TYPES.indexOf(b.type) ? a : b
   }

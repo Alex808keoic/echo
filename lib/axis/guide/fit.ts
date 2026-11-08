@@ -93,6 +93,11 @@ export function productFit(product: ProductType, plan: AllocationPlan, profile: 
   }
 
   if (equity) checks.push('Que solo inviertas dinero que no vas a necesitar en más de 5 años')
+  // Plazo de menos de 5 años: la renta fija, de corto plazo (2026-11-08). Una Obligación a 10–30 años cayó un 20 % en 2022.
+  if (product.family === 'bonds' && profile.horizon !== 'long' && verdict !== 'not-for-horizon') {
+    checks.push('Que sea de corto plazo (bonos que vencen en 1 a 3 años): necesitas el dinero en menos de 5 años')
+    if (product.id === 'bonos-estado') reasons.push('Con tu plazo, mejor Bonos a 3 años o Letras que Obligaciones a 10 años o más: si suben los tipos, estas pueden caer bastante y no te da tiempo a esperar al vencimiento.')
+  }
   if (annualFeePct !== undefined && Number.isFinite(annualFeePct) && annualFeePct >= 0) {
     const limit = HIGH_FEE_PCT[product.family]
     if (limit > 0 && annualFeePct > limit) reasons.push(`Una comisión anual del ${String(annualFeePct).replace('.', ',')} % es alta para este tipo de producto: a largo plazo se come una parte importante de lo que ganes.`)
