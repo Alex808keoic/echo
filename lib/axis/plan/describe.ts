@@ -88,6 +88,13 @@ function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: str
 /** Objetivo «sigue creciendo» cercano con un perfil de plazo medio: la mezcla lleva más renta fija hasta que lo aclares. */
 const MEDIUM_HORIZON_NOTE = ' Como en tu perfil dijiste que necesitarás tu dinero antes de 5 años, la mezcla lleva más renta fija hasta que lo aclares (mira el paso «¿Vas a usar el dinero…?»).'
 
+/** Por qué ese dinero puede invertirse; con objetivos de los dos tipos, sin decir de todos lo que solo vale para unos. */
+function goalLead(step: { keepGrowing?: true; mixedGoals?: true }): string {
+  if (step.keepGrowing) return 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo'
+  if (step.mixedGoals) return 'Unos no los vas a gastar en su fecha y a los otros les faltan más de 5 años'
+  return 'Faltan más de 5 años'
+}
+
 export const PLAN_DISCLAIMER =
   'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos: cuando propone vender o adelantar dinero, es por tipos de inversión y con reglas fijas, nunca una predicción del mercado.'
 
@@ -208,7 +215,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
-        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''}`,
+        detail: `${goalLead(step)}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''}`,
         ...(step.atRisk ? { warning: 'Con tu ahorro de ahora no llega para lo que haría falta cada mes: tendrás menos de lo previsto en la fecha o tendrás que moverla.' } : {}),
         ...minorNote(step.adult, step.mix),
       }
@@ -229,7 +236,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos lejanos'
       return {
         title: `Puedes invertir los ${eur(step.cents)} de ${list}`,
-        detail: `${step.keepGrowing ? 'No lo vas a gastar al llegar la fecha, sino que sigue creciendo' : 'Faltan más de 5 años'}, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''} ${step.keepGrowing ? 'Lo invertido puede bajar, pero como no lo necesitas en la fecha, tiene tiempo de recuperarse. Tu colchón cubre los imprevistos y crece solo si tus gastos suben.' : 'Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.'}`,
+        detail: `${goalLead(step)}, así que no hace falta tenerlos en la cuenta: invertidos siguen contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} y tienen tiempo de crecer más que la inflación. Puede ser de una vez o poco a poco, ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}. ${LUMP_SUM_NOTE} Tú eliges. De una vez sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''} ${step.keepGrowing ? 'Lo invertido puede bajar, pero como no lo necesitas en la fecha, tiene tiempo de recuperarse. Tu colchón cubre los imprevistos y crece solo si tus gastos suben.' : step.mixedGoals ? 'Lo invertido puede bajar; para los que sí gastarás en su fecha, unos 3 años antes tu plan te propondrá pasarlo poco a poco a ahorro seguro.' : 'Lo invertido puede bajar; unos 3 años antes de la fecha, tu plan te propondrá pasarlo poco a poco a ahorro seguro.'}`,
         ...minorNote(step.adult, step.mix),
       }
     }

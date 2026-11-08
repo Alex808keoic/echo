@@ -6,6 +6,7 @@ import { buildFinancialContext } from '@/lib/axis/context'
 import { decide } from '@/lib/axis/core/decision'
 import { pendingPlanNotes } from '@/lib/axis/chat/memory'
 import { buildAllocationPlan, type AllocationPlan } from '@/lib/axis/plan/allocation'
+import { checkPlan } from '@/lib/axis/plan/invariants'
 import type { AxisDecision } from '@/lib/axis/types'
 import { getAxisMemory } from '@/lib/db/axis-memory'
 import { listUserMemories } from '@/lib/db/axis-memories'
@@ -27,6 +28,12 @@ export function useAllocationPlan(overview: FinancialOverview | undefined): { pl
   return useMemo(() => {
     if (!overview || memory === undefined || memories === undefined) return undefined
     const decision = decide({ context: buildFinancialContext(overview.axisSnapshot), ...(memory ? { memory } : {}) })
-    return { plan: buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, inflation: inflationFrom(market), equityMove: market?.equityMove ?? null }), decision }
+    const plan = buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, inflation: inflationFrom(market), equityMove: market?.equityMove ?? null })
+    // En desarrollo, las reglas de asesor sobre el plan real: cualquier incoherencia sale en la consola.
+    if (process.env.NODE_ENV !== 'production') {
+      const violations = checkPlan(plan, decision)
+      if (violations.length > 0) console.warn('[Finax] El plan incumple reglas de asesor:', violations)
+    }
+    return { plan, decision }
   }, [overview, memory, memories, market])
 }

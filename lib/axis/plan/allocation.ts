@@ -168,7 +168,7 @@ export type PlanStep =
    * entre los meses que quedan, sin contar con la rentabilidad. `atRisk`: no cabe entero en tu ahorro.
    */
   /** `mediumHorizon`: la mezcla es la de un plazo medio (objetivo «sigue creciendo» cercano y tu perfil dice 2–5 años). */
-  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true }
+  | { kind: 'invest-for-goals'; monthlyCents: number; objectiveIds: string[]; mix: MixPart[]; atRisk: boolean; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true; mixedGoals?: true }
   /**
    * Tu perfil dice que necesitarás el dinero en 2–5 años, pero estos objetivos (fecha a 5 años o menos) están
    * marcados «sigue creciendo». El plan no adivina: usa la mezcla de tu plazo (más renta fija) y te pregunta.
@@ -182,7 +182,7 @@ export type PlanStep =
   | { kind: 'move-goal-to-safe'; objectiveId: string; investedCents: number; monthsLeft: number; spreadMonths: number; perMonthCents: number }
   /** Líquido apartado para objetivos a más de `LONG_GOAL_MONTHS`: puede invertirse (sin parte arriesgada) y seguir contando para ellos. */
   /** `keepGrowing`: todos sus objetivos son para seguir creciendo (no se gastan en la fecha). */
-  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true }
+  | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true; mixedGoals?: true }
   /** `noObjectives` solo existe (true) si no hay objetivos pendientes: el resto se queda en el líquido sin destino. */
   | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
@@ -582,7 +582,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       ...(horizon === 'medium' ? { mediumHorizon: true as const } : {}),
       atRisk: farNeed > afterShort,
       adult: profile.adult ?? null,
-      ...(farGoals.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : {}),
+      ...(farGoals.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : farGoals.some((o) => o.keepGrowing) ? { mixedGoals: true as const } : {}),
     })
   }
   const room = afterShort - farMonthly
@@ -705,7 +705,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       spreadMonths: IDLE_SPREAD_MONTHS,
       perMonthCents: euros(goalCents / IDLE_SPREAD_MONTHS),
       adult: profile.adult ?? null,
-      ...(withMoney.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : {}),
+      ...(withMoney.every((o) => o.keepGrowing) ? { keepGrowing: true as const } : withMoney.some((o) => o.keepGrowing) ? { mixedGoals: true as const } : {}),
     })
   }
 
