@@ -40,6 +40,17 @@ export const BONDS_PCT: Record<Exclude<Horizon, 'short'>, Record<RiskAttitude, n
 
 /** Tope de la parte arriesgada, en % de lo que se invierte. */
 export const RISKY_MAX_PCT = 10
+/** Por debajo de esto al mes, una parte de la mezcla es demasiado pequeña para tener su propio fondo (revisión del 2026-11-08). */
+export const SMALL_PART_CENTS = 3_000
+
+/**
+ * Aportación muy pequeña repartida en varias partes diversificadas (p. ej. 5 € a renta variable y 5 € a renta
+ * fija): se propone un solo fondo que ya lleve la mezcla, o juntar varios meses. La parte arriesgada va aparte.
+ */
+export function isSmallSplit(parts: ReadonlyArray<{ key: SleeveKey; cents: number }>): boolean {
+  const diversified = parts.filter((p) => p.cents > 0 && p.key !== 'risky')
+  return diversified.length >= 2 && diversified.some((p) => p.cents < SMALL_PART_CENTS)
+}
 /** Dinero parado mínimo, en meses de gasto habitual, para que haya parte arriesgada. */
 export const RISKY_MIN_IDLE_MONTHS = 3
 

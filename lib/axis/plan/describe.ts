@@ -7,8 +7,10 @@ import { formatCents } from '../../money'
 import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
 import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './allocation'
-import { RISKY_MAX_PCT, REBALANCE_SELL_MONTHS, type MixPart, type SleeveKey } from './mix'
+import { RISKY_MAX_PCT, REBALANCE_SELL_MONTHS, isSmallSplit, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
+import type { DataIssue } from './data-checks'
+import { CATEGORY_DEUDA } from '../../types'
 
 /** Lo que la pantalla puede hacer desde un paso. */
 export type StepAction = 'create-cushion' | 'move-cushion-first' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts' | 'review-investments'
@@ -83,6 +85,20 @@ function minorNote(adult: boolean | null, mix: readonly MixPart[]): { note?: str
   if (adult !== false) return {}
   const risky = mix.some((p) => p.key === 'risky') ? ' Las plataformas de acciones sueltas y de criptomonedas suelen exigir tener 18 años.' : ''
   return { note: `Como eres menor de edad, esta parte tendría que hacerla un adulto a tu nombre (por ejemplo, tus padres o tutores).${risky}` }
+}
+
+/** Aportación pequeña repartida en varias partes (`isSmallSplit`): un solo fondo o juntar meses. La Guía dice lo mismo. */
+export const SMALL_SPLIT_NOTE =
+  'Con importes tan pequeños no hace falta un fondo para cada parte: un solo fondo mixto (o perfilado) que ya combine acciones y bonos en una proporción parecida a la tuya hace el reparto por ti y se reequilibra solo. Compara su comisión total con la de dos fondos indexados por separado; si sale mucho más cara, otra opción es juntar varios meses y aportar a cada parte de una vez.'
+
+export function smallSplitNote(mix: readonly MixPart[]): string | null {
+  return isSmallSplit(mix) ? SMALL_SPLIT_NOTE : null
+}
+
+/** Junta las notas de un paso de invertir (menor de edad, importes pequeños…) en una sola. */
+function joinNotes(...notes: Array<string | null | undefined>): { note?: string } {
+  const list = notes.filter((n): n is string => Boolean(n))
+  return list.length > 0 ? { note: list.join(' ') } : {}
 }
 
 /** Objetivo «sigue creciendo» cercano con un perfil de plazo medio: la mezcla lleva más renta fija hasta que lo aclares. */
@@ -193,12 +209,11 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         step.drawdownPct !== undefined
           ? `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste. Con un plazo largo es normal pasar por años malos: el plan no cambia por una caída.`
           : null
-      const notes = [drawdown, minorNote(step.adult, step.mix).note].filter((n): n is string => Boolean(n))
       return {
         title: `${eur(step.monthlyCents)} al mes a largo plazo`,
         detail: `El ${step.pct} % de lo que te sobra${why}. ${mixSentence(step.mix)}${rebalance}`,
         ...riskyWarning(step.mix),
-        ...(notes.length > 0 ? { note: notes.join(' ') } : {}),
+        ...joinNotes(drawdown, minorNote(step.adult, step.mix).note, smallSplitNote(step.mix)),
       }
     }
     case 'idle-money':
@@ -234,7 +249,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         title: `Para ${list}, invierte ${eur(step.monthlyCents)} al mes`,
         detail: `${goalLead(step)}: este ahorro va invertido y cuenta para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'} desde el primer día. Es lo que falta repartido entre los meses que quedan, sin contar con lo que rinda: si rinde, llegas antes. Sería: ${mixAmounts(step.mix)}.${step.mediumHorizon ? MEDIUM_HORIZON_NOTE : ''}`,
         ...(step.atRisk ? { warning: goalGapWarning(step, objectives) } : {}),
-        ...minorNote(step.adult, step.mix),
+        ...joinNotes(minorNote(step.adult, step.mix).note, smallSplitNote(step.mix)),
       }
     }
     case 'move-goal-to-safe': {
@@ -321,16 +336,24 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         detail: 'Con tus plazos y cómo llevas el riesgo, el plan puede proponerte una parte para el largo plazo.',
         action: { kind: 'answer-profile', label: 'Responder' },
       }
-    case 'forecast-basis':
+    case 'forecast-basis': {
+      // De dónde sale el gasto: el último mes completo, o algo más alto si ese mes se quedaba corto.
+      const spent =
+        step.spendingFrom === 'fixed'
+          ? `tus gastos fijos de «Fijos» (${eur(step.spendingCents)} al mes, más que lo que apuntaste en tu último mes completo)`
+          : step.spendingFrom === 'current-month'
+            ? `lo que llevas gastado este mes (${eur(step.spendingCents)}, ya más que en tu último mes completo)`
+            : null
       return {
         title: 'Plan provisional con tu ingreso previsto',
         detail:
           step.lastMonthIncomeCents !== undefined
-            ? `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso lo que ingresaste en tu último mes completo (${eur(step.lastMonthIncomeCents)}, más que tu ingreso fijo de ${eur(step.recurringIncomeCents)}) menos lo que gastaste ese mes (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`
-            : `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos lo que gastaste en tu último mes completo (${eur(step.spendingCents)}). Es una previsión: no se suma a tu dinero.`,
+            ? `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso lo que ingresaste en tu último mes completo (${eur(step.lastMonthIncomeCents)}, más que tu ingreso fijo de ${eur(step.recurringIncomeCents)}) menos ${spent ?? `lo que gastaste ese mes (${eur(step.spendingCents)})`}. Es una previsión: no se suma a tu dinero.`
+            : `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos ${spent ?? `lo que gastaste en tu último mes completo (${eur(step.spendingCents)})`}. Es una previsión: no se suma a tu dinero.`,
         note: `${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')} para que el plan salga de tus datos reales.`,
         action: { kind: 'register-data', label: 'Registrar movimientos' },
       }
+    }
     case 'follow-priority': {
       const name = (id: string) => objectives.find((o) => o.id === id)?.name ?? 'otro objetivo'
       const ahead = step.aheadIds.map((id) => `«${name(id)}»`)
@@ -377,6 +400,35 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
           'El plan solo cambia con datos concretos, no con texto libre. Convierte cada nota en un dato (ingreso, mínimo líquido, plazo, riesgo…) o en un objetivo para que cuente; si alguna no tiene que ver con tu dinero, márcala como que no cuenta.',
         action: { kind: 'review-memories', label: 'Revisar notas' },
       }
+    case 'check-data': {
+      const n = step.issues.length
+      const movementsFirst = step.issues.some((i) => i.kind !== 'goal-differs-from-memory')
+      return {
+        title: n === 1 ? 'Revisa un dato que parece mal apuntado' : `Revisa ${n} datos que parecen mal apuntados`,
+        detail: step.issues.map(dataIssueSentence).join(' '),
+        note: 'Finax no cambia nada por su cuenta: si está bien así, déjalo. Tu plan sale de lo que apuntas, así que un dato mal puesto cambia lo que te propone.',
+        action: movementsFirst ? { kind: 'register-data', label: 'Ver movimientos' } : { kind: 'review-objectives', label: 'Ver objetivos' },
+      }
+    }
+  }
+}
+
+/** «12/10» */
+const shortDate = (iso: string) => `${Number(iso.slice(8, 10))}/${Number(iso.slice(5, 7))}`
+
+/** Una frase por dato que parece mal apuntado: qué se ve, por qué importa y qué hacer. */
+export function dataIssueSentence(issue: DataIssue): string {
+  switch (issue.kind) {
+    case 'loan-as-expense':
+      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) parece dinero que dejaste a alguien: si es así, márcalo como puntual, porque no es un gasto de cada mes y ahora sube tu gasto habitual. Cuando te lo devuelvan, apúntalo como ingreso de «${CATEGORY_DEUDA}».`
+    case 'habitual-marked-one-off': {
+      const why = issue.reason === 'subscription' ? 'es una suscripción' : issue.reason === 'fixed' ? 'sale de uno de tus fijos' : 'se repite en otros meses'
+      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) está marcado como puntual, pero ${why}: si lo pagas cada mes, quítale la marca. Si no, tu plan cree que gastas menos de lo que gastas.`
+    }
+    case 'goal-differs-from-memory':
+      return issue.closest
+        ? `Le contaste a AXIS «${issue.said}», pero tu objetivo «${issue.closest.name}» es de ${eur(issue.closest.targetCents)}: cambia el objetivo o la nota para que digan lo mismo.`
+        : `Le contaste a AXIS «${issue.said}», pero no tienes ningún objetivo de ${eur(issue.saidCents)}: créalo para que tu plan lo tenga en cuenta, o cambia la nota.`
   }
 }
 

@@ -7,6 +7,7 @@ import { decide } from '@/lib/axis/core/decision'
 import { pendingPlanNotes } from '@/lib/axis/chat/memory'
 import { buildAllocationPlan, type AllocationPlan } from '@/lib/axis/plan/allocation'
 import { checkPlan } from '@/lib/axis/plan/invariants'
+import { checkData } from '@/lib/axis/plan/data-checks'
 import type { AxisDecision } from '@/lib/axis/types'
 import { getAxisMemory } from '@/lib/db/axis-memory'
 import { listUserMemories } from '@/lib/db/axis-memories'
@@ -28,7 +29,10 @@ export function useAllocationPlan(overview: FinancialOverview | undefined): { pl
   return useMemo(() => {
     if (!overview || memory === undefined || memories === undefined) return undefined
     const decision = decide({ context: buildFinancialContext(overview.axisSnapshot), ...(memory ? { memory } : {}) })
-    const plan = buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, inflation: inflationFrom(market), equityMove: market?.equityMove ?? null })
+    // Datos que parecen mal apuntados: solo el dispositivo tiene los movimientos (el contexto no los lleva).
+    const { movements, recurring, objectives } = overview.axisSnapshot
+    const dataIssues = checkData({ movements, recurring, objectives, memories, asOf: decision.context.asOf })
+    const plan = buildAllocationPlan(decision, { pendingNotes: pendingPlanNotes(memories).length, dataIssues, inflation: inflationFrom(market), equityMove: market?.equityMove ?? null })
     // En desarrollo, las reglas de asesor sobre el plan real: cualquier incoherencia sale en la consola.
     if (process.env.NODE_ENV !== 'production') {
       const violations = checkPlan(plan, decision)

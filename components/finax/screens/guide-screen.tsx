@@ -5,6 +5,8 @@ import { useAllocationPlan } from '@/hooks/use-allocation-plan'
 import { type FitVerdict, type ProductFit } from '@/lib/axis/guide/fit'
 import { COMPARE_DEFAULT_MONTHLY_CENTS, COMPARE_YEARS, feeComparison, investEstimate, monthlyForType, sleeveGuide, type InvestEstimate, type SleeveGuide } from '@/lib/axis/guide/invest'
 import type { AllocationPlan } from '@/lib/axis/plan/allocation'
+import { SMALL_SPLIT_NOTE } from '@/lib/axis/plan/describe'
+import { isSmallSplit } from '@/lib/axis/plan/mix'
 import { AUTHORIZED_SERVICES, EXAMPLES_NOTICE, groupRiskRange, OFFICIAL_LINKS, RISK_LABEL, type InvestmentGroupId, type ProductType } from '@/lib/axis/guide/products'
 import { HISTORY_NOTICE } from '@/lib/axis/guide/history'
 import { isRecommended, recommendGuide, VERDICT_SHORT, type GroupFit, type GuideRecommendation } from '@/lib/axis/guide/recommend'
@@ -226,6 +228,13 @@ function MixGuide({ sleeves, rec, onOpen }: { sleeves: SleeveGuide[]; rec: Guide
         <p className="px-1 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
           Lo que ya tienes invertido se ha alejado de tu mezcla: este mes lo nuevo va sobre todo a lo que falta, sin vender nada. El porcentaje es el de tu mezcla.
         </p>
+      )}
+      {/* Aportación pequeña repartida en varias partes: lo mismo que dice «Tu plan» (`smallSplitNote`). */}
+      {isSmallSplit(sleeves.map((s) => ({ key: s.key, cents: s.monthlyCents }))) && (
+        <button type="button" onClick={() => onOpen('fondos', 'fondo-mixto')} className="flex w-full items-center gap-2 rounded-2xl bg-axis-soft px-3.5 py-2.5 text-left">
+          <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-snug text-axis-indigo text-pretty">{SMALL_SPLIT_NOTE}</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-axis-indigo" />
+        </button>
       )}
       {sleeves.map((s) => (
         <FinancialCard key={s.key} className="space-y-2.5">

@@ -127,6 +127,14 @@ function pendingFixedIncome(key: string, recurring: readonly RecurringMovement[]
   return total
 }
 
+/**
+ * Gastos fijos de «Fijos» al mes: los mensuales enteros y los anuales repartidos en 12. Suelo del gasto en el
+ * plan provisional: un solo mes apuntado puede no traerlos todos (2026-11-08).
+ */
+function fixedMonthlyExpense(recurring: readonly RecurringMovement[]): number {
+  return recurring.filter((r) => r.type === 'gasto' && r.amountCents > 0).reduce((t, r) => t + (r.frequency === 'monthly' ? r.amountCents : Math.ceil(r.amountCents / 12)), 0)
+}
+
 /** Suma mensual de los ingresos fijos mensuales. */
 function fixedMonthlyIncome(recurring: readonly RecurringMovement[]): number {
   return recurring.filter((r) => r.type === 'ingreso' && r.frequency === 'monthly' && r.amountCents > 0).reduce((t, r) => t + r.amountCents, 0)
@@ -271,6 +279,7 @@ export function buildFinancialContext(snapshot: FinancialSnapshot, asOf: string 
       history,
       closedMonths: closedMonthsOf(movements, asOf, { startedOn: config && config.configuredAt > 1 ? toISODate(new Date(config.configuredAt)) : undefined, recurring: snapshot.recurring }),
       ...(fixedMonthlyIncome(snapshot.recurring ?? []) > 0 ? { fixedMonthlyIncomeCents: fixedMonthlyIncome(snapshot.recurring ?? []) } : {}),
+      ...(fixedMonthlyExpense(snapshot.recurring ?? []) > 0 ? { fixedMonthlyExpenseCents: fixedMonthlyExpense(snapshot.recurring ?? []) } : {}),
     },
     objectives: objectiveCtxs,
     investments: {

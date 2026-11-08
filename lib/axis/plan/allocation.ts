@@ -46,6 +46,7 @@ import { DEBT_CHEAP_PCT, DEBT_EXPENSIVE_PCT, DEBT_LOAD_MAX_PCT, extraPaymentEffe
 import { INVESTED_GOAL_MIN_MONTHS, LONG_GOAL_MONTHS, TO_SAFE_MONTHS, isLongGoal } from '../../finance/objectives'
 import type { DebtContext } from '../types'
 import { RISKY_DROP_PCT, STALE_VALUE_DAYS } from './performance'
+import type { DataIssue } from './data-checks'
 
 export const CUSHION_OBJECTIVE_NAME = 'Fondo de emergencia'
 /**
@@ -188,11 +189,17 @@ export type PlanStep =
   | { kind: 'answer-profile' }
   /** Plan provisional: el ahorro sale del ingreso fijo previsto, no de meses registrados. */
   /** `lastMonthIncomeCents`: lo que ingresaste en tu último mes completo, cuando fue más que el ingreso fijo (y es lo que se usa). */
-  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number }
+  /**
+   * `spendingFrom`: el gasto no es el de tu último mes completo porque se quedaba corto: son tus gastos fijos de
+   * «Fijos» (`fixed`) o lo que llevas gastado este mes sin lo puntual (`current-month`).
+   */
+  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number; spendingFrom?: 'fixed' | 'current-month' }
   /** La prioridad que declaraste no va la primera del reparto (después del colchón). */
   | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
   /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
   | { kind: 'review-notes'; count: number }
+  /** Datos que parecen mal apuntados (`plan/data-checks.ts`): se avisa y decide el usuario; nunca cambia importes. */
+  | { kind: 'check-data'; issues: DataIssue[] }
   /**
    * Inversión de la parte arriesgada que vale un `RISKY_DROP_PCT` % o menos de lo aportado: puede no recuperarse.
    * Mientras esté así, la parte arriesgada no recibe dinero nuevo (decidido el 2026-11-02).
@@ -237,6 +244,8 @@ export interface AllocationPlan {
 }
 
 const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
+/** Céntimos enteros no negativos; cualquier otra cosa cuenta como 0 (el contexto puede llegar del cliente). */
+const validCents = (n: unknown): number => (typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : 0)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 export const isCushionObjective = (o: Pick<ObjectiveContext, 'name'>) => normalize(o.name) === normalize(CUSHION_OBJECTIVE_NAME)
 
@@ -388,6 +397,8 @@ function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): num
 export interface PlanOptions {
   /** Notas de AXIS (memorias sin dato) que el usuario no ha convertido ni descartado. Solo las conoce el dispositivo. */
   pendingNotes?: number
+  /** Datos que parecen mal apuntados (`checkData`). Solo los conoce el dispositivo: el contexto no lleva los movimientos. */
+  dataIssues?: DataIssue[]
   /** Inflación de referencia (plan/inflation.ts): solo cambia textos, nunca importes. */
   inflation?: InflationRef
   /** Caída o subida fuerte de la bolsa en el último mes: una caída adelanta parte del dinero parado. */
@@ -415,7 +426,11 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const fixedIncome = decision.context.flows.fixedMonthlyIncomeCents
   const declaredIncome = recurringIncomesOf(profile) ?? (fixedIncome !== undefined && fixedIncome > 0 ? { monthlyCents: fixedIncome } : null)
   const debts = debtsOf(ctx.debts)
-  const notesStep: PlanStep[] = options.pendingNotes && options.pendingNotes > 0 ? [{ kind: 'review-notes', count: options.pendingNotes }] : []
+  // Datos que parecen mal apuntados y notas sin convertir: van en todos los planes, también en los bloqueados.
+  const notesStep: PlanStep[] = [
+    ...(options.dataIssues && options.dataIssues.length > 0 ? [{ kind: 'check-data' as const, issues: options.dataIssues }] : []),
+    ...(options.pendingNotes && options.pendingNotes > 0 ? [{ kind: 'review-notes' as const, count: options.pendingNotes }] : []),
+  ]
   const ids = new Set(decision.signals.map((s) => s.id))
   const noLongTerm = (reason: LongTermReason) => ({ pct: 0, monthlyCents: 0, reason })
   const blocked = (blocker: PlanBlocker, steps: PlanStep[], monthly: AllocationPlan['monthly'] = null): AllocationPlan => ({
@@ -444,14 +459,28 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     if (decision.level === 'none' || !declaredIncome || !last) {
       return blocked('insufficient-data', [{ kind: 'register-data', monthsNeeded }, ...notesStep])
     }
-    const lastSpending = Math.ceil(regularExpenseCents(last) / 100) * 100
+    // Un solo mes puede quedarse corto (2026-11-08): el gasto nunca baja de tus gastos fijos de «Fijos» ni de lo
+    // que llevas gastado este mes (sin lo puntual). Se usa lo más alto: es una previsión prudente.
+    const lastRegular = regularExpenseCents(last)
+    const fixedExpense = validCents(ctx.flows.fixedMonthlyExpenseCents)
+    const currentRegular = ctx.flows.current && validCents(ctx.flows.current.expenseCents) > 0 ? regularExpenseCents(ctx.flows.current) : 0
+    const spendingBase = Math.max(lastRegular, fixedExpense, currentRegular)
+    const spendingFrom = spendingBase === lastRegular ? undefined : spendingBase === currentRegular ? ('current-month' as const) : ('fixed' as const)
+    const lastSpending = Math.ceil(spendingBase / 100) * 100
     // Lo que ingresaste ese mes (sin lo puntual, con los fijos pendientes) si es más que el ingreso fijo: la paga
     // no suele ser el único ingreso (2026-11-07: 35 € de paga − 46 € de gasto ignoraba el resto de ingresos).
     const lastIncome = Math.floor(habitualIncomeCents(last) / 100) * 100
     const fromLastMonth = lastIncome > declaredIncome.monthlyCents
     const incomeCents = fromLastMonth ? lastIncome : declaredIncome.monthlyCents
     monthly = { savingsCents: euros(incomeCents - lastSpending), spendingCents: lastSpending, months: months.length, forecast: true, recurringIncomeCents: declaredIncome.monthlyCents }
-    leading.push({ kind: 'forecast-basis', recurringIncomeCents: declaredIncome.monthlyCents, spendingCents: lastSpending, monthsNeeded, ...(fromLastMonth ? { lastMonthIncomeCents: lastIncome } : {}) })
+    leading.push({
+      kind: 'forecast-basis',
+      recurringIncomeCents: declaredIncome.monthlyCents,
+      spendingCents: lastSpending,
+      monthsNeeded,
+      ...(fromLastMonth ? { lastMonthIncomeCents: lastIncome } : {}),
+      ...(spendingFrom ? { spendingFrom } : {}),
+    })
   } else {
     monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }

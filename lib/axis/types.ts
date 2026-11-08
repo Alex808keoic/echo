@@ -198,6 +198,8 @@ export interface FinancialContext {
     closedMonths: ClosedMonth[]
     /** Ingresos fijos mensuales apuntados en «Fijos» (paga, nómina): base del plan provisional. Solo si hay alguno. */
     fixedMonthlyIncomeCents?: number
+    /** Gastos fijos de «Fijos» al mes (los anuales, entre 12): suelo del gasto del plan provisional. Solo si hay alguno. */
+    fixedMonthlyExpenseCents?: number
   }
   objectives: ObjectiveContext[]
   investments: {
