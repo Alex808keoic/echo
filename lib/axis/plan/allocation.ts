@@ -157,6 +157,8 @@ export type PlanStep =
       mix: MixPart[]
       /** Sin objetivos pendientes: por eso el porcentaje es mayor. */
       noObjectives: boolean
+      /** Tu perfil dice que necesitarás el dinero en 2 a 5 años: el título no dice «largo plazo». */
+      mediumHorizon?: true
       /** Solo si tu mezcla real se aleja de la del plan: el reparto de este mes la acerca, sin vender. */
       rebalance?: { heldPct: Record<SleeveKey, number>; targetPct: Record<SleeveKey, number> }
       /** Solo si tus inversiones valen al menos un `DRAWDOWN_NOTICE_PCT` % menos de lo que aportaste. */
@@ -883,6 +885,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       adult: profile.adult ?? null,
       mix,
       noObjectives,
+      ...(profile.horizon === 'medium' ? { mediumHorizon: true as const } : {}),
       // Solo se explica el reequilibrio si de verdad cambia el reparto de este mes.
       ...(rebalance && plainFor && !sameMix(mix, plainFor(longTerm.monthlyCents)) ? { rebalance } : {}),
       ...(drawdownPct >= DRAWDOWN_NOTICE_PCT ? { drawdownPct } : {}),

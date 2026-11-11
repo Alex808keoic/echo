@@ -164,3 +164,20 @@ describe('textos que se contradecían', () => {
     assert.match(texts, /ya están cubiertos/)
   })
 })
+
+describe('plazo medio e importes pequeños', () => {
+  it('con un perfil de 2 a 5 años el paso dice «a medio plazo»', () => {
+    const { ctx, plan } = run([...salary(180_000), ...spend(130_000), ...nov()], [], 300_000, profile({ horizon: 'medium' }))
+    const lt = step(plan.steps, 'invest-long-term')
+    assert.ok(lt)
+    assert.match(describeStep(lt, plan, ctx.objectives).title, /a medio plazo \(2 a 5 años\)/)
+  })
+
+  it('menos de 50 € al mes: la lista dice juntarlos primero, como con los extras', () => {
+    const { ctx, plan } = run([...salary(10_000), ...spend(5_000), ingreso('2026-11-01', 10_000)], [], 300_000, profile({ horizon: 'medium' }))
+    const lt = step(plan.steps, 'invest-long-term')
+    assert.ok(lt && lt.monthlyCents < 5_000, JSON.stringify(lt))
+    const items = monthChecklist(plan, ctx.objectives).map((i) => i.text)
+    assert.ok(items.some((t) => /^Aparta .* cuando llegues a 50,00 €/.test(t)), items.join(' | '))
+  })
+})

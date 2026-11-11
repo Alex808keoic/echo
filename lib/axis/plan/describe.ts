@@ -45,7 +45,7 @@ export const LUMP_SUM_NOTE =
   'Con los datos históricos, invertir de una vez ha salido mejor unas 2 de cada 3 veces: el dinero empieza antes a trabajar y la bolsa sube más años de los que baja. Poco a poco sirve sobre todo para estar más tranquilo, porque si llega una caída justo después te pilla con menos dentro. Las dos opciones son razonables y ninguna garantiza nada.'
 
 export const LONG_TERM_EXPLANATION =
-  'Fondos que reparten tu dinero entre muchas empresas de todo el mundo, con comisiones bajas (por ejemplo, fondos indexados globales). Pueden bajar mucho en un año malo: solo son para dinero que no vayas a necesitar en más de 5 años.'
+  'Fondos que reparten tu dinero entre muchas empresas de todo el mundo, con comisiones bajas (por ejemplo, fondos indexados globales). Pueden bajar mucho en un año malo: solas, solo para dinero que no vayas a necesitar en más de 5 años; con un plazo más corto, tu plan las mezcla con más renta fija.'
 
 /** Qué es cada tipo de la mezcla (pantalla «Tu plan»). */
 export const SLEEVE_EXPLANATION: Record<SleeveKey, string> = {
@@ -260,7 +260,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
             : `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste. Con un plazo largo es normal pasar por años malos: el plan no cambia por una caída.`
           : null
       return {
-        title: `${eur(step.monthlyCents)} al mes a largo plazo`,
+        title: `${eur(step.monthlyCents)} al mes ${step.mediumHorizon ? 'a medio plazo (2 a 5 años)' : 'a largo plazo'}`,
         detail: `El ${step.pct} % de lo que te sobra${why}. ${mixSentence(step.mix)}${rebalance}`,
         ...riskyWarning(step.mix),
         ...joinNotes(drawdown, minorNote(step.adult, step.mix).note, smallSplitNote(step.mix)),

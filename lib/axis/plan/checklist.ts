@@ -6,7 +6,7 @@
  */
 import { formatCents } from '../../money'
 import type { ObjectiveContext } from '../types'
-import { CUSHION_OBJECTIVE_NAME, type AllocationPlan } from './allocation'
+import { CUSHION_OBJECTIVE_NAME, EXTRAS_MIN_CENTS, type AllocationPlan } from './allocation'
 import { isSmallSplit, type MixPart, type SleeveKey } from './mix'
 
 export interface ChecklistItem {
@@ -33,7 +33,11 @@ function togetherItems(idPrefix: string, lead: string, mix: readonly MixPart[]):
   const items: ChecklistItem[] = [
     {
       id: `${idPrefix}:together`,
-      text: `${lead} ${eur(total)} en un solo fondo mixto (unos ${equityPct} % acciones y ${100 - equityPct} % bonos) o júntalos con los de los próximos meses`,
+      // Por debajo del mínimo de los extras, la misma regla: juntar primero (2026-11-11, QA: «invierte 4 €» chocaba con «menos de 50 €, júntalo»).
+      text:
+        total < EXTRAS_MIN_CENTS
+          ? `Aparta ${eur(total)} para invertir y júntalos con los de los próximos meses: cuando llegues a ${eur(EXTRAS_MIN_CENTS)}, inviértelos en un solo fondo mixto (unos ${equityPct} % acciones y ${100 - equityPct} % bonos)`
+          : `${lead} ${eur(total)} en un solo fondo mixto (unos ${equityPct} % acciones y ${100 - equityPct} % bonos) o júntalos con los de los próximos meses`,
     },
   ]
   for (const p of mix) if (p.key === 'risky' && p.cents > 0) items.push({ id: `${idPrefix}:${p.key}`, text: `${lead} ${eur(p.cents)} en la ${lower(p.label)}`, invest: { sleeve: p.key, cents: p.cents } })
