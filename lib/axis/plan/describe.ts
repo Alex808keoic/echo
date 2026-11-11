@@ -6,7 +6,8 @@
 import { formatCents } from '../../money'
 import { MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { ObjectiveContext } from '../types'
-import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './allocation'
+import { CUSHION_OBJECTIVE_NAME, isCushionObjective, type AllocationPlan, type PlanStep } from './allocation'
+import { isLongGoal } from '../../finance/objectives'
 import { RISKY_MAX_PCT, REBALANCE_SELL_MONTHS, isSmallSplit, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
 import type { DataIssue } from './data-checks'
@@ -243,13 +244,20 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
       }
     }
     case 'invest-long-term': {
-      const why = step.noObjectives ? ', según tu perfil y porque no tienes objetivos pendientes: ese dinero no tiene otro destino' : ', según tu perfil'
+      const covered = objectives.some((o) => !isCushionObjective(o) && o.status !== 'achieved')
+      const why = step.noObjectives
+        ? covered
+          ? ', según tu perfil y porque tus objetivos ya están cubiertos: ese dinero no tiene otro destino'
+          : ', según tu perfil y porque no tienes objetivos pendientes: ese dinero no tiene otro destino'
+        : ', según tu perfil'
       const rebalance = step.rebalance
         ? ` Ahora tienes ${pctSentence(step.rebalance.heldPct)}, y tu mezcla es ${pctSentence(step.rebalance.targetPct)}: por eso este mes va a lo que falta, sin vender nada.`
         : ''
       const drawdown =
         step.drawdownPct !== undefined
-          ? `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste. Con un plazo largo es normal pasar por años malos: el plan no cambia por una caída.`
+          ? plan.steps.some((s) => s.kind === 'risky-drop' || s.kind === 'trim-risky')
+            ? `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste, sobre todo por tu parte arriesgada (mira sus pasos). Lo diversificado sigue su plan: con años por delante, es normal pasar por años malos.`
+            : `Tus inversiones valen un ${step.drawdownPct} % menos de lo que aportaste. Con un plazo largo es normal pasar por años malos: el plan no cambia por una caída.`
           : null
       return {
         title: `${eur(step.monthlyCents)} al mes a largo plazo`,
@@ -338,7 +346,8 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
         return {
           title: `${eur(step.monthlyCents)} al mes se quedan en tu dinero líquido`,
           detail:
-            'No tienes objetivos pendientes. Si creas uno, el reparto automático le llevará este dinero; si no, cuando se acumule, tu plan te propondrá qué hacer con él.' +
+            (objectives.some((o) => !isCushionObjective(o) && o.status !== 'achieved') ? 'Tus objetivos ya están cubiertos. Si creas otro,' : 'No tienes objetivos pendientes. Si creas uno,') +
+            ' el reparto automático le llevará este dinero; si no, cuando se acumule, tu plan te propondrá qué hacer con él.' +
             (plan.inflation ? ` Mientras tanto, quieto en la cuenta pierde valor con ${inflationPhrase(plan.inflation)}.` : ''),
         }
       return {
@@ -356,7 +365,7 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
           : ''
       const notes = [
         step.lumpSumCents > 0
-          ? `Mejor aún: podrías devolver ${eur(step.lumpSumCents)} de una vez con tu dinero líquido, sin tocar tu colchón ni lo apartado para objetivos cercanos. Lo de tus objetivos lejanos rinde menos de lo que te cuesta esta deuda.`
+          ? `Mejor aún: podrías devolver ${eur(step.lumpSumCents)} de una vez con tu dinero líquido, sin tocar tu colchón ni lo apartado para objetivos cercanos.${objectives.some((o) => !isCushionObjective(o) && o.status !== 'achieved' && isLongGoal(o) && o.currentCents > 0) ? ' Lo de tus objetivos lejanos rinde menos de lo que te cuesta esta deuda.' : ''}`
           : null,
         step.otherDebts > 0 ? `Cuando termines, el plan irá a por la siguiente deuda cara (${plural(step.otherDebts, 'te queda otra', 'te quedan otras')}).` : null,
       ].filter((n): n is string => Boolean(n))
@@ -492,7 +501,7 @@ const shortDate = (iso: string) => `${Number(iso.slice(8, 10))}/${Number(iso.sli
 export function dataIssueSentence(issue: DataIssue): string {
   switch (issue.kind) {
     case 'loan-as-expense':
-      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) parece dinero que dejaste a alguien: si es así, edítalo y cámbialo a «Adelanto», porque no es un gasto tuyo y ahora sube tu gasto habitual. Cuando te lo devuelvan, pulsa «Ya me lo ha devuelto» en el movimiento.`
+      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) parece dinero que dejaste a alguien: si es así, edítalo y cámbialo a «Adelanto», porque no es un gasto tuyo y ${issue.oneOff ? 'aunque esté marcado como puntual, sigue contando como gasto en tus estadísticas' : 'ahora sube tu gasto habitual'}. Cuando te lo devuelvan, pulsa «Ya me lo ha devuelto» en el movimiento.`
     case 'habitual-marked-one-off': {
       const why = issue.reason === 'subscription' ? 'es una suscripción' : issue.reason === 'fixed' ? 'sale de uno de tus fijos' : 'se repite en otros meses'
       return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) está marcado como puntual, pero ${why}: si lo pagas cada mes, quítale la marca. Si no, tu plan cree que gastas menos de lo que gastas.`

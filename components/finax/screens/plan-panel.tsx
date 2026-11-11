@@ -178,7 +178,7 @@ export function PlanPanel({ overview, onNavigate, insight }: PlanPanelProps) {
 
       {insight}
 
-      <ProjectionCard plan={plan} context={decision.context} safeRatePct={market.safeRatePct} />
+      <ProjectionCard plan={plan} context={decision.context} safeRatePct={market.safeRatePct} longHorizon={decision.profile.fields.horizon === 'long'} />
 
       <YearReviewCard overview={overview} plan={plan} memories={memories} onStats={() => onNavigate('estadisticas')} />
 
@@ -360,8 +360,9 @@ function YearReviewCard({ overview, plan, memories, onStats }: { overview: Finan
 const YEAR_LABEL = (y: number) => `${y} años`
 
 /** «Cómo podría crecer tu patrimonio»: proyección ilustrativa del plan frente a dejarlo todo quieto. */
-function ProjectionCard({ plan, context, safeRatePct }: { plan: AllocationPlan; context: FinancialContext; safeRatePct: number | null }) {
-  const [years, setYears] = useState<ProjectionYears>(10)
+function ProjectionCard({ plan, context, safeRatePct, longHorizon }: { plan: AllocationPlan; context: FinancialContext; safeRatePct: number | null; longHorizon: boolean }) {
+  // Empieza por el plazo que importa: 5 años si dijiste que necesitarás el dinero antes (2026-11-11, QA).
+  const [years, setYears] = useState<ProjectionYears>(longHorizon ? 10 : 5)
   const inflation = plan.inflation ?? inflationFrom(null)
   // El ahorro seguro crece con lo que paga hoy (tipo del BCE vigente); sin dato, con el supuesto de la Guía.
   const p = projectWealth(plan, context, years, inflation, safeRatePct ?? undefined)

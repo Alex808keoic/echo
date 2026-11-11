@@ -75,8 +75,8 @@ export function reviewYear(input: {
     const parts = [oneOff.incomeCents > 0 ? `${eur(oneOff.incomeCents)} de ingresos` : null, oneOff.expenseCents > 0 ? `${eur(oneOff.expenseCents)} de gastos` : null].filter(Boolean)
     lines.push(`De eso, fue puntual: ${parts.join(' y ')}.`)
   }
-  const top = totalsByCategory(inYear, 'gasto')[0]
-  if (top) lines.push(`Donde más gastaste: «${top.label}», ${eur(top.cents)} (el ${top.pct} % de tus gastos).`)
+  const top = totalsByCategory(inYear.filter((m) => m.puntual !== true), 'gasto')[0]
+  if (top) lines.push(`Donde más gastaste (sin lo puntual): «${top.label}», ${eur(top.cents)} (el ${top.pct} % de tus gastos habituales).`)
 
   // Dinero líquido al empezar el año y al acabarlo (o hoy).
   const initial = snapshot.config?.initialBalanceCents ?? 0

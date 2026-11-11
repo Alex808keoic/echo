@@ -144,3 +144,23 @@ describe('dinero apartado, objetivos vencidos y la tarjeta de previsión', () =>
     assert.equal(forecastCaption({ steps: [{ kind: 'forecast-basis', recurringIncomeCents: 3_500, spendingCents: 1_500, monthsNeeded: 1, spendingFrom: 'fixed' }] }), 'Previsión: tu ingreso fijo previsto menos tus gastos fijos de «Fijos».')
   })
 })
+
+describe('textos que se contradecían', () => {
+  it('deuda cara sin objetivos lejanos: la nota no habla de ellos', () => {
+    const debts = [{ id: 'd1', name: 'Tarjeta', balanceCents: 300_000, aprBp: 2_200, monthlyPaymentCents: 15_000, createdAt: 1, updatedAt: 1 }]
+    const ctx = buildFinancialContext(snapshot({ config: config(1_500_000), movements: [...salary(220_000), ...spend(160_000), ...nov()], debts } as Parameters<typeof snapshot>[0]), ASOF)
+    const decision = decide({ context: ctx, memory: profile() })
+    const plan = buildAllocationPlan(decision)
+    const pay = step(plan.steps, 'pay-debt')
+    assert.ok(pay && pay.lumpSumCents > 0)
+    assert.doesNotMatch(describeStep(pay, plan, ctx.objectives).note ?? '', /objetivos lejanos/)
+  })
+
+  it('con objetivos cubiertos no dice «no tienes objetivos pendientes»', () => {
+    const goals = [objective({ name: 'Moto', targetCents: 300_000, targetDate: '2027-06-01' })]
+    const { ctx, plan } = run([...salary(180_000), ...spend(130_000), ...nov()], goals, 900_000)
+    const texts = plan.steps.map((s) => describeStep(s, plan, ctx.objectives).detail ?? '').join(' ')
+    assert.doesNotMatch(texts, /no tienes objetivos pendientes/)
+    assert.match(texts, /ya están cubiertos/)
+  })
+})

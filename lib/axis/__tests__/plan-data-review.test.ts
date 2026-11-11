@@ -101,8 +101,11 @@ describe('datos que parecen mal apuntados', () => {
     assert.match(dataIssueSentence(issues[0]), /cámbialo a «Adelanto»/)
   })
 
-  it('no avisa de la cuota de un préstamo del banco, ni de un préstamo ya marcado como puntual', () => {
-    assert.deepEqual(check([gasto('2026-10-20', 15_000, 'Seguros y banco', 'Préstamo coche'), gasto('2026-10-21', 9_000, 'Otros', 'Cuota del préstamo a 5 años'), puntual(gasto('2026-10-22', 2_000, 'Otros', 'Le presté a Juan'))]), [])
+  it('no avisa de la cuota de un préstamo del banco; uno marcado como puntual, sí, diciendo que ya es puntual (QA 2026-11-11)', () => {
+    const issues = check([gasto('2026-10-20', 15_000, 'Seguros y banco', 'Préstamo coche'), gasto('2026-10-21', 9_000, 'Otros', 'Cuota del préstamo a 5 años'), puntual(gasto('2026-10-22', 2_000, 'Otros', 'Le presté a Juan'))])
+    assert.equal(issues.length, 1)
+    assert.ok(issues[0].kind === 'loan-as-expense' && issues[0].oneOff === true)
+    assert.match(dataIssueSentence(issues[0]), /aunque esté marcado como puntual/)
   })
 
   it('una suscripción marcada como puntual', () => {
@@ -184,9 +187,9 @@ const withNote = (m: Movement, nota: string): Movement => ({ ...m, nota })
 const deuda = (date: string, cents: number, nota: string): Movement => movement({ type: 'ingreso', amountCents: cents, date, category: 'Deuda', nota })
 
 describe('caso real: falsa alarma de «se repite»', () => {
-  it('un préstamo marcado como puntual no se avisa aunque su categoría se repita', () => {
+  it('un préstamo marcado como puntual no da la falsa alarma de «se repite»: solo propone «Adelanto»', () => {
     const issues = checkData({ movements: [puntual(withNote(gasto('2026-09-28', 1_000, 'Restaurantes'), 'Se lo he prestado a Lucas')), gasto('2026-11-06', 900, 'Restaurantes')], objectives: [], memories: [], asOf: ASOF })
-    assert.deepEqual(issues, [])
+    assert.deepEqual(issues.map((i) => i.kind), ['loan-as-expense'])
   })
 
   it('la categoría sola no basta para decir que se repite', () => {

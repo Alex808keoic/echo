@@ -27,7 +27,8 @@ const GOAL_MIN_CENTS = 5_000
 const MAX_PER_KIND = 3
 
 export type DataIssue =
-  | { kind: 'loan-as-expense'; movementId: string; label: string; cents: number; date: string }
+  /** `oneOff`: ya estaba marcado como puntual (no cambia el plan, pero sigue contando como gasto tuyo). */
+  | { kind: 'loan-as-expense'; movementId: string; label: string; cents: number; date: string; oneOff?: true }
   | {
       kind: 'habitual-marked-one-off'
       movementId: string
@@ -72,15 +73,16 @@ const BANK_CATEGORIES = new Set(['Seguros y banco', 'Vivienda'])
 
 function loansAsExpense(recent: readonly Movement[]): DataIssue[] {
   return recent
-    // Un «Adelanto» ya está bien apuntado: la parte que te devuelven no cuenta como gasto tuyo.
-    .filter((m) => m.type === 'gasto' && m.puntual !== true && !isAdvance(m) && !BANK_CATEGORIES.has(m.category))
+    // Un «Adelanto» ya está bien apuntado: la parte que te devuelven no cuenta como gasto tuyo. Uno marcado como
+    // puntual también se avisa (2026-11-11, QA): no sube el gasto habitual, pero sigue siendo un gasto en tus cuentas.
+    .filter((m) => m.type === 'gasto' && !isAdvance(m) && !BANK_CATEGORIES.has(m.category))
     .filter((m) => {
       const text = `${m.motivo ?? ''} ${m.nota ?? ''}`
       return LENT.test(text) && !BANK_LOAN.test(text)
     })
     .sort(newestFirst)
     .slice(0, MAX_PER_KIND)
-    .map((m) => ({ kind: 'loan-as-expense' as const, movementId: m.id, label: movementLabel(m), cents: m.amountCents, date: m.date }))
+    .map((m) => ({ kind: 'loan-as-expense' as const, movementId: m.id, label: movementLabel(m), cents: m.amountCents, date: m.date, ...(m.puntual === true ? { oneOff: true as const } : {}) }))
 }
 
 /* -------------------------- habitual como puntual -------------------------- */

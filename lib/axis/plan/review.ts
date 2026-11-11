@@ -70,8 +70,9 @@ export function reviewMonth(input: {
       : `Gastaste ${eur(-saved)} más de lo que ingresaste.`,
   )
   if (oneOff !== 0) lines.push(`Aparte, lo puntual del mes ${oneOff > 0 ? `sumó ${eur(oneOff)}` : `restó ${eur(-oneOff)}`}.`)
-  const top = totalsByCategory(inMonth(input.snapshot.movements, month), 'gasto')[0]
-  if (top) lines.push(`Donde más gastaste: «${top.label}», ${eur(top.cents)} (el ${top.pct} % de tus gastos).`)
+  // Sin lo puntual, como el ahorro de arriba (2026-11-11, QA: destacaba «Claude», un gasto puntual, justo después de decir que lo puntual va aparte).
+  const top = totalsByCategory(inMonth(input.snapshot.movements, month).filter((m) => m.puntual !== true), 'gasto')[0]
+  if (top) lines.push(`Donde más gastaste (sin lo puntual): «${top.label}», ${eur(top.cents)} (el ${top.pct} % de tus gastos habituales).`)
 
   // Inversiones apuntadas con fecha de ese mes, por tipo.
   const investedThere = input.snapshot.positions.filter((p) => p.date.startsWith(month)).reduce((t, p) => t + Math.max(0, p.investedCents), 0)
