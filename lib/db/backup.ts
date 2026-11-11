@@ -130,6 +130,9 @@ function isMovement(v: unknown): v is Movement {
     isOptStr(v.recurringId) &&
     (v.wallet === undefined || v.wallet === 'efectivo') &&
     (v.occurrence === undefined || (isStr(v.occurrence) && isValidISODate(v.occurrence))) &&
+    // Adelantos (2026-11-11): campos opcionales, una copia anterior no los tiene.
+    (v.porDevolver === undefined || (isRecord(v.porDevolver) && isInt(v.porDevolver.cents) && v.porDevolver.cents > 0 && isOptStr(v.porDevolver.quien))) &&
+    isOptStr(v.devolucionDe) &&
     isInt(v.createdAt) &&
     isInt(v.updatedAt)
   )

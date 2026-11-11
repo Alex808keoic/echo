@@ -151,8 +151,45 @@ export interface Movement {
    * Ausente = tarjeta o cuenta del banco (todos los movimientos anteriores).
    */
   wallet?: 'efectivo'
+  /**
+   * Solo en gastos: es un «Adelanto» (2026-11-11). Pagaste tú y alguien te devolverá `cents` (hasta el importe
+   * entero). Todo `amountCents` sale de tu dinero, pero la parte que te devolverán no es gasto tuyo: no cuenta como
+   * gasto habitual en AXIS ni en tu plan. Lo que ya te han devuelto son ingresos con `devolucionDe` = este id.
+   */
+  porDevolver?: { cents: number; quien?: string }
+  /** Solo en ingresos de «Deuda»: devolución del adelanto con este id (`porDevolver`). */
+  devolucionDe?: string
   createdAt: number
   updatedAt: number
+}
+
+/** Es un adelanto: un gasto del que te devolverán una parte o todo. */
+export function isAdvance(movement: Pick<Movement, 'type' | 'porDevolver'>): boolean {
+  return movement.type === 'gasto' && movement.porDevolver !== undefined && movement.porDevolver.cents > 0
+}
+
+/** Lo que te van a devolver de un adelanto, sin pasar del importe pagado. */
+export function advanceCents(movement: Pick<Movement, 'type' | 'amountCents' | 'porDevolver'>): number {
+  return isAdvance(movement) ? Math.min(movement.amountCents, movement.porDevolver!.cents) : 0
+}
+
+/** Lo que ya te han devuelto de cada adelanto (por id del adelanto). */
+export function returnedByAdvance(movements: readonly Pick<Movement, 'type' | 'amountCents' | 'devolucionDe'>[]): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const m of movements) {
+    if (m.type === 'ingreso' && m.devolucionDe) out.set(m.devolucionDe, (out.get(m.devolucionDe) ?? 0) + m.amountCents)
+  }
+  return out
+}
+
+/** Adelantos que aún te deben, con lo que falta, del más antiguo al más reciente. */
+export function pendingAdvances(movements: readonly Movement[]): Array<{ movement: Movement; pendingCents: number }> {
+  const returned = returnedByAdvance(movements)
+  return movements
+    .filter(isAdvance)
+    .map((movement) => ({ movement, pendingCents: Math.max(0, advanceCents(movement) - (returned.get(movement.id) ?? 0)) }))
+    .filter((a) => a.pendingCents > 0)
+    .sort((a, b) => (a.movement.date < b.movement.date ? -1 : a.movement.date > b.movement.date ? 1 : 0))
 }
 
 /* -------------------------- Efectivo y tarjeta -------------------------- */

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { movementLabel } from '@/lib/types'
+import { advanceCents, isAdvance, movementLabel, pendingAdvances, returnedByAdvance } from '@/lib/types'
 import { formatCents } from '@/lib/money'
 import { formatDayHeading, groupByDay } from '@/lib/dates'
 import { PageHeader, IconButton } from '../page-header'
@@ -49,6 +49,15 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
     })
   }, [movements, filter, query, fixedNames])
   const groups = useMemo(() => groupByDay(filtered), [filtered])
+
+  // Adelantos (2026-11-11): lo que aún te deben de cada uno y los pendientes, para la tarjeta «Te deben».
+  const advances = useMemo(() => {
+    const all = movements ?? []
+    const returned = returnedByAdvance(all)
+    const pendingById = new Map(all.filter(isAdvance).map((m) => [m.id, Math.max(0, advanceCents(m) - (returned.get(m.id) ?? 0))]))
+    const pending = pendingAdvances(all)
+    return { pendingById, pending, totalCents: pending.reduce((t, a) => t + a.pendingCents, 0) }
+  }, [movements])
 
   /** Lo que el usuario está viendo ahora mismo: cuántos y cuánto suman. */
   const shown = useMemo(() => {
@@ -102,6 +111,34 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
       </button>
 
+      {advances.pending.length > 0 && (
+        <FinancialCard padded={false} className="px-4 py-3">
+          <p className="text-[13.5px] font-bold text-grafito">
+            Te deben {formatCents(advances.totalCents)}
+          </p>
+          <p className="text-[12px] font-medium text-muted-foreground text-pretty">
+            Ya salió de tu dinero. Cuando te lo devuelvan, entra en el adelanto y pulsa «Ya me lo ha devuelto».
+          </p>
+          <div className="mt-2 divide-y divide-border">
+            {advances.pending.map(({ movement: m, pendingCents }) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => open(MOVEMENT_DETAIL_TITLE, <MovementDetail movement={m} onDone={close} />)}
+                className="flex min-h-[44px] w-full items-center gap-3 py-2 text-left transition-opacity active:opacity-60"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-grafito">
+                  {m.porDevolver?.quien ? `${m.porDevolver.quien} · ` : ''}
+                  {movementLabel(m)}
+                </span>
+                <span className="shrink-0 text-[13px] font-bold tabular-nums text-grafito">{formatCents(pendingCents)}</span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+              </button>
+            ))}
+          </div>
+        </FinancialCard>
+      )}
+
       <FilterTabs options={FILTERS} value={filter} onChange={setFilter} />
 
       <SearchBar placeholder="Buscar movimiento..." value={query} onChange={setQuery} />
@@ -148,6 +185,7 @@ export function TransactionsScreen({ overview, onNavigate }: ScreenProps) {
                       key={m.id}
                       movement={m}
                       fixedName={m.recurringId ? fixedNames.get(m.recurringId) : undefined}
+                      pendingCents={advances.pendingById.get(m.id)}
                       onClick={() => open(MOVEMENT_DETAIL_TITLE, <MovementDetail movement={m} onDone={close} />)}
                     />
                   ))}

@@ -14,7 +14,17 @@ function normalize(input: MovementInput): MovementInput {
     nota: nota ? nota : undefined,
     puntual: input.puntual ? true : undefined,
     wallet: input.wallet === 'efectivo' ? 'efectivo' : undefined,
+    porDevolver: normalizeAdvance(input),
+    devolucionDe: input.type === 'ingreso' && input.devolucionDe ? input.devolucionDe : undefined,
   }
+}
+
+/** Un adelanto solo en gastos, con algo que devolver y nunca más de lo pagado. */
+function normalizeAdvance(input: MovementInput): Movement['porDevolver'] {
+  const p = input.porDevolver
+  if (input.type !== 'gasto' || !p || !Number.isInteger(p.cents) || p.cents <= 0) return undefined
+  const quien = p.quien?.trim()
+  return { cents: Math.min(p.cents, input.amountCents), ...(quien ? { quien } : {}) }
 }
 
 /** Historial completo, del más reciente al más antiguo. */
@@ -55,6 +65,8 @@ export async function updateMovement(id: string, input: MovementInput): Promise<
     nota: n.nota,
     puntual: n.puntual,
     wallet: n.wallet,
+    porDevolver: n.porDevolver,
+    devolucionDe: n.devolucionDe,
     updatedAt: Date.now(),
   })
 }

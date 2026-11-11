@@ -3,7 +3,7 @@
  * Todo en céntimos enteros. No inventa nada: sin movimientos no hay resumen.
  */
 import { formatMonthLabel, formatWeekdayLong, formatWeekdayShort, shiftedISO, shiftedMonthKey, toISODate } from '../dates'
-import { CATEGORY_DEUDA, expenseNeed, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
+import { advanceCents, CATEGORY_DEUDA, expenseNeed, isAdvance, isOneOff, movementLabel, type Movement, type MovementType } from '../types'
 
 export interface PeriodSummary {
   incomeCents: number
@@ -64,11 +64,18 @@ const sameText = (a: string, b: string) => a.length > 0 && b.length > 0 && (a ==
  * Un ingreso de «Deuda» con el mismo texto (motivo o nota) que un gasto no puntual de los
  * `REIMBURSE_WINDOW_DAYS` días anteriores lo cubre, hasta su importe. Devuelve, por id de gasto, lo cubierto.
  * El dinero real no cambia: solo deja de contar como gasto habitual.
+ *
+ * Un «Adelanto» (`porDevolver`, 2026-11-11) se cubre desde el principio con lo que te van a devolver, aunque aún
+ * no te lo hayan devuelto: esa parte nunca fue gasto tuyo. Ni el adelanto ni sus devoluciones (`devolucionDe`)
+ * entran en el emparejamiento por texto.
  */
 export function reimbursedExpenses(movements: readonly Movement[]): Map<string, number> {
   const covered = new Map<string, number>()
-  const expenses = movements.filter((m) => m.type === 'gasto' && !isOneOff(m) && ownTextOf(m).length > 0)
-  const refunds = movements.filter((m) => m.type === 'ingreso' && m.category === CATEGORY_DEUDA && ownTextOf(m).length > 0).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  for (const m of movements) {
+    if (!isOneOff(m) && isAdvance(m)) covered.set(m.id, advanceCents(m))
+  }
+  const expenses = movements.filter((m) => m.type === 'gasto' && !isOneOff(m) && !isAdvance(m) && ownTextOf(m).length > 0)
+  const refunds = movements.filter((m) => m.type === 'ingreso' && m.category === CATEGORY_DEUDA && !m.devolucionDe && ownTextOf(m).length > 0).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   for (const r of refunds) {
     const text = ownTextOf(r)
     const from = shiftedISO(r.date, -REIMBURSE_WINDOW_DAYS)

@@ -10,7 +10,6 @@ import { CUSHION_OBJECTIVE_NAME, type AllocationPlan, type PlanStep } from './al
 import { RISKY_MAX_PCT, REBALANCE_SELL_MONTHS, isSmallSplit, type MixPart, type SleeveKey } from './mix'
 import { idleLossSentence, inflationPhrase } from './inflation'
 import type { DataIssue } from './data-checks'
-import { CATEGORY_DEUDA } from '../../types'
 
 /** Lo que la pantalla puede hacer desde un paso. */
 export type StepAction = 'create-cushion' | 'move-cushion-first' | 'raise-cushion' | 'answer-profile' | 'register-data' | 'review-spending' | 'review-money' | 'review-objectives' | 'review-memories' | 'review-debts' | 'review-investments'
@@ -437,7 +436,7 @@ const shortDate = (iso: string) => `${Number(iso.slice(8, 10))}/${Number(iso.sli
 export function dataIssueSentence(issue: DataIssue): string {
   switch (issue.kind) {
     case 'loan-as-expense':
-      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) parece dinero que dejaste a alguien: si es así, márcalo como puntual, porque no es un gasto de cada mes y ahora sube tu gasto habitual. Cuando te lo devuelvan, apúntalo como ingreso de «${CATEGORY_DEUDA}».`
+      return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) parece dinero que dejaste a alguien: si es así, edítalo y cámbialo a «Adelanto», porque no es un gasto tuyo y ahora sube tu gasto habitual. Cuando te lo devuelvan, pulsa «Ya me lo ha devuelto» en el movimiento.`
     case 'habitual-marked-one-off': {
       const why = issue.reason === 'subscription' ? 'es una suscripción' : issue.reason === 'fixed' ? 'sale de uno de tus fijos' : 'se repite en otros meses'
       return `«${issue.label}» (${eur(issue.cents)}, el ${shortDate(issue.date)}) está marcado como puntual, pero ${why}: si lo pagas cada mes, quítale la marca. Si no, tu plan cree que gastas menos de lo que gastas.`

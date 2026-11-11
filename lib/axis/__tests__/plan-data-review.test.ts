@@ -98,7 +98,7 @@ describe('datos que parecen mal apuntados', () => {
   it('un préstamo a alguien apuntado como gasto de cada mes', () => {
     const issues = check([gasto('2026-10-20', 2_000, 'Otros', 'Le presté a Juan'), gasto('2026-10-21', 500, 'Otros', 'Préstamo a Marta')])
     assert.deepEqual(issues.map((i) => i.kind), ['loan-as-expense', 'loan-as-expense'])
-    assert.match(dataIssueSentence(issues[0]), /márcalo como puntual/)
+    assert.match(dataIssueSentence(issues[0]), /cámbialo a «Adelanto»/)
   })
 
   it('no avisa de la cuota de un préstamo del banco, ni de un préstamo ya marcado como puntual', () => {

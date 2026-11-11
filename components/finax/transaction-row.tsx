@@ -1,4 +1,4 @@
-import { movementLabel, type Movement } from '@/lib/types'
+import { isAdvance, movementLabel, type Movement } from '@/lib/types'
 import { formatCents } from '@/lib/money'
 import { formatShortDate } from '@/lib/dates'
 import { categoryIconMap } from './icons'
@@ -8,6 +8,8 @@ interface TransactionRowProps {
   movement: Movement
   /** Nombre del movimiento fijo del que salió, si sigue existiendo: sustituye a la etiqueta. */
   fixedName?: string
+  /** Solo en un adelanto: lo que aún te deben (0 = devuelto entero). Sin dato, no se dice nada. */
+  pendingCents?: number
   onClick?: () => void
 }
 
@@ -15,12 +17,16 @@ interface TransactionRowProps {
  * Fila de movimiento: chip de icono, etiqueta + categoría,
  * importe (verde ingreso / rojo gasto) y fecha.
  */
-export function TransactionRow({ movement, fixedName, onClick }: TransactionRowProps) {
+export function TransactionRow({ movement, fixedName, pendingCents, onClick }: TransactionRowProps) {
   const Icon = categoryIconMap[movement.category]
   const isIncome = movement.type === 'ingreso'
+  const advance = isAdvance(movement)
   const label = fixedName ?? movementLabel(movement)
-  const kind = label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
-  const subtitle = [kind, movement.puntual ? 'Puntual' : null, movement.wallet === 'efectivo' ? 'Efectivo' : null].filter(Boolean).join(' · ')
+  const kind = advance ? 'Adelanto' : label === movement.category ? (isIncome ? 'Ingreso' : 'Gasto') : movement.category
+  const advanceState = advance && pendingCents !== undefined ? (pendingCents > 0 ? `Te deben ${formatCents(pendingCents)}` : 'Devuelto') : null
+  const subtitle = [kind, advanceState, movement.devolucionDe ? 'Devolución' : null, movement.puntual ? 'Puntual' : null, movement.wallet === 'efectivo' ? 'Efectivo' : null]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <button

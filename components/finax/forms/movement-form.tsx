@@ -24,9 +24,11 @@ import { useSheet } from '../sheet'
 import { useConfirmMovementDeletion } from './delete-movement'
 import { useIsMinor } from '@/hooks/use-minor'
 
-const TYPE_OPTIONS = ['Gasto', 'Ingreso'] as const
+/** «Adelanto» (2026-11-11): un gasto que pagas tú y del que alguien te devolverá una parte o todo (`porDevolver`). */
+const TYPE_OPTIONS = ['Gasto', 'Ingreso', 'Adelanto'] as const
+const ADVANCE_LABEL = 'Adelanto'
 const typeFromLabel = (label: string): MovementType => (label === 'Ingreso' ? 'ingreso' : 'gasto')
-const labelFromType = (type: MovementType) => (type === 'ingreso' ? 'Ingreso' : 'Gasto')
+const labelFromType = (type: MovementType, advance: boolean) => (type === 'ingreso' ? 'Ingreso' : advance ? ADVANCE_LABEL : 'Gasto')
 const WALLET_OPTIONS = ['Tarjeta', 'Efectivo'] as const
 
 interface MovementFormProps {
@@ -47,6 +49,7 @@ interface Errors {
   date?: string
   category?: string
   motivo?: string
+  advance?: string
 }
 
 /** Alta y edición de movimientos. Importes en céntimos, fecha sin hora. */
@@ -64,6 +67,10 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
   const [nota, setNota] = useState(start?.nota ?? '')
   const [puntual, setPuntual] = useState(start ? start.puntual === true : oneOffIncome)
   const [cash, setCash] = useState(start?.wallet === 'efectivo')
+  const [advance, setAdvance] = useState(start?.type === 'gasto' && start.porDevolver !== undefined)
+  // Vacío = te lo devuelven todo.
+  const [advanceAmount, setAdvanceAmount] = useState(start?.porDevolver ? centsToInputValue(start.porDevolver.cents) : '')
+  const [advanceWho, setAdvanceWho] = useState(start?.porDevolver?.quien ?? '')
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   /** Error al guardar (almacenamiento), distinto de la validación de cada campo. */
@@ -76,6 +83,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
   // Lo que te devuelven de una deuda ya cuenta siempre como puntual.
   const isDebtRepayment = type === 'ingreso' && category === CATEGORY_DEUDA
   const needsMotivo = category !== null && requiresMotivo(category)
+  const isAdvanceForm = type === 'gasto' && advance
 
   // Valor por defecto inteligente: la categoría que el usuario más usa para este tipo.
   useEffect(() => {
@@ -89,6 +97,7 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
   function changeType(label: string) {
     const next = typeFromLabel(label)
     setType(next)
+    setAdvance(label === ADVANCE_LABEL)
     // Al cambiar de tipo, la categoría anterior deja de valer: se vacía y se vuelve a sugerir.
     if (category && !categoriesFor(next, { minor, keep: start?.category }).includes(category)) setCategory(null)
   }
@@ -101,10 +110,27 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
     if (!isValidISODate(date)) next.date = 'Fecha no válida.'
     if (!category) next.category = 'Elige una categoría.'
     if (needsMotivo && !motivo.trim()) next.motivo = 'El motivo es obligatorio en «Otros».'
+    const advanceCents = isAdvanceForm ? (advanceAmount.trim() === '' ? amountCents : parseAmountToCents(advanceAmount)) : null
+    if (isAdvanceForm && amountCents !== null) {
+      if (advanceCents === null) next.advance = 'Introduce cuánto te devolverán (ej. 10) o déjalo vacío si es todo.'
+      else if (advanceCents > amountCents) next.advance = 'No pueden devolverte más de lo que pagaste.'
+    }
     setErrors(next)
     if (Object.keys(next).length > 0 || amountCents === null || !category) return
 
-    const input: MovementInput = { type, amountCents, date, category, motivo, nota, ...(puntual && !isDebtRepayment ? { puntual: true as const } : {}), ...(cash ? { wallet: 'efectivo' as const } : {}) }
+    const input: MovementInput = {
+      type,
+      amountCents,
+      date,
+      category,
+      motivo,
+      nota,
+      ...(puntual && !isDebtRepayment && !isAdvanceForm ? { puntual: true as const } : {}),
+      ...(cash ? { wallet: 'efectivo' as const } : {}),
+      ...(isAdvanceForm && advanceCents ? { porDevolver: { cents: advanceCents, ...(advanceWho.trim() ? { quien: advanceWho.trim() } : {}) } } : {}),
+      // Una devolución de un adelanto sigue enlazada a él mientras siga siendo de «Deuda».
+      ...(isDebtRepayment && start?.devolucionDe ? { devolucionDe: start.devolucionDe } : {}),
+    }
     setBusy(true)
     setSaveError(null)
     const result = await attemptWrite(() => (movement ? updateMovement(movement.id, input) : onSave ? onSave(input) : addMovement(input)))
@@ -115,7 +141,12 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <FilterTabs options={TYPE_OPTIONS} value={labelFromType(type)} onChange={changeType} />
+      <FilterTabs options={TYPE_OPTIONS} value={labelFromType(type, advance)} onChange={changeType} />
+      {isAdvanceForm && (
+        <p className="-mt-1 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
+          Pagas tú y alguien te devolverá una parte o todo. Sale entero de tu dinero; cuando te lo devuelvan, pulsa «Ya me lo ha devuelto» y se suma.
+        </p>
+      )}
 
       <Field label="Importe" error={errors.amount}>
         <AmountInput value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
@@ -144,7 +175,18 @@ export function MovementForm({ movement, initial, onSave, submitLabel, oneOffInc
         </Field>
       )}
 
-      {isDebtRepayment ? (
+      {isAdvanceForm && (
+        <>
+          <Field label="¿Cuánto te devolverán?" error={errors.advance} hint="Déjalo vacío si te lo devuelven todo.">
+            <AmountInput value={advanceAmount} onChange={(e) => setAdvanceAmount(e.target.value)} placeholder={amount || '0,00'} />
+          </Field>
+          <Field label="¿Quién? (opcional)">
+            <TextInput value={advanceWho} onChange={(e) => setAdvanceWho(e.target.value)} placeholder="Ej. Lucas" maxLength={40} />
+          </Field>
+        </>
+      )}
+
+      {isAdvanceForm ? null : isDebtRepayment ? (
         <p className="rounded-2xl border border-border bg-background px-4 py-3 text-[12px] font-medium leading-snug text-muted-foreground text-pretty">
           Es dinero que te debían: vuelve a ti, no es un ingreso nuevo. Tu plan no lo cuenta como algo que ganas cada mes.
         </p>

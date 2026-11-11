@@ -1,6 +1,8 @@
 'use client'
 
-import { isOneOff, movementLabel, type Movement } from '@/lib/types'
+import { advanceCents, isAdvance, isOneOff, movementLabel, returnedByAdvance, type Movement } from '@/lib/types'
+import { db } from '@/lib/db/db'
+import { ADVANCE_RETURN_TITLE, AdvanceReturnForm } from './advance-return-form'
 import { formatCents } from '@/lib/money'
 import { formatFullDate } from '@/lib/dates'
 import { Button } from '../button'
@@ -26,16 +28,34 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
   const recurringId = movement.recurringId
   const fixed = useLiveQuery(() => (recurringId ? getRecurring(recurringId) : undefined), [recurringId])
 
+  // Adelantos (2026-11-11): lo que ya te han devuelto sale de los ingresos enlazados con `devolucionDe`.
+  const advance = isAdvance(movement)
+  const linkedId = advance ? movement.id : movement.devolucionDe
+  const linked = useLiveQuery(
+    () => (linkedId ? db.movements.filter((m) => m.id === linkedId || m.devolucionDe === linkedId).toArray() : []),
+    [linkedId],
+  )
+  const returnedCents = advance && linked ? (returnedByAdvance(linked).get(movement.id) ?? 0) : 0
+  const pendingCents = advance ? Math.max(0, advanceCents(movement) - returnedCents) : 0
+  const original = movement.devolucionDe ? linked?.find((m) => m.id === movement.devolucionDe) : undefined
+
   const isIncome = movement.type === 'ingreso'
   const rows: Array<[string, string]> = [
-    ['Tipo', isIncome ? 'Ingreso' : 'Gasto'],
+    ['Tipo', isIncome ? 'Ingreso' : advance ? 'Adelanto' : 'Gasto'],
     ['Categoría', movement.category],
     ['Fecha', formatFullDate(movement.date)],
   ]
   if (movement.motivo) rows.splice(2, 0, ['Motivo', movement.motivo])
   rows.push(['Dinero', movement.wallet === 'efectivo' ? 'Efectivo' : 'Tarjeta / banco'])
   if (fixed) rows.push(['Fijo', fixed.name])
-  if (isOneOff(movement)) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
+  if (advance) {
+    const who = movement.porDevolver?.quien
+    rows.push(['Te devolverán', `${formatCents(advanceCents(movement))}${who ? ` (${who})` : ''}`])
+    if (returnedCents > 0) rows.push(['Ya te han devuelto', formatCents(Math.min(returnedCents, advanceCents(movement)))])
+    rows.push(['Te deben', pendingCents > 0 ? formatCents(pendingCents) : 'Nada: te lo han devuelto todo'])
+  }
+  if (original) rows.push(['Devolución de', `${movementLabel(original)} (${formatFullDate(original.date)})`])
+  if (isOneOff(movement) && !movement.devolucionDe) rows.push(['Puntual', 'Sí: no cuenta como algo de cada mes'])
   if (movement.nota) rows.push(['Nota', movement.nota])
 
   return (
@@ -59,6 +79,15 @@ export function MovementDetail({ movement, onDone }: MovementDetailProps) {
           </div>
         ))}
       </dl>
+      {advance && pendingCents > 0 && (
+        <Button
+          type="button"
+          fullWidth
+          onClick={() => open(ADVANCE_RETURN_TITLE, <AdvanceReturnForm advance={movement} pendingCents={pendingCents} onDone={onDone} />)}
+        >
+          Ya me lo ha devuelto
+        </Button>
+      )}
       {/* Eliminar a la izquierda: el «Eliminar» de la confirmación queda a la derecha, así un doble toque no borra. */}
       <div className="flex gap-3">
         <Button

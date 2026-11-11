@@ -12,7 +12,7 @@
  *   - Objetivo distinto del que le contaste a AXIS: una memoria de objetivo con
  *     una cantidad que no tiene ningún objetivo.
  */
-import { movementLabel, type Movement, type Objective, type RecurringMovement } from '../../types'
+import { isAdvance, movementLabel, type Movement, type Objective, type RecurringMovement } from '../../types'
 import type { UserMemory } from '../chat/types'
 
 /** Meses hacia atrás que se revisan (los del gasto habitual). */
@@ -72,7 +72,8 @@ const BANK_CATEGORIES = new Set(['Seguros y banco', 'Vivienda'])
 
 function loansAsExpense(recent: readonly Movement[]): DataIssue[] {
   return recent
-    .filter((m) => m.type === 'gasto' && m.puntual !== true && !BANK_CATEGORIES.has(m.category))
+    // Un «Adelanto» ya está bien apuntado: la parte que te devuelven no cuenta como gasto tuyo.
+    .filter((m) => m.type === 'gasto' && m.puntual !== true && !isAdvance(m) && !BANK_CATEGORIES.has(m.category))
     .filter((m) => {
       const text = `${m.motivo ?? ''} ${m.nota ?? ''}`
       return LENT.test(text) && !BANK_LOAN.test(text)
