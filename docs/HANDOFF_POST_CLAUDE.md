@@ -18,7 +18,7 @@
 - **Datos:** un adelanto es un `gasto` con `porDevolver: { cents, quien? }` (nunca más que el importe). Así saldo, estadísticas, sincronización y copia siguen igual: salen los 20 € enteros. La devolución es un ingreso de «Deuda» con `devolucionDe` = id del adelanto (lo crea «Ya me lo ha devuelto» en el detalle, `advance-return-form.tsx`; admite devoluciones parciales). Lo pendiente es derivado (`pendingAdvances` / `returnedByAdvance` en `lib/types.ts`): borrar la devolución lo vuelve a dejar pendiente.
 - **AXIS y plan:** `reimbursedExpenses` cubre la parte a devolver desde el primer día (no es gasto tuyo) y no empareja por texto ni el adelanto ni sus devoluciones. La devolución, como todo ingreso de «Deuda», es puntual. `checkData` no avisa de «préstamo apuntado como gasto» en un adelanto, y ese aviso ahora propone cambiarlo a «Adelanto».
 - **UI:** fila «Adelanto · Te deben 10 €» / «Devuelto»; tarjeta «Te deben X €» en Movimientos con cada pendiente. Copia de seguridad: valida los dos campos nuevos (opcionales, sin subir de versión).
-- Tests en `lib/axis/__tests__/advances.test.ts`. **En el navegador NO VERIFICADO** (la extensión no estaba conectada); solo se comprobó que la app compila y carga.
+- Tests en `lib/axis/__tests__/advances.test.ts`. Probado en el navegador (local, base vacía, 430 px): alta de 20 € con 10 € a devolver, tarjeta «Te deben», devolución parcial de 4 € (quedan 6 €), devolución del resto («Devuelto», la tarjeta desaparece, patrimonio −10 €) y edición abriendo en «Adelanto»; sin errores en consola.
 - Si se borra un adelanto con devoluciones, estas quedan como ingresos de «Deuda» sueltos (no se avisa).
 
 ---
