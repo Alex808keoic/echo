@@ -83,6 +83,8 @@ export const EXTRAS_MIN_CENTS = 5_000
 export const IDLE_SPREAD_MONTHS = 6
 /** Dinero parado mínimo para mencionarlo: 100 € y al menos un mes de gasto habitual. */
 export const IDLE_MIN_CENTS = 10_000
+/** Un objetivo a menos de estos meses se va a gastar ya: no se propone moverlo a ahorro seguro. */
+export const SAFE_GOAL_MIN_MONTHS = 3
 /** Con deudas caras, el colchón mínimo antes de ir a por ellas: meses de gasto habitual. */
 export const DEBT_STARTER_CUSHION_MONTHS = 1
 /** La única categoría de inversión del plan. Nunca un producto concreto. */
@@ -195,6 +197,14 @@ export type PlanStep =
   /** Líquido apartado para objetivos a más de `LONG_GOAL_MONTHS`: puede invertirse (sin parte arriesgada) y seguir contando para ellos. */
   /** `keepGrowing`: todos sus objetivos son para seguir creciendo (no se gastan en la fecha). */
   | { kind: 'invest-goal-money'; cents: number; objectiveIds: string[]; mix: MixPart[]; spreadMonths: number; perMonthCents: number; adult: boolean | null; keepGrowing?: true; mediumHorizon?: true; mixedGoals?: true }
+  /**
+   * Lo que tienen en la cuenta los objetivos que no se invierten (a 5 años o menos, o «sigue creciendo» con un
+   * plazo de menos de 2 años): a ahorro seguro, que no baja y sigue contando para ellos (2026-11-11, QA: 961 €
+   * para un objetivo a 32 meses, quietos en la cuenta y sin ningún consejo).
+   */
+  | { kind: 'goal-cash-to-safe'; cents: number; objectiveIds: string[]; adult: boolean | null }
+  /** La fecha del objetivo ya pasó y no está conseguido: ¿ya lo usaste o le pones otra fecha? */
+  | { kind: 'overdue-goal'; objectiveId: string }
   /** `noObjectives` solo existe (true) si no hay objetivos pendientes: el resto se queda en el líquido sin destino. */
   | { kind: 'rest-to-objectives'; monthlyCents: number; noObjectives?: true }
   | { kind: 'answer-profile' }
@@ -696,6 +706,9 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     (p) => p.assetType === 'risky' && p.valueCents > 0 && typeof p.changePct === 'number' && Number.isFinite(p.changePct) && p.changePct <= -RISKY_DROP_PCT,
   )
   for (const p of riskyDrops) steps.push({ kind: 'risky-drop', positionId: p.id, name: p.name, changePct: p.changePct as number })
+  // Objetivos con la fecha pasada (2026-11-11, QA): su dinero seguía apartado para siempre sin que el plan dijera nada.
+  for (const o of contextActive)
+    if (!isCushionObjective(o) && !o.keepGrowing && o.monthsLeft !== undefined && o.monthsLeft <= 0) steps.push({ kind: 'overdue-goal', objectiveId: o.id })
 
   const needsProfile = profile.riskAttitude === undefined || profile.horizon === undefined
   // Detrás de los importes: de dónde sale el plan si es provisional, tu prioridad, el perfil y las notas pendientes.
@@ -935,8 +948,22 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     })
   }
 
+  // 6b. Lo apartado en la cuenta para objetivos que no se invierten: a ahorro seguro (no baja y cuenta para ellos).
+  // Solo con fecha a más de `SAFE_GOAL_MIN_MONTHS` (antes se va a gastar) o «sigue creciendo»; nunca el colchón.
+  const safeGoals = active.filter(
+    (o) =>
+      !isCushionObjective(o) &&
+      !o.completed &&
+      o.status !== 'achieved' &&
+      !investableGoal(o, profile.horizon) &&
+      (o.keepGrowing === true || (o.monthsLeft !== undefined && o.monthsLeft > SAFE_GOAL_MIN_MONTHS)) &&
+      inCash(o) > 0,
+  )
+  const safeCents = euros(Math.min(safeGoals.reduce((t, o) => t + inCash(o), 0), Math.max(0, liquidNow - cushionGoalTarget)))
+  if (safeCents >= IDLE_MIN_CENTS) steps.push({ kind: 'goal-cash-to-safe', cents: safeCents, objectiveIds: safeGoals.map((o) => o.id), adult: profile.adult ?? null })
+
   // Sin ahorro al mes y sin nada que repartir de lo que ya tienes: el plan se queda en «gasta menos».
-  if (noSurplus && !steps.some((s) => s.kind === 'idle-money' || s.kind === 'invest-goal-money')) return noSurplusBlock()
+  if (noSurplus && !steps.some((s) => s.kind === 'idle-money' || s.kind === 'invest-goal-money' || s.kind === 'goal-cash-to-safe')) return noSurplusBlock()
 
   // Con ingresos que cambian, los extras son la mayor parte del ahorro (2026-11-08: 600 € de un trabajo frente a
   // 35 € de paga). El plan dice qué hacer con cada uno: colchón primero y el resto con la mezcla de este plan.

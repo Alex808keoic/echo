@@ -89,7 +89,12 @@ describe('sin ahorro al mes', () => {
 
   it('sin colchón cubierto o sin nada que repartir, sigue bloqueado', () => {
     assert.equal(setup(10_000, [goal({ keepGrowing: true })]).plan.blocker, 'no-surplus')
-    assert.equal(setup(110_000, [goal()]).plan.blocker, 'no-surplus')
+    // Un objetivo cercano no se invierte, pero lo que ya tiene apartado puede pasar a ahorro seguro (QA 2026-11-11).
+    const near = setup(110_000, [goal()]).plan
+    assert.equal(near.blocker, null)
+    assert.equal(near.steps[0]?.kind, 'reduce-spending')
+    assert.ok(near.steps.some((s) => s.kind === 'goal-cash-to-safe'))
+    assert.ok(!near.steps.some((s) => s.kind === 'invest-goal-money' || s.kind === 'idle-money'))
   })
 
   it('sin perfil, sigue bloqueado', () => {

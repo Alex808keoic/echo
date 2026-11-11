@@ -129,6 +129,28 @@ function goalLead(step: { keepGrowing?: true; mixedGoals?: true }): string {
   return 'Faltan más de 5 años'
 }
 
+/**
+ * Debajo de «Ahorras al mes» y «Para gastar» en un plan provisional: de dónde sale cada cifra, la misma cuenta
+ * que el paso «Plan provisional» (2026-11-11, QA: decía «ingreso menos lo gastado en tu último mes» con 35 € de
+ * ingreso, 37 € de gasto y 11 € de ahorro, porque el ahorro salía del último mes y el gasto del ritmo).
+ */
+export function forecastCaption(plan: Pick<AllocationPlan, 'steps'>): string {
+  const basis = plan.steps.find((s): s is Extract<PlanStep, { kind: 'forecast-basis' }> => s.kind === 'forecast-basis')
+  if (!basis) return 'Previsión: tu ingreso fijo previsto menos lo que gastaste en tu último mes completo.'
+  if (basis.lastMonthSavingsCents !== undefined)
+    return 'Previsión: lo que te sobra es lo que ahorraste de verdad en tu último mes completo. «Para gastar» es tu ritmo de gasto de todos los días, algo más alto por prudencia: solo se usa para tu colchón.'
+  const income = basis.lastMonthIncomeCents !== undefined ? 'lo que ingresaste en tu último mes completo' : 'tu ingreso fijo previsto'
+  const spending =
+    basis.spendingFrom === 'pace'
+      ? 'tu ritmo de gasto de todos los días que llevas apuntando'
+      : basis.spendingFrom === 'fixed'
+        ? 'tus gastos fijos de «Fijos»'
+        : basis.spendingFrom === 'current-month'
+          ? 'lo que llevas gastado este mes (sin lo puntual)'
+          : 'lo que gastaste en tu último mes completo'
+  return `Previsión: ${income} menos ${spending}.`
+}
+
 export const PLAN_DISCLAIMER =
   'Es un plan orientativo con reglas generales, no asesoramiento financiero personalizado. Finax no recomienda productos concretos: cuando propone vender o adelantar dinero, es por tipos de inversión y con reglas fijas, nunca una predicción del mercado.'
 
@@ -281,6 +303,25 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
             ? `Faltan unos ${plural(step.monthsLeft, 'mes', 'meses')} y tienes ${eur(step.investedCents)} invertidos para este objetivo. Una caída ahora ya no tendría tiempo de recuperarse: pásalos poco a poco, unos ${eur(step.perMonthCents)} al mes durante ${plural(step.spreadMonths, 'mes', 'meses')}, a ahorro seguro (cuenta remunerada, depósito o Letras del Tesoro). Apúntalo en Inversiones con el tipo «Ahorro seguro»: así sigue contando para el objetivo.`
             : `Faltan unos ${plural(step.monthsLeft, 'mes', 'meses')} y tienes ${eur(step.investedCents)} invertidos para este objetivo. Ya no hay tiempo de recuperarse de una caída: pásalos a ahorro seguro (cuenta remunerada, depósito o Letras del Tesoro) y apúntalo en Inversiones con el tipo «Ahorro seguro». A menos de un año de la fecha, lo invertido que pueda bajar deja de contar para el objetivo.`,
         action: { kind: 'review-investments', label: 'Ir a Inversiones' },
+      }
+    }
+    case 'goal-cash-to-safe': {
+      const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
+      const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tus objetivos'
+      return {
+        title: `Pasa a ahorro seguro los ${eur(step.cents)} de ${list}`,
+        detail: `Es dinero que no conviene invertir en bolsa, porque lo necesitarás en pocos años, pero quieto en la cuenta pierde frente a la inflación. En ahorro seguro (cuenta remunerada, depósito, Letras del Tesoro o un fondo monetario) no baja y da algo de interés. Apúntalo en Inversiones con el tipo «Ahorro seguro»: sigue contando para ${names.length === 1 ? 'ese objetivo' : 'esos objetivos'}.`,
+        ...(step.adult === false ? { note: 'Como eres menor de edad, la cuenta o el depósito tendría que abrirlo un adulto a tu nombre (por ejemplo, tus padres o tutores).' } : {}),
+        action: { kind: 'review-investments', label: 'Ir a Inversiones' },
+      }
+    }
+    case 'overdue-goal': {
+      const goal = objectives.find((o) => o.id === step.objectiveId)
+      const name = goal?.name ?? 'tu objetivo'
+      return {
+        title: `La fecha de «${name}» ya pasó`,
+        detail: `Si ya lo usaste, márcalo como conseguido en Objetivos: lo que tiene apartado${goal && goal.currentCents > 0 ? ` (${eur(goal.currentCents)})` : ''} quedará libre para lo demás. Si todavía no, ponle una fecha nueva para que el plan sepa cuánto apartar cada mes.`,
+        action: { kind: 'review-objectives', label: 'Ir a Objetivos' },
       }
     }
     case 'invest-goal-money': {

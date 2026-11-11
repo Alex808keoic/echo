@@ -124,6 +124,12 @@ export function monthChecklist(plan: AllocationPlan, objectives: readonly Object
           text: `Decide si inviertes los ${eur(s.cents)} de ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')}: de una vez o ${eur(s.perMonthCents)} al mes durante ${s.spreadMonths} meses`,
         })
         break
+      case 'goal-cash-to-safe':
+        items.push({ id: s.kind, text: `Pasa los ${eur(s.cents)} de ${s.objectiveIds.map((id) => `«${name(id)}»`).join(', ')} a ahorro seguro y apúntalo en Inversiones` })
+        break
+      case 'overdue-goal':
+        items.push({ id: `overdue:${s.objectiveId}`, text: `Marca «${name(s.objectiveId)}» como conseguido o ponle otra fecha` })
+        break
       case 'follow-priority':
         items.push({ id: s.kind, text: `Decide si «${name(s.objectiveId)}» va el primero en Objetivos` })
         break

@@ -7,7 +7,7 @@ import type { SleeveKey } from '@/lib/axis/plan/mix'
 import { useSheet } from '../sheet'
 import { PositionForm } from '../forms/position-form'
 import type { AllocationPlan } from '@/lib/axis/plan/allocation'
-import { describeStep, PLAN_DISCLAIMER, planSegments, SLEEVE_EXPLANATION, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
+import { describeStep, forecastCaption, PLAN_DISCLAIMER, planSegments, SLEEVE_EXPLANATION, type SegmentKind, type StepAction } from '@/lib/axis/plan/describe'
 import { formatCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 import { FinancialCard } from '../card'
@@ -417,7 +417,7 @@ function MonthlySummary({ plan }: { plan: AllocationPlan }) {
       </div>
       <p className="text-[11.5px] font-medium leading-snug text-muted-foreground text-pretty">
         {monthly.forecast
-          ? 'Previsión: tu ingreso fijo previsto menos lo que gastaste en tu último mes completo.'
+          ? forecastCaption(plan)
           : `Lo habitual en tus últimos ${monthly.months} meses completos, sin lo puntual.`}
         {!monthly.forecast && monthly.recurringIncomeCents !== undefined &&
           ` Tu ingreso previsto (${formatCents(monthly.recurringIncomeCents)} al mes) no se suma: mandan tus datos registrados.`}

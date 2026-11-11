@@ -8,7 +8,7 @@ import { buildFinancialContext } from '../context'
 import { decide } from '../core/decision'
 import { buildAllocationPlan, planInvestment, type PlanStep } from '../plan/allocation'
 import { checkPlan } from '../plan/invariants'
-import { describeStep } from '../plan/describe'
+import { describeStep, forecastCaption } from '../plan/describe'
 import { monthChecklist } from '../plan/checklist'
 import type { AxisMemory } from '../types'
 import type { Movement, Objective } from '../../types'
@@ -102,5 +102,45 @@ describe('el plan provisional de la copia real (menor, 35 € de paga)', () => {
     const { plan } = run([...salary(3_500), ...spend(2_400), ...nov(3_500).slice(0, 1)], goals, 100_000, profile({ adult: false, horizon: 'medium', work: 'student' }))
     assert.equal(step(plan.steps, 'invest-long-term'), undefined)
     assert.ok(!monthChecklist(plan, []).some((i) => /Invierte \d+,00 €/.test(i.text)))
+  })
+})
+
+describe('dinero apartado, objetivos vencidos y la tarjeta de previsión', () => {
+  const minor = profile({ adult: false, horizon: 'medium', work: 'student', irregularIncome: true })
+
+  it('lo apartado para un objetivo a 32 meses se propone pasar a ahorro seguro (sin invertirlo)', () => {
+    const goals = [objective({ name: 'Patrimonio ideal 18 años', targetCents: 500_000, targetDate: '2029-06-29', priority: 1 })]
+    const { ctx, plan, violations } = run([...salary(3_500), ...spend(2_400), ...nov(3_500).slice(0, 1)], goals, 96_000, minor)
+    const safe = step(plan.steps, 'goal-cash-to-safe')
+    assert.ok(safe)
+    assert.ok(safe.cents >= 10_000)
+    assert.equal(planInvestment(plan).lumpCents, 0, 'no es invertir')
+    const view = describeStep(safe, plan, ctx.objectives)
+    assert.match(view.detail ?? '', /ahorro seguro/)
+    assert.match(view.note ?? '', /menor de edad/)
+    assert.ok(monthChecklist(plan, ctx.objectives).some((i) => /a ahorro seguro/.test(i.text)))
+    assert.deepEqual(violations, [])
+  })
+
+  it('un objetivo a 2 meses no se mueve (se va a gastar ya) y uno lejano se invierte, no va a ahorro seguro', () => {
+    const goals = [objective({ name: 'Portátil', targetCents: 120_000, targetDate: '2027-01-10', priority: 1 }), objective({ name: 'Casa', targetCents: 5_000_000, targetDate: '2034-01-01', priority: 2 })]
+    const { plan } = run([...salary(180_000), ...spend(130_000), ...nov()], goals, 900_000)
+    const safe = step(plan.steps, 'goal-cash-to-safe')
+    assert.equal(safe, undefined, JSON.stringify(safe))
+    assert.ok(step(plan.steps, 'invest-goal-money'))
+  })
+
+  it('un objetivo con la fecha pasada pregunta si ya lo usaste', () => {
+    const goals = [objective({ name: 'Viaje Japón', targetCents: 600_000, targetDate: '2026-10-01' })]
+    const { ctx, plan } = run([...salary(180_000), ...spend(140_000), ...nov()], goals, 500_000)
+    const overdue = step(plan.steps, 'overdue-goal')
+    assert.ok(overdue)
+    assert.match(describeStep(overdue, plan, ctx.objectives).title, /La fecha de «Viaje Japón» ya pasó/)
+    assert.ok(monthChecklist(plan, ctx.objectives).some((i) => /Marca «Viaje Japón» como conseguido/.test(i.text)))
+  })
+
+  it('la tarjeta del plan provisional explica las cifras que enseña', () => {
+    assert.match(forecastCaption({ steps: [{ kind: 'forecast-basis', recurringIncomeCents: 3_500, spendingCents: 3_700, monthsNeeded: 1, spendingFrom: 'pace', lastMonthSavingsCents: 1_100 }] }), /ahorraste de verdad en tu último mes completo/)
+    assert.equal(forecastCaption({ steps: [{ kind: 'forecast-basis', recurringIncomeCents: 3_500, spendingCents: 1_500, monthsNeeded: 1, spendingFrom: 'fixed' }] }), 'Previsión: tu ingreso fijo previsto menos tus gastos fijos de «Fijos».')
   })
 })

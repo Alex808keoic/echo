@@ -101,6 +101,13 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       why.push('Con 2 o 3 años por delante, una caída fuerte de la bolsa puede no haberse recuperado aún: por eso importa saber si vas a usar el dinero.')
       why.push('Ante la duda, el plan elige lo prudente (más renta fija) y te pregunta, en vez de suponer que no lo tocarás.')
       break
+    case 'goal-cash-to-safe':
+      why.push('Lo vas a usar en pocos años: una caída de la bolsa podría pillarte justo cuando lo necesites, así que no se invierte.')
+      why.push('Pero tampoco tiene por qué estar quieto: en ahorro seguro no baja y al menos compensa parte de la inflación.')
+      break
+    case 'overdue-goal':
+      why.push('Un objetivo con la fecha pasada sigue apartando dinero: si ya lo usaste, ese dinero queda libre; si no, con una fecha nueva el plan sabe cuánto falta cada mes.')
+      break
     case 'move-goal-to-safe':
       why.push('Cerca de la fecha, una caída de la bolsa ya no tiene tiempo de recuperarse y podrías llegar con menos de lo que necesitas.')
       why.push('Hacerlo poco a poco evita venderlo todo justo en un mal momento.')
