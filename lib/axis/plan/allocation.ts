@@ -36,7 +36,7 @@
  * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
-import { prioritiesOf, recurringIncomesOf, regularExpenseCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
+import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ClosedMonth, ObjectiveContext, PeriodStats } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
@@ -405,6 +405,25 @@ function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): num
   return values.length % 2 === 1 ? values[mid] : Math.floor((values[mid - 1] + values[mid]) / 2)
 }
 
+/**
+ * El bloqueo `overspending` solo cuando el gasto habitual del mes en curso ya supera lo que sueles ingresar en
+ * un mes (2026-11-11). A principios de mes la paga aún no ha llegado y `expenses.over-income` salta aunque los
+ * meses cerrados ahorren: eso no es gastar de más. Lo que esperas ingresar es lo más alto de: lo que llevas
+ * este mes (sin lo puntual), tus ingresos fijos mensuales de «Fijos» y, solo si aún no ha llegado ni la mitad
+ * de lo habitual (la paga claramente no ha entrado), la mediana de los meses cerrados habituales (con los fijos
+ * pendientes). Si ya cobraste menos de lo normal, no se supone que llegará el resto. Sin nada de eso, se
+ * bloquea como antes.
+ */
+function overspendsUsualIncome(current: PeriodStats, closedMonths: readonly ClosedMonth[] | undefined, fixedMonthlyIncomeCents: number | undefined): boolean {
+  const incomes = usualExpenseMonths(closedMonths).map(habitualIncomeCents).sort((a, b) => a - b)
+  const mid = Math.floor(incomes.length / 2)
+  const usualIncome = incomes.length === 0 ? 0 : incomes.length % 2 === 1 ? incomes[mid] : Math.floor((incomes[mid - 1] + incomes[mid]) / 2)
+  const received = regularIncomeCents(current)
+  const incomeStillMissing = received * 2 < usualIncome
+  const expected = Math.max(received, validCents(fixedMonthlyIncomeCents), incomeStillMissing ? usualIncome : 0)
+  return regularExpenseCents(current) > expected
+}
+
 export interface PlanOptions {
   /** Notas de AXIS (memorias sin dato) que el usuario no ha convertido ni descartado. Solo las conoce el dispositivo. */
   pendingNotes?: number
@@ -485,7 +504,9 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
 
   // 0. Bloqueos: lo que AXIS ya ha decidido que va primero.
   if (ids.has('liquidity.negative')) return blocked('negative-liquidity', [{ kind: 'fix-negative-liquidity' }])
-  if (ids.has('expenses.over-income')) return blocked('overspending', [{ kind: 'reduce-spending' }])
+  if (ids.has('expenses.over-income') && overspendsUsualIncome(ctx.flows.current, ctx.flows.closedMonths, ctx.flows.fixedMonthlyIncomeCents)) {
+    return blocked('overspending', [{ kind: 'reduce-spending' }])
+  }
 
   const months = usualExpenseMonths(ctx.flows.closedMonths)
   const spending = usualMonthlyExpense(ctx.flows.closedMonths)

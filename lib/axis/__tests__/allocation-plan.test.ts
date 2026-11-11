@@ -78,6 +78,25 @@ describe('bloqueos: lo que AXIS ya ha decidido que va primero', () => {
     assert.deepEqual(kinds(p), ['reduce-spending'])
   })
 
+  it('principios de mes sin la paga todavía: los meses cerrados ahorran → no se bloquea (2026-11-11)', () => {
+    const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 200_000), gasto(`2026-${m}-10`, 100_000)]), gasto('2026-09-03', 30_000)]
+    const d = decisionFor({ movements, facts: PROFILE })
+    assert.ok(d.signals.some((s) => s.id === 'expenses.over-income'), 'la señal del mes sigue ahí')
+    const p = buildAllocationPlan(d)
+    assert.notEqual(p.blocker, 'overspending')
+    assert.equal(p.monthly?.savingsCents, 100_000)
+  })
+
+  it('sin la paga pero ya gastas más de lo que sueles ingresar en un mes → sí se bloquea', () => {
+    const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 200_000), gasto(`2026-${m}-10`, 100_000)]), gasto('2026-09-03', 210_000)]
+    assert.equal(planFor({ movements }).blocker, 'overspending')
+  })
+
+  it('ya cobraste este mes (menos de lo normal) y gastas más → sí se bloquea: no se supone que llegará el resto', () => {
+    const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 200_000), gasto(`2026-${m}-10`, 100_000)]), ingreso('2026-09-01', 150_000), gasto('2026-09-03', 180_000)]
+    assert.equal(planFor({ movements }).blocker, 'overspending')
+  })
+
   it('ahorro habitual ≤ 0 → ajustar el gasto', () => {
     const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 100_000), gasto(`2026-${m}-10`, 110_000)]), ingreso('2026-09-01', 100_000)]
     const p = planFor({ movements })

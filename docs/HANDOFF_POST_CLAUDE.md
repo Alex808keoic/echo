@@ -39,7 +39,7 @@
 - `ClosedMonth.partial`: el mes de `config.configuredAt`, si es a partir del día 8 y no hay movimientos anteriores a esa fecha, no entra en `usualExpenseMonths` (ni en el gasto ni en el ahorro habituales).
 - `ClosedMonth.pendingFixedIncomeCents`: ingresos de «Fijos» que tocaban ese mes y siguen sin confirmar ni omitir. Cuentan para el ahorro habitual del plan (`habitualIncomeCents`), nunca como dinero real. Por eso `FinancialSnapshot.recurring` ahora llega desde `useFinancialOverview`.
 - `flows.fixedMonthlyIncomeCents`: si no hay un ingreso declarado a AXIS, el plan provisional (1 mes completo) usa los ingresos fijos mensuales.
-- Pendiente, sin decidir: el bloqueo `overspending` mira solo el mes en curso. A principios de mes, con la paga aún sin llegar, puede bloquear el plan aunque los meses cerrados ahorren.
+- ~~Pendiente: el bloqueo `overspending` mira solo el mes en curso~~ ✅ 2026-11-11 (`overspendsUsualIncome` en `plan/allocation.ts`): el plan solo se bloquea si el gasto habitual del mes ya supera lo que esperas ingresar: lo más alto de lo cobrado este mes, los ingresos fijos mensuales y, solo si aún no ha llegado ni la mitad de lo habitual, la mediana de los meses cerrados. Si ya cobraste menos de lo normal no se supone que llegará el resto. La señal `expenses.over-income` del chat no cambia (sigue siendo del mes en curso). Tests en `allocation-plan.test.ts`.
 
 ---
 
