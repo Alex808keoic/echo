@@ -12,6 +12,18 @@
 
 ---
 
+## Revisión del plan como asesor (2026-11-11)
+
+Revisado con la copia real del 8-nov (21:52) y 7 escenarios de adulto (sano, con objetivos, deuda cara, gasta más, sin perfil, inversiones, ingresos irregulares). Cuatro fallos, arreglados:
+
+- **«Gasta menos de lo que ingresas» cuando sí ahorras** (caso real): el plan provisional tomaba el gasto del ritmo de todos los días (40 €/mes, arrastrando 9 días de septiembre) y con 35 € de paga daba ahorro 0, aunque octubre ahorró 11 €. Ahora, si solo el ritmo deja el ahorro en cero y el último mes completo ahorró, lo que te sobra es eso (`forecast-basis.lastMonthSavingsCents`); el ritmo sigue para el colchón. **Revierte** la aserción del 8-nov «no se propone invertir nada cada mes». Regla `saving-not-denied`.
+- **Crear el colchón no veía que se lleva dinero de tus objetivos**: crearlo (o ponerlo el primero, o subirlo) lo pone el primero del reparto; el plan veía los objetivos cubiertos, decía «no tienes objetivos pendientes» y proponía invertir, y al pulsar «Crear» cambiaba. `goalsWithCushionFirst` saca lo que no está libre del objetivo de menor prioridad y deja `plan.objectivesAfterCushion` (los textos lo usan). Lo invertible nunca pasa de líquido − colchón − lo de objetivos cercanos (regla `cushion-not-invested`). Regla `pending-goals-see-cushion`.
+- **Sin ahorro y sin colchón, pero con dinero**: el plan solo decía «no hay nada que repartir». Ahora también propone crear el colchón con lo que ya tienes.
+- **Cifras distintas para lo mismo**: el aviso «no llega» dividía entre meses enteros (131 €/mes) y AXIS entre los exactos (129 €). Ahora los dos usan los exactos.
+- Sin cambiar (para decidir): la señal `expenses.over-income` del chat sigue mirando solo el mes en curso (falsa alarma a principios de mes o con ingresos irregulares); `savings.healthy` cuenta como ingreso lo que te devuelven.
+
+---
+
 ## Nuevo tipo de movimiento: «Adelanto» (2026-11-11)
 
 - Petición del usuario: «le compro una comida a un amigo por 20 € y me devolverá 10 €». Tercera pestaña en el formulario (Gasto · Ingreso · **Adelanto**): importe pagado, «¿Cuánto te devolverán?» (vacío = todo) y «¿Quién?» (opcional).

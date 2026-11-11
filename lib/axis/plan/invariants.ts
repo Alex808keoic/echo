@@ -14,6 +14,7 @@ import { describeStep } from './describe'
 import { idealSplit } from './ideal-split'
 import { BONDS_PCT, RISKY_MAX_PCT, SLEEVES, type MixPart, type SleeveKey } from './mix'
 import { LONG_GOAL_MONTHS } from '../../finance/objectives'
+import { habitualIncomeCents, regularExpenseCents, usualExpenseMonths } from '../rules/shared'
 
 export type InvariantRule =
   | 'guide-matches-plan'
@@ -30,6 +31,8 @@ export type InvariantRule =
   | 'cushion-follows-spending'
   | 'spending-not-understated'
   | 'extras-have-a-rule'
+  | 'saving-not-denied'
+  | 'pending-goals-see-cushion'
 
 export interface Violation {
   rule: InvariantRule
@@ -160,6 +163,29 @@ export function checkPlan(plan: AllocationPlan, decision: AxisDecision): Violati
   // 14. Con ingresos que cambian, si el plan invierte, dice qué hacer con cada extra.
   if (profile.irregularIncome === true && investing.some((s) => stepAmount(s) > 0) && !plan.steps.some((s) => s.kind === 'extras-split'))
     fail('extras-have-a-rule', 'Ingresos irregulares y un plan que invierte sin decir qué hacer con los extras.')
+
+  // 15. Un plan provisional no dice que no ahorras solo por el ritmo de gasto si tu último mes completo ahorró de verdad
+  // (caso real 2026-11-11: 9 días de septiembre estirados a un mes daban «gasta menos de lo que ingresas» con 11 € ahorrados en octubre).
+  const basis = plan.steps.find((s): s is Extract<PlanStep, { kind: 'forecast-basis' }> => s.kind === 'forecast-basis')
+  const lastFull = usualExpenseMonths(ctx.flows.closedMonths)[0]
+  if (plan.monthly?.forecast && plan.monthly.savingsCents <= 0 && basis?.spendingFrom === 'pace' && lastFull) {
+    const income = Math.max(habitualIncomeCents(lastFull), basis.lastMonthIncomeCents ?? 0, basis.recurringIncomeCents)
+    const saved = income - Math.ceil(regularExpenseCents(lastFull) / 100) * 100
+    if (saved >= TOLERANCE_CENTS) fail('saving-not-denied', `El plan provisional dice que no te sobra nada y tu último mes completo ahorró ${saved}.`)
+  }
+
+  // 16. «No tienes objetivos pendientes» solo si de verdad caben todos con el colchón el primero (crearlo lo pone el primero;
+  // caso 2026-11-11: Coche y Viaje cubiertos hasta crear un colchón de 3.900 € con 2.150 € libres).
+  const noGoalsLeft = plan.steps.some((s) => s.kind === 'rest-to-objectives' && s.noObjectives === true)
+  if (noGoalsLeft && plan.cushion) {
+    const raiseStep = plan.steps.find((s) => s.kind === 'raise-cushion')
+    const cushionNeed = raiseStep?.kind === 'raise-cushion' ? Math.max(plan.cushion.targetCents, raiseStep.suggestedCents) : plan.cushion.targetCents
+    const goalsInCash = objectives
+      .filter((o) => o.status !== 'achieved' && !isCushionObjective(o))
+      .reduce((t, o) => t + Math.max(0, o.targetCents - (o.investedCents ?? 0) - (o.safeCents ?? 0)), 0)
+    if (Math.max(0, ctx.wealth.liquidCents) + TOLERANCE_CENTS < cushionNeed + goalsInCash)
+      fail('pending-goals-see-cushion', `Dice que no hay objetivos pendientes con un líquido de ${ctx.wealth.liquidCents} para un colchón de ${cushionNeed} y ${goalsInCash} de objetivos.`)
+  }
 
   return out
 }

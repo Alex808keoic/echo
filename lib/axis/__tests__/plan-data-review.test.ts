@@ -314,8 +314,17 @@ describe('caso real (copia del 8-nov, 21:52): el colchón sigue a tu gasto y los
   it('el gasto es el ritmo de todos los días apuntados (43 €), no los 24 € de octubre', () => {
     assert.equal(plan.monthly?.spendingCents, 4_300)
     assert.equal(step('forecast-basis')?.spendingFrom, 'pace')
-    assert.equal(plan.monthly?.savingsCents, 0, 'la paga no cubre el gasto: no se propone invertir nada cada mes')
-    assert.equal(step('invest-for-goals'), undefined)
+  })
+
+  // Cambiado el 2026-11-11: antes el ahorro salía 0 («la paga no cubre el gasto») y «Tu decisión del mes» pedía
+  // gastar menos de lo que ingresas, aunque octubre ahorró 11 €. El ritmo (que arrastra los 9 primeros días de
+  // septiembre) sigue para el colchón; lo que te sobra sale de lo que de verdad ahorraste en tu último mes completo.
+  it('lo que te sobra es lo que ahorró octubre (11 €), no cero: nunca dice que no ahorras si tus datos dicen que sí', () => {
+    assert.equal(plan.monthly?.savingsCents, 1_100)
+    assert.equal(step('forecast-basis')?.lastMonthSavingsCents, 1_100)
+    assert.equal(step('reduce-spending'), undefined)
+    assert.ok(!monthChecklist(plan, decision.context.objectives).some((i) => /gasta menos de lo que ingresas/.test(i.text)))
+    assert.match(describeStep(step('forecast-basis')!, plan, decision.context.objectives).note ?? '', /solo lo uso para tu colchón/)
   })
 
   it('propone subir el colchón de 144 € a 258 € (6 × 43 €) y no invierte esa diferencia', () => {

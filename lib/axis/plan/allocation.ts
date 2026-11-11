@@ -204,7 +204,19 @@ export type PlanStep =
    * `spendingFrom`: el gasto no es el de tu último mes completo porque se quedaba corto: son tus gastos fijos de
    * «Fijos» (`fixed`) o lo que llevas gastado este mes sin lo puntual (`current-month`).
    */
-  | { kind: 'forecast-basis'; recurringIncomeCents: number; spendingCents: number; monthsNeeded: number; lastMonthIncomeCents?: number; spendingFrom?: 'fixed' | 'current-month' | 'pace' }
+  /**
+   * `lastMonthSavingsCents`: solo con `spendingFrom: 'pace'`, cuando el ritmo dejaba el ahorro en cero pero tu último
+   * mes completo ahorró: lo que te sobra es eso (el ritmo sigue valiendo para el colchón).
+   */
+  | {
+      kind: 'forecast-basis'
+      recurringIncomeCents: number
+      spendingCents: number
+      monthsNeeded: number
+      lastMonthIncomeCents?: number
+      spendingFrom?: 'fixed' | 'current-month' | 'pace'
+      lastMonthSavingsCents?: number
+    }
   /** La prioridad que declaraste no va la primera del reparto (después del colchón). */
   | { kind: 'follow-priority'; objectiveId: string; rank: number; aheadIds: string[] }
   /** Notas de AXIS que el plan todavía no puede usar: hay que convertirlas en datos o descartarlas. */
@@ -252,9 +264,67 @@ export interface AllocationPlan {
   steps: PlanStep[]
   /** Inflación de referencia, si se ha dado (solo para los textos). */
   inflation?: InflationRef
+  /**
+   * Solo si el colchón que propone el plan (crearlo, ponerlo el primero o subirlo) se lleva dinero que hoy está
+   * apartado para tus objetivos: los objetivos como quedan con el colchón el primero del reparto. Los textos de
+   * los pasos usan estos en lugar de los del contexto, para no contar con un dinero que irá al colchón.
+   */
+  objectivesAfterCushion?: ObjectiveContext[]
 }
 
 const euros = (cents: number) => Math.max(0, Math.floor(cents / 100) * 100)
+/** Días por mes, como en el contexto (`requiredMonthlyCents`). */
+const MONTH_DAYS = 30.44
+
+/**
+ * Los objetivos con el colchón el primero del reparto (2026-11-11). Crear el «Fondo de emergencia» lo pone el
+ * primero (`addObjectiveFirst`), igual que «ponerlo el primero» o subir su meta: el dinero que le falta y no está
+ * libre sale de lo apartado para tus objetivos, empezando por el de menor prioridad (el reparto va por prioridad).
+ * Sin esto, el plan veía «Coche» y «Viaje» cubiertos, decía «no tienes objetivos pendientes» y proponía invertir;
+ * al pulsar «Crear» cambiaba de opinión. Solo se mueve dinero líquido (no lo invertido ni lo del ahorro seguro).
+ */
+function goalsWithCushionFirst(active: readonly ObjectiveContext[], deficitCents: number): ObjectiveContext[] {
+  if (deficitCents <= 0) return [...active]
+  let left = deficitCents
+  const byRankDesc = active
+    .filter((o) => !isCushionObjective(o) && o.status !== 'achieved')
+    .sort((a, b) => (b.rank ?? Infinity) - (a.rank ?? Infinity) || 0)
+  const taken = new Map<string, number>()
+  for (const o of byRankDesc) {
+    if (left <= 0) break
+    const liquidPart = Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0))
+    const take = Math.min(liquidPart, left)
+    if (take > 0) taken.set(o.id, take)
+    left -= take
+  }
+  if (taken.size === 0) return [...active]
+  const adjusted = active.map((o) => {
+    const take = taken.get(o.id)
+    if (!take) return o
+    const currentCents = o.currentCents - take
+    const remainingCents = Math.max(0, o.targetCents - currentCents)
+    return {
+      ...o,
+      currentCents,
+      remainingCents,
+      progressPct: o.targetCents > 0 ? Math.floor((currentCents / o.targetCents) * 100) : o.progressPct,
+      ...(remainingCents > 0 ? { completed: false, status: 'in-progress' as const } : {}),
+    }
+  })
+  // Lo que hace falta al mes, en cascada por prioridad como en el contexto.
+  let ahead = 0
+  const ranked = [...adjusted].filter((o) => !isCushionObjective(o) && !o.completed).sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
+  const required = new Map<string, { requiredMonthlyCents?: number; aheadRemainingCents: number }>()
+  for (const o of ranked) {
+    const monthsLeft = o.monthsLeft
+    required.set(o.id, {
+      aheadRemainingCents: ahead,
+      ...(monthsLeft !== undefined && monthsLeft > 0 ? { requiredMonthlyCents: Math.ceil((ahead + o.remainingCents) / Math.max(monthsLeft, 1 / MONTH_DAYS) / 100) * 100 } : {}),
+    })
+    ahead += o.remainingCents
+  }
+  return adjusted.map((o) => (required.has(o.id) ? { ...o, ...required.get(o.id) } : o))
+}
 /** Céntimos enteros no negativos; cualquier otra cosa cuenta como 0 (el contexto puede llegar del cliente). */
 const validCents = (n: unknown): number => (typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : 0)
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
@@ -540,7 +610,20 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     const lastIncome = Math.floor(habitualIncomeCents(last) / 100) * 100
     const fromLastMonth = lastIncome > declaredIncome.monthlyCents
     const incomeCents = fromLastMonth ? lastIncome : declaredIncome.monthlyCents
-    monthly = { savingsCents: euros(incomeCents - lastSpending), spendingCents: lastSpending, months: months.length, forecast: true, recurringIncomeCents: declaredIncome.monthlyCents }
+    // El ritmo es una extrapolación prudente para el colchón, no una prueba de que no ahorras (2026-11-11: 9 días de
+    // septiembre estirados a un mes daban 40 € de gasto con 35 € de paga, y el plan decía «gasta menos de lo que
+    // ingresas» cuando octubre ahorró 11 €). Si solo el ritmo deja el ahorro en cero y tu último mes completo
+    // ahorró de verdad, lo que te sobra es lo de ese mes; el colchón sigue con el ritmo.
+    const paceSavings = euros(incomeCents - lastSpending)
+    const lastMonthSavings = euros(incomeCents - Math.ceil(lastRegular / 100) * 100)
+    const savingsFromLastMonth = spendingFrom === 'pace' && paceSavings <= 0 && lastMonthSavings > 0
+    monthly = {
+      savingsCents: savingsFromLastMonth ? lastMonthSavings : paceSavings,
+      spendingCents: lastSpending,
+      months: months.length,
+      forecast: true,
+      recurringIncomeCents: declaredIncome.monthlyCents,
+    }
     leading.push({
       kind: 'forecast-basis',
       recurringIncomeCents: declaredIncome.monthlyCents,
@@ -548,18 +631,24 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       monthsNeeded,
       ...(fromLastMonth ? { lastMonthIncomeCents: lastIncome } : {}),
       ...(spendingFrom ? { spendingFrom } : {}),
+      ...(savingsFromLastMonth ? { lastMonthSavingsCents: lastMonthSavings } : {}),
     })
   } else {
     monthly = { savingsCents: euros(savings), spendingCents: spending, months: months.length, ...(declaredIncome ? { recurringIncomeCents: declaredIncome.monthlyCents } : {}) }
   }
-  const noSurplusBlock = () => blocked('no-surplus', [{ kind: 'reduce-spending' }, ...debtLoadStep(debts, monthly), ...leading, ...notesStep], monthly)
+  // `cushionSetup`: crear, poner el primero o subir el colchón no necesita ahorro nuevo, sale de lo que ya tienes (2026-11-11:
+  // con 2.750 € sin destino y sin colchón, el plan solo decía «no hay nada que repartir»).
+  const noSurplusBlock = (cushionSetup: PlanStep[] = [], cushionInfo: AllocationPlan['cushion'] = null): AllocationPlan => ({
+    ...blocked('no-surplus', [{ kind: 'reduce-spending' }, ...cushionSetup, ...debtLoadStep(debts, monthly), ...leading, ...notesStep], monthly),
+    ...(cushionSetup.length > 0 ? { cushion: cushionInfo } : {}),
+  })
   // Sin ahorro al mes, el plan sigue solo para repartir lo que ya tienes (2026-11-08: 1.100 € parados y el plan
   // bloqueado por 11 € de diferencia). Hace falta el perfil, el colchón completo y ninguna deuda cara.
   const noSurplus = monthly.savingsCents <= 0
   if (noSurplus) monthly = { ...monthly, savingsCents: 0 }
 
   // 1. Colchón.
-  const active = ctx.objectives.filter((o) => o.status !== 'achieved')
+  let active = ctx.objectives.filter((o) => o.status !== 'achieved')
   const cushionObjective = active.filter(isCushionObjective).sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))[0] ?? null
   const cushionMonths = cushionMonthsFor(profile)
   // Un mínimo líquido declarado nunca se rebaja: si es mayor que la meta del objetivo, manda (es lo que exige `liquidity.below-min`).
@@ -583,6 +672,14 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const cushionShortfallCents = cushionShort ? suggestedCushionCents - objectiveTarget : 0
   if (cushionShort && cushionObjective)
     steps.push({ kind: 'raise-cushion', objectiveId: cushionObjective.id, targetCents: objectiveTarget, suggestedCents: suggestedCushionCents, months: cushionMonths, spendingCents: monthly.spendingCents })
+  // Lo que el colchón (el primero, y con la meta que propone el plan) tomará de lo apartado para objetivos.
+  const liquidNow = Math.max(0, ctx.wealth.liquidCents)
+  const freeLiquid = Math.max(0, liquidNow - Math.max(0, ctx.wealth.reservedForObjectivesCents))
+  const cushionGoalTarget = targetCents + cushionShortfallCents
+  const cushionDeficit = Math.min(cushionGoalTarget, liquidNow) - (cushionObjective ? Math.max(0, cushionObjective.currentCents) : 0) - freeLiquid
+  const objectivesAfterCushion = cushionDeficit > 0 ? goalsWithCushionFirst(active, cushionDeficit) : null
+  const contextActive = active
+  if (objectivesAfterCushion) active = objectivesAfterCushion
   // Objetivos cerca de su fecha con dinero invertido: va antes que nada nuevo, una caída ya no tendría tiempo de recuperarse.
   for (const o of active) {
     const invested = o.investedCents ?? 0
@@ -616,7 +713,11 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
     rest.splice(lastDebt, 0, list[raiseAt])
     return rest
   }
-  const withProfileStep = (plan: AllocationPlan): AllocationPlan => ({ ...plan, steps: [...debtBeforeCushion(plan.steps), ...tail] })
+  const withProfileStep = (plan: AllocationPlan): AllocationPlan => ({
+    ...plan,
+    steps: [...debtBeforeCushion(plan.steps), ...tail],
+    ...(objectivesAfterCushion ? { objectivesAfterCushion } : {}),
+  })
 
   // 1b. Deudas caras: más que lo que cabe esperar de tu mezcla (o del 7 % sin perfil), nunca por debajo del 3 %.
   const investable = !needsProfile && profile.horizon !== 'short'
@@ -624,7 +725,8 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   const expectedReturnPct = investable ? expectedMixReturnPct(mixWeights(risk as RiskAttitude, profile.horizon as 'medium' | 'long', false)) : null
   const payFirstPct = expectedReturnPct === null ? DEBT_EXPENSIVE_PCT : Math.min(DEBT_EXPENSIVE_PCT, Math.max(DEBT_CHEAP_PCT, expectedReturnPct))
   const expensive = debts.filter((d) => d.aprPct >= payFirstPct)
-  if (noSurplus && (needsProfile || remainingCents > 0 || expensive.length > 0)) return noSurplusBlock()
+  if (noSurplus && (needsProfile || remainingCents > 0 || expensive.length > 0))
+    return noSurplusBlock(ctx.wealth.liquidCents > 0 ? steps.filter((s) => s.kind === 'create-cushion' || s.kind === 'move-cushion-first' || s.kind === 'raise-cushion') : [], cushion)
   if (expensive.length > 0) {
     const starter = Math.min(targetCents, monthly.spendingCents * DEBT_STARTER_CUSHION_MONTHS)
     const starterRemaining = Math.max(0, starter - Math.max(0, ctx.wealth.liquidCents))
@@ -705,7 +807,6 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // parado y, si no llega, de lo apartado para objetivos lejanos.
   const idleRaw = ctx.wealth.liquidCents - Math.max(0, ctx.wealth.reservedForObjectivesCents) - (cushionObjective ? 0 : targetCents)
   const idleCents = euros(idleRaw - cushionShortfallCents)
-  const shortfallFromGoals = Math.max(0, cushionShortfallCents - Math.max(0, idleRaw))
   const pendingObjectives = active.filter((o) => !isCushionObjective(o) && !o.completed)
   const noObjectives = pendingObjectives.length === 0
   const atRisk = shortTerm.length > 0 && shortNeed > monthly.savingsCents
@@ -807,9 +908,14 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // También los cubiertos: lo que tienen en la cuenta puede invertirse igual.
   const longGoals = active.filter((o) => !isCushionObjective(o) && isLongGoal(o))
   const inCash = (o: ObjectiveContext) => Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0))
-  // Sin el colchón el primero del reparto, el líquido de los objetivos aún incluye el dinero del colchón: nunca se invierte.
-  const cushionNotReserved = cushionObjective && isFirst ? 0 : targetCents
-  const goalCents = euros(longGoals.reduce((t, o) => t + inCash(o), 0) - cushionNotReserved - shortfallFromGoals)
+  // `active` ya tiene los objetivos con el colchón el primero (`goalsWithCushionFirst`): lo que el colchón
+  // necesita (crearlo, ponerlo el primero o subirlo) y no está libre ya no cuenta como suyo, así que nunca se invierte.
+  // Y por prudencia, nunca más que el líquido menos el colchón y lo que hoy tienen los objetivos cercanos: si el
+  // colchón saca dinero de un objetivo cercano de menor prioridad, eso no libera para invertir el de uno lejano.
+  const nearCash = contextActive
+    .filter((o) => !isCushionObjective(o) && !isLongGoal(o))
+    .reduce((t, o) => t + inCash(o), 0)
+  const goalCents = euros(Math.min(longGoals.reduce((t, o) => t + inCash(o), 0), liquidNow - cushionGoalTarget - nearCash))
   if (!needsProfile && goalCents >= IDLE_MIN_CENTS) {
     const withMoney = longGoals.filter((o) => inCash(o) > 0)
     const horizon = goalHorizon(withMoney)

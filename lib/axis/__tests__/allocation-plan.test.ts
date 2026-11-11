@@ -97,6 +97,14 @@ describe('bloqueos: lo que AXIS ya ha decidido que va primero', () => {
     assert.equal(planFor({ movements }).blocker, 'overspending')
   })
 
+  it('sin ahorro y sin colchón, pero con dinero: además de ajustar el gasto, crear el colchón con lo que ya tienes (2026-11-11)', () => {
+    const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 100_000), gasto(`2026-${m}-10`, 110_000)]), ingreso('2026-09-01', 100_000)]
+    const p = planFor({ movements, liquidCents: 200_000, facts: PROFILE })
+    assert.equal(p.blocker, 'no-surplus')
+    assert.deepEqual(kinds(p).slice(0, 2), ['reduce-spending', 'create-cushion'])
+    assert.equal(p.cushion?.source, 'months', 'la meta del colchón se explica como meses de gasto')
+  })
+
   it('ahorro habitual ≤ 0 → ajustar el gasto', () => {
     const movements = [...['06', '07', '08'].flatMap((m) => [ingreso(`2026-${m}-01`, 100_000), gasto(`2026-${m}-10`, 110_000)]), ingreso('2026-09-01', 100_000)]
     const p = planFor({ movements })
@@ -106,6 +114,23 @@ describe('bloqueos: lo que AXIS ya ha decidido que va primero', () => {
 })
 
 describe('colchón: el «Fondo de emergencia», el primero del reparto', () => {
+  // 2026-11-11: crearlo lo pone el primero y se lleva dinero de tus objetivos. Antes el plan los veía cubiertos,
+  // decía «no tienes objetivos pendientes» y proponía invertir; al pulsar «Crear», cambiaba de opinión.
+  it('crearlo saca de los objetivos lo que no está libre (del de menor prioridad): vuelven a estar pendientes', () => {
+    const coche = objective({ name: 'Coche', targetCents: 500_000, targetDate: '2028-03-01', priority: 1 })
+    const viaje = objective({ name: 'Viaje', targetCents: 200_000, targetDate: '2027-06-01', priority: 2 })
+    // 8.000 € líquidos: 7.000 apartados para los dos objetivos y 1.000 libres; el colchón pide 3.000 (3 × 1.000).
+    const p = planFor({ liquidCents: 800_000, objectives: [coche, viaje], facts: PROFILE })
+    assert.deepEqual(step(p, 'create-cushion'), { kind: 'create-cushion', targetCents: 300_000 })
+    const after = new Map((p.objectivesAfterCushion ?? []).map((o) => [o.name, o]))
+    assert.equal(after.get('Viaje')?.currentCents, 0, 'los 2.000 € que faltan salen del Viaje, el último en prioridad')
+    assert.equal(after.get('Viaje')?.status, 'in-progress')
+    assert.equal(after.get('Coche')?.currentCents, 500_000)
+    assert.ok(!p.steps.some((s) => s.kind === 'rest-to-objectives' && s.noObjectives), 'ya no dice que no hay objetivos pendientes')
+    assert.deepEqual(step(p, 'short-term-objectives')?.objectiveIds, [viaje.id])
+    assert.equal(step(p, 'idle-money'), undefined)
+  })
+
   it('sin objetivo → propone crearlo con 3 meses de gasto habitual', () => {
     const p = planFor({ liquidCents: 100_000 })
     assert.deepEqual(p.monthly, { savingsCents: 100_000, spendingCents: 100_000, months: 3 })

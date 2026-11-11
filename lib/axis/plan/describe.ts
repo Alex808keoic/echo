@@ -114,7 +114,9 @@ export function goalGapWarning(step: { monthlyCents: number; objectiveIds: reado
   const months = Math.max(...goals.map((o) => Math.floor(o.monthsLeft as number)))
   const target = goals.reduce((t, o) => t + o.targetCents, 0)
   const reached = Math.min(target, goals.reduce((t, o) => t + Math.max(0, o.currentCents), 0) + step.monthlyCents * months)
-  const needed = goals.reduce((t, o) => t + Math.ceil(o.remainingCents / Math.max(1, Math.floor(o.monthsLeft as number)) / 100) * 100, 0)
+  // Con los meses exactos que quedan, como `requiredMonthlyCents` del contexto: así dice lo mismo que AXIS
+  // (2026-11-11: el plan decía 131 € al mes y AXIS 129 € para el mismo objetivo, por dividir entre 31 y no 31,6).
+  const needed = goals.reduce((t, o) => t + Math.ceil(o.remainingCents / Math.max(1, o.monthsLeft as number) / 100) * 100, 0)
   const round = (c: number) => Math.round(c / 1_000) * 1_000
   if (reached >= target) return generic
   return `Con tu ahorro de ahora llegarías a la fecha con unos ${eur(round(reached))} de ${eur(target)}, sin contar lo que rinda. Para llegar harían falta unos ${eur(needed)} al mes: lo que ahorres de más (una paga más alta, un trabajo puntual) acerca la meta; si no, tendrás menos o tendrás que mover la fecha.`
@@ -137,7 +139,9 @@ export const SELL_TAX_NOTE =
 /** «la renta variable global», «la renta fija», «la parte arriesgada». */
 const sleeveName = (key: SleeveKey) => `la ${SEGMENT_OF[key].label.toLowerCase()}`
 
-export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: readonly ObjectiveContext[]): StepView {
+export function describeStep(step: PlanStep, plan: AllocationPlan, contextObjectives: readonly ObjectiveContext[]): StepView {
+  // Con el colchón que propone el plan, los objetivos como quedarán (`objectivesAfterCushion`).
+  const objectives = plan.objectivesAfterCushion ?? contextObjectives
   switch (step.kind) {
     case 'fix-negative-liquidity':
       return {
@@ -155,7 +159,9 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
         }
       return {
         title: plan.blocker === 'no-surplus' ? 'Primero, consigue que te sobre algo cada mes' : 'Primero, gasta menos de lo que ingresas',
-        detail: 'Mientras no ahorres, no hay nada que repartir. Mira en qué se va tu dinero.',
+        detail: plan.steps.some((s) => s.kind === 'create-cushion' || s.kind === 'move-cushion-first' || s.kind === 'raise-cushion')
+          ? 'Mientras no ahorres, no hay ahorro nuevo que repartir. Con lo que ya tienes, lo primero es tu colchón para imprevistos (abajo). Mira en qué se va tu dinero.'
+          : 'Mientras no ahorres, no hay nada que repartir. Mira en qué se va tu dinero.',
         action: { kind: 'review-spending', label: 'Ver tus gastos' },
       }
     case 'register-data':
@@ -366,7 +372,14 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, objectives: r
           step.lastMonthIncomeCents !== undefined
             ? `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso lo que ingresaste en tu último mes completo (${eur(step.lastMonthIncomeCents)}, más que tu ingreso fijo de ${eur(step.recurringIncomeCents)}) menos ${spent ?? `lo que gastaste ese mes (${eur(step.spendingCents)})`}. Es una previsión: no se suma a tu dinero.`
             : `Aún no tienes ${plural(MIN_USUAL_EXPENSE_MONTHS, 'mes completo', 'meses completos')} con movimientos, así que uso tu ingreso fijo previsto (${eur(step.recurringIncomeCents)} al mes) menos ${spent ?? `lo que gastaste en tu último mes completo (${eur(step.spendingCents)})`}. Es una previsión: no se suma a tu dinero.`,
-        note: `${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')} para que el plan salga de tus datos reales.`,
+        note: [
+          step.lastMonthSavingsCents !== undefined
+            ? `Ese ritmo solo lo uso para tu colchón, por prudencia. Lo que te sobra cada mes (${eur(step.lastMonthSavingsCents)}) sale de lo que de verdad ahorraste en tu último mes completo: los primeros días que apuntaste, estirados a un mes entero, dirían que no ahorras, y tus datos dicen que sí.`
+            : null,
+          `${step.monthsNeeded === 1 ? 'Falta' : 'Faltan'} ${plural(step.monthsNeeded, 'mes', 'meses')} para que el plan salga de tus datos reales.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
         action: { kind: 'register-data', label: 'Registrar movimientos' },
       }
     }
