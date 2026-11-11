@@ -67,6 +67,13 @@ export type Snapshot = {
   generatedAt: string
   metrics: Partial<Record<string, MetricValue>>
   goals: SnapshotGoal[]
+  /** Solo Finax, solo en la semana en curso y si se comparte el patrimonio: los mismos puntos (día, céntimos) que dibuja su gráfica de patrimonio. */
+  wealthSeries?: WealthPoint[]
+}
+
+export interface WealthPoint {
+  date: string
+  cents: number
 }
 
 export type SnapshotValidation = { ok: true; snapshot: Snapshot } | { ok: false; reason: string }

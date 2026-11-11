@@ -109,6 +109,10 @@ export function buildWeeklySnapshots(input: SnapshotInput): Snapshot[] {
       generatedAt: input.generatedAt,
       metrics: weekMetrics(week, input),
       goals: week === current ? currentGoals(input) : [],
+      // La gráfica de patrimonio de Finax, punto por punto, para que AXIS dibuje exactamente la misma.
+      ...(week === current && input.metrics.includes('wealth_cents')
+        ? { wealthSeries: buildWealthSeries(input.data.initialBalanceCents, input.data.movements, input.data.positions, input.today) }
+        : {}),
     })
   }
   return snapshots
