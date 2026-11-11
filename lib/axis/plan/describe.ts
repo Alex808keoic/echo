@@ -101,7 +101,7 @@ function joinNotes(...notes: Array<string | null | undefined>): { note?: string 
 }
 
 /** Objetivo «sigue creciendo» cercano con un perfil de plazo medio: la mezcla lleva más renta fija hasta que lo aclares. */
-const MEDIUM_HORIZON_NOTE = ' Como en tu perfil dijiste que necesitarás tu dinero antes de 5 años, la mezcla lleva más renta fija hasta que lo aclares (mira el paso «¿Vas a usar el dinero…?»).'
+const MEDIUM_HORIZON_NOTE = ' Como en tu perfil dijiste que necesitarás tu dinero en 2 a 5 años, la mezcla lleva más renta fija hasta que lo aclares (mira el paso «¿Vas a usar el dinero…?»).'
 
 /**
  * «No llega», con cifras (2026-11-08, revisión como asesor): a dónde llegarías al ritmo de hoy, sin contar
@@ -216,8 +216,8 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
       const names = step.objectiveIds.map((id) => objectives.find((o) => o.id === id)?.name).filter((n): n is string => Boolean(n))
       return {
         title: `${eur(step.monthlyCents)} al mes a tus objetivos cercanos`,
-        detail: `${names.map((n) => `«${n}»`).join(', ')}: los necesitas en 2 años o menos, así que ese dinero no se arriesga.`,
-        ...(step.atRisk ? { warning: 'Con tu ahorro actual no llegas a tiempo a todos. Plantéate ajustar la fecha o la meta.' } : {}),
+        detail: `${names.map((n) => `«${n}»`).join(', ')}: los necesitas en 5 años o menos, así que ese dinero no se arriesga: mejor en ahorro seguro (cuenta remunerada, depósito o Letras del Tesoro).`,
+        ...(step.atRisk ? { warning: goalGapWarning(step, objectives) } : {}),
       }
     }
     case 'invest-long-term': {
@@ -345,7 +345,9 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
       const list = names.length > 0 ? names.map((n) => `«${n}»`).join(', ') : 'tu objetivo'
       return {
         title: `¿Vas a usar el dinero de ${list} en su fecha?`,
-        detail: `Lo marcaste como «sigue creciendo», pero en tu perfil dijiste que necesitarás tu dinero antes de 5 años. Las dos cosas no encajan, y cambian mucho cuánto conviene arriesgar: la bolsa ha tardado a veces de 2 a 6 años en recuperarse de una caída. Mientras no lo aclares, tu plan usa la mezcla de tu plazo, con más renta fija.`,
+        detail: step.shortProfile
+          ? `Lo marcaste como «sigue creciendo», pero en tu perfil dijiste que necesitarás tu dinero en menos de 2 años. Las dos cosas no encajan, y cambian mucho cuánto conviene arriesgar: la bolsa ha tardado a veces de 2 a 6 años en recuperarse de una caída. Mientras no lo aclares, tu plan no lo invierte: lo trata como dinero que vas a usar pronto.`
+          : `Lo marcaste como «sigue creciendo», pero en tu perfil dijiste que necesitarás tu dinero en 2 a 5 años. Las dos cosas no encajan, y cambian mucho cuánto conviene arriesgar: la bolsa ha tardado a veces de 2 a 6 años en recuperarse de una caída. Mientras no lo aclares, tu plan usa la mezcla de tu plazo, con más renta fija.`,
         note: 'Si de verdad no lo vas a tocar, cambia en «Tu perfil» cuándo necesitarás el dinero a «más de 5 años» y la mezcla pasará a la de largo plazo. Si sí lo vas a usar en la fecha, quítale la marca «sigue creciendo» en Objetivos.',
         action: { kind: 'answer-profile', label: 'Revisar tu plazo' },
       }

@@ -64,7 +64,7 @@ export function stepReasons(step: PlanStep, plan: AllocationPlan, profile: Profi
       break
     }
     case 'short-term-objectives':
-      why.push(`Los necesitas en ${SHORT_TERM_MONTHS / 12} años o menos: el dinero que vas a usar pronto no se arriesga, porque una inversión podría estar en pérdidas justo entonces.`)
+      why.push(`Los necesitas en 5 años o menos: el dinero que vas a usar pronto no se arriesga, porque una inversión podría estar en pérdidas justo entonces.`)
       break
     case 'invest-long-term': {
       const applied = planRisk(profile)

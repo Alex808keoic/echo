@@ -1,8 +1,9 @@
 /**
  * «Tu decisión del mes»: los pasos que has marcado como hechos (Dexie, tabla
  * `planChecks`, un registro por mes `YYYY-MM`). Es solo una ayuda para llevar
- * la cuenta: no cambia el plan ni ningún dinero. No entra en el backup y se
- * borra con «Borrar todos los datos».
+ * la cuenta: no cambia el plan ni ningún dinero. Entra en la copia de seguridad
+ * (opcional, desde el 2026-11-11), se borra al restaurar una copia y con «Borrar
+ * todos los datos».
  */
 import { db } from './db'
 

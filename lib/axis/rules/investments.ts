@@ -17,7 +17,7 @@ import { eur, horizonOf, pct, riskAttitudeOf, THRESHOLDS, type Rule } from './sh
 const NONE_INTERPRETATION = 'Eso no es bueno ni malo por sí mismo; depende de para qué es el dinero y de cuándo lo necesitas.'
 const NONE_BY_HORIZON: Record<Horizon, string> = {
   short: 'Con el horizonte corto que declaraste, tenerlo todo líquido encaja: el dinero que puedes necesitar pronto no conviene comprometerlo.',
-  medium: 'Con el horizonte medio que declaraste, tenerlo todo líquido es una opción prudente; lo importante es que sea una elección y no solo la situación por defecto.',
+  medium: 'Con el horizonte de 2 a 5 años que declaraste, no todo tiene que estar en la cuenta: tu plan te dice qué parte conviene invertir o pasar a ahorro seguro, y con qué mezcla. Quieto en la cuenta, pierde frente a la inflación.',
   long: 'Con el horizonte largo que declaraste, tenerlo todo líquido no es bueno ni malo por sí mismo, pero sí es una elección: merece ser consciente.',
 }
 

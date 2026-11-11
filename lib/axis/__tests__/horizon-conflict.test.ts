@@ -68,7 +68,7 @@ describe('plazo en duda: «sigue creciendo» cercano con un perfil de 2 a 5 año
     const objectives = decision.context.objectives
     const view = describeStep(step(plan, 'confirm-horizon')!, plan, objectives)
     assert.match(view.title, /Patrimonio ideal 18 años/)
-    assert.match(view.detail ?? "", /antes de 5 años/)
+    assert.match(view.detail ?? "", /en 2 a 5 años/)
     assert.equal(view.action?.kind, 'answer-profile')
     const money = describeStep(step(plan, 'invest-goal-money')!, plan, objectives)
     assert.match(money.detail ?? "", /más renta fija hasta que lo aclares/)

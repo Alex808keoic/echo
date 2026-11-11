@@ -13,7 +13,7 @@
 import { roundedShares } from '../../finance/summary'
 import { isLongGoal } from '../../finance/objectives'
 import type { AxisDecision } from '../types'
-import { horizonInDoubt, isCushionObjective, planRisk, planSleeves, type AllocationPlan } from './allocation'
+import { horizonInDoubt, investableGoal, isCushionObjective, planRisk, planSleeves, type AllocationPlan } from './allocation'
 import { guessAssetType, mixWeights, type SleeveKey } from './mix'
 import type { RiskAttitude } from '../profile/types'
 
@@ -123,7 +123,7 @@ export function idealSplit(plan: AllocationPlan, decision: AxisDecision): IdealS
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
   // La misma regla que el plan: con el plazo en duda («sigue creciendo» cercano y perfil de 2 a 5 años), mezcla de plazo medio.
   for (const o of goals) {
-    if (isLongGoal(o)) spread(o.currentCents, mixWeights(risk, horizonInDoubt(o, profile.horizon) ? 'medium' : 'long', false))
+    if (investableGoal(o, profile.horizon)) spread(o.currentCents, mixWeights(risk, horizonInDoubt(o, profile.horizon) ? 'medium' : 'long', false))
     else take('objectives', o.currentCents)
   }
   const payDebt = plan.steps.find((s) => s.kind === 'pay-debt')

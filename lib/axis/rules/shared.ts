@@ -236,6 +236,36 @@ export function usualMonthlyExpense(closedMonths: readonly ClosedMonth[] | undef
   return Math.max(0, Math.ceil(median / 100) * 100)
 }
 
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 1 ? sorted[mid] : Math.floor((sorted[mid - 1] + sorted[mid]) / 2)
+}
+
+/** Ahorro habitual: mediana de (ingresos habituales − gasto habitual) de los meses cerrados; `null` sin meses suficientes. */
+export function usualMonthlySavings(months: readonly ClosedMonth[]): number | null {
+  if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
+  return median(months.map((m) => habitualIncomeCents(m) - regularExpenseCents(m)))
+}
+
+/** Ingresos habituales: mediana de los meses cerrados sin lo puntual; `null` sin meses suficientes. */
+export function usualMonthlyIncome(closedMonths: readonly ClosedMonth[] | undefined): number | null {
+  const months = usualExpenseMonths(closedMonths)
+  if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
+  return median(months.map(habitualIncomeCents))
+}
+
+/**
+ * El mes anterior fue extraordinario (ingresos por encima de lo habitual en `extraordinaryIncomePct`) y este
+ * vuelve a lo normal: compararlos no es una caída (2026-11-11, QA: tras un bonus no marcado como puntual,
+ * AXIS avisaba de que los ingresos caían un 77 % y el ahorro se hundía).
+ */
+export function backToUsualIncome(current: WithOneOff, previous: WithOneOff, closedMonths: readonly ClosedMonth[] | undefined): boolean {
+  const usual = usualMonthlyIncome(closedMonths)
+  if (usual === null || usual <= 0) return false
+  return regularIncomeCents(previous) > usual * (1 + THRESHOLDS.extraordinaryIncomePct / 100) && regularIncomeCents(current) >= usual * (1 - THRESHOLDS.significantChangePct / 100)
+}
+
 /** Cuántos meses entran en el gasto habitual (para decirlo: «mediana de 4 meses»). */
 export function usualExpenseMonthCount(closedMonths: readonly ClosedMonth[] | undefined): number {
   return usualExpenseMonths(closedMonths).length

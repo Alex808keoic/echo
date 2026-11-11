@@ -18,7 +18,7 @@
  * Nada más cambia (`savings.tight` y `savings.no-period-data` no leen el perfil).
  */
 import type { Signal } from '../types'
-import { eur, hasOneOff, irregularIncomeOf, liquidityShortfall, pct, regularSavingsFalls, THRESHOLDS, type Rule } from './shared'
+import { backToUsualIncome, eur, hasOneOff, irregularIncomeOf, liquidityShortfall, pct, regularSavingsFalls, THRESHOLDS, usualExpenseMonths, usualMonthlySavings, type Rule } from './shared'
 
 export const savingsRules: Rule = (ctx, _market, profile) => {
   const { current, previous } = ctx.flows
@@ -43,8 +43,28 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
     return signals
   }
 
+  // Tus meses completos gastan más de lo que ingresas: el mes en curso (quizá solo con la paga) no puede decir que
+  // ahorras bien (2026-11-11, QA: «ahorras el 100 %» mientras el plan decía que no te sobra nada).
+  const usualSavings = usualMonthlySavings(usualExpenseMonths(ctx.flows.closedMonths))
   const rate = current.savingsRatePct
-  if (rate !== null && current.savingsCents >= 0) {
+  if (usualSavings !== null && usualSavings < 0) {
+    signals.push({
+      id: 'savings.tight',
+      domain: 'savings',
+      priority: 'high',
+      fact: `En tus meses completos gastas más de lo que ingresas: unos ${eur(-usualSavings)} al mes de diferencia.`,
+      interpretation:
+        current.savingsCents > 0
+          ? `Lo que llevas este mes (${eur(current.savingsCents)} a favor) aún no está cerrado: cuando lleguen los gastos del resto del mes, lo normal es que acabe igual.`
+          : 'Mientras siga así, la diferencia sale de tu dinero ahorrado.',
+      recommendation: {
+        what: 'Revisa en qué se va tu dinero y busca gastar al menos esa diferencia menos cada mes.',
+        why: 'Con un gasto habitual mayor que tus ingresos, tus ahorros bajan cada mes aunque algún mes suelto salga bien.',
+        nextStep: { label: 'Ver gastos por categoría', to: 'estadisticas' },
+        action: { verb: 'adjust', target: 'none' },
+      },
+    })
+  } else if (rate !== null && current.savingsCents >= 0) {
     const healthy = rate >= THRESHOLDS.healthySavingsRatePct
     // El primer objetivo pendiente en el orden del reparto: el que recibe primero el excedente.
     // Con el líquido en negativo el reparto no asigna nada (lo explica `liquidity.negative`): no se nombra destino.
@@ -91,7 +111,9 @@ export const savingsRules: Rule = (ctx, _market, profile) => {
     previous.savingsCents > 0 &&
     current.savingsCents < previous.savingsCents * 0.5 &&
     // Si la caída solo la explica algo puntual, no es una caída del ahorro habitual.
-    (!(hasOneOff(current) || hasOneOff(previous)) || regularSavingsFalls(current, previous))
+    (!(hasOneOff(current) || hasOneOff(previous)) || regularSavingsFalls(current, previous)) &&
+    // Volver a tus ingresos de siempre después de un mes extraordinario no es una caída del ahorro.
+    !backToUsualIncome(current, previous, ctx.flows.closedMonths)
   ) {
     const fromIncome = current.incomeCents < previous.incomeCents
     // Con ingresos irregulares solo se rebaja la caída que viene de los ingresos; la que viene del gasto, no.

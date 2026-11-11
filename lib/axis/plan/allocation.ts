@@ -36,7 +36,7 @@
  * Los movimientos puntuales no entran en el gasto ni en el ahorro habituales.
  * Importes en céntimos, redondeados a euros enteros hacia abajo.
  */
-import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
+import { prioritiesOf, recurringIncomesOf, regularExpenseCents, regularIncomeCents, habitualIncomeCents, usualExpenseMonths, usualMonthlyExpense, usualMonthlySavings, MIN_USUAL_EXPENSE_MONTHS } from '../rules/shared'
 import type { AxisDecision, ClosedMonth, ObjectiveContext, PeriodStats } from '../types'
 import type { ReconciledProfile, RiskAttitude } from '../profile/types'
 import type { InflationRef } from './inflation'
@@ -186,7 +186,7 @@ export type PlanStep =
    * marcados «sigue creciendo». El plan no adivina: usa la mezcla de tu plazo (más renta fija) y te pregunta.
    * Si de verdad no lo vas a tocar, cambias tu plazo a «más de 5 años» y la mezcla pasa a la de largo plazo.
    */
-  | { kind: 'confirm-horizon'; objectiveIds: string[] }
+  | { kind: 'confirm-horizon'; objectiveIds: string[]; shortProfile?: true }
   /**
    * Objetivo a `TO_SAFE_MONTHS` o menos con parte invertida: pásala poco a poco a ahorro seguro, en
    * `spreadMonths` (hasta un año antes de la fecha, cuando lo invertido deja de contar).
@@ -380,6 +380,15 @@ export function horizonInDoubt(o: Pick<ObjectiveContext, 'keepGrowing' | 'months
 }
 
 /**
+ * El dinero de este objetivo puede invertirse: es lejano («sigue creciendo» o a más de 5 años) y, si su plazo
+ * está en duda, tu perfil no dice «menos de 2 años» (2026-11-11, QA: con plazo corto el plan invertía al 50/50
+ * el dinero de alguien que lo necesita antes de 2 años). Con plazo corto y en duda, se trata como cercano.
+ */
+export function investableGoal(o: Pick<ObjectiveContext, 'keepGrowing' | 'monthsLeft'>, profileHorizon: ReconciledProfile['horizon']): boolean {
+  return isLongGoal(o) && !(profileHorizon === 'short' && horizonInDoubt(o, profileHorizon))
+}
+
+/**
  * Lo que el plan invierte, sumando TODOS sus pasos de inversión: el largo plazo, el ahorro de los
  * objetivos lejanos, el dinero sin destino y el apartado para objetivos lejanos. Es la única fuente
  * para las pantallas (Guía, Inversiones, señales, foto del mes): ninguna vuelve a deducirlo por su
@@ -468,12 +477,6 @@ function staleValuesStep(positions: AxisDecision['context']['investments']['posi
 }
 
 /** Mediana del ahorro (ingresos − gastos) de los mismos meses que el gasto habitual. */
-function usualMonthlySavings(months: ReturnType<typeof usualExpenseMonths>): number | null {
-  if (months.length < MIN_USUAL_EXPENSE_MONTHS) return null
-  const values = months.map((m) => habitualIncomeCents(m) - regularExpenseCents(m)).sort((a, b) => a - b)
-  const mid = Math.floor(values.length / 2)
-  return values.length % 2 === 1 ? values[mid] : Math.floor((values[mid - 1] + values[mid]) / 2)
-}
 
 /**
  * El bloqueo `overspending` solo cuando el gasto habitual del mes en curso ya supera lo que sueles ingresar en
@@ -768,7 +771,7 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   }
 
   // 2. Objetivos a corto plazo (su necesidad es acumulada: basta la mayor).
-  const shortTerm = active.filter((o) => !isCushionObjective(o) && !o.keepGrowing && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && o.monthsLeft <= SHORT_TERM_MONTHS)
+  const shortTerm = active.filter((o) => !isCushionObjective(o) && !o.keepGrowing && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && o.monthsLeft <= LONG_GOAL_MONTHS)
   const shortNeed = shortTerm.reduce((max, o) => Math.max(max, o.requiredMonthlyCents ?? 0), 0)
   const shortMonthly = Math.min(monthly.savingsCents, Math.ceil(shortNeed / 100) * 100)
   if (shortTerm.length > 0 && shortMonthly > 0) {
@@ -780,13 +783,13 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // Lo que falta entre los meses que quedan, sin contar con la rentabilidad (lo que rinda, adelanta la meta).
   const farGoals = needsProfile
     ? []
-    : active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && isLongGoal(o))
+    : active.filter((o) => !isCushionObjective(o) && o.status === 'in-progress' && o.monthsLeft !== undefined && o.monthsLeft > 0 && investableGoal(o, profile.horizon))
   const farNeed = farGoals.reduce((t, o) => t + Math.ceil(o.remainingCents / (o.monthsLeft as number) / 100) * 100, 0)
   const farMonthly = Math.min(euros(afterShort), farNeed)
   // Plazo de la mezcla de los objetivos: largo, salvo que alguno sea «sigue creciendo» con el plazo en duda.
   const goalHorizon = (goals: readonly ObjectiveContext[]): 'medium' | 'long' => (goals.some((o) => horizonInDoubt(o, profile.horizon)) ? 'medium' : 'long')
   const doubtful = needsProfile ? [] : active.filter((o) => !isCushionObjective(o) && !o.completed && o.status !== 'achieved' && horizonInDoubt(o, profile.horizon))
-  if (doubtful.length > 0) steps.push({ kind: 'confirm-horizon', objectiveIds: doubtful.map((o) => o.id) })
+  if (doubtful.length > 0) steps.push({ kind: 'confirm-horizon', objectiveIds: doubtful.map((o) => o.id), ...(profile.horizon === 'short' ? { shortProfile: true as const } : {}) })
   if (farGoals.length > 0 && farMonthly > 0) {
     const horizon = goalHorizon(farGoals)
     steps.push({
@@ -906,14 +909,14 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
   // 6. Lo apartado en la cuenta para objetivos lejanos: invertido sigue contando para ellos (decidido el 2026-10-25).
   // Su plazo es el del objetivo, no el de tu perfil; nunca la parte arriesgada.
   // También los cubiertos: lo que tienen en la cuenta puede invertirse igual.
-  const longGoals = active.filter((o) => !isCushionObjective(o) && isLongGoal(o))
+  const longGoals = active.filter((o) => !isCushionObjective(o) && investableGoal(o, profile.horizon))
   const inCash = (o: ObjectiveContext) => Math.max(0, o.currentCents - (o.investedCents ?? 0) - (o.safeCents ?? 0))
   // `active` ya tiene los objetivos con el colchón el primero (`goalsWithCushionFirst`): lo que el colchón
   // necesita (crearlo, ponerlo el primero o subirlo) y no está libre ya no cuenta como suyo, así que nunca se invierte.
   // Y por prudencia, nunca más que el líquido menos el colchón y lo que hoy tienen los objetivos cercanos: si el
   // colchón saca dinero de un objetivo cercano de menor prioridad, eso no libera para invertir el de uno lejano.
   const nearCash = contextActive
-    .filter((o) => !isCushionObjective(o) && !isLongGoal(o))
+    .filter((o) => !isCushionObjective(o) && !investableGoal(o, profile.horizon))
     .reduce((t, o) => t + inCash(o), 0)
   const goalCents = euros(Math.min(longGoals.reduce((t, o) => t + inCash(o), 0), liquidNow - cushionGoalTarget - nearCash))
   if (!needsProfile && goalCents >= IDLE_MIN_CENTS) {

@@ -12,6 +12,7 @@ import { BACKUP_FORMAT, BACKUP_VERSION, clearAllData, exportBackup, parseBackup,
 import { listUserMemories, resolveMemoryProposal } from '../axis-memories'
 import { getAxisMemory, rememberConclusion } from '../axis-memory'
 import { putConversation } from '../axis-conversation'
+import { getPlanMonth, savePlannedMonth, setPlanCheck } from '../plan-checks'
 import { setInitialBalance } from '../config'
 import { addMovement } from '../movements'
 import { addObjective } from '../objectives'
@@ -87,7 +88,7 @@ describe('copia v4 · exportación', () => {
     for (const forbidden of ['mensaje de conversación', 'resumen secreto', 'previousConclusions', 'dato de mercado', 'profileFacts', 'conversation":{']) {
       assert.ok(!text.includes(forbidden), `la copia contiene «${forbidden}»`)
     }
-    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['cashTransfers', 'config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'positions', 'recurring', 'version'])
+    assert.deepEqual(Object.keys(JSON.parse(text)).sort(), ['cashTransfers', 'config', 'debts', 'exportedAt', 'format', 'memories', 'movements', 'objectives', 'planChecks', 'positions', 'recurring', 'version'])
   })
 })
 
@@ -255,5 +256,39 @@ describe('copia v5 · efectivo y tarjeta', () => {
     assert.equal((await listCashTransfers()).length, 1)
     const bad = JSON.stringify({ ...JSON.parse(v4), version: 5, cashTransfers: [{ id: 'x', direction: 'a-luna', amountCents: 1, date: '2026-10-01', createdAt: 1, updatedAt: 1 }] })
     assert.throws(() => parseBackup(bad), /traspasos de efectivo no válidos/)
+  })
+})
+
+describe('restaurar borra lo deducido de los datos anteriores (QA 2026-11-11)', () => {
+  const planned = { savingsCents: 100_000, investCents: 90_000, mix: [{ key: 'global-equity', cents: 90_000 }], items: 5 }
+
+  it('una copia sin historial deja vacíos «Tu decisión del mes», la conversación y las conclusiones', async () => {
+    await savePlannedMonth('2026-10', planned)
+    await setPlanCheck('2026-10', 'invest', true)
+    const result = analyzeLocally({ context: buildFinancialContext(snapshot({ config: config(100_000), movements: healthyMovements() }), TODAY) }, NOW)
+    if (result.status === 'analysis') await rememberConclusion(result.analysis)
+    assert.equal(await db.axisMemory.count(), 1)
+    await putConversation({ summary: 'de los datos anteriores', messages: [{ id: 'u', role: 'user', text: 'hola', createdAt: 1 }] })
+    await restoreBackup(parseBackup(file({ version: 5, debts: [], recurring: [], cashTransfers: [] })))
+    assert.equal(await getPlanMonth('2026-10'), undefined)
+    assert.equal(await db.planChecks.count(), 0)
+    assert.equal(await db.axisConversation.count(), 0)
+    assert.equal(await db.axisMemory.count(), 0)
+  })
+
+  it('la copia lleva el historial de «Tu decisión del mes» y lo restaura', async () => {
+    await savePlannedMonth('2026-10', planned)
+    await setPlanCheck('2026-10', 'invest', true)
+    const json = JSON.stringify(await exportBackup())
+    await clearAllData()
+    await restoreBackup(parseBackup(json))
+    const entry = await getPlanMonth('2026-10')
+    assert.deepEqual(entry?.done, ['invest'])
+    assert.equal(entry?.planned?.savingsCents, 100_000)
+  })
+
+  it('un historial no válido rechaza la copia entera', () => {
+    assert.throws(() => parseBackup(file({ planChecks: [{ key: '2026-13', done: [], updatedAt: 1 }] })), /Tu decisión del mes/)
+    assert.throws(() => parseBackup(file({ planChecks: [{ key: '2026-10', done: [1], updatedAt: 1 }] })), /Tu decisión del mes/)
   })
 })

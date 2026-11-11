@@ -110,9 +110,9 @@ const baseObjectiveRules: Rule = (ctx, _market, profile) => {
         priority: feasible ? 'low' : 'high',
         fact: `Para llegar a «${o.name}» en ${months} ${months === 1 ? 'mes' : 'meses'} harían falta unos ${eur(o.requiredMonthlyCents)} al mes (faltan ${eur(o.remainingCents)}${(o.aheadRemainingCents ?? 0) > 0 ? `, y antes ${eur(o.aheadRemainingCents ?? 0)} de los objetivos que van por delante` : ''}).`,
         interpretation: feasible
-          ? `Tu ahorro de este mes (${eur(monthlySavings)}) cubre ese ritmo.`
+          ? `Tu ahorro de este mes (${eur(monthlySavings)}) cubre los ${eur(o.requiredMonthlyCents)} al mes que harían falta para «${o.name}».`
           : monthlySavings > 0
-            ? `Tu ahorro de este mes (${eur(monthlySavings)}) no llega a ese ritmo.`
+            ? `Tu ahorro de este mes (${eur(monthlySavings)}) no llega a los ${eur(o.requiredMonthlyCents)} al mes que harían falta para «${o.name}».`
             : 'Este mes no hay ahorro con el que sostener ese ritmo.',
         // Sin claves `undefined`: con un ritmo alcanzable no hay recomendación ni alternativa.
         ...(feasible

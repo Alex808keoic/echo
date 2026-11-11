@@ -125,7 +125,7 @@ export function SettingsScreen({ overview, onNavigate, onBack }: ScreenProps) {
       open(
         'Restaurar copia',
         <Confirm
-          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos, ${backup.positions.length} inversiones${backup.debts ? ` y ${backup.debts.length} deudas` : ''}. Restaurarla sustituirá tus movimientos, objetivos, inversiones${backup.debts ? ', deudas' : ''} y saldo inicial de este dispositivo.${memoriesNote}`}
+          message={`La copia contiene ${count} movimiento${count === 1 ? '' : 's'}, ${backup.objectives.length} objetivos, ${backup.positions.length} inversiones${backup.debts ? ` y ${backup.debts.length} deudas` : ''}. Restaurarla sustituirá tus movimientos, objetivos, inversiones${backup.debts ? ', deudas' : ''}${backup.recurring ? ', fijos' : ''} y saldo inicial de este dispositivo, y borrará la conversación con AXIS y el historial de «Tu decisión del mes» que tengas aquí${backup.planChecks ? ' (la copia trae el suyo)' : ''}.${memoriesNote}`}
           confirmLabel="Restaurar"
           destructive
           onCancel={close}

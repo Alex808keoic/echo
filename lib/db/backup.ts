@@ -10,6 +10,13 @@
  *   v5  lo mismo + los traspasos entre banco y efectivo (`cashTransfers`);
  *       los movimientos pueden llevar `wallet` y la configuración
  *       `initialCashCents`. Una copia anterior conserva los traspasos del dispositivo.
+ *       Opcional (2026-11-11, sin subir de versión): `planChecks`, «Tu decisión del mes» y la
+ *       foto de lo que proponía el plan cada mes, para que la revisión mensual no se pierda al
+ *       cambiar de móvil.
+ *
+ * Restaurar borra siempre lo que AXIS dedujo de los datos anteriores (conclusiones, conversación
+ * y el historial de «Tu decisión del mes»): no corresponde a los datos restaurados (2026-11-11, QA:
+ * la revisión de octubre comparaba la copia con lo que proponía el plan de los datos anteriores).
  *
  * Objetivos: `priority` y `achievedAt` son opcionales (las copias anteriores
  * no los tienen). `currentCents` sigue siendo obligatorio por compatibilidad,
@@ -43,6 +50,7 @@ import { withDerivedCurrentCents } from '../finance/objectives'
 import { validateImportedMemories } from '../axis/chat/memory'
 import type { UserMemory } from '../axis/chat/types'
 import { isEcosystemSharing } from '../ecosystem/sharing'
+import type { PlanChecksEntry } from './plan-checks'
 
 export const BACKUP_FORMAT = 'finax-backup'
 export const BACKUP_VERSION = 5
@@ -65,10 +73,12 @@ export interface Backup {
   recurring?: RecurringMovement[]
   /** Traspasos banco ↔ efectivo (solo v5). Ausente en una copia anterior: se conservan los del dispositivo. */
   cashTransfers?: CashTransfer[]
+  /** «Tu decisión del mes» por mes (opcional). Ausente: el historial del dispositivo se borra igual al restaurar. */
+  planChecks?: PlanChecksEntry[]
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [config, movements, objectives, positions, memories, debts, recurring, cashTransfers] = await Promise.all([
+  const [config, movements, objectives, positions, memories, debts, recurring, cashTransfers, planChecks] = await Promise.all([
     db.config.get(CONFIG_KEY),
     db.movements.toArray(),
     db.objectives.toArray(),
@@ -77,6 +87,7 @@ export async function exportBackup(): Promise<Backup> {
     db.debts.toArray(),
     db.recurring.toArray(),
     db.cashTransfers.toArray(),
+    db.planChecks.toArray(),
   ])
   return {
     format: BACKUP_FORMAT,
@@ -90,7 +101,26 @@ export async function exportBackup(): Promise<Backup> {
     debts,
     recurring,
     cashTransfers,
+    planChecks,
   }
+}
+
+const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/
+/** Un registro de «Tu decisión del mes»: mes, pasos marcados y, si la hay, la foto del plan. */
+function isPlanChecks(v: unknown): v is PlanChecksEntry {
+  if (!isRecord(v) || !isStr(v.key) || !MONTH_KEY.test(v.key) || !isInt(v.updatedAt)) return false
+  if (!Array.isArray(v.done) || !v.done.every(isStr)) return false
+  if (v.checkIn !== undefined && !isInt(v.checkIn)) return false
+  if (v.planned === undefined) return true
+  const p = v.planned
+  return (
+    isRecord(p) &&
+    isInt(p.savingsCents) &&
+    isInt(p.investCents) &&
+    isInt(p.items) &&
+    Array.isArray(p.mix) &&
+    p.mix.every((m) => isRecord(m) && isStr(m.key) && isInt(m.cents))
+  )
 }
 
 /* ------------------------------- Validación ------------------------------- */
@@ -292,6 +322,12 @@ export function parseBackup(text: string): Backup {
     if (!Array.isArray(raw.cashTransfers) || !raw.cashTransfers.every(isCashTransfer)) throw new Error('La copia contiene traspasos de efectivo no válidos.')
     cashTransfers = raw.cashTransfers
   }
+  // Opcional en cualquier versión: si viene, entero y válido.
+  let planChecks: PlanChecksEntry[] | undefined
+  if (raw.planChecks !== undefined) {
+    if (!Array.isArray(raw.planChecks) || !raw.planChecks.every(isPlanChecks)) throw new Error('La copia contiene un historial de «Tu decisión del mes» no válido.')
+    planChecks = raw.planChecks
+  }
   return {
     format: BACKUP_FORMAT,
     version: raw.version,
@@ -304,6 +340,7 @@ export function parseBackup(text: string): Backup {
     ...(debts !== undefined ? { debts } : {}),
     ...(recurring !== undefined ? { recurring } : {}),
     ...(cashTransfers !== undefined ? { cashTransfers } : {}),
+    ...(planChecks !== undefined ? { planChecks } : {}),
   }
 }
 
@@ -321,7 +358,9 @@ export async function restoreBackup(backup: Backup): Promise<void> {
   if (backup.debts !== undefined && !backup.debts.every(isDebt)) throw new Error('La copia contiene deudas no válidas.')
   if (backup.recurring !== undefined && !backup.recurring.every(isRecurring)) throw new Error('La copia contiene movimientos fijos no válidos.')
   if (backup.cashTransfers !== undefined && !backup.cashTransfers.every(isCashTransfer)) throw new Error('La copia contiene traspasos de efectivo no válidos.')
-  await db.transaction('rw', [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts, db.recurring, db.cashTransfers], async () => {
+  if (backup.planChecks !== undefined && !backup.planChecks.every(isPlanChecks)) throw new Error('La copia contiene un historial de «Tu decisión del mes» no válido.')
+  const tables = [db.config, db.movements, db.objectives, db.positions, db.axisMemories, db.debts, db.recurring, db.cashTransfers, db.planChecks, db.axisMemory, db.axisConversation]
+  await db.transaction('rw', tables, async () => {
     await Promise.all([
       db.config.clear(),
       db.movements.clear(),
@@ -331,6 +370,10 @@ export async function restoreBackup(backup: Backup): Promise<void> {
       ...(backup.debts !== undefined ? [db.debts.clear()] : []),
       ...(backup.recurring !== undefined ? [db.recurring.clear()] : []),
       ...(backup.cashTransfers !== undefined ? [db.cashTransfers.clear()] : []),
+      // Lo deducido de los datos anteriores nunca sobrevive a una restauración.
+      db.planChecks.clear(),
+      db.axisMemory.clear(),
+      db.axisConversation.clear(),
     ])
     if (backup.config) await db.config.put(backup.config)
     await db.movements.bulkAdd(backup.movements)
@@ -340,6 +383,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     if (backup.debts !== undefined) await db.debts.bulkAdd(backup.debts)
     if (backup.recurring !== undefined) await db.recurring.bulkAdd(backup.recurring)
     if (backup.cashTransfers !== undefined) await db.cashTransfers.bulkAdd(backup.cashTransfers)
+    if (backup.planChecks !== undefined) await db.planChecks.bulkAdd(backup.planChecks)
   })
 }
 

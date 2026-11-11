@@ -8,7 +8,7 @@
  * lectura. Ninguna señal desaparece ni gana recomendación.
  */
 import type { Signal } from '../types'
-import { comparedAmounts, decidingChangePct, describeRecurringIncomes, eur, irregularIncomeOf, pct, recurringIncomesOf, THRESHOLDS, type Rule } from './shared'
+import { backToUsualIncome, comparedAmounts, decidingChangePct, describeRecurringIncomes, eur, irregularIncomeOf, pct, recurringIncomesOf, THRESHOLDS, type Rule } from './shared'
 
 export const incomeRules: Rule = (ctx, _market, profile) => {
   const { current, previous } = ctx.flows
@@ -61,7 +61,7 @@ export const incomeRules: Rule = (ctx, _market, profile) => {
     })
   }
 
-  if (incomeChangePct !== null && incomeChangePct <= -THRESHOLDS.significantChangePct) {
+  if (incomeChangePct !== null && incomeChangePct <= -THRESHOLDS.significantChangePct && !backToUsualIncome(current, previous, ctx.flows.closedMonths)) {
     signals.push({
       id: 'income.drop',
       domain: 'income' as const,

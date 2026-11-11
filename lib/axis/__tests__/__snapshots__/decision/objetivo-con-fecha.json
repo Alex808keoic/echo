@@ -162,7 +162,7 @@
       "domain": "objectives",
       "priority": "high",
       "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
-      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a los 1.590,00 € al mes que harían falta para «Coche».",
       "recommendation": {
         "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
         "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
@@ -213,7 +213,7 @@
     "domain": "objectives",
     "priority": "high",
     "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
-    "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+    "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a los 1.590,00 € al mes que harían falta para «Coche».",
     "recommendation": {
       "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
       "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",
@@ -242,7 +242,7 @@
       "domain": "objectives",
       "priority": "high",
       "fact": "Para llegar a «Coche» en 6 meses harían falta unos 1.590,00 € al mes (faltan 9.450,00 €).",
-      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a ese ritmo.",
+      "interpretation": "Tu ahorro de este mes (1.300,00 €) no llega a los 1.590,00 € al mes que harían falta para «Coche».",
       "recommendation": {
         "what": "Elige entre aplazar la fecha de «Coche», reducir la meta o aumentar tu ahorro mensual.",
         "why": "Las tres opciones son válidas; lo que no funciona es mantener un plan que las cifras no sostienen.",

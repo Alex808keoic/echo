@@ -9,7 +9,7 @@
 import { investEstimate } from '../guide/invest'
 import { recommendGuide } from '../guide/recommend'
 import type { AxisDecision } from '../types'
-import { CUSHION_SHORT_RATIO, PACE_MARGIN, cushionMonthsFor, horizonInDoubt, isCushionObjective, planInvestment, planRisk, spendingPaceCents, type AllocationPlan, type PlanStep } from './allocation'
+import { CUSHION_SHORT_RATIO, PACE_MARGIN, cushionMonthsFor, horizonInDoubt, investableGoal, isCushionObjective, planInvestment, planRisk, spendingPaceCents, type AllocationPlan, type PlanStep } from './allocation'
 import { describeStep } from './describe'
 import { idealSplit } from './ideal-split'
 import { BONDS_PCT, RISKY_MAX_PCT, SLEEVES, type MixPart, type SleeveKey } from './mix'
@@ -84,6 +84,8 @@ export function checkPlan(plan: AllocationPlan, decision: AxisDecision): Violati
   if (profile.horizon === 'short')
     for (const s of investing)
       if ((s.kind === 'invest-long-term' && s.monthlyCents > 0) || (s.kind === 'idle-money' && !s.safe)) fail('short-horizon-no-invest', `«${s.kind}» invierte con un plazo de menos de 2 años.`)
+      else if ((s.kind === 'invest-for-goals' || s.kind === 'invest-goal-money') && objectives.some((o) => s.objectiveIds.includes(o.id) && !investableGoal(o, profile.horizon)))
+        fail('short-horizon-no-invest', `«${s.kind}» invierte un objetivo con el plazo en duda y un perfil de menos de 2 años.`)
 
   // 6. La renta variable no pasa de lo que permite el plazo real del dinero (sin contar reequilibrios).
   const risk = planRisk(profile)
