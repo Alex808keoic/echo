@@ -165,6 +165,8 @@ export function checkPlan(plan: AllocationPlan, decision: AxisDecision): Violati
   // 14. Con ingresos que cambian, si el plan invierte, dice qué hacer con cada extra.
   if (profile.irregularIncome === true && investing.some((s) => stepAmount(s) > 0) && !plan.steps.some((s) => s.kind === 'extras-split'))
     fail('extras-have-a-rule', 'Ingresos irregulares y un plan que invierte sin decir qué hacer con los extras.')
+  if (profile.irregularIncome === true && plan.steps.some((s) => s.kind === 'short-term-objectives' || s.kind === 'goal-cash-to-safe') && !plan.steps.some((s) => s.kind === 'extras-split'))
+    fail('extras-have-a-rule', 'Ingresos irregulares y objetivos cercanos sin decir qué hacer con los extras.')
 
   // 15. Un plan provisional no dice que no ahorras solo por el ritmo de gasto si tu último mes completo ahorró de verdad
   // (caso real 2026-11-11: 9 días de septiembre estirados a un mes daban «gasta menos de lo que ingresas» con 11 € ahorrados en octubre).

@@ -117,7 +117,8 @@ export type PlanStep =
    * Ingresos irregulares: qué hacer con cada extra (trabajo, regalo). Colchón primero; el resto, con estos pesos.
    * Por debajo de `minCents`, se junta con el siguiente (invertir importes pequeños no compensa).
    */
-  | { kind: 'extras-split'; weights: Array<Pick<MixPart, 'key' | 'label' | 'pct'>>; minCents: number; adult: boolean | null }
+  /** `toSafe`: el plan no invierte (objetivos cercanos): lo demás va a ellos, en ahorro seguro. `weights` vacío. */
+  | { kind: 'extras-split'; weights: Array<Pick<MixPart, 'key' | 'label' | 'pct'>>; minCents: number; adult: boolean | null; toSafe?: true }
   | { kind: 'raise-cushion'; objectiveId: string; targetCents: number; suggestedCents: number; months: number; spendingCents: number }
   /** `starter`: con deudas caras, solo el colchón mínimo (1 mes de gasto) antes de ir a por ellas. */
   | { kind: 'fill-cushion'; monthlyCents: number; remainingCents: number; months: number; starter?: true }
@@ -975,6 +976,10 @@ function buildPlanCore(decision: AxisDecision, options: PlanOptions): Allocation
       (s.kind === 'invest-goal-money' || s.kind === 'invest-for-goals' || s.kind === 'invest-long-term' || (s.kind === 'idle-money' && !s.safe)) && s.mix.length > 0,
     )
     if (invest) steps.push({ kind: 'extras-split', weights: invest.mix.map(({ key, label, pct }) => ({ key, label, pct })), minCents: EXTRAS_MIN_CENTS, adult: profile.adult ?? null })
+    // Sin nada que invertir, los extras también necesitan una regla (2026-11-11: con el objetivo cercano, el plan de un
+    // menor cuyos extras son casi todo su ahorro ya no decía qué hacer con ellos).
+    else if (steps.some((s) => s.kind === 'short-term-objectives' || s.kind === 'goal-cash-to-safe'))
+      steps.push({ kind: 'extras-split', weights: [], minCents: EXTRAS_MIN_CENTS, adult: profile.adult ?? null, toSafe: true })
   }
 
   return withProfileStep({ status: 'ready', blocker: null, monthly, cushion, longTerm, steps })

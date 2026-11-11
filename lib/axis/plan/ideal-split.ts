@@ -10,6 +10,7 @@
  * o ahorro seguro), la deuda cara que el plan manda devolver y, lo que quede,
  * con tu mezcla (o en ahorro seguro si necesitas el dinero en menos de 2 años).
  */
+import { formatCents } from '../../money'
 import { roundedShares } from '../../finance/summary'
 import { isLongGoal } from '../../finance/objectives'
 import type { AxisDecision } from '../types'
@@ -154,7 +155,15 @@ export function idealSplit(plan: AllocationPlan, decision: AxisDecision): IdealS
     actualCents: actual.get(group) ?? 0,
   }))
 
-  return { kind: 'ready', totalCents, parts, comparison, headline: splitHeadline(comparison) }
+  // «En cuenta» y «ahorro seguro» van en el mismo grupo: si el plan propone pasar dinero de la cuenta a ahorro
+  // seguro, «lo tienes bien repartido» se contradiría con él (2026-11-11).
+  const toSafe = plan.steps.find((s) => s.kind === 'goal-cash-to-safe')
+  const base = splitHeadline(comparison)
+  const headline =
+    toSafe?.kind === 'goal-cash-to-safe' && base.startsWith('Lo tienes bien repartido')
+      ? `Por tipos está bien repartido, pero ${formatCents(toSafe.cents)} de tus objetivos cercanos están quietos en la cuenta: tu plan te propone pasarlos a ahorro seguro.`
+      : base
+  return { kind: 'ready', totalCents, parts, comparison, headline }
 }
 
 /** Una frase de AXIS: la parte que más se aleja de lo recomendado, o que está bien repartido. */

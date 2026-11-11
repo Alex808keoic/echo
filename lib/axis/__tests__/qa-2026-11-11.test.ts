@@ -10,6 +10,9 @@ import { buildAllocationPlan, planInvestment, type PlanStep } from '../plan/allo
 import { checkPlan } from '../plan/invariants'
 import { describeStep, forecastCaption } from '../plan/describe'
 import { monthChecklist } from '../plan/checklist'
+import { projectWealth } from '../plan/projection'
+import { idealSplit } from '../plan/ideal-split'
+import { inflationFrom } from '../plan/inflation'
 import type { AxisMemory } from '../types'
 import type { Movement, Objective } from '../../types'
 import { config, gasto, ingreso, movement, objective, snapshot } from './fixtures'
@@ -179,5 +182,32 @@ describe('plazo medio e importes pequeños', () => {
     assert.ok(lt && lt.monthlyCents < 5_000, JSON.stringify(lt))
     const items = monthChecklist(plan, ctx.objectives).map((i) => i.text)
     assert.ok(items.some((t) => /^Aparta .* cuando llegues a 50,00 €/.test(t)), items.join(' | '))
+  })
+})
+
+describe('tu caso, segunda revisión: extras, proyección y reparto ideal coherentes con el ahorro seguro', () => {
+  const minor = profile({ adult: false, horizon: 'medium', work: 'student', irregularIncome: true })
+  const goals = () => [objective({ name: 'Patrimonio ideal 18 años', targetCents: 500_000, targetDate: '2029-06-29', priority: 1 })]
+  const movements = () => [...salary(3_500), ...spend(2_400), ...nov(3_500).slice(0, 1)]
+
+  it('con ingresos irregulares y sin nada que invertir, los extras tienen regla (a ahorro seguro)', () => {
+    const { ctx, plan, violations } = run(movements(), goals(), 96_000, minor)
+    const extras = step(plan.steps, 'extras-split')
+    assert.ok(extras?.toSafe)
+    assert.match(describeStep(extras, plan, ctx.objectives).detail ?? '', /pásalo a tu ahorro seguro/)
+    assert.deepEqual(violations, [])
+  })
+
+  it('la proyección cuenta el ahorro seguro que propone el plan', () => {
+    const { ctx, plan } = run(movements(), goals(), 96_000, minor)
+    const p = projectWealth(plan, ctx, 5, inflationFrom(null))
+    assert.ok(p && p.midCents > p.contributedCents, JSON.stringify(p))
+  })
+
+  it('el reparto ideal no dice «bien repartido» si el plan propone mover dinero a ahorro seguro', () => {
+    const { decision, plan } = run(movements(), goals(), 96_000, minor)
+    const split = idealSplit(plan, decision)
+    assert.ok(split.kind === 'ready')
+    assert.match(split.headline, /pasarlos a ahorro seguro/)
   })
 })

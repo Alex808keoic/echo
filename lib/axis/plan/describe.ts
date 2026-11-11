@@ -204,6 +204,12 @@ export function describeStep(step: PlanStep, plan: AllocationPlan, contextObject
         action: { kind: 'create-cushion', label: 'Crearlo y ponerlo primero' },
       }
     case 'extras-split': {
+      if (step.toSafe)
+        return {
+          title: 'Cada vez que cobres un extra',
+          detail: `Tus ingresos cambian, así que la mayor parte de tu ahorro llegará con extras (trabajos, regalos). Con cada uno: apúntalo en Movimientos; si tu colchón no está completo, va primero ahí; lo demás va a tus objetivos cercanos, que no se invierten: cuando juntes ${eur(step.minCents)} o más, pásalo a tu ahorro seguro. Cada extra acerca tu meta mucho más que la paga.`,
+          ...(step.adult === false ? { note: 'Como eres menor de edad, la cuenta o el depósito tendría que abrirlo un adulto a tu nombre (por ejemplo, tus padres o tutores).' } : {}),
+        }
       const parts = step.weights.map((w) => `${w.pct} % a ${w.label.charAt(0).toLowerCase()}${w.label.slice(1)}`).join(', ')
       return {
         title: 'Cada vez que cobres un extra',

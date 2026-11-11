@@ -78,6 +78,15 @@ export function projectWealth(plan: AllocationPlan, ctx: Pick<FinancialContext, 
   // Lo que se invierte cada mes: el largo plazo y el ahorro de los objetivos lejanos.
   let invested = 0
   for (const s of plan.steps) if (s.kind === 'invest-long-term' || s.kind === 'invest-for-goals') for (const p of s.mix) ((monthly[p.key] += p.cents), (invested += p.cents))
+  // Lo que el plan manda a ahorro seguro también crece (2026-11-11: con todo en objetivos cercanos, «si va mal»,
+  // «normal» y «si va bien» salían igual que dejarlo quieto, aunque el plan proponía ahorro seguro).
+  for (const s of plan.steps) {
+    if (s.kind === 'short-term-objectives') ((monthly.safe += s.monthlyCents), (invested += s.monthlyCents))
+    const toSafe = s.kind === 'goal-cash-to-safe' ? s.cents : s.kind === 'idle-money' && s.safe ? s.idleCents : 0
+    const moved = Math.min(toSafe, today.liquid)
+    today.liquid -= moved
+    today.safe += moved
+  }
   monthly.liquid = Math.max(0, plan.monthly.savingsCents - invested)
 
   const keys = Object.keys(today) as Array<PositionAssetType | 'liquid'>
