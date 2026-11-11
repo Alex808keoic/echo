@@ -111,6 +111,12 @@ export async function pushSnapshots(snapshots: readonly Snapshot[], options: { f
   }))
   const { error } = await supabase.from('snapshots').upsert(rows, { onConflict: 'user_id,app,week_start' })
   if (error) return 'failed'
+  // Lo que ya no está en el dispositivo (semanas de datos borrados, de otra copia o de pruebas) tampoco debe seguir en AXIS.
+  if (rows.length > 0) {
+    const weeks = rows.map((row) => row.week_start).join(',')
+    const { error: cleanError } = await supabase.from('snapshots').delete().eq('app', rows[0].app).not('week_start', 'in', `(${weeks})`)
+    if (cleanError) return 'failed'
+  }
   lastSentFingerprint = fingerprint
   return 'sent'
 }
