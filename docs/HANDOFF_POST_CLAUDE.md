@@ -12,6 +12,19 @@
 
 ---
 
+## QA de 10 pruebas como tester y asesor (2026-11-11, tarde)
+
+Copia real del 11-nov + 9 casos inventados (scratchpad qa10.mts). Todo arreglado y probado en  (commits 6d93917, c71e401, 8ef16d9, 36be6f1):
+
+- **Objetivos a 2–5 años**: antes, entre 24 y 60 meses no tenían ningún paso (ni aviso «no llega»). Ahora  cubre hasta  y avisa con . Nuevo paso : lo que esos objetivos tienen en la cuenta, a ahorro seguro (no cuenta como invertir).
+- **Plazo corto + «sigue creciendo»**:  ya no invierte esos objetivos (antes 50/50); regla nueva en .
+- **Restaurar** borra ,  y ; la copia lleva  (opcional, sin subir de versión).
+- **AXIS**:  si los meses completos gastan más de lo que ingresas (antes «ahorras el 100 %»);  evita falsas / tras un mes extraordinario.
+- Paso ; ; «a medio plazo»; menos de 50 € al mes se juntan; textos de deuda, objetivos cubiertos y caídas; revisiones sin lo puntual; préstamo puntual → «Adelanto»; proyección a 5 años si el plazo no es largo.
+- Sin cambiar: tope del 10 % de la parte arriesgada también con perfil conservador; el gasto del colchón sigue con el ritmo de todos los días (prudente; se corrige solo con un 2.º mes completo).
+
+---
+
 ## Revisión del plan como asesor (2026-11-11)
 
 Revisado con la copia real del 8-nov (21:52) y 7 escenarios de adulto (sano, con objetivos, deuda cara, gasta más, sin perfil, inversiones, ingresos irregulares). Cuatro fallos, arreglados:
