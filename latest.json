@@ -16,29 +16,30 @@
       "asOf": "2026-09-16",
       "changePct": 0.25,
       "source": "BCE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "euribor-12m",
       "label": "Euríbor 12 meses",
       "group": "rate",
-      "value": 3.351,
+      "value": 3.328,
       "unit": "%",
-      "asOf": "2026-11-25",
-      "changePct": -0.025,
+      "asOf": "2026-11-26",
+      "changePct": -0.023,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ine-ipc",
       "label": "IPC España (interanual)",
       "group": "inflation",
-      "value": 4.9,
+      "value": 4.1,
       "unit": "%",
-      "asOf": "2026-10",
-      "changePct": 0,
+      "asOf": "2026-11",
+      "changePct": -0.8,
       "source": "INE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "status": "advance",
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ea-hicp",
@@ -50,19 +51,19 @@
       "changePct": 0.2,
       "source": "Eurostat",
       "publishedAt": "2026-11-18T10:00:00.000Z",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ibex",
       "label": "IBEX 35",
       "group": "index",
-      "value": 18635.8,
+      "value": 19057.9,
       "unit": "pts",
-      "asOf": "2026-11-25",
-      "changePct": -1.31,
+      "asOf": "2026-11-26",
+      "changePct": 1.06,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "stoxx50",
@@ -74,7 +75,7 @@
       "changePct": -2.31,
       "changeDays": 30,
       "source": "BCE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "fed-funds",
@@ -86,19 +87,19 @@
       "changePct": 0.13,
       "changeDays": 30,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "spx",
       "label": "S&P 500",
       "group": "index",
-      "value": 7201.09,
+      "value": 7182.78,
       "unit": "pts",
-      "asOf": "2026-11-24",
-      "changePct": -6.75,
+      "asOf": "2026-11-25",
+      "changePct": -7.25,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ndq",
@@ -110,7 +111,7 @@
       "changePct": -12.63,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "brent",
@@ -122,7 +123,7 @@
       "changePct": -25.43,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "us-10y",
@@ -134,7 +135,7 @@
       "changePct": -0.08,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "eu-hy",
@@ -146,7 +147,7 @@
       "changePct": -0.11,
       "changeDays": 28,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "copper",
@@ -158,7 +159,7 @@
       "changePct": 0.99,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "gas-eu",
@@ -170,19 +171,19 @@
       "changePct": 21.85,
       "changeDays": 31,
       "source": "FRED",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ea-10y",
       "label": "Bono a 10 años de la eurozona (AAA)",
       "group": "bond",
-      "value": 3.26,
+      "value": 3.31,
       "unit": "%",
-      "asOf": "2026-11-25",
-      "changePct": -0.13,
+      "asOf": "2026-11-26",
+      "changePct": -0.07,
       "changeDays": 28,
       "source": "BCE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "es-10y",
@@ -194,7 +195,7 @@
       "changePct": 0.14,
       "changeDays": 30,
       "source": "BCE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "ine-ipv",
@@ -206,7 +207,7 @@
       "changePct": -0.7,
       "changeDays": 91,
       "source": "INE",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "es-deposit-1y",
@@ -218,7 +219,7 @@
       "changePct": 0.27,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "es-deposit-sight",
@@ -230,7 +231,7 @@
       "changePct": 0,
       "changeDays": 31,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "es-letras-1y",
@@ -238,47 +239,47 @@
       "group": "rate",
       "value": 3.05,
       "unit": "%",
-      "asOf": "2026-11-24",
+      "asOf": "2026-11-25",
       "changePct": 0,
       "changeDays": 28,
       "source": "Banco de España",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "gold",
       "label": "Oro (dólares por onza)",
       "group": "commodity",
-      "value": 3564.6,
+      "value": 3635.4,
       "unit": "USD",
-      "asOf": "2026-11-26",
-      "changePct": -11.56,
+      "asOf": "2026-11-27",
+      "changePct": -6.62,
       "source": "gold-api.com",
-      "fetchedAt": "2026-11-26T17:50:29.680Z",
+      "fetchedAt": "2026-11-27T17:35:08.960Z",
       "changeDays": 28
     },
     {
       "key": "btc",
       "label": "Bitcoin (euros)",
       "group": "crypto",
-      "value": 55059,
+      "value": 54393,
       "unit": "EUR",
-      "asOf": "2026-11-26",
-      "changePct": -24.43,
+      "asOf": "2026-11-27",
+      "changePct": -21.86,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     },
     {
       "key": "eth",
       "label": "Ether (euros)",
       "group": "crypto",
-      "value": 1541,
+      "value": 1519,
       "unit": "EUR",
-      "asOf": "2026-11-26",
-      "changePct": -27.1,
+      "asOf": "2026-11-27",
+      "changePct": -24.5,
       "changeDays": 28,
       "source": "CoinGecko",
-      "fetchedAt": "2026-11-26T17:50:29.680Z"
+      "fetchedAt": "2026-11-27T17:35:08.960Z"
     }
   ],
   "events": [
